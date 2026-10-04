@@ -126,3 +126,38 @@ The earliest static cross-reference work points to several heavily reused helper
 - `0x00403770` / `0x004036E0` / `0x00403B70` - surface/resource lifecycle helpers
 
 These should be resolved before spending time on isolated subgame routines because naming them will clarify a large fraction of the call graph.
+
+
+## Startup root and bulk table loader
+
+The MSVC CRT entry point at `0x00430FEA` eventually calls `0x00402700` with the normal four `WinMain` arguments. Therefore:
+
+- `0x00402700` = `WinMain`
+- `0x00402B00` is the constructor-like initializer for the large game object allocated by `WinMain` (allocation size `0x7738` bytes)
+
+Early in `WinMain`, the executable walks this registry hierarchy:
+
+`HKLM\\Software\\BBC Multimedia\\Bob the Builder - Bob Builds a Park`
+
+and queries `Install Path`.
+
+The function at `0x00407920` is now identified as a bulk global-data loader. It calls, in order, the loaders for:
+
+- UI bitmap names
+- UI hot-area replacements
+- UI hot areas
+- UI hot-area counts
+- help WAV mappings
+- options
+- video sequence
+- quit-confirmation data
+- Bink walkthrough/help mappings
+- startup + completion movie lists
+- play-again overlay data
+
+This is a high-value boundary: most of the global UI/movie configuration can be reconstructed independently of the individual minigames.
+
+## Additional verified subsystem entry points
+
+- `0x00407E50 InitializeDirectInput` — creates/configures the DirectInput 8 interfaces/devices.
+- `0x00408D90 InitializeBinkAudio` — passes `BinkOpenDirectSound` to `BinkSetSoundSystem`, tying Bink playback to the game's DirectSound object.
