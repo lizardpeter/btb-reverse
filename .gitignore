@@ -1,0 +1,35 @@
+# Original/proprietary game content
+source/
+game/
+BTB-BBP/
+*.exe
+*.dll
+*.cab
+*.bik
+*.wav
+*.bmp
+*.ico
+*.hlp
+*.gid
+
+# Reverse-engineering databases / local disassembly
+*.gpr
+*.rep/
+*.idb
+*.i64
+*.id0
+*.id1
+*.id2
+*.nam
+*.til
+*.dmp
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local/generated scratch
+analysis/local/
+tmp/
