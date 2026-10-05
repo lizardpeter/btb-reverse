@@ -36,9 +36,9 @@ int main() {
     assert(level.target_positions.size() == 7);
     assert(level.start_positions.size() == 7);
     assert(level.extra_positions.size() == 3);
-    assert(level.target_positions.front() == Vec2i{149, 147});
-    assert(level.start_positions.front() == Vec2i{362, 396});
-    assert(*level.runtime_animation_anchor() == Vec2i{456, 248});
+    assert((level.target_positions.front() == Vec2i{149, 147}));
+    assert((level.start_positions.front() == Vec2i{362, 396}));
+    assert((*level.runtime_animation_anchor() == Vec2i{456, 248}));
     assert((level.piece_permutation == std::vector<std::int32_t>{6, 3, 0, 1, 4, 2, 5}));
 
     assert(level_index(Species::Raptor, Difficulty::Easy) == 0);
