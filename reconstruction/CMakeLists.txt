@@ -4,6 +4,7 @@ project(btb_reconstruction LANGUAGES CXX)
 add_library(btb_dino
     src/dino_level.cpp
     src/dino_runtime.cpp
+    src/dino_character_animation.cpp
 )
 
 target_include_directories(btb_dino PUBLIC include)
@@ -36,3 +37,11 @@ add_executable(btb_fireworks_layout_tests
 )
 target_link_libraries(btb_fireworks_layout_tests PRIVATE btb_fireworks)
 add_test(NAME fireworks_layout COMMAND btb_fireworks_layout_tests)
+
+
+add_executable(btb_dino_character_animation_tests
+    tests/dino_character_animation_test.cpp
+)
+target_link_libraries(btb_dino_character_animation_tests PRIVATE btb_dino)
+
+add_test(NAME dino_character_animation COMMAND btb_dino_character_animation_tests)
