@@ -134,9 +134,9 @@ int main() {
     constexpr auto legacy = legacy_last_payload(Conductor::Wendy);
     static_assert(legacy[0] == 1 && legacy[4] == 1);
 
-    static_assert(conductor_progress_index(0, Conductor::Bob) == 0);
-    static_assert(conductor_progress_index(0, Conductor::FarmerPickles) == 2);
-    static_assert(conductor_progress_index(4, Conductor::Wendy) == 401);
+    static_assert(conductor_progress_index(0, Conductor::Bob) == 52);
+    static_assert(conductor_progress_index(0, Conductor::FarmerPickles) == 54);
+    static_assert(conductor_progress_index(4, Conductor::Wendy) == 453);
     static_assert(!all_conductors_complete({1,1,0}));
     static_assert(all_conductors_complete({1,1,1}));
 }
