@@ -41,7 +41,7 @@ int main() {
     static_assert(static_cast<std::size_t>(Slot::SpudSkate) == 60);
     static_assert(static_cast<std::size_t>(Slot::Maze) == 61);
     static_assert(static_cast<std::size_t>(Slot::Golf) == 62);
-    static_assert(static_cast<std::size_t>(Slot::FireworkFinaleEntered) == 63);
+    static_assert(static_cast<std::size_t>(Slot::FireworkFinaleStarted) == 63);
     static_assert(static_cast<std::size_t>(Slot::ReservedUnused) == 64);
 
     Record progress;
@@ -57,7 +57,7 @@ int main() {
     assert(retail_progress_sum(progress) == 13);
     assert(retail_finale_available(progress));
 
-    progress.set(Slot::FireworkFinaleEntered, 1);
+    progress.set(Slot::FireworkFinaleStarted, 1);
     assert(retail_progress_sum(progress) == 14);
 
     // Preserve exact executable behavior for edited/corrupt saves: the retail
@@ -66,7 +66,7 @@ int main() {
     for (std::size_t i = 50; i < 61; ++i) {
         altered.values[i] = 1;
     }
-    altered.set(Slot::FireworkFinaleEntered, 1);
+    altered.set(Slot::FireworkFinaleStarted, 1);
     altered.set(Slot::ReservedUnused, 1);
     assert(!intended_prerequisites_complete(altered));
     assert(retail_progress_sum(altered) == 13);
