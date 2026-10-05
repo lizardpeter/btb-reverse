@@ -64,6 +64,6 @@ state,handler,role,module,confidence,notes
 0x3E,0x0042CC28,play_again_difficulty_setup,front_end,high,"Loads screen index 10: Play Again with Easy/Medium/Hard selection"
 0x3F,0x0042CC73,play_again_difficulty_update,front_end,high,"Draws/updates difficulty replay screen then restores the saved activity flow with the chosen difficulty"
 0x40,0x0042CCEA,shared_movie_transition,front_end,medium,"Opens/updates a table-selected Bink movie and returns to the saved/default front-end state when playback completes"
-0x41,0x0042A708,front_end,front_end,medium,"Front-end helper state"
+0x41,0x0042A708,scene_set_movie_transition,front_end,high,"Calls UpdateSceneSetMovie @ 0x0042A240; when sceneset.bik completes, outer game-flow state becomes 0x04"
 0x42,0x0042C9D4,fireworks_replay_choice_setup,fireworks,high,"Loads screen index 11: Fireworks Edit/View replay choice"
 0x43,0x0042CA34,fireworks_replay_choice_update,fireworks,high,"Draws/updates Fireworks Edit/View replay choice and returns to Fireworks runtime state 0x25"
