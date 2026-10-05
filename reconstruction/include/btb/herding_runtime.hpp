@@ -384,7 +384,7 @@ struct RetailEntityRecord32 {
     float direction_degrees{};         // +0x1C (direction * 45.0)
     float x_float{};                   // +0x20
     float y_float{};                   // +0x24
-    std::int32_t unknown_28{};         // +0x28
+    std::int32_t movement_input_mask{};// +0x28 (Pickles direction bits)
     std::int32_t animation_timer{};    // +0x2C
     std::int32_t type{};               // +0x30
     std::int32_t source_left{};        // +0x34
@@ -394,11 +394,11 @@ struct RetailEntityRecord32 {
     std::uint32_t surface_ptr32{};     // +0x44
     float movement_speed{};            // +0x48
     float movement_scalar{};           // +0x4C
-    std::int32_t behavior_state{};      // +0x50
-    std::int32_t unknown_54{};         // +0x54
-    std::int32_t target_flag_or_timer{};// +0x58
-    std::int32_t target_x{};           // +0x5C
-    std::int32_t target_y{};           // +0x60
+    std::int32_t behavior_state{};       // +0x50
+    std::int32_t unused_54{};            // +0x54 (no retail references)
+    std::int32_t temporary_target_timer{};// +0x58
+    std::int32_t target_x{};              // +0x5C
+    std::int32_t target_y{};              // +0x60
 
     [[nodiscard]] EntityType entity_type() const noexcept {
         return static_cast<EntityType>(type);
@@ -413,9 +413,11 @@ static_assert(sizeof(RetailEntityRecord32) == 0x64);
 static_assert(offsetof(RetailEntityRecord32, direction_degrees) == 0x1C);
 static_assert(offsetof(RetailEntityRecord32, x_float) == 0x20);
 static_assert(offsetof(RetailEntityRecord32, y_float) == 0x24);
+static_assert(offsetof(RetailEntityRecord32, movement_input_mask) == 0x28);
 static_assert(offsetof(RetailEntityRecord32, type) == 0x30);
 static_assert(offsetof(RetailEntityRecord32, surface_ptr32) == 0x44);
 static_assert(offsetof(RetailEntityRecord32, behavior_state) == 0x50);
+static_assert(offsetof(RetailEntityRecord32, temporary_target_timer) == 0x58);
 
 // Retail uses a 20-entry int32 entity-index list at 0x0050AF14 for animals
 // currently following Farmer Pickles. -1 marks an unused slot.
