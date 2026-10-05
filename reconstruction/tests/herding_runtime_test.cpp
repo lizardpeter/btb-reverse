@@ -155,7 +155,10 @@ int main() {
     static_assert(sheep_hotspot.radius == 50);
 
     static_assert(food_pickup_in_range(FoodType::DuckFood, 242, 232));
-    static_assert(!food_pickup_in_range(FoodType::DuckFood, 232, 232));
+    // Duck pickup tests Pickles at (+30,+100) against target (272,332).
+    // pickles_x=202 puts the adjusted X exactly 40 pixels from target, and
+    // retail requires strict distance < 40.
+    static_assert(!food_pickup_in_range(FoodType::DuckFood, 202, 232));
     static_assert(food_pickup_in_range(FoodType::RabbitFood, 365, 354));
     static_assert(!food_pickup_in_range(FoodType::RabbitFood, 405, 354));
     static_assert(food_pickup_in_range(FoodType::SheepFood, 240, 414));
