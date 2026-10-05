@@ -105,4 +105,88 @@ PortalTransition Navigator::apply_portal_if_needed() {
     return {state_, true};
 }
 
+
+namespace {
+
+bool path_contains(
+    const std::vector<std::int32_t>& path,
+    std::int32_t id) noexcept {
+    for (const auto value : path) {
+        if (value == id) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void search_path_recursive(
+    const ScreenGraph& graph,
+    std::int32_t target,
+    std::vector<std::int32_t>& working,
+    std::int32_t accumulated_cost,
+    std::optional<PathResult>& best) {
+
+    if (working.size() >= kRetailMaximumPathNodes) {
+        return;
+    }
+
+    const auto& current = node_by_id(graph, working.back());
+    for (std::size_t direction = 0; direction < current.links.size(); ++direction) {
+        const auto next_id = current.links[direction];
+        if (next_id == -1 || path_contains(working, next_id)) {
+            continue;
+        }
+
+        const auto& next = node_by_id(graph, next_id);
+        const auto candidate_cost =
+            accumulated_cost + truncated_edge_distance(current, next);
+
+        if (best && candidate_cost >= best->cost) {
+            continue;
+        }
+
+        working.push_back(next_id);
+        if (next_id == target) {
+            best = PathResult{working, candidate_cost};
+        } else {
+            search_path_recursive(
+                graph, target, working, candidate_cost, best);
+        }
+        working.pop_back();
+    }
+}
+
+} // namespace
+
+std::int32_t truncated_edge_distance(
+    const Node& a,
+    const Node& b) noexcept {
+    const auto dx = static_cast<double>(
+        a.retail_position.x - b.retail_position.x);
+    const auto dy = static_cast<double>(
+        a.retail_position.y - b.retail_position.y);
+    return static_cast<std::int32_t>(std::sqrt(dx * dx + dy * dy));
+}
+
+std::optional<PathResult> find_shortest_path_retail(
+    const ScreenGraph& graph,
+    std::int32_t start_node,
+    std::int32_t target_node) {
+
+    (void)node_by_id(graph, start_node);
+    (void)node_by_id(graph, target_node);
+
+    if (start_node == target_node) {
+        return PathResult{{start_node}, 0};
+    }
+
+    std::vector<std::int32_t> working;
+    working.reserve(kRetailMaximumPathNodes);
+    working.push_back(start_node);
+
+    std::optional<PathResult> best;
+    search_path_recursive(graph, target_node, working, 0, best);
+    return best;
+}
+
 } // namespace btb::maze
