@@ -89,3 +89,154 @@ The remaining high-value part is the authored sequence itself:
 - transition to crowd/top clips and completion/replay
 
 The data and movie bank are now sufficiently understood to implement the parser and type selection independently of DirectDraw/Bink.
+
+
+## Authored 3x6 timeline
+
+The editor's authored sequence is the 18-dword table beginning at global `0x0050A678`.
+
+It is interpreted as:
+
+```text
+row 0: slots  0.. 5
+row 1: slots  6..11
+row 2: slots 12..17
+```
+
+So each row has six **timeline columns**. Empty cells contain `-1`; occupied cells contain a palette type `0..11`.
+
+### Grid helpers
+
+The core helpers are now high-confidence:
+
+- `0x00410FD0 CanPlaceFireworkGridItem(row, column, type)`
+- `0x00411010 PlaceFireworkGridItem(row, column, type, commit)`
+- `0x00411080 RemoveFireworkGridItem(row, column)`
+
+The executable contains a generic per-type span table at `0x00442734`. The helper can reserve consecutive cells and uses `type + 14` as continuation markers when span > 1.
+
+However, the verified retail table entries for all 12 shipped Fireworks palette types are **1**. Therefore every actual firework occupies exactly one cell in this build. The multi-cell implementation is generic/dead capability rather than retail level data.
+
+### Validate then commit
+
+Placement is intentionally two-phase.
+
+On release over a candidate authored cell, `0x00412D50 CompleteFireworksEditorAction` calls:
+
+```text
+PlaceFireworkGridItem(row, column, selected_type, commit=false)
+```
+
+If valid, it records the pending row/column and starts a short placement animation.
+
+When that animation reaches its commit state, the update path around `0x00413347` calls the same helper with:
+
+```text
+commit=true
+```
+
+Only then is the selected type written into `0x0050A678`.
+
+That distinction is reproduced by the clean-room `Sequence::validate_placement` / `Sequence::commit_placement` API.
+
+### Replace behavior
+
+Clicking an already occupied placement region in the ordinary editor first removes its old type. The current palette selection can then validate/commit into the now-empty cell. This gives the editor its replace behavior.
+
+## Editor controls
+
+The three hard-coded bottom controls are now fully identified.
+
+| Action | Rectangle | Control |
+|---:|---|---|
+| 25 | ~X 102..156, Y 416..472 | **Delete All** |
+| 26 | ~X 483..537, Y 416..472 | **Delete tool** |
+| 27 | ~X 292..346, Y 416..472 | **Play** |
+
+### Delete All
+
+Action 25 loads:
+
+`data\\ui\\DeleteFireworks.bmp`
+
+and invokes the shared `UpdateYesNoConfirmationOverlay` using confirmation context 3. On Yes, the Fireworks update loop observes result flag `0x0051C2DC` and fills all 18 authored slots with `-1`.
+
+### Delete tool
+
+Action 26 uses:
+
+- `fireworkdeletered.bmp`
+- `fireworkdeletedep.bmp`
+
+The editor enters internal mode **13** and swaps to the delete cursor. In mode 13, clicking an occupied placement region calls `RemoveFireworkGridItem`.
+
+### Play
+
+Action 27 uses:
+
+- `fireworkplayred.bmp`
+- `fireworkplaydep.bmp`
+
+It moves the activity into its play/show sequence.
+
+Machine-readable action metadata is in `ghidra/firework_editor_actions.csv`.
+
+## Show playback ordering
+
+The authored show is played **column by column**, not by row.
+
+`0x00413450 UpdateFireworksShowPlayback` advances a timeline column from 0 through 5. For each current column it checks all three rows, creating up to three simultaneous event records.
+
+For an occupied cell, an event records:
+
+- firework type
+- timeline row
+- playback state/frame fields
+
+### Row-to-screen/movie behavior
+
+The show player uses the row directly:
+
+| Row | Screen origin | Movie-bank arithmetic |
+|---:|---|---|
+| 0 | `(0, 0)` | `movie = type` |
+| 1 | `(440, 0)` | `movie = type + 12` |
+| 2 | `(220, 200)` | `movie = type` |
+
+Thus rows 0 and 1 behave like left/right banks for directional types 0..7, while row 2 uses the base clip at a central/lower position.
+
+The clean-room sequence model exposes this exact arithmetic through `retail_movie_index_for_row`.
+
+### Retail edge case
+
+The code adds 12 for row 1 **unconditionally**. Therefore:
+
+- row-1 type 8 -> bank index 20 (`topmiddle.bik`)
+- row-1 type 9 -> bank index 21 (`fireworkcrowdloop.bik`)
+- row-1 type 10 -> bank index 22 (`fireworkcrowdend.bik`)
+- row-1 type 11 -> bank index 23, one beyond the verified 23-entry bank
+
+The placement validator does not itself reject those combinations.
+
+This may be an original-game constraint enforced indirectly by UI expectations, or an original retail bug. The reconstruction records the behavior exactly rather than silently normalizing it.
+
+Machine-readable row rules are in `ghidra/firework_playback_rows.csv`.
+
+## Clean-room reconstruction status
+
+The Fireworks reconstruction now includes:
+
+- source rectangle parser
+- runtime placement X offset
+- all 12 palette types
+- verified 23-entry Bink bank
+- exact 3x6 authored timeline
+- empty/occupied state
+- validate/commit placement split
+- replacement
+- remove/delete-all
+- occupied/full counts
+- column-based playback event generation
+- exact retail row coordinates and Bink-index arithmetic
+
+What remains for a fully source-level Fireworks recreation is mainly the **show scheduler/timing and Bink event lifetime**, plus the detailed editor animation/hover state.
