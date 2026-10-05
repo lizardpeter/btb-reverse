@@ -21,14 +21,22 @@ int main() {
     assert(events[0].row == 0);
     assert(events[0].movie_index == 0);
     assert(events[0].x == 0 && events[0].y == 0);
+    assert(events[0].scheduled_launch_ms == 0);
 
     assert(events[1].row == 1);
     assert(events[1].movie_index == 13);
     assert(events[1].x == 440 && events[1].y == 0);
+    assert(events[1].scheduled_launch_ms == 100);
 
     assert(events[2].row == 2);
     assert(events[2].movie_index == 8);
     assert(events[2].x == 220 && events[2].y == 200);
+    assert(events[2].scheduled_launch_ms == 200);
+
+    assert(retail_scheduled_launch_ms(0, 5) == 2000);
+    assert(retail_scheduled_launch_ms(1, 5) == 2100);
+    assert(retail_scheduled_launch_ms(2, 5) == 2200);
+    assert(retail_scheduled_launch_ms(3, 0) == -1);
 
     // Preserve the retail row-1 arithmetic even when it selects a special
     // bank entry rather than a corresponding right-facing type.
