@@ -84,6 +84,28 @@ int main() {
     assert(has_profile(roundtrip[0]));
     assert(!has_profile(roundtrip[4]));
 
+    assert(profile_screen_action(
+        ProfileScreenTarget::Profile0, roundtrip, false)
+        == ProfileScreenAction::SelectExisting);
+    assert(profile_screen_action(
+        ProfileScreenTarget::Profile4, roundtrip, false)
+        == ProfileScreenAction::BeginCreate);
+    assert(profile_screen_action(
+        ProfileScreenTarget::Profile0, roundtrip, true)
+        == ProfileScreenAction::ConfirmDelete);
+    assert(profile_screen_action(
+        ProfileScreenTarget::Profile4, roundtrip, true)
+        == ProfileScreenAction::None);
+    assert(profile_screen_action(
+        ProfileScreenTarget::Help, roundtrip, false)
+        == ProfileScreenAction::OpenHelp);
+    assert(profile_screen_action(
+        ProfileScreenTarget::Delete, roundtrip, false)
+        == ProfileScreenAction::ToggleDeleteMode);
+    assert(profile_screen_action(
+        ProfileScreenTarget::Back, roundtrip, false)
+        == ProfileScreenAction::BeginQuit);
+
     ProfileInfo badge_only{};
     badge_only.name_length = 0;
     badge_only.badge_index = 3;
