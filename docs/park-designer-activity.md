@@ -301,3 +301,73 @@ performs the simpler active-object sort on `+0x30`.
 first compares sort layer; ties are then resolved with bottom/Y positioning and several special cases for object code 300, Pond records, category/variant values, and the currently selected designer object.
 
 `DrawParkDesignerActivity` builds an array of pointers to the 400 persistent records and invokes these retail comparators before blitting the objects.
+
+
+## Individual deletion
+
+The delete-tool branch is now separated from placement/view behavior.
+
+### `0x0040D2E0 FindTopmostParkDesignerObjectAtCursor`
+
+Retail scans the **depth-sorted pointer array from back to front**, so the visually topmost eligible object wins.
+
+For every candidate it:
+
+1. rejects inactive records;
+2. applies the caller's filter mode;
+3. checks the mouse against the object's coarse left/top/right/bottom box;
+4. converts the cursor into object-local coordinates;
+5. chooses the exact `boundareas.txt` polygon from record index/category/variant;
+6. calls the shared `PointInPolygon`;
+7. returns the persistent record index when the polygon test succeeds.
+
+This is why selection matches irregular object silhouettes rather than only sprite rectangles.
+
+### Compound Pond cleanup
+
+`0x0040DC90 ClearPondPrimaryObjectsBySelector` operates only on records 0..99:
+
+| Selector | Retail effect |
+|---:|---|
+| 0 | clear every primary Pond record |
+| 1 | clear records whose object code is exactly 7 |
+| 2 | clear records with object code below 100 except code 7 |
+
+The helper also clears the corresponding persisted Pond-selection globals for selectors 0 and 1.
+
+### Compound Bandstand cleanup
+
+`0x0040DCE0 ClearBandstandObjectsByCategorySelector` operates on records 200..299:
+
+| Selector | Retail effect |
+|---:|---|
+| 0 | clear bound categories 0, 1, and 2 |
+| 1 | clear category 2 only |
+
+The individual delete branch invokes these helpers for specific compound-object cases before clearing the selected primary record.
+
+### Delete branch
+
+When the delete cursor/tool is active, retail calls `FindTopmostParkDesignerObjectAtCursor(1)`.
+
+The selected record's storage range and metadata decide whether the operation is:
+
+- a simple single-record delete;
+- a Pond compound cleanup;
+- a Bandstand compound cleanup plus linked-record-list repair.
+
+The persistent portions of those cleanup helpers are now implemented and tested in `park_designer_data.cpp`.
+
+## Toolbar helper layer
+
+### `0x0040D420 HitTestParkDesignerToolbar`
+
+Walks the toolbar rectangle table until its `-1` sentinel and returns the control index under the current cursor.
+
+### `0x0040D470 DrawParkDesignerToolbarAndHover`
+
+Draws normal/hover/depressed control surfaces and plays the matching `DYP_G_*` hover lines for the Pond/Bandstand/Decorate/View/Delete control group.
+
+### `0x00410F70 PlayPersistentParkDesignerVoice`
+
+Centralizes the activity's spoken UI feedback. It plays through the 80-slot managed sound system with priority 50 and marks the resulting slot persistent so the voice is not auto-reaped during editor state transitions.
