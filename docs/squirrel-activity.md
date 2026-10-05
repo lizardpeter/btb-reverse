@@ -99,6 +99,81 @@ It fills the activity's active-item flags, piece values, and conveyor item posit
 
 The routine also chooses a randomized starting offset using `rand()%7`.
 
+## Difficulty and conveyor mix
+
+`GenerateSquirrelConveyorChoices` sets an explicit correctness flag for every offered conveyor item.
+
+The player-selection branch reads that flag directly:
+
+- flag 1 -> state 1 -> state 3 -> correct-placement branch;
+- flag 0 -> state 2 -> state 4 -> decoy-placement branch.
+
+The number of choices is difficulty-dependent:
+
+| Difficulty | Correct choices | Decoys | Total visible choices |
+|---|---:|---:|---:|
+| Easy | 3 | 0 | 3 |
+| Medium | 3 | 1 | 4 |
+| Hard | 2 | 2 | 4 |
+
+The initializer independently computes the visible-choice count as `3 + (difficulty != Easy)`, matching the generator.
+
+### 36-piece encoding
+
+Every generated piece value is in the range 0..35 and is constructed as:
+
+```text
+piece_id = outer_variant * 9 + inner_a * 3 + inner_b
+```
+
+Therefore the retail piece space is exactly:
+
+```text
+4 outer variants x 3 inner-A values x 3 inner-B values = 36
+```
+
+The reconstruction exposes `encode_piece_id` and `decode_piece_id` but deliberately keeps the two inner dimensions neutrally named until their authored meaning is closed from rendering and run geometry.
+
+### Seven outer-variant permutations
+
+Retail chooses `rand()%7` and indexes a static 7x4 permutation table:
+
+```text
+0 1 2 3
+0 3 2 1
+1 3 2 0
+1 0 2 3
+3 2 0 1
+2 1 3 0
+3 1 2 0
+```
+
+This gives generated choices distinct/randomized outer variants without changing the separate correct/decoy flag.
+
+## Level count and run-end gate
+
+Difficulty also controls how many run levels must be completed:
+
+- Easy: 1 level
+- Medium: 2 levels
+- Hard: 3 levels
+
+Retail's level index is compared directly with the difficulty index.
+
+When the run-section animation/progression value becomes greater than 6:
+
+- if `level_index < difficulty`, retail starts the next level transition;
+- if `level_index >= difficulty`, it marks the activity complete.
+
+At the moment the final level is recognized, retail stops managed sound and plays one of **664..667**:
+
+- 664 = `SR_WEN_22.wav`
+- 665 = `SR_WEN_23.wav`
+- 666 = `SR_WEN_24.wav`
+- 667 = `SR_WEN_25.wav`
+
+The outer completion stage then separately performs its final 665..667 Wendy line before exiting.
+
 ## Placement state machine
 
 Global `0x005150E4` is a nine-state placement/interactor state.
@@ -106,10 +181,10 @@ Global `0x005150E4` is a nine-state placement/interactor state.
 | State | Reconstructed role |
 |---:|---|
 | 0 | idle / select conveyor item |
-| 1 | move toward selected item, primary path |
-| 2 | move toward selected item, alternate path |
-| 3 | commit primary placement |
-| 4 | commit alternate placement |
+| 1 | move toward selected item, correct-piece path |
+| 2 | move toward selected item, decoy-piece path |
+| 3 | commit correct placement |
+| 4 | commit decoy placement |
 | 5 | return placement actor home |
 | 6 | alternate return |
 | 7 | move to return/recycle point |
@@ -158,7 +233,7 @@ This exact rule is reproduced by `step_toward_target`.
 
 ## Placement feedback audio
 
-Observed primary-placement feedback pools include:
+Observed correct-placement feedback pools include:
 
 Lofty:
 
@@ -173,7 +248,7 @@ Wendy:
 - 657 = `SR_WEN_15.wav`
 - 658 = `SR_WEN_16.wav`
 
-Observed alternate-placement feedback pools include:
+Observed decoy-placement feedback pools include:
 
 Lofty:
 
