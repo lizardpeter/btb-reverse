@@ -32,6 +32,14 @@ int main() {
     static_assert(backing_track_filename(Conductor::Wendy) == "Wendymt.wav");
     static_assert(backing_track_filename(Conductor::FarmerPickles) == "fpmt.wav");
 
+    static_assert(machine_type(Machine::Roley, Duration::Short)
+        == MachineType::Roley1Second);
+    static_assert(machine_type(Machine::Scoop, Duration::Long)
+        == MachineType::Scoop2Second);
+    static_assert(machine_for_type(MachineType::Muck2Second) == Machine::Muck);
+    static_assert(duration_for_type(MachineType::Lofty1Second) == Duration::Short);
+    static_assert(duration_for_type(MachineType::Dizzy2Second) == Duration::Long);
+
     static_assert(machine_name(MachineType::Roley1Second) == "Roley 1 second");
     static_assert(machine_name(MachineType::Scoop2Second) == "Scoop 2 second");
 
@@ -60,6 +68,20 @@ int main() {
         loaded_sound_slot_index(4, MachineType::Roley1Second) == 0);
     static_assert(
         loaded_sound_slot_index(4, MachineType::Scoop2Second) == 9);
+
+    constexpr auto first_cell = decode_grid_region(0);
+    static_assert(first_cell.has_value());
+    static_assert(first_cell->pitch_row == 0 && first_cell->second == 0);
+    constexpr auto last_cell = decode_grid_region(119);
+    static_assert(last_cell.has_value());
+    static_assert(last_cell->pitch_row == 4 && last_cell->second == 23);
+    static_assert(!decode_grid_region(120).has_value());
+
+    static_assert(playback_step_from_centiseconds(0) == 0);
+    static_assert(playback_step_from_centiseconds(99) == 0);
+    static_assert(playback_step_from_centiseconds(100) == 1);
+    static_assert(playback_step_from_centiseconds(2399) == 23);
+    static_assert(playback_step_from_centiseconds(2400) == -1);
 
     Composition composition;
     for (const auto& row : composition.cells) {
