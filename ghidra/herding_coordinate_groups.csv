@@ -1,0 +1,6 @@
+kind,index_or_group,source_count,retail_transform,semantic,confidence,notes
+fixed_setup,3,1,none,FarmerPicklesStart,high,"InitializeHerdingActivity reads source pair #3 directly: (478,471)"
+group,0,12,"x-64,y-100",MainNavigationPolygon,high,"Used by Farmer Pickles movement validation and animal free-roam boundary checks via PointInPolygon"
+group,1,5,none,ScrufftyPatrolPath,high,"Optional Medium/Hard Scruffty cycles these five waypoints"
+group,2,6,none,AnimalExclusionPolygon,high,"Non-following herd animals found inside this lower-world polygon are repeatedly steered toward fixed escape point (650,486) until outside"
+group,3,1,none,AnimalNavigationRecoveryTarget,high,"Single point (92,324); when free-roam movement crosses outside group-0 navigation polygon, retail restores previous position then steers toward this recovery/re-entry point"
