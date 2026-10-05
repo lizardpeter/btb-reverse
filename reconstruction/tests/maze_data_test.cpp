@@ -38,6 +38,8 @@ END
     assert((west0.source_position == Vec2i{587, 188}));
     assert((west0.retail_position == Vec2i{587, 177}));
     assert(west0.direction_bits == 8);
+    assert(west0.type() == NodeType::PortalToMiddle);
+    assert(west0.portal_destination() == Screen::Middle);
     assert(west0.allows(Direction::Left));
     assert(!west0.allows(Direction::Right));
     assert(west0.linked_node(Direction::Left) == 1);
@@ -49,6 +51,14 @@ END
     Node east_exit;
     east_exit.node_type = kPortalToEast;
     assert(east_exit.portal_destination() == Screen::East);
+
+    const auto& middle_exit_west = data.screens[1].nodes[0];
+    assert(middle_exit_west.type() == NodeType::PortalToWest);
+    assert(middle_exit_west.portal_destination() == Screen::West);
+
+    const auto& east_exit = data.screens[2].nodes[0];
+    assert(east_exit.type() == NodeType::PortalToMiddle);
+    assert(east_exit.portal_destination() == Screen::Middle);
 
     const auto& west1 = data.screens[0].nodes[1];
     assert(west1.allows(Direction::Up));
