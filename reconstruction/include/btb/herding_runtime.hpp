@@ -391,10 +391,10 @@ struct RetailEntityRecord32 {
     std::int32_t source_top{};         // +0x38
     std::int32_t source_right{};       // +0x3C
     std::int32_t source_bottom{};      // +0x40
-    std::uint32_t surface_ptr32{};     // +0x44
-    float movement_speed{};            // +0x48
-    float movement_scalar{};           // +0x4C
-    std::int32_t behavior_state{};       // +0x50
+    std::uint32_t surface_ptr32{};      // +0x44
+    std::int32_t movement_active{};      // +0x48 (retail writes 0/1)
+    float movement_speed{};              // +0x4C
+    std::int32_t behavior_state{};        // +0x50
     std::int32_t unused_54{};            // +0x54 (no retail references)
     std::int32_t temporary_target_timer{};// +0x58
     std::int32_t target_x{};              // +0x5C
@@ -416,6 +416,8 @@ static_assert(offsetof(RetailEntityRecord32, y_float) == 0x24);
 static_assert(offsetof(RetailEntityRecord32, movement_input_mask) == 0x28);
 static_assert(offsetof(RetailEntityRecord32, type) == 0x30);
 static_assert(offsetof(RetailEntityRecord32, surface_ptr32) == 0x44);
+static_assert(offsetof(RetailEntityRecord32, movement_active) == 0x48);
+static_assert(offsetof(RetailEntityRecord32, movement_speed) == 0x4C);
 static_assert(offsetof(RetailEntityRecord32, behavior_state) == 0x50);
 static_assert(offsetof(RetailEntityRecord32, temporary_target_timer) == 0x58);
 
