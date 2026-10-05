@@ -167,3 +167,5 @@ address,name,confidence,notes
 0x004159F0,LoadGolfData,high,"Parses data\\subgamegolf\\golfdata.txt, applies retail Bob-size and ball-offset corrections, and derives initial ball position"
 0x00415D30,GolfPointDistance,high,"Returns Euclidean distance sqrt(dx^2+dy^2) between two integer points"
 0x00415D70,GolfPointAngleDegrees,high,"Computes quadrant-corrected angle in degrees between two integer points using fpatan"
+0x0041A4E0,LoadMazeData,high,"Parses three NEXT-separated Maze screen graphs, applies Y-11 node correction, then reads reference nodes and difficulty tuning from loaddata\\maze_nodes.txt"
+0x0041A700,ElapsedTicksAt10MHz,medium,"Subtracts two 64-bit performance-counter values then divides by 10,000,000; timing helper used by Maze"
