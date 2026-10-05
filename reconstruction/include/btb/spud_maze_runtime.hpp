@@ -128,8 +128,36 @@ struct HammerDrop {
     return delta < 20;
 }
 
+[[nodiscard]] constexpr std::int32_t repair_sound_id(
+    std::int32_t random_mod_7) noexcept {
+    return random_mod_7 >= 0 && random_mod_7 < 7
+        ? 702 + random_mod_7  // SS1_BOB_09..15
+        : -1;
+}
+
+[[nodiscard]] constexpr std::int32_t no_hammer_sound_id(
+    std::int32_t random_bit) noexcept {
+    return random_bit >= 0 && random_bit < 2
+        ? 709 + random_bit  // SS1_BOB_16/17
+        : -1;
+}
+
+[[nodiscard]] constexpr std::int32_t pilchard_collision_bob_sound_id(
+    std::int32_t random_mod_6) noexcept {
+    return random_mod_6 >= 0 && random_mod_6 < 6
+        ? 696 + random_mod_6  // SS1_BOB_03..08
+        : -1;
+}
+
+[[nodiscard]] constexpr std::int32_t pilchard_reaction_sound_id(
+    std::int32_t random_bit) noexcept {
+    return random_bit >= 0 && random_bit < 2
+        ? 720 + random_bit  // SS1_PIL_03/04
+        : -1;
+}
+
 inline constexpr std::int32_t kStartupMusicIndex = 7;
 inline constexpr std::int32_t kStartupVoiceSoundId = 694; // SS1_BOB_01
-inline constexpr std::int32_t kLowTimerWarningSoundId = 994;
+inline constexpr std::int32_t kLowTimerWarningSoundId = 994; // lowtime.wav
 
 } // namespace btb::spud_maze
