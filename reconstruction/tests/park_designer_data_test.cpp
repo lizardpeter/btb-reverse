@@ -110,4 +110,43 @@ int main() {
     assert(reset.state(TrailingStateIndex::NextPondPrimaryRecord) == 0);
     assert(reset.state(TrailingStateIndex::NextBandstandRecord) == 200);
     assert(reset.state(TrailingStateIndex::NextDecorateRecord) == 300);
+
+    SaveData cleanup{};
+    for (std::size_t i = 0; i < 100; ++i) {
+        cleanup.objects[i].object_code = static_cast<int>(i % 10);
+    }
+    cleanup.objects[3].object_code = 7;
+    cleanup.objects[4].object_code = 150;
+    cleanup.state(TrailingStateIndex::PondSelectedPrimary) = 12;
+    cleanup.state(TrailingStateIndex::PondSpecialRecord) = 3;
+
+    clear_pond_primary_objects(cleanup, PondClearSelector::ObjectCode7);
+    assert(cleanup.objects[3].object_code == -1);
+    assert(cleanup.objects[4].object_code == 150);
+    assert(cleanup.state(TrailingStateIndex::PondSpecialRecord) == -1);
+
+    clear_pond_primary_objects(cleanup, PondClearSelector::Non7CodeBelow100);
+    assert(cleanup.objects[0].object_code == -1);
+    assert(cleanup.objects[4].object_code == 150);
+
+    clear_pond_primary_objects(cleanup, PondClearSelector::AllPrimary);
+    assert(cleanup.objects[4].object_code == -1);
+    assert(cleanup.state(TrailingStateIndex::PondSelectedPrimary) == -1);
+
+    for (std::size_t i = 200; i < 300; ++i) {
+        cleanup.objects[i].object_code = 42;
+        cleanup.objects[i].bound_category = static_cast<int>(i % 4);
+    }
+    clear_bandstand_objects(
+        cleanup,
+        BandstandClearSelector::Category2Only);
+    assert(cleanup.objects[202].object_code == -1);
+    assert(cleanup.objects[201].object_code == 42);
+
+    clear_bandstand_objects(
+        cleanup,
+        BandstandClearSelector::Categories0To2);
+    assert(cleanup.objects[200].object_code == -1);
+    assert(cleanup.objects[201].object_code == -1);
+    assert(cleanup.objects[203].object_code == 42);
 }
