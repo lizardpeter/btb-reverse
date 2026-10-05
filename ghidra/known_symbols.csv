@@ -237,3 +237,6 @@ address,name,confidence,notes
 0x00427C30,UpdateProgressScreen,high,"Draws/interacts with Mr Bentley progress screen, renders completed activity stars, plays progress feedback, and updates finale lock/unlock flags from slots 50..64"
 0x0042D060,SaveAndUnloadPlayerProfiles,high,"Releases player/profile UI resources, writes playerinfo.txt, then saves five playerN.txt files with exactly 100 ASCII int32 progress values each"
 0x0042D270,InitializeAndLoadPlayerProfiles,high,"Loads profile UI/resources and playerinfo.txt, zeros five 100-int progress records, then reads player1.txt..player5.txt as ASCII integers"
+0x0042DB70,DrawEnterNamePopup,high,"Draws enter-name background, selected badge, centered typed-name glyphs, and blinking text cursor"
+0x0042DCC0,UpdateEnterNamePopup,high,"Handles keyboard name entry/backspace, badge arrows, Start/Back controls, creates the selected profile, and routes new profiles through scene-set movie state 0x41"
+0x0042E110,UpdatePlayerProfileScreen,high,"Draws and updates the five wooden player signs; supports selecting existing profiles, choosing empty slots for name entry, deleting profiles, and quit/back handling"
