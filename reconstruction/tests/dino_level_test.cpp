@@ -42,9 +42,9 @@ int main() {
     assert((level.piece_permutation == std::vector<std::int32_t>{6, 3, 0, 1, 4, 2, 5}));
 
     assert(level_index(Species::Raptor, Difficulty::Easy) == 0);
-    assert(level_index(Species::Triceratops, Difficulty::Easy) == 1);
-    assert(level_index(Species::Tyrannosaurus, Difficulty::Easy) == 2);
-    assert(level_index(Species::Raptor, Difficulty::Hard) == 6);
+    assert(level_index(Species::Triceratops, Difficulty::Easy) == 3);
+    assert(level_index(Species::Tyrannosaurus, Difficulty::Easy) == 6);
+    assert(level_index(Species::Raptor, Difficulty::Hard) == 2);
     assert(level_index(Species::Tyrannosaurus, Difficulty::Hard) == 8);
 
     assert(cursor_near_point({100, 100}, {110, 90}, 10));
