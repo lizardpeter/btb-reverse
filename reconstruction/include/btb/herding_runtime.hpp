@@ -381,9 +381,9 @@ struct RetailEntityRecord32 {
     std::int32_t y{};                  // +0x10
     std::int32_t previous_x{};         // +0x14
     std::int32_t previous_y{};         // +0x18
-    float x_float{};                   // +0x1C
-    float y_float{};                   // +0x20
-    std::int32_t unknown_24{};         // +0x24
+    float direction_degrees{};         // +0x1C (direction * 45.0)
+    float x_float{};                   // +0x20
+    float y_float{};                   // +0x24
     std::int32_t unknown_28{};         // +0x28
     std::int32_t animation_timer{};    // +0x2C
     std::int32_t type{};               // +0x30
@@ -410,6 +410,9 @@ struct RetailEntityRecord32 {
 };
 
 static_assert(sizeof(RetailEntityRecord32) == 0x64);
+static_assert(offsetof(RetailEntityRecord32, direction_degrees) == 0x1C);
+static_assert(offsetof(RetailEntityRecord32, x_float) == 0x20);
+static_assert(offsetof(RetailEntityRecord32, y_float) == 0x24);
 static_assert(offsetof(RetailEntityRecord32, type) == 0x30);
 static_assert(offsetof(RetailEntityRecord32, surface_ptr32) == 0x44);
 static_assert(offsetof(RetailEntityRecord32, behavior_state) == 0x50);
