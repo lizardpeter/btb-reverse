@@ -12,8 +12,8 @@ This is a working source-oriented map of the main executable. Boundaries are bas
 | `~0x00418000-0x0041A72F` | Herding / SubGame1 |
 | `0x0041A730-0x0041DB1F` | Maze |
 | `0x0041DB20-0x00420324` | Bob's Band / music sequencer |
-| `0x00420360-0x0042422F` | Spud Maze (resource teardown/helper at `0x00420360`; data loader at `0x00420560`; initializer at `0x004207E0`) |
-| `0x00424230-0x00424E1F` | Spud Skate |
+| `0x00420360-0x004240F5` | Spud Maze (resource teardown/helper at `0x00420360`; data loader at `0x00420560`; initializer at `0x004207E0`) |
+| `0x00424100-0x00424E1F` | Spud Skate (resource teardown at `0x00424100`; timing loader at `0x00424230`) |
 | `0x00424E20-~0x0042800F` | Squirrel |
 | `0x00428010-0x0042A2BF` | shared activity/front-end helpers |
 | `0x0042A2C0-0x0042CD6B` | 68-state central game-flow dispatcher |
