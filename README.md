@@ -54,7 +54,7 @@ The main executable is small and unprotected enough that the plan is to recover 
 6. DirectSound/WAV layer
 7. Bink movie layer
 8. individual subgames and park designer
-9. reconstruct clean source-level structures and names
-10. build a behaviorally equivalent clean-room implementation
+9. reconstruct original source-level structures, names, constants, and control flow
+10. build a faithful source reconstruction of the original game
 
 See `docs/initial-analysis.md` for the first verified anchors.
