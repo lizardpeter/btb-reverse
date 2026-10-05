@@ -113,7 +113,7 @@ address,name,confidence,notes
 0x00429500,UpdatePlayAgainPrompt,high,"Evaluates playagain.txt rectangles, updates hover/selection state, and returns replay/difficulty choices to the main flow"
 0x00429800,UpdateOptionsOverlay,high,"Runs optionsscreen.bmp modal, updates volume slider/pointer, and propagates sound/Bink volume"
 0x00429AA0,UpdateQuitConfirmationOverlay,high,"Runs whole-game Yes/No quit modal; Yes stops sounds, plays randomized exit voice, then raises application quit flag"
-0x00429C90,UpdateContextualHelpOverlay,high,"Runs contextual help overlay using helpinfo.txt records and current help-context index"
+0x00429C90,UpdateYesNoConfirmationOverlay,high,"Generic context-sensitive Yes/No modal; draws caller-selected bitmap over context-specific underlay and returns result through global 0x51C2DC"
 0x00429FE0,UpdateLeaveActivityConfirmation,high,"Runs in-activity leave Yes/No modal; acceptance raises the per-activity abort/exit flag"
 0x0042A1A0,UpdateStartupVideoSequence,high,"Iterates videoseq.txt movies through the shared global Bink player until the sequence completes"
 0x0042A240,UpdateSceneSetMovie,high,"Opens and runs data\\movies\\sceneset.bik then reports completion to the main flow"
