@@ -102,6 +102,7 @@ High-confidence fields:
 | `+0x24` | enabled/active flag |
 | `+0x28` | sprite width |
 | `+0x2C` | sprite height |
+| `+0x30` | sort/depth layer |
 | `+0x34` | record index |
 | `+0x38` | bound-area category 0..3 |
 | `+0x3C` | bound-area variant 0..4 |
@@ -272,3 +273,31 @@ Items 0 and 1 write the new season to `0x00509344`, play DYP View-family feedbac
 Item 2 calls the shared printing function at `0x00409730`. The original retail support documentation confirms that using an in-game print control first writes `Printme.bmp`, even if the subsequent printer dialog is cancelled.
 
 The item-3 hover path is confirmed; its exact click semantics are being kept separate until the downstream branch is fully closed.
+
+
+## Draw ordering
+
+The field at object-record offset `+0x30` is now identified as the **sort/depth layer**.
+
+`RefreshParkDesignerObjectGeometry` fills it from the constant table at `0x0043FAC4`, indexed by object code.
+
+Observed table families include:
+
+- object code 0 -> layer 0
+- early codes 1..7 -> layer 199
+- the next broad group beginning at code 8 -> layer 99
+- later object families predominantly -> layer 0
+
+The exact code ranges are retained from the binary rather than normalized into a new rendering model.
+
+### Comparators
+
+`0x0040D780 CompareParkDesignerObjectsBySortLayer`
+
+performs the simpler active-object sort on `+0x30`.
+
+`0x0040D5B0 CompareParkDesignerObjectsForDraw`
+
+first compares sort layer; ties are then resolved with bottom/Y positioning and several special cases for object code 300, Pond records, category/variant values, and the currently selected designer object.
+
+`DrawParkDesignerActivity` builds an array of pointers to the 400 persistent records and invokes these retail comparators before blitting the objects.
