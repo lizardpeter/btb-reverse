@@ -6,7 +6,7 @@ state,handler,role,module,confidence,notes
 0x04,0x0042A7E7,activity_select_setup,front_end,high,"Loads Activity Select generic screen, starts actselectintro.wav, and reasserts FinaleLocked unless FinaleUnlocked is latched"
 0x05,0x0042A8B0,activity_select_update,front_end,high,"Draws/updates Activity Select; routes the eight activity actions, Help, Back-to-profiles, and locked Firework Finale interception"
 0x06,0x0042A994,dormant_generic_ui_cleanup,front_end,high,"Unloads generic UI then increments to 0x07 no-op; no shipped UI action or explicit retail write to state 0x06 has been found"
-0x07,0x0042CD65,no_op,dispatcher,high,"Default/no-op target"
+0x07,0x0042CD65,retail_no_op,dispatcher,high,"Deliberate no-op state reached after state-6 teardown if that legacy path is entered"
 0x08,0x0042A9A5,quit_transition_setup,front_end,high,"Unloads generic UI, advances to 0x09, and blits the globally preloaded data\\ui\\main\\quitmain.bmp surface"
 0x09,0x0042A9F3,open_whole_game_quit_confirmation,front_end,high,"Raises the whole-game quit modal flag 0x51C2C0 and returns underlying outer state to 0x04 Activity Select"
 0x0A,0x0042CD65,no_op,dispatcher,high,"Default/no-op target"
