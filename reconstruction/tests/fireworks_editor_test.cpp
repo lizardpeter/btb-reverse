@@ -66,6 +66,44 @@ int main() {
     assert(idle_anim.source_row == 0);
     assert(idle_anim.frame_tick == 0);
 
+    // Dormant retail state 12 is fully decoded even though no writer enters it.
+    EditorRuntimeState dormant;
+    dormant.actor_states[0] = PlacementActorState::DormantLegacyMotion;
+    auto dormant_step = tick_dormant_legacy_motion(
+        dormant, PlacementActorChannel::Bob);
+    assert(dormant_step.active);
+    assert(!dormant_step.arrived);
+    assert(dormant_step.angle_degrees == 180);
+    assert(dormant_step.delta_x == 0);
+    assert(dormant_step.delta_y == 5);
+    assert(dormant.actor_visuals[0].x == 260);
+    assert(dormant.actor_visuals[0].y == 173);
+    assert(dormant.actor_visuals[0].source_column == 4);
+
+    // The state-12 animation row wraps 25 -> 13, not 25 -> 0.
+    dormant.actor_visuals[0].x = 200;
+    dormant.actor_visuals[0].y = 210;
+    dormant.actor_visuals[0].source_row = 24;
+    dormant.actor_visuals[0].frame_tick = 5;
+    dormant_step = tick_dormant_legacy_motion(
+        dormant, PlacementActorChannel::Bob);
+    assert(dormant.actor_visuals[0].source_row == 13);
+    assert(dormant.actor_visuals[0].frame_tick == 0);
+    assert(dormant_step.angle_degrees == 90);
+    assert(dormant.actor_visuals[0].source_column == 2);
+    assert(dormant_step.delta_x == 5);
+    assert(dormant_step.delta_y == 0);
+
+    // Post-move distance <10 returns the actor to idle and source column 4.
+    dormant.actor_visuals[0].x = 260;
+    dormant.actor_visuals[0].y = 205;
+    dormant.actor_states[0] = PlacementActorState::DormantLegacyMotion;
+    dormant_step = tick_dormant_legacy_motion(
+        dormant, PlacementActorChannel::Bob);
+    assert(dormant_step.arrived);
+    assert(dormant.actor_states[0] == PlacementActorState::Idle);
+    assert(dormant.actor_visuals[0].source_column == 4);
+
     EditorRuntimeState preview_editor;
     preview_editor.selected_type = FireworkType::LargeBlue;
     preview_editor.internal_state = InternalState::PreviewSetup;
