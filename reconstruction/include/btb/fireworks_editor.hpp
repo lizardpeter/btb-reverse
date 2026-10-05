@@ -220,6 +220,70 @@ struct PlacementActorTickResult {
     Sequence& sequence,
     PlacementActorChannel channel);
 
+inline constexpr std::int32_t kPreviewX = 199;
+inline constexpr std::int32_t kPreviewY = 39;
+
+struct PreviewRuntime {
+    FireworkType type{FireworkType::RedAirbomb};
+    std::int32_t playback_state0{};
+    std::int32_t playback_state1{};
+};
+
+struct PreviewStep {
+    InternalState state{};
+    bool draw_editor{true};
+    bool decode_preview_movie{};
+    bool restart_preview_movie{};
+    std::int32_t movie_index{-1};
+    std::int32_t x{kPreviewX};
+    std::int32_t y{kPreviewY};
+};
+
+// Exact Fireworks states 2/3/4 from UpdateFireworksActivity.
+//
+// State 2 draws the editor, copies selected_type into the preview record,
+// clears its two playback-state dwords, then increments to state 3.
+// State 3 draws the editor and decodes bank[selected_type] at (199,39). When
+// DecodeAndBlitBinkFrame reports completion, retail increments to state 4 and
+// rewinds that same Bink.
+// State 4 draws the editor once more and returns directly to state 0.
+[[nodiscard]] constexpr PreviewStep update_preview_state(
+    EditorRuntimeState& editor,
+    PreviewRuntime& preview,
+    bool preview_movie_finished) noexcept {
+
+    PreviewStep step;
+    step.state = editor.internal_state;
+
+    switch (editor.internal_state) {
+    case InternalState::PreviewSetup:
+        preview.type = editor.selected_type;
+        preview.playback_state0 = 0;
+        preview.playback_state1 = 0;
+        editor.internal_state = InternalState::PreviewPlayback;
+        step.state = editor.internal_state;
+        return step;
+
+    case InternalState::PreviewPlayback:
+        step.decode_preview_movie = true;
+        step.movie_index = static_cast<std::int32_t>(preview.type);
+        if (preview_movie_finished) {
+            step.restart_preview_movie = true;
+            editor.internal_state = InternalState::PreviewFinish;
+        }
+        step.state = editor.internal_state;
+        return step;
+
+    case InternalState::PreviewFinish:
+        editor.internal_state = InternalState::Editor;
+        step.state = editor.internal_state;
+        return step;
+
+    default:
+        return step;
+    }
+}
+
 enum class EditorControlVisual {
     None,
     Hover,
