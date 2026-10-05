@@ -39,15 +39,15 @@ N
 <piece_id_0> <piece_id_1> ... <piece_id_N-1>
 ```
 
-The exact values differ by dinosaur/difficulty, but the two extra coordinate pairs are constant across all nine current source files.
+The exact tail length is not completely fixed. Eight levels contain two extra coordinate pairs; **Raptor Easy contains three**.
 
 ### Meaning
 
 - `N` — piece count.
 - first `N` coordinate pairs — assembled-skeleton **target positions**, indexed by piece ID.
 - second `N` coordinate pairs — on-screen **starting/tray positions**, indexed by display slot.
-- coordinate pair `2N` — shared anchor `(80, 300)`; copied into global position/float state during initialization.
-- coordinate pair `2N+1` — shared anchor `(100, 120)`; its downstream use is still being traced.
+- coordinate pair `2N` — a runtime animation anchor copied into globals `0x004FC400/0x004FC404` (and float mirrors). It is `(80, 300)` in eight levels but **`(456, 248)` in Raptor Easy**.
+- any later coordinate pairs before the sentinel — additional level-specific positions. The common trailing values `(80, 300)` and `(100, 120)` occur after the Raptor Easy special anchor; their exact consumers are still being traced.
 - `-1 -1` — coordinate-list terminator.
 - final `N` integers — permutation assigning a real `piece<ID>.bmp` to each display/start slot.
 
@@ -218,7 +218,26 @@ Unregisters/releases the Dino background, shared Dino surfaces, every loaded pie
 The activity is now structurally reconstructed. The remaining pass is narrower:
 
 - assign exact enum names to the per-piece state values
-- identify the two constant anchors' final semantic names
+- identify the runtime animation anchor and trailing extra positions' final semantic names
 - name the shared sprite/animation helpers called from `DrawDinoActivity`
 - map the numeric Dino feedback sound IDs back to filenames from `Data/sound/binklist.txt`
 - write a clean source-level equivalent of the Dino loader and update loop
+
+
+### Coordinate-tail validation
+
+All nine original files were checked against the parser model:
+
+| Level | N | Coordinate pairs before sentinel | Extra pairs after 2N |
+|---|---:|---:|---|
+| Raptor Easy | 7 | 17 | `(456,248), (80,300), (100,120)` |
+| Raptor Medium | 10 | 22 | `(80,300), (100,120)` |
+| Raptor Hard | 14 | 30 | `(80,300), (100,120)` |
+| T-Rex Easy | 7 | 16 | `(80,300), (100,120)` |
+| T-Rex Medium | 10 | 22 | `(80,300), (100,120)` |
+| T-Rex Hard | 14 | 30 | `(80,300), (100,120)` |
+| Triceratops Easy | 7 | 16 | `(80,300), (100,120)` |
+| Triceratops Medium | 10 | 22 | `(80,300), (100,120)` |
+| Triceratops Hard | 13 | 28 | `(80,300), (100,120)` |
+
+This is why the parser intentionally treats everything after the two N-sized coordinate blocks and before `-1 -1` as a variable-length extra-position tail.
