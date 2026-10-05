@@ -91,3 +91,16 @@ add_executable(btb_maze_runtime_tests
 )
 target_link_libraries(btb_maze_runtime_tests PRIVATE btb_maze)
 add_test(NAME maze_runtime COMMAND btb_maze_runtime_tests)
+
+
+add_library(btb_herding
+    src/herding_data.cpp
+)
+target_include_directories(btb_herding PUBLIC include)
+target_compile_features(btb_herding PUBLIC cxx_std_20)
+
+add_executable(btb_herding_data_tests
+    tests/herding_data_test.cpp
+)
+target_link_libraries(btb_herding_data_tests PRIVATE btb_herding)
+add_test(NAME herding_data COMMAND btb_herding_data_tests)
