@@ -41,6 +41,14 @@ END
     assert(west0.allows(Direction::Left));
     assert(!west0.allows(Direction::Right));
     assert(west0.linked_node(Direction::Left) == 1);
+    assert(west0.portal_destination() == Screen::Middle);
+
+    const auto& middle_exit = data.screens[1].nodes[0];
+    assert(middle_exit.portal_destination() == Screen::West);
+
+    Node east_exit;
+    east_exit.node_type = kPortalToEast;
+    assert(east_exit.portal_destination() == Screen::East);
 
     const auto& west1 = data.screens[0].nodes[1];
     assert(west1.allows(Direction::Up));
