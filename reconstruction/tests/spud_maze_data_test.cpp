@@ -62,9 +62,9 @@ int main() {
     assert((data.spud_spawn_times == std::array<std::int32_t,3>{-1,1000,200}));
     assert(data.spud_animation_delay == 6);
 
-    assert(data.trailing_screen_points[0].size() == 8);
-    assert(data.trailing_screen_points[1].size() == 5);
-    assert(data.trailing_screen_points[2].size() == 4);
-    assert(data.trailing_screen_points[3].size() == 6);
-    assert(data.trailing_screen_points[4].size() == 9);
+    assert(data.repair_points[0].size() == 8);
+    assert(data.repair_points[1].size() == 5);
+    assert(data.repair_points[2].size() == 4);
+    assert(data.repair_points[3].size() == 6);
+    assert(data.repair_points[4].size() == 9);
 }
