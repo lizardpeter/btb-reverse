@@ -1,0 +1,235 @@
+#include "btb/fireworks_editor.hpp"
+
+#include <cassert>
+
+using namespace btb::fireworks;
+
+int main() {
+    static_assert(
+        placement_actor_for_row(0) == PlacementActorChannel::Bob);
+    static_assert(
+        placement_actor_for_row(1) == PlacementActorChannel::Bob);
+    static_assert(
+        placement_actor_for_row(2) == PlacementActorChannel::Wendy);
+
+    static_assert(placement_actor_state_has_direct_retail_writer(
+        PlacementActorState::PlacementQueued));
+    static_assert(!placement_actor_state_has_direct_retail_writer(
+        PlacementActorState::DormantLegacyMotion));
+
+    static_assert(
+        palette_voice_sound_id(FireworkType::RedAirbomb, 0) == 862);
+    static_assert(
+        palette_voice_sound_id(FireworkType::BlueAirbomb, 4) == 866);
+    static_assert(
+        palette_voice_sound_id(FireworkType::RedCandle, 0) == 899);
+    static_assert(
+        palette_voice_sound_id(FireworkType::BlueCandle, 4) == 903);
+
+    static_assert(
+        placement_voice_sound_id(PlacementActorChannel::Bob, 0) == 867);
+    static_assert(
+        placement_voice_sound_id(PlacementActorChannel::Bob, 3) == 870);
+    static_assert(
+        placement_voice_sound_id(PlacementActorChannel::Wendy, 0) == 904);
+    static_assert(
+        placement_voice_sound_id(PlacementActorChannel::Wendy, 3) == 907);
+
+    EditorRuntimeState palette;
+    auto palette_result = begin_palette_selection(
+        palette, FireworkType::MediumRed, 2);
+    assert(palette_result.selection_latched);
+    assert(palette_result.sound_id && *palette_result.sound_id == 864);
+    assert(palette.selected_type == FireworkType::MediumRed);
+    assert(
+        palette.actor_states[0] == PlacementActorState::PaletteLatched);
+    assert(palette.cursor.kind == EditorCursorKind::FireworkType);
+
+    // The cursor still changes when the channel is already latched, but retail
+    // does not replace the selected type or replay the palette voice.
+    palette_result = begin_palette_selection(
+        palette, FireworkType::LargeBlue, 1);
+    assert(!palette_result.selection_latched);
+    assert(!palette_result.sound_id);
+    assert(palette.selected_type == FireworkType::MediumRed);
+    assert(
+        palette.cursor.firework_type &&
+        *palette.cursor.firework_type == FireworkType::LargeBlue);
+
+    Sequence sequence;
+    EditorRuntimeState placement;
+    placement.selected_type = FireworkType::LargeRed;
+
+    auto release = complete_placement_release(
+        placement, sequence, 1, 2, 3);
+    assert(release.attempted);
+    assert(release.valid);
+    assert(release.channel == PlacementActorChannel::Bob);
+    assert(release.sound_id && *release.sound_id == 870);
+    assert(
+        placement.actor_states[0] ==
+        PlacementActorState::PlacementQueued);
+    assert(placement.pending[0].row == 1);
+    assert(placement.pending[0].column == 2);
+
+    auto tick = tick_placement_actor(
+        placement, sequence, PlacementActorChannel::Bob);
+    assert(tick.queued_to_commit);
+    assert(!tick.commit_attempted);
+    assert(
+        placement.actor_states[0] ==
+        PlacementActorState::PlacementCommit);
+
+    tick = tick_placement_actor(
+        placement, sequence, PlacementActorChannel::Bob);
+    assert(tick.commit_attempted);
+    assert(tick.committed);
+    assert(!tick.grid_full);
+    assert(
+        placement.actor_states[0] == PlacementActorState::Idle);
+    assert(sequence.at(1, 2) == FireworkType::LargeRed);
+
+    // Row 2 is the second/Wendy actor channel.
+    placement.selected_type = FireworkType::SmallGreen;
+    release = complete_placement_release(
+        placement, sequence, 2, 5, 1);
+    assert(release.channel == PlacementActorChannel::Wendy);
+    assert(release.sound_id && *release.sound_id == 905);
+    assert(
+        placement.actor_states[1] ==
+        PlacementActorState::PlacementQueued);
+
+    // Existing start cells are rejected before scheduling an actor.
+    release = complete_placement_release(
+        placement, sequence, 1, 2, 0);
+    assert(!release.attempted);
+
+    // Full-grid feedback is channel-specific and happens after commit.
+    Sequence almost_full;
+    for (std::size_t row = 0; row < kTimelineRows; ++row) {
+        for (std::size_t column = 0; column < kTimelineColumns; ++column) {
+            if (row == 2 && column == 5) {
+                continue;
+            }
+            assert(almost_full.commit_placement(
+                row, column, FireworkType::SmallBlue));
+        }
+    }
+
+    EditorRuntimeState final_cell;
+    final_cell.selected_type = FireworkType::RedCandle;
+    release = complete_placement_release(
+        final_cell, almost_full, 2, 5, 0);
+    assert(release.valid);
+
+    tick = tick_placement_actor(
+        final_cell, almost_full, PlacementActorChannel::Wendy);
+    assert(tick.queued_to_commit);
+    tick = tick_placement_actor(
+        final_cell, almost_full, PlacementActorChannel::Wendy);
+    assert(tick.committed);
+    assert(tick.grid_full);
+    assert(tick.sound_id && *tick.sound_id == kWendyFullGridVoice);
+
+    // Exact control hit-point shift when either actor is active.
+    EditorRuntimeState controls;
+    auto point = retail_control_hit_point(controls, 300, 430);
+    assert(point.first == 300 && point.second == 430);
+    controls.actor_states[0] = PlacementActorState::PaletteLatched;
+    point = retail_control_hit_point(controls, 300, 430);
+    assert(point.first == 340 && point.second == 450);
+    controls.actor_states[0] = PlacementActorState::Idle;
+
+    // Play hover is one-shot per remembered control, and leaving empty space
+    // does not clear retail's previous-control latch.
+    EditorControlInput input{300, 430, false, false, false};
+    auto output = update_editor_controls(controls, input);
+    assert(output.control && *output.control == EditorAction::Play);
+    assert(output.visual == EditorControlVisual::Hover);
+    assert(output.sound_id && *output.sound_id == kPlayHoverSoundId);
+
+    output = update_editor_controls(controls, input);
+    assert(output.visual == EditorControlVisual::Hover);
+    assert(!output.sound_id);
+
+    output = update_editor_controls(
+        controls, {200, 200, false, false, false});
+    assert(!output.control);
+    assert(controls.previous_control_action ==
+           static_cast<int>(EditorAction::Play));
+
+    output = update_editor_controls(controls, input);
+    assert(!output.sound_id);
+
+    // Play click enters state 14 and emits ZFE_BOB_27.
+    output = update_editor_controls(
+        controls, {300, 430, true, false, false});
+    assert(output.action == EditorControlActionKind::EnterPreShow);
+    assert(output.sound_id && *output.sound_id == kPlayClickSoundId);
+    assert(controls.internal_state == InternalState::PreShowMovieSetup);
+
+    // Play is ignored while either placement channel is active.
+    EditorRuntimeState blocked_play;
+    blocked_play.actor_states[1] = PlacementActorState::PlacementQueued;
+    output = update_editor_controls(
+        blocked_play, {300, 430, true, false, false});
+    assert(output.action == EditorControlActionKind::None);
+    assert(blocked_play.internal_state == InternalState::Editor);
+
+    // Delete toggles mode 13 and its cursor; only entering plays ID 890.
+    EditorRuntimeState delete_mode;
+    output = update_editor_controls(
+        delete_mode, {500, 440, true, false, false});
+    assert(output.action == EditorControlActionKind::EnterDeleteMode);
+    assert(output.sound_id && *output.sound_id == kDeleteClickSoundId);
+    assert(delete_mode.internal_state == InternalState::DeleteSelected);
+    assert(delete_mode.cursor.kind == EditorCursorKind::Delete);
+
+    output = update_editor_controls(
+        delete_mode, {500, 440, true, false, false});
+    assert(output.action == EditorControlActionKind::LeaveDeleteMode);
+    assert(!output.sound_id);
+    assert(delete_mode.internal_state == InternalState::Editor);
+    assert(delete_mode.cursor.kind == EditorCursorKind::Normal);
+
+    // The shared interaction gate cancels only palette-latched state==1 and
+    // installs the exact ten-frame cooldown.
+    EditorRuntimeState conflict;
+    conflict.actor_states[0] = PlacementActorState::PaletteLatched;
+    output = update_editor_controls(
+        conflict, {500, 440, true, false, true});
+    assert(
+        output.action ==
+        EditorControlActionKind::CancelConflictingInteraction);
+    assert(conflict.actor_states[0] == PlacementActorState::Idle);
+    assert(conflict.control_cooldown == 10);
+
+    output = update_editor_controls(
+        conflict, {500, 440, true, false, false});
+    assert(output.action == EditorControlActionKind::None);
+    assert(conflict.control_cooldown == 9);
+
+    // Delete All opens generic Yes/No context 3 and emits ZFE_BOB_33.
+    EditorRuntimeState delete_all;
+    output = update_editor_controls(
+        delete_all, {120, 440, true, false, false});
+    assert(
+        output.action ==
+        EditorControlActionKind::OpenDeleteAllConfirmation);
+    assert(output.sound_id && *output.sound_id == kDeleteAllClickSoundId);
+    assert(output.open_yes_no_confirmation);
+    assert(output.confirmation_context == 3);
+
+    // Pressed and hover visuals preserve the exact per-control behavior.
+    EditorRuntimeState pressed;
+    output = update_editor_controls(
+        pressed, {120, 440, false, true, false});
+    assert(output.visual == EditorControlVisual::Pressed);
+    assert(!output.sound_id);
+
+    EditorRuntimeState delete_hover;
+    output = update_editor_controls(
+        delete_hover, {500, 440, false, false, false});
+    assert(output.visual == EditorControlVisual::Hover);
+    assert(output.sound_id && *output.sound_id == kDeleteHoverSoundId);
+}
