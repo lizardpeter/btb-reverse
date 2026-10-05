@@ -16,8 +16,12 @@ enum class EntityType : std::int32_t {
     Rabbit = 2,
     Duck = 3,
 
-    // 4..6 are referenced by some retail collision/state paths but are not
-    // assigned semantic names until their construction/use is fully closed.
+    // Exhaustive constructor/type-field writes in InitializeHerdingActivity
+    // never create these IDs. They remain in generic retail branches only.
+    DormantLegacy4 = 4,
+    DormantLegacy5 = 5,
+    DormantLegacy6 = 6,
+
     Scruffty = 7,
 
     Trailer1 = 12,
@@ -27,6 +31,29 @@ enum class EntityType : std::int32_t {
     GateRight = 16,
     Inactive = 17,
 };
+
+[[nodiscard]] constexpr bool entity_type_has_retail_constructor(
+    EntityType type) noexcept {
+    switch (type) {
+        case EntityType::FarmerPickles:
+        case EntityType::Sheep:
+        case EntityType::Rabbit:
+        case EntityType::Duck:
+        case EntityType::Scruffty:
+        case EntityType::Trailer1:
+        case EntityType::TravisCab:
+        case EntityType::Trailer2:
+        case EntityType::GateLeft:
+        case EntityType::GateRight:
+        case EntityType::Inactive:
+            return true;
+        case EntityType::DormantLegacy4:
+        case EntityType::DormantLegacy5:
+        case EntityType::DormantLegacy6:
+            return false;
+    }
+    return false;
+}
 
 enum class FoodType : std::int32_t {
     None = -1,
@@ -132,6 +159,63 @@ struct FoodPickupSoundChoices {
         case EntityType::Duck: return 598;   // PC_PIC_18
         default: return -1;
     }
+}
+
+struct BeginHomeRouteStep {
+    std::int32_t assigned_behavior_state{-1};
+    std::int32_t next_species_route_counter{};
+    bool final_species_animal{};
+    std::int32_t sound_id{-1};
+};
+
+// Exact state-1 allocation at 0x00416B70 for the shipped retail difficulty
+// domain (0=Easy, 1=Medium, 2=Hard). Each species owns a counter initialized
+// to zero. The current counter selects state 10+counter, then increments.
+// The last animal of that species plays PC_PIC_16/17/18.
+//
+// With retail difficulties the highest assigned first-stage state is 14
+// (Hard has five animals/species). Handler state 15 exists in the jump table
+// but is not reached by normal shipped population counts.
+[[nodiscard]] constexpr std::optional<BeginHomeRouteStep>
+begin_home_route_step(
+    EntityType type,
+    std::int32_t current_species_route_counter,
+    std::int32_t difficulty_index) noexcept {
+
+    if (!is_herd_animal(type) ||
+        difficulty_index < 0 || difficulty_index > 2) {
+        return std::nullopt;
+    }
+
+    const auto count = animals_per_species(difficulty_index);
+    if (current_species_route_counter < 0 ||
+        current_species_route_counter >= count) {
+        return std::nullopt;
+    }
+
+    const auto next = current_species_route_counter + 1;
+    const bool final = next == count;
+    return BeginHomeRouteStep{
+        10 + current_species_route_counter,
+        next,
+        final,
+        final ? species_home_route_sound_id(type) : -1,
+    };
+}
+
+inline constexpr Vec2i kAnimalExclusionEscapeTarget{650, 486};
+
+// Exact herd.txt group semantics now closed from runtime consumers.
+[[nodiscard]] const std::vector<Vec2i>& animal_exclusion_polygon(
+    const Data& data);
+
+[[nodiscard]] std::optional<Vec2i> animal_navigation_recovery_target(
+    const Data& data) noexcept;
+
+[[nodiscard]] constexpr Vec2i farmer_pickles_start(
+    const Data& data) noexcept {
+    // InitializeHerdingActivity reads fixed setup pair #3 directly.
+    return data.setup_positions[3];
 }
 
 enum class CompletionAction : std::int32_t {
