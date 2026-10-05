@@ -126,6 +126,87 @@ The three button meanings are proven from the loaded surfaces and control code:
 
 `0x00412D50 CompleteFireworksEditorAction` stores the selected type or validates a placement release. The actual grid commit occurs after the short placement animation, using `PlaceFireworkGridItem(..., commit=1)`.
 
+### Exact placement actor channels
+
+The editor has two independent actor-state channels, stored at
+`0x0050AB20` and `0x0050AB24`.
+
+They split the 3x6 grid by authored row:
+
+| Channel | Authored rows | Voice family |
+|---|---|---|
+| 0 / Bob | rows 0 and 1 | `ZFE_BOB_*` |
+| 1 / Wendy | row 2 | `ZFE_WEN_*` |
+
+The directly written channel states are:
+
+| State | Meaning |
+|---:|---|
+| 0 | idle |
+| 1 | palette/pick-up latched |
+| 10 | placement queued |
+| 11 | placement commit |
+| 12 | dormant legacy movement handler; present in DrawFireworksEditor but no retail writer exists |
+
+On placement release, row 2 selects Wendy's channel; rows 0/1 select Bob's.
+Retail stores the pending row/column, writes channel state **10**, and plays a
+random placement voice before calling `PlaceFireworkGridItem(..., commit=0)`
+for validation.
+
+The sound pools are exact:
+
+- Bob rows 0/1 placement release: **867..870 = ZFE_BOB_13..16**
+- Wendy row 2 placement release: **904..907 = ZFE_WEN_13..16**
+- Bob palette selection: **862..866 = ZFE_BOB_08..12**
+- Wendy palette selection: **899..903 = ZFE_WEN_08..12**
+
+`DrawFireworksEditor` advances **10 -> 11** on one frame. On the next frame,
+state 11 calls `PlaceFireworkGridItem(..., commit=1)` using the current
+selected type, then clears that channel to 0. It counts all 18 authored cells;
+if the grid is now full, it plays **860 = ZFE_BOB_06.wav** for the Bob channel
+or **897 = ZFE_WEN_06.wav** for the Wendy channel.
+
+The state-12 branch advances sprite frames, derives a direction/frame from
+actor-to-target geometry, moves with the embedded +/-5 velocity constants, and
+stops within a 10-pixel distance threshold. Exhaustive writes to the channel
+state globals show no write of value 12, so that branch is retained as dormant
+legacy code rather than included in the normal retail placement flow.
+
+### Exact bottom-control behavior
+
+`0x00413B60 UpdateFireworksEditorControls` is now reconstructed at the
+decision level.
+
+Before hit-testing, if **either** actor channel is positive, retail tests the
+three bottom controls using the mouse point shifted by **(+40,+20)**.
+
+A shared cooldown at `0x0050AB84` is handled before any control work: positive
+values are decremented and the function returns immediately.
+
+The control behavior is:
+
+| Control | Hover | Click |
+|---|---|---|
+| Play / 27 | **881 = ZFE_BOB_28** | **880 = ZFE_BOB_27**, enter state 14 |
+| Delete Selected / 26 | **882 = ZFE_BOB_29** | **890 = ZFE_D_WEN_01**, enter state 13; clicking again leaves state 13 with no click voice |
+| Delete All / 25 | **883 = ZFE_BOB_30** | **885 = ZFE_BOB_33**, open generic Yes/No context 3 |
+
+Play is ignored unless **both** actor channels are idle.
+
+Delete Selected has one unusual conflict branch: when the shared interaction
+gate is active and either actor channel is specifically state **1**, retail
+clears both channels, returns the Fireworks state to editor state 0, restores
+the normal cursor, installs a **10-frame cooldown**, and returns.
+
+The previous-hover control latch at `0x00442A30` is **not reset** when the
+mouse leaves all three controls. Consequently, leaving a control into empty
+space and returning to that same control does not replay its hover voice until
+some other control has replaced the remembered action.
+
+The typed C++26 model is in
+`reconstruction/include/btb/fireworks_editor.hpp` and
+`reconstruction/src/fireworks_editor.cpp`, with a dedicated editor test.
+
 ## Fireworks internal state machine
 
 The activity has its own state global at `0x0050A5BC`, distinct from the 68-state outer game flow.
@@ -388,12 +469,14 @@ The Fireworks reconstruction now includes:
 - column-based playback event generation
 - exact retail row coordinates and Bink-index arithmetic
 
-The exact show scheduler/timing, 40-record Bink event lifetime, pre-show movie
-handoff, three-loop crowd phase, crowd-end phase, sound orchestration, and
-certificate gate are now source-level as well. The main Fireworks work still
-below source level is the detailed editor animation/hover presentation and a
-few lower-level DirectDraw/Bink bookkeeping fields that do not change the
-recovered control flow.
+The exact editor placement channels and bottom-control hover/click/debounce
+logic are now source-level too, including the row split, voice pools, two-frame
+10->11 placement commit, full-grid feedback, shifted control hit point, and
+dormant state-12 motion handler. Together with the show scheduler/timing,
+40-record Bink event lifetime, pre-show movie handoff, crowd phases, sound
+orchestration, certificate, and shared exit path, the remaining Fireworks work
+is mostly lower-level DirectDraw composition and sprite-motion fidelity rather
+than unresolved game-flow semantics.
 
 
 ## Exact retail show cadence
