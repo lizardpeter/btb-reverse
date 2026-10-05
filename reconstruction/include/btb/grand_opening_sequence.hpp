@@ -271,12 +271,13 @@ void write_composition(std::ostream& out, const Composition& composition);
     return {value,value,value,value,value};
 }
 
-// The persistent progress block uses 100 int32 values (400 bytes) per
-// player profile. Entering playback marks offsets 0..2 for the three conductors.
+// The persistent player record contains 100 int32 values (400 bytes).
+// Bob's Band conductor completion is stored at record indices 52..54.
 [[nodiscard]] constexpr std::size_t conductor_progress_index(
     std::size_t zero_based_player_profile,
     Conductor conductor) noexcept {
     return zero_based_player_profile * 100
+         + 52
          + static_cast<std::size_t>(conductor);
 }
 
