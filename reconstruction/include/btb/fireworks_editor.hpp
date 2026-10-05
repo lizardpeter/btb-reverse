@@ -113,6 +113,37 @@ kInitialPlacementActorVisuals{{
     {260, 0, 4, 0, 0},
 }};
 
+// Static .data targets consumed only by the dormant state-12 movement branch.
+// No executable writer for these target globals exists.
+inline constexpr std::array<std::pair<std::int32_t, std::int32_t>, 2>
+kDormantPlacementActorTargets{{
+    {260, 210},
+    {260, 20},
+}};
+
+inline constexpr std::int32_t kDormantMotionSpeed = 5;
+inline constexpr float kDormantMotionArrivalDistance = 10.0F;
+inline constexpr std::int32_t kDormantMotionFirstRow = 13;
+inline constexpr std::int32_t kDormantMotionRowEndExclusive = 25;
+
+struct DormantMotionStep {
+    bool active{};
+    bool arrived{};
+    std::int32_t angle_degrees{};
+    std::int32_t delta_x{};
+    std::int32_t delta_y{};
+    float distance_after_move{};
+};
+
+// Exact no-writer state-12 branch in DrawFireworksEditor. It uses the shared
+// retail angle helper, rounds that integer angle to one of eight 45-degree
+// sprite columns, moves by sin/cos at speed 5, cycles source rows 13..24 after
+// the existing row reaches the legacy range, and returns the channel to idle
+// once post-move Euclidean distance is strictly less than 10 pixels.
+[[nodiscard]] DormantMotionStep tick_dormant_legacy_motion(
+    EditorRuntimeState& state,
+    PlacementActorChannel channel) noexcept;
+
 struct ActorSourceRect {
     std::int32_t left{};
     std::int32_t top{};
