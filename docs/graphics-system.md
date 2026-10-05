@@ -137,3 +137,8 @@ The registry can track up to roughly 798 active entries. For each surface it ret
 ## Architectural consequence
 
 At this point the generic rendering technology is no longer a major unknown. The game renders its activities as 2D bitmap/surface composition into one managed render surface, then either flips it in fullscreen mode or blits it into the window in windowed mode. The remaining graphics reverse engineering is primarily **activity-specific composition/layout/animation logic**, not an unknown renderer.
+
+
+## DirectX version context
+
+The renderer is specifically **DirectDraw 7**, even though the executable otherwise uses DirectX 8-era APIs. The same EXE imports `DirectInput8Create` and `DirectSoundCreate8`, so the overall application should be thought of as a **DirectX 8-era title with the final DirectDraw7 rendering interface**.
