@@ -52,4 +52,43 @@ void write_playerinfo(
     }
 }
 
+void delete_profile_in_memory(
+    ProfileTable& profiles,
+    std::array<btb::progress::Record, kProfileCount>& progress,
+    std::size_t profile_index) {
+
+    if (profile_index >= kProfileCount) {
+        throw std::runtime_error("profile index out of range");
+    }
+
+    // Exact retail delete behavior: metadata is made unreachable, but the
+    // stale 9-int name backing slot is not zeroed.
+    profiles[profile_index].name_length = 0;
+    profiles[profile_index].badge_index = -1;
+
+    // Retail clears exactly the 15 visible progress slots 50..64.
+    for (std::size_t i = btb::progress::kRetailProgressFirst;
+         i <= btb::progress::kRetailProgressLast;
+         ++i) {
+        progress[profile_index].values[i] = 0;
+    }
+}
+
+std::array<std::string, 5> activity_files_for_profile(
+    std::size_t profile_index) {
+
+    if (profile_index >= kProfileCount) {
+        throw std::runtime_error("profile index out of range");
+    }
+
+    const auto n = std::to_string(profile_index + 1);
+    return {
+        "dypdata" + n + ".txt",
+        "firedata" + n + ".txt",
+        "musicbob" + n + ".txt",
+        "musicwendy" + n + ".txt",
+        "musicfarmer" + n + ".txt",
+    };
+}
+
 } // namespace btb::profiles
