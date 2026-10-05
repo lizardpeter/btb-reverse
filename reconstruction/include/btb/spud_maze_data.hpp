@@ -13,6 +13,10 @@ inline constexpr std::size_t kScreenCount = 5;
 inline constexpr std::size_t kMaxNodesPerScreen = 30;
 inline constexpr std::size_t kReferenceTriplesPerScreen = 4;
 inline constexpr std::size_t kDifficultyCount = 3;
+inline constexpr std::array<std::size_t, kScreenCount> kRepairPointCounts{
+    8, 5, 4, 6, 9
+};
+inline constexpr std::size_t kRepairPointCount = 32;
 
 struct Node {
     std::int32_t index{};
@@ -46,7 +50,7 @@ struct Data {
     std::int32_t spud_animation_delay{};
 
     std::array<std::vector<std::array<std::int32_t,2>>, kScreenCount>
-        trailing_screen_points{};
+        repair_points{};
 };
 
 Data parse_data(std::istream& in);
