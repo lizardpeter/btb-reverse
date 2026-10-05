@@ -255,3 +255,11 @@ add_executable(btb_display_manager_tests
 target_include_directories(btb_display_manager_tests PRIVATE include)
 target_compile_features(btb_display_manager_tests PRIVATE cxx_std_26)
 add_test(NAME display_manager COMMAND btb_display_manager_tests)
+
+
+add_executable(btb_dsutil_tests
+    tests/dsutil_test.cpp
+)
+target_include_directories(btb_dsutil_tests PRIVATE include)
+target_compile_features(btb_dsutil_tests PRIVATE cxx_std_26)
+add_test(NAME dsutil_layout COMMAND btb_dsutil_tests)
