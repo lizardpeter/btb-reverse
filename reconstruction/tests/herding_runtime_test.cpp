@@ -17,7 +17,8 @@ int main() {
     static_assert(offsetof(RetailEntityRecord32, type) == 0x30);
     static_assert(offsetof(RetailEntityRecord32, source_left) == 0x34);
     static_assert(offsetof(RetailEntityRecord32, surface_ptr32) == 0x44);
-    static_assert(offsetof(RetailEntityRecord32, movement_speed) == 0x48);
+    static_assert(offsetof(RetailEntityRecord32, movement_active) == 0x48);
+    static_assert(offsetof(RetailEntityRecord32, movement_speed) == 0x4C);
     static_assert(offsetof(RetailEntityRecord32, behavior_state) == 0x50);
     static_assert(offsetof(RetailEntityRecord32, temporary_target_timer) == 0x58);
     static_assert(offsetof(RetailEntityRecord32, target_y) == 0x60);
