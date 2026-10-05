@@ -54,8 +54,8 @@ enum class InternalState : std::int32_t {
     ShowSetup = 8,
     ShowPlayback = 9,
     DeleteSelected = 13,
-    CompletionMovieSetup = 14,
-    CompletionMoviePlayback = 15,
+    PreShowMovieSetup = 14,
+    PreShowMoviePlayback = 15,
     Certificate = 16,
     LegacyCompleteAndExit = 17,
 };
