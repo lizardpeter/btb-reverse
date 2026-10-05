@@ -5,21 +5,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 namespace btb::maze {
-
-enum class Screen : std::int32_t {
-    West = 0,
-    Middle = 1,
-    East = 2,
-};
-
-enum class NodeType : std::int32_t {
-    Normal = 0,
-    EnterWest = 0x80,
-    EnterEast = 0x100,
-    ReturnToMiddle = 0x200,
-};
 
 struct NavigatorState {
     Screen screen{Screen::Middle};
@@ -43,11 +31,12 @@ public:
     [[nodiscard]] bool can_move(Direction direction) const;
     [[nodiscard]] std::optional<std::int32_t> linked_node(Direction direction) const;
 
-    // Move logically to a linked graph node. The retail frame-by-frame
-    // interpolation is separate; this captures the exact graph transition.
+    // Logical node selection is separated from frame interpolation. This
+    // matches the graph decisions made by UpdateMazePlayerMovement.
     bool choose_link(Direction direction);
 
-    // Apply the screen-portal semantics encoded by node_type 0x80/0x100/0x200.
+    // Apply the retail screen-transition semantics of node_type
+    // 0x80/0x100/0x200 once a portal node is reached.
     [[nodiscard]] PortalTransition apply_portal_if_needed();
 
     [[nodiscard]] static constexpr float portal_offset() noexcept { return 25.0f; }
@@ -59,5 +48,25 @@ private:
     const Data* data_{};
     NavigatorState state_{};
 };
+
+struct PathResult {
+    std::vector<std::int32_t> nodes;
+    std::int32_t cost{};
+
+    friend bool operator==(const PathResult&, const PathResult&) = default;
+};
+
+// SearchMazePathRecursive has a 13-dword working path buffer. Start occupies
+// slot 0, so retail can retain at most 13 nodes in one candidate path.
+inline constexpr std::size_t kRetailMaximumPathNodes = 13;
+
+[[nodiscard]] std::optional<PathResult> find_shortest_path_retail(
+    const ScreenGraph& graph,
+    std::int32_t start_node,
+    std::int32_t target_node);
+
+[[nodiscard]] std::int32_t truncated_edge_distance(
+    const Node& a,
+    const Node& b) noexcept;
 
 } // namespace btb::maze
