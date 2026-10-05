@@ -182,11 +182,11 @@ The runtime array begins at `0x0050B3A8`, with a stride of **0x64 bytes**.
 | `+0x30` | entity type |
 | `+0x34..+0x40` | source rectangle |
 | `+0x44` | 32-bit DirectDraw surface pointer |
-| `+0x48` | movement speed |
-| `+0x4C` | movement scalar |
+| `+0x48` | movement-active flag; retail writes 0/1 |
+| `+0x4C` | floating movement speed |
 | `+0x50` | behavior state |
-| `+0x54` | unknown |
-| `+0x58` | temporary-target flag/timer |
+| `+0x54` | unused in this executable; no retail references |
+| `+0x58` | temporary-target countdown/timer |
 | `+0x5C` | temporary target X |
 | `+0x60` | temporary target Y |
 
