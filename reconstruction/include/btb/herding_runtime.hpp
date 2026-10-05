@@ -82,6 +82,11 @@ struct SoundPair {
     std::int32_t b{};
 };
 
+struct FoodPickupSoundChoices {
+    std::int32_t pickles_line{};
+    std::int32_t travis_line{};
+};
+
 [[nodiscard]] constexpr FoodType required_food_for(EntityType type) noexcept {
     switch (type) {
         case EntityType::Sheep: return FoodType::SheepFood;
@@ -93,6 +98,18 @@ struct SoundPair {
 
 // When an animal first joins Pickles, the retail code selects one of two
 // species/food-specific lines using 0x249 + food_index*2 + rand()%2.
+// Picking a food bag chooses between a Pickles line (0x246+food) and a
+// Travis line (0x261+food).
+[[nodiscard]] constexpr FoodPickupSoundChoices food_pickup_sound_ids(
+    FoodType food) noexcept {
+    switch (food) {
+        case FoodType::DuckFood: return {582, 609};   // PC_PIC_02 / PC_TR_02
+        case FoodType::RabbitFood: return {583, 610}; // PC_PIC_03 / PC_TR_03
+        case FoodType::SheepFood: return {584, 611};  // PC_PIC_04 / PC_TR_04
+        default: return {-1, -1};
+    }
+}
+
 [[nodiscard]] constexpr SoundPair attraction_sound_ids(FoodType food) noexcept {
     switch (food) {
         case FoodType::DuckFood: return {585, 586};   // PC_PIC_05 / PC_PIC_07
@@ -206,5 +223,20 @@ private:
     FollowerList& followers,
     std::int32_t entity_index,
     std::int32_t random_mod_400) noexcept;
+
+// On food change retail releases all followers and gives each one a random
+// temporary target. Each random argument is the already-reduced rand()%400.
+[[nodiscard]] constexpr Vec2i food_change_wander_target(
+    std::int32_t random_x_mod_400,
+    std::int32_t random_y_mod_400) noexcept {
+    return {286 + random_x_mod_400, 450 + random_y_mod_400};
+}
+
+[[nodiscard]] bool release_follower_for_food_change(
+    RetailEntityRecord32& animal,
+    FollowerList& followers,
+    std::int32_t entity_index,
+    std::int32_t random_x_mod_400,
+    std::int32_t random_y_mod_400) noexcept;
 
 } // namespace btb::herding
