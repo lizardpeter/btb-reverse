@@ -133,7 +133,7 @@ These should be resolved before spending time on isolated subgame routines becau
 The MSVC CRT entry point at `0x00430FEA` eventually calls `0x00402700` with the normal four `WinMain` arguments. Therefore:
 
 - `0x00402700` = `WinMain`
-- `0x00402B00` is the constructor-like initializer for the large game object allocated by `WinMain` (allocation size `0x7738` bytes)
+- `0x00402B00` constructs a large `0x7738`-byte **managed sound-effect object**, stored globally at `0x0044DDD8`. It is not the main game object; see `docs/sound-system.md`.
 
 Early in `WinMain`, the executable walks this registry hierarchy:
 
@@ -161,3 +161,10 @@ This is a high-value boundary: most of the global UI/movie configuration can be 
 
 - `0x00407E50 InitializeDirectInput` — creates/configures the DirectInput 8 interfaces/devices.
 - `0x00408D90 InitializeBinkAudio` — passes `BinkOpenDirectSound` to `BinkSetSoundSystem`, tying Bink playback to the game's DirectSound object.
+
+
+## Central game-flow dispatcher
+
+The actual high-level activity controller is now identified at `0x0042A2C0 RunMainGameFlow`. It dispatches through a 68-state jump table indexed by global `0x0044DE14`.
+
+Dedicated initialize/runtime state pairs have been identified for Herding, Dino, Spud Skate, Maze, Fireworks, Squirrel, Grand Opening, Park Designer, Golf, and Spud Maze. See `docs/game-flow.md` and `ghidra/gameflow_states.csv`.
