@@ -126,6 +126,8 @@ inline constexpr float kDormantMotionArrivalDistance = 10.0F;
 inline constexpr std::int32_t kDormantMotionFirstRow = 13;
 inline constexpr std::int32_t kDormantMotionRowEndExclusive = 25;
 
+struct EditorRuntimeState;
+
 struct DormantMotionStep {
     bool active{};
     bool arrived{};
