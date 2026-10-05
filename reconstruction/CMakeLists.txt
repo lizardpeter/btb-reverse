@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.25)
 project(btb_reconstruction LANGUAGES CXX)
 
 add_library(btb_dino
@@ -8,7 +8,7 @@ add_library(btb_dino
 )
 
 target_include_directories(btb_dino PUBLIC include)
-target_compile_features(btb_dino PUBLIC cxx_std_20)
+target_compile_features(btb_dino PUBLIC cxx_std_26)
 
 add_executable(btb_dino_tests
     tests/dino_level_test.cpp
@@ -31,7 +31,7 @@ add_library(btb_fireworks
     src/fireworks_sequence.cpp
 )
 target_include_directories(btb_fireworks PUBLIC include)
-target_compile_features(btb_fireworks PUBLIC cxx_std_20)
+target_compile_features(btb_fireworks PUBLIC cxx_std_26)
 
 add_executable(btb_fireworks_layout_tests
     tests/fireworks_layout_test.cpp
@@ -58,7 +58,7 @@ add_library(btb_golf
     src/golf_runtime.cpp
 )
 target_include_directories(btb_golf PUBLIC include)
-target_compile_features(btb_golf PUBLIC cxx_std_20)
+target_compile_features(btb_golf PUBLIC cxx_std_26)
 
 add_executable(btb_golf_data_tests
     tests/golf_data_test.cpp
@@ -77,7 +77,7 @@ add_library(btb_maze
     src/maze_runtime.cpp
 )
 target_include_directories(btb_maze PUBLIC include)
-target_compile_features(btb_maze PUBLIC cxx_std_20)
+target_compile_features(btb_maze PUBLIC cxx_std_26)
 
 add_executable(btb_maze_data_tests
     tests/maze_data_test.cpp
@@ -98,7 +98,7 @@ add_library(btb_herding
     src/herding_runtime.cpp
 )
 target_include_directories(btb_herding PUBLIC include)
-target_compile_features(btb_herding PUBLIC cxx_std_20)
+target_compile_features(btb_herding PUBLIC cxx_std_26)
 
 add_executable(btb_herding_data_tests
     tests/herding_data_test.cpp
@@ -119,7 +119,7 @@ add_library(btb_park_designer
     src/park_designer_runtime.cpp
 )
 target_include_directories(btb_park_designer PUBLIC include)
-target_compile_features(btb_park_designer PUBLIC cxx_std_20)
+target_compile_features(btb_park_designer PUBLIC cxx_std_26)
 
 add_executable(btb_park_designer_data_tests
     tests/park_designer_data_test.cpp
@@ -139,7 +139,7 @@ add_library(btb_spud_skate
     src/spud_skate_data.cpp
 )
 target_include_directories(btb_spud_skate PUBLIC include)
-target_compile_features(btb_spud_skate PUBLIC cxx_std_20)
+target_compile_features(btb_spud_skate PUBLIC cxx_std_26)
 
 add_executable(btb_spud_skate_data_tests
     tests/spud_skate_data_test.cpp
@@ -153,7 +153,7 @@ add_library(btb_spud_maze
     src/spud_maze_runtime.cpp
 )
 target_include_directories(btb_spud_maze PUBLIC include)
-target_compile_features(btb_spud_maze PUBLIC cxx_std_20)
+target_compile_features(btb_spud_maze PUBLIC cxx_std_26)
 
 add_executable(btb_spud_maze_data_tests
     tests/spud_maze_data_test.cpp
@@ -174,7 +174,7 @@ add_library(btb_squirrel
     src/squirrel_runtime.cpp
 )
 target_include_directories(btb_squirrel PUBLIC include)
-target_compile_features(btb_squirrel PUBLIC cxx_std_20)
+target_compile_features(btb_squirrel PUBLIC cxx_std_26)
 
 add_executable(btb_squirrel_data_tests
     tests/squirrel_data_test.cpp
@@ -194,7 +194,7 @@ add_library(btb_grand_opening
     src/grand_opening_sequence.cpp
 )
 target_include_directories(btb_grand_opening PUBLIC include)
-target_compile_features(btb_grand_opening PUBLIC cxx_std_20)
+target_compile_features(btb_grand_opening PUBLIC cxx_std_26)
 
 add_executable(btb_grand_opening_data_tests
     tests/grand_opening_data_test.cpp
