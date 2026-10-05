@@ -105,12 +105,23 @@ Fireworks/Finale pregame setup.
 
 ## Finale progress flag
 
-InitializeFireworksActivity writes slot 63 to 1 immediately at function entry,
-before gameplay begins.
+`InitializeFireworksActivity` writes slot 63 to `1` immediately at function
+entry, before gameplay begins. The exact write is at `0x00411CE0`, indexed by
+the current player.
 
-Therefore slot 63 means Firework Finale started/entered, not completed.
+Therefore slot 63 means **Firework Finale started/entered**, not completed.
 
-There is no separate finale-completed writer in the 50..64 progress block.
+This is now closed by exhaustive executable reference analysis:
+
+- player-0 slot 63 address `0x0051B5CC` has exactly one game-code reference,
+  the indexed initialization write above;
+- player-0 slot 64 address `0x0051B5D0` has **no game-code reference at all**;
+- reaching the certificate, pressing Print, accepting the shared leave-activity
+  confirmation, saving/unloading Fireworks, and the dormant state-17 handler
+  do not write any player-progress value.
+
+There is therefore **no separate Firework Finale completed marker** in retail.
+Slot 64 is not a hidden completion flag.
 
 ## Star layout
 
