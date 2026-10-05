@@ -1,0 +1,6 @@
+action_id,name,role,notes
+0-11,palette_type,select_firework,"Direct palette type IDs"
+12,placement_cell,place_or_replace,"18 authored placement regions; normal editor replaces current cell, delete mode removes"
+25,delete_all,confirmation,"Loads data\\ui\\DeleteFireworks.bmp and invokes shared Yes/No confirmation context 3"
+26,delete_tool,mode_switch,"Uses fireworkdelete red/depressed assets and switches editor to mode 13 delete cursor"
+27,play_show,play,"Uses fireworkplay red/depressed assets and begins show flow"
