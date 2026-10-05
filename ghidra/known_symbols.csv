@@ -292,3 +292,5 @@ address,name,confidence,notes
 0x0040DFF0,CanPlaceParkDesignerObjectWithoutOverlap,high,"Scans active placed objects other than the selected record and uses the retail sampled-overlap predicate to validate a proposed placement"
 0x0040E2B0,CompactParkDesignerObjectRecordFamilies,high,"Compacts holes in Pond-primary records 0..99 and Decorate records 300..399, rewrites self indices, repairs special-record globals, and updates next-record counters"
 0x0040E3E0,FinishParkDesignerObjectDrag,high,"If an existing object is being dragged, restores its active/render flag except the retail Bandstand special case, clears drag state, and restores the normal cursor"
+0x004043F0,SetSoundBufferGroupVolume,high,"Iterates every IDirectSoundBuffer in a managed buffer group, calls SetVolume on each, and ORs HRESULT results"
+0x0041A390,UnloadMazeActivityResources,high,"Unregisters/releases Maze DirectDraw surfaces and actor/resource objects, clears Maze globals, and stops shared activity music"
