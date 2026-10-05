@@ -25,7 +25,7 @@ int main() {
     static_assert(static_cast<std::size_t>(Slot::Maze) == 61);
     static_assert(static_cast<std::size_t>(Slot::Golf) == 62);
     static_assert(static_cast<std::size_t>(Slot::FireworkFinaleEntered) == 63);
-    static_assert(static_cast<std::size_t>(Slot::Unknown64) == 64);
+    static_assert(static_cast<std::size_t>(Slot::Unused64) == 64);
 
     Record progress;
     assert(retail_progress_sum(progress) == 0);
@@ -50,7 +50,7 @@ int main() {
         altered.values[i] = 1;
     }
     altered.set(Slot::FireworkFinaleEntered, 1);
-    altered.set(Slot::Unknown64, 1);
+    altered.set(Slot::Unused64, 1);
     assert(!intended_prerequisites_complete(altered));
     assert(retail_progress_sum(altered) == 13);
     assert(retail_finale_available(altered));
