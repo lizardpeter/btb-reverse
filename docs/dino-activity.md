@@ -14,7 +14,7 @@ The activity has three dinosaur choices and three difficulty levels:
 
 The selected level is encoded as:
 
-`level_index = species_index + 3 * difficulty_index`
+`level_index = species_index * 3 + difficulty_index`
 
 and stored in global `0x004FC438`.
 
@@ -185,7 +185,7 @@ When the completed-piece counter reaches `N`, the activity waits for managed fee
 
 The main activity flow eventually enters state `0x3C`, the already recovered **Play Again Yes/No** screen.
 
-The code also updates the game's persistent completion/progress table for the current player, dinosaur, and difficulty.
+The code updates one persistent completion flag for the selected **dinosaur species**. Difficulty does not choose a separate progress slot.
 
 ## Rendering
 
@@ -241,7 +241,7 @@ Unregisters/releases the Dino background, shared Dino surfaces, every loaded pie
 
 The buildable C++ reconstruction under `reconstruction/` now covers:
 
-- exact species/difficulty indexing
+- exact species-major level indexing (`species*3 + difficulty`)
 - `dino.txt` parsing and permutation validation
 - the recovered 0x30-byte piece model
 - loose-piece selection/hit testing
@@ -322,7 +322,7 @@ The executable's fixed path table establishes the actual index order:
 - 1 = Triceratops
 - 2 = T-Rex
 
-Difficulty is 0 = Easy, 1 = Medium, 2 = Hard, so `species + 3*difficulty` spans the nine path-table records in their exact binary order.
+Difficulty is 0 = Easy, 1 = Medium, 2 = Hard, so `species*3 + difficulty` spans the nine path-table records in their exact binary order. The completion write divides this level index by 3, yielding the species index and therefore the three persistent Dino progress slots.
 
 
 ## Dino sound groups
