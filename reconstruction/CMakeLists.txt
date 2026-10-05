@@ -29,6 +29,7 @@ add_test(NAME dino_runtime COMMAND btb_dino_runtime_tests)
 add_library(btb_fireworks
     src/fireworks_layout.cpp
     src/fireworks_sequence.cpp
+    src/fireworks_editor.cpp
 )
 target_include_directories(btb_fireworks PUBLIC include)
 target_compile_features(btb_fireworks PUBLIC cxx_std_26)
@@ -58,6 +59,12 @@ add_executable(btb_fireworks_certificate_tests
 )
 target_link_libraries(btb_fireworks_certificate_tests PRIVATE btb_fireworks)
 add_test(NAME fireworks_certificate COMMAND btb_fireworks_certificate_tests)
+
+add_executable(btb_fireworks_editor_tests
+    tests/fireworks_editor_test.cpp
+)
+target_link_libraries(btb_fireworks_editor_tests PRIVATE btb_fireworks)
+add_test(NAME fireworks_editor COMMAND btb_fireworks_editor_tests)
 
 add_library(btb_golf
     src/golf_data.cpp
