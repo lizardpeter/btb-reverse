@@ -115,4 +115,21 @@ int main() {
     static_assert(kAlternatePlacementWendyFeedback[0] == 645);
     static_assert(kAlternatePlacementWendyFeedback[6] == 652);
     static_assert(kFinalWendyFeedback[2] == 667);
+
+    static_assert(correct_placement_feedback_sound_id(0) == 633);
+    static_assert(correct_placement_feedback_sound_id(3) == 636);
+    static_assert(correct_placement_feedback_sound_id(4) == 656);
+    static_assert(correct_placement_feedback_sound_id(6) == 658);
+
+    static_assert(decoy_lofty_feedback_sound_id(0) == 637);
+    static_assert(decoy_lofty_feedback_sound_id(1) == 638);
+
+    static_assert(decoy_direction_feedback_sound_id(1,2,0) == 650);
+    static_assert(decoy_direction_feedback_sound_id(1,2,2) == 652);
+    static_assert(decoy_direction_feedback_sound_id(2,1,0) == 645);
+    static_assert(decoy_direction_feedback_sound_id(2,1,1) == 646);
+    static_assert(decoy_direction_feedback_sound_id(2,1,2) == 648);
+    static_assert(decoy_direction_feedback_sound_id(2,1,3) == 649);
+    static_assert(decoy_direction_feedback_sound_id(1,1,0) == 637);
+    static_assert(decoy_direction_feedback_sound_id(1,1,1) == 638);
 }
