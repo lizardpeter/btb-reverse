@@ -299,6 +299,30 @@ int main() {
     assert(output.open_yes_no_confirmation);
     assert(output.confirmation_context == 3);
 
+    Sequence delete_all_sequence;
+    assert(delete_all_sequence.commit_placement(
+        0, 0, FireworkType::RedAirbomb));
+    assert(delete_all_sequence.commit_placement(
+        2, 5, FireworkType::BlueCandle));
+    delete_all.actor_states[0] = PlacementActorState::PaletteLatched;
+    delete_all.actor_states[1] = PlacementActorState::PlacementQueued;
+    delete_all.internal_state = InternalState::DeleteSelected;
+    delete_all.cursor = {EditorCursorKind::Delete, std::nullopt};
+
+    const auto no_clear = apply_delete_all_confirmation(
+        delete_all, delete_all_sequence, false);
+    assert(!no_clear.applied);
+    assert(delete_all_sequence.occupied_count() == 2);
+
+    const auto did_clear = apply_delete_all_confirmation(
+        delete_all, delete_all_sequence, true);
+    assert(did_clear.applied);
+    assert(delete_all_sequence.occupied_count() == 0);
+    assert(delete_all.actor_states[0] == PlacementActorState::Idle);
+    assert(delete_all.actor_states[1] == PlacementActorState::Idle);
+    assert(delete_all.internal_state == InternalState::Editor);
+    assert(delete_all.cursor.kind == EditorCursorKind::Normal);
+
     // Pressed and hover visuals preserve the exact per-control behavior.
     EditorRuntimeState pressed;
     output = update_editor_controls(
