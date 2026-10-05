@@ -38,6 +38,34 @@ int main() {
     static_assert(kPreviewX == 199);
     static_assert(kPreviewY == 39);
 
+    static_assert(kInitialPlacementActorVisuals[0].x == 260);
+    static_assert(kInitialPlacementActorVisuals[0].y == 168);
+    static_assert(kInitialPlacementActorVisuals[1].x == 260);
+    static_assert(kInitialPlacementActorVisuals[1].y == 0);
+
+    constexpr auto bob_rect =
+        placement_actor_source_rect(kInitialPlacementActorVisuals[0]);
+    static_assert(bob_rect.left == 512);
+    static_assert(bob_rect.top == 0);
+    static_assert(bob_rect.right == 640);
+    static_assert(bob_rect.bottom == 128);
+
+    PlacementActorVisual idle_anim = kInitialPlacementActorVisuals[0];
+    for (int i = 0; i < 5; ++i) {
+        tick_idle_actor_animation(idle_anim);
+    }
+    assert(idle_anim.source_row == 0);
+    assert(idle_anim.frame_tick == 5);
+    tick_idle_actor_animation(idle_anim);
+    assert(idle_anim.source_row == 1);
+    assert(idle_anim.frame_tick == 0);
+
+    idle_anim.source_row = 8;
+    idle_anim.frame_tick = 5;
+    tick_idle_actor_animation(idle_anim);
+    assert(idle_anim.source_row == 0);
+    assert(idle_anim.frame_tick == 0);
+
     EditorRuntimeState preview_editor;
     preview_editor.selected_type = FireworkType::LargeBlue;
     preview_editor.internal_state = InternalState::PreviewSetup;
