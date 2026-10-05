@@ -27,6 +27,13 @@ int main() {
     assert((data.setup_positions[0] == Vec2i{719, 266}));
     assert((data.setup_positions[3] == Vec2i{478, 471}));
     assert((data.setup_positions[5] == Vec2i{100, 120}));
+    static_assert(kFarmerPicklesSetupPositionIndex == 3);
+    static_assert(!fixed_setup_position_has_herding_consumer(0));
+    static_assert(!fixed_setup_position_has_herding_consumer(1));
+    static_assert(!fixed_setup_position_has_herding_consumer(2));
+    static_assert(fixed_setup_position_has_herding_consumer(3));
+    static_assert(!fixed_setup_position_has_herding_consumer(4));
+    static_assert(!fixed_setup_position_has_herding_consumer(5));
 
     assert(data.coordinate_groups.size() == 4);
     assert(data.coordinate_groups[0].size() == 12);
