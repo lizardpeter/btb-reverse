@@ -9,6 +9,17 @@ int main() {
     static_assert(kProfileCount == 5);
     static_assert(kMaxNameGlyphs == 9);
     static_assert(kMaxEnteredNameGlyphs == 8);
+    static_assert(kBadgeCount == 6);
+    static_assert(kBadgeWidth == 50);
+    static_assert(previous_badge(0) == 5);
+    static_assert(previous_badge(4) == 3);
+    static_assert(next_badge(5) == 0);
+    static_assert(next_badge(2) == 3);
+    constexpr auto badge0 = badge_source_rect(0);
+    static_assert(badge0.left == 0 && badge0.right == 50);
+    static_assert(badge0.top == 45 && badge0.bottom == 103);
+    constexpr auto badge5 = badge_source_rect(5);
+    static_assert(badge5.left == 250 && badge5.right == 300);
     static_assert(kDirectInputBackspace == 0x0E);
     static_assert(kDirectInputLeftShift == 0x2A);
     static_assert(kDirectInputRightShift == 0x36);
