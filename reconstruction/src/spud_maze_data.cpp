@@ -39,9 +39,10 @@ Data parse_data(std::istream& in) {
                 throw std::runtime_error("too many Spud Maze screens");
             }
             if (!(in >> token)) {
-                throw std::runtime_error("missing Spud Maze screen header");
+                throw std::runtime_error("missing first Spud Maze node label after NEXT");
             }
-            continue;
+            // Retail falls through immediately: this token is the first node
+            // label of the new screen, not a separate screen-header record.
         }
 
         Node node;
