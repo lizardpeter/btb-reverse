@@ -10,7 +10,9 @@ int main() {
     static_assert(sizeof(RetailEntityRecord32) == 0x64);
     static_assert(offsetof(RetailEntityRecord32, entity_id) == 0x00);
     static_assert(offsetof(RetailEntityRecord32, direction) == 0x08);
-    static_assert(offsetof(RetailEntityRecord32, x_float) == 0x1C);
+    static_assert(offsetof(RetailEntityRecord32, direction_degrees) == 0x1C);
+    static_assert(offsetof(RetailEntityRecord32, x_float) == 0x20);
+    static_assert(offsetof(RetailEntityRecord32, y_float) == 0x24);
     static_assert(offsetof(RetailEntityRecord32, type) == 0x30);
     static_assert(offsetof(RetailEntityRecord32, source_left) == 0x34);
     static_assert(offsetof(RetailEntityRecord32, surface_ptr32) == 0x44);
