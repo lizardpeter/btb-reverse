@@ -40,6 +40,15 @@ int main() {
     assert(bound_polygon_flat_index(1, 0, 0) == 20);
     assert(bound_polygon_flat_index(2, 3, 4) == 59);
 
+    assert(record_family_for_index(0) == RecordFamily::PondPrimary);
+    assert(record_family_for_index(99) == RecordFamily::PondPrimary);
+    assert(record_family_for_index(100) == RecordFamily::PondAuxiliary);
+    assert(record_family_for_index(199) == RecordFamily::PondAuxiliary);
+    assert(record_family_for_index(200) == RecordFamily::Bandstand);
+    assert(record_family_for_index(299) == RecordFamily::Bandstand);
+    assert(record_family_for_index(300) == RecordFamily::Decorate);
+    assert(record_family_for_index(399) == RecordFamily::Decorate);
+
     RetailObjectRecord32 record{};
     record.record_index = 42;
     record.bound_category = 3;
