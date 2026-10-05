@@ -21,6 +21,13 @@ int main() {
     static_assert(static_cast<int>(Conductor::Bob) == 0);
     static_assert(static_cast<int>(Conductor::Wendy) == 1);
     static_assert(static_cast<int>(Conductor::FarmerPickles) == 2);
+    static_assert(pitch_for_row(0) == Pitch::CSharp);
+    static_assert(pitch_for_row(1) == Pitch::B);
+    static_assert(pitch_for_row(2) == Pitch::A);
+    static_assert(pitch_for_row(3) == Pitch::GSharp);
+    static_assert(pitch_for_row(4) == Pitch::FSharp);
+    static_assert(pitch_name(Pitch::CSharp) == "C#");
+    static_assert(pitch_name(Pitch::FSharp) == "F#");
     static_assert(backing_track_filename(Conductor::Bob) == "bobmt.wav");
     static_assert(backing_track_filename(Conductor::Wendy) == "Wendymt.wav");
     static_assert(backing_track_filename(Conductor::FarmerPickles) == "fpmt.wav");
@@ -39,11 +46,11 @@ int main() {
     static_assert(machine_span(MachineType::Scoop1Second) == 1);
     static_assert(machine_span(MachineType::Scoop2Second) == 2);
 
-    static_assert(clip_variation_for_row(0) == 5);
-    static_assert(clip_variation_for_row(1) == 4);
-    static_assert(clip_variation_for_row(2) == 3);
-    static_assert(clip_variation_for_row(3) == 2);
-    static_assert(clip_variation_for_row(4) == 1);
+    static_assert(wav_suffix_for_pitch_row(0) == 5);
+    static_assert(wav_suffix_for_pitch_row(1) == 4);
+    static_assert(wav_suffix_for_pitch_row(2) == 3);
+    static_assert(wav_suffix_for_pitch_row(3) == 2);
+    static_assert(wav_suffix_for_pitch_row(4) == 1);
 
     static_assert(
         loaded_sound_slot_index(0, MachineType::Roley1Second) == 40);
