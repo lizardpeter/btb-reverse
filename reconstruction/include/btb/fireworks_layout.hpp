@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <istream>
 #include <optional>
+#include <ostream>
+#include <string_view>
 
 namespace btb::fireworks {
 
@@ -17,10 +19,25 @@ struct Recti {
     friend bool operator==(const Recti&, const Recti&) = default;
 };
 
+enum class EditorAction : std::int32_t {
+    PlacementSlot = 12,
+    DeleteAll = 25,
+    DeleteSelected = 26,
+    Play = 27,
+};
+
+struct InteractiveRegion {
+    Recti rect{};
+    std::int32_t action{-1};
+
+    friend bool operator==(const InteractiveRegion&, const InteractiveRegion&) = default;
+};
+
 struct LayoutData {
     std::array<Recti, 18> placement_source{};
     std::array<Recti, 18> placement_runtime{};
     std::array<Recti, 12> palette{};
+    std::array<InteractiveRegion, 33> interactive_regions{};
 };
 
 enum class FireworkType : std::int32_t {
@@ -44,6 +61,26 @@ struct MovieChoice {
 };
 
 LayoutData parse_layout(std::istream& placement, std::istream& palette);
+
+inline constexpr std::size_t kRetailGridSlotCount = 18;
+using RetailGrid = std::array<std::int32_t, kRetailGridSlotCount>;
+
+RetailGrid read_retail_grid(std::istream& in);
+void write_retail_grid(std::ostream& out, const RetailGrid& grid);
+
+[[nodiscard]] constexpr std::string_view retail_grid_filename(
+    std::size_t zero_based_player_index) noexcept {
+    constexpr std::array<std::string_view, 5> names{
+        "firedata1.txt",
+        "firedata2.txt",
+        "firedata3.txt",
+        "firedata4.txt",
+        "firedata5.txt",
+    };
+    return zero_based_player_index < names.size()
+        ? names[zero_based_player_index]
+        : std::string_view{};
+}
 
 [[nodiscard]] constexpr MovieChoice movie_choice(FireworkType type) noexcept {
     const auto id = static_cast<std::int32_t>(type);
