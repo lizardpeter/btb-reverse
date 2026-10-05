@@ -30,6 +30,22 @@ namespace {
 
 } // namespace
 
+PlacementBeginResult begin_placement_region_action(
+    Sequence& sequence,
+    std::size_t row,
+    std::size_t column) noexcept {
+
+    PlacementBeginResult result;
+    const auto existing = sequence.at(row, column);
+    if (!existing) {
+        return result;
+    }
+
+    result.had_existing_start = true;
+    result.removed_type = sequence.remove(row, column);
+    return result;
+}
+
 PlacementReleaseResult complete_placement_release(
     EditorRuntimeState& state,
     const Sequence& sequence,
