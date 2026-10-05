@@ -82,4 +82,14 @@ void write_save(std::ostream& out, const SaveData& data) {
     }
 }
 
+void delete_all_objects(SaveData& data) noexcept {
+    for (auto& object : data.objects) {
+        object.object_code = -1;
+    }
+
+    data.state(TrailingStateIndex::NextPondPrimaryRecord) = 0;
+    data.state(TrailingStateIndex::NextBandstandRecord) = 200;
+    data.state(TrailingStateIndex::NextDecorateRecord) = 300;
+}
+
 } // namespace btb::park_designer
