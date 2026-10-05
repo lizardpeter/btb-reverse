@@ -106,15 +106,33 @@ The stride is **0x30 bytes**.
 | `+0x08` | `current_x` | initialized from display-slot/start coordinate |
 | `+0x0C` | `current_y` | initialized from display-slot/start coordinate |
 | `+0x10` | `state` | tested/changed by drag, snap, placed, and return paths |
-| `+0x14` | `drag_offset_x` | used by interactive movement/render path |
-| `+0x18` | `drag_offset_y` | used by interactive movement/render path |
-| `+0x1C` | `width` | obtained from DirectDraw surface description |
-| `+0x20` | `height` | obtained from DirectDraw surface description |
-| `+0x24` | `placed_or_enabled` | initialized enabled and updated on successful placement |
+| `+0x14` | `src_rect.left` | initialized to 0 |
+| `+0x18` | `src_rect.top` | initialized to 0 |
+| `+0x1C` | `src_rect.right` | surface width from `GetSurfaceDesc` |
+| `+0x20` | `src_rect.bottom` | surface height from `GetSurfaceDesc` |
+| `+0x24` | `draw_loose_piece` | 1 in the tray / after final placement; 0 while the piece is represented by the cursor |
 | `+0x28` | `piece_id` | copied from permutation table |
 | `+0x2C` | `surface` | loaded DirectDraw piece surface |
 
-The exact semantic names of a few state/flag fields may be refined, but their structural roles are now clear.
+The source rectangle and loose-piece visibility semantics are now directly supported by the draw path.
+
+### Piece-state values
+
+The field at piece-record offset `+0x10` is now recoverable as a small state enum:
+
+| Value | Working name | Observed behavior |
+|---:|---|---|
+| 0 | Loose | piece is available at its start/tray position |
+| 1 | Dragging | selected piece; tray copy hidden and piece surface installed as cursor |
+| 2 | AcceptedDrop | cursor is cleared and the renderer uses the shared snap-transition anchor |
+| 3 | RejectedDrop | wrong placement feedback; piece remains carried and can be tried again |
+| 4 | Placed | renderer draws the piece permanently at its target position |
+
+The activity-global interaction mode at `0x004FC3F0` is separate:
+
+- 0 = idle/select
+- 1 = carrying/trying to drop a piece
+- 2 = finalize an accepted drop
 
 ## Runtime state machine
 
@@ -241,3 +259,49 @@ All nine original files were checked against the parser model:
 | Triceratops Hard | 13 | 28 | `(80,300), (100,120)` |
 
 This is why the parser intentionally treats everything after the two N-sized coordinate blocks and before `-1 -1` as a variable-length extra-position tail.
+
+
+## Dino feedback sound groups
+
+The managed sound catalog resolves the hard-coded numeric groups used by the update loop.
+
+### Correct placement: IDs 164-169
+
+- 164 `DD_MRE_04.wav`
+- 165 `DD_MRE_05.wav`
+- 166 `DD_MRE_06.wav`
+- 167 `DD_BOB_01.wav`
+- 168 `DD_BOB_01.wav` (duplicate catalog entry)
+- 169 `DD_BOB_03.wav`
+
+### Incorrect placement: IDs 170-175
+
+- 170 `DD_MRE_07.wav`
+- 171 `DD_MRE_08.wav`
+- 172 `DD_MRE_09.wav`
+- 173 `DD_BOB_04.wav`
+- 174 `DD_BOB_05.wav`
+- 175 `DD_BOB_06.wav`
+
+### Difficulty-specific groups
+
+The initializer stores the difficulty index at `0x004FC43C`.
+
+- activity-start group: `185 + difficulty`
+  - 185 `DD_MRE_13.wav`
+  - 186 `DD_MRE_14.wav`
+  - 187 `DD_MRE_15.wav`
+- completion group: `188 + difficulty`
+  - 188 `DD_MRE_18.wav`
+  - 189 `DD_MRE_17.wav`
+  - 190 `DD_MRE_16.wav`
+
+## Species index ordering
+
+The executable's fixed path table establishes the actual index order:
+
+- 0 = Raptor
+- 1 = Triceratops
+- 2 = T-Rex
+
+Difficulty is 0 = Easy, 1 = Medium, 2 = Hard, so `species + 3*difficulty` spans the nine path-table records in their exact binary order.
