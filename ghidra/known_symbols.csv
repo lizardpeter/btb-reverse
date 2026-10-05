@@ -196,3 +196,5 @@ address,name,confidence,notes
 0x0040E440,UpdateParkDesignerEditorInteraction,high,"Handles season/print/view toolbar, object palette controls, Pond/Bandstand/Decorate/View modes, delete/delete-all, selection, scrolling, and placement interaction"
 0x0040DC90,ClearPondPrimaryObjectsBySelector,medium,"Walks Park Designer records 0..99 and clears all, object-code 7 only, or non-7 object codes below 100 depending on selector"
 0x0040DCE0,ClearBandstandObjectsByCategory,medium,"Walks Park Designer records 200..299 and clears object records according to bound-category selector"
+0x0040D5B0,CompareParkDesignerObjectsForDraw,high,"qsort comparator: object sort_layer first, then bottom/Y and Park Designer special-case ordering rules"
+0x0040D780,CompareParkDesignerObjectsBySortLayer,high,"qsort comparator that orders active Park Designer object pointers by +0x30 sort_layer"
