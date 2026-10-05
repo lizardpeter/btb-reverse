@@ -8,6 +8,16 @@
 
 namespace btb::maze {
 
+enum class Screen : std::int32_t {
+    West = 0,
+    Middle = 1,
+    East = 2,
+};
+
+inline constexpr std::int32_t kPortalToWest = 0x80;
+inline constexpr std::int32_t kPortalToEast = 0x100;
+inline constexpr std::int32_t kPortalToMiddle = 0x200;
+
 enum Direction : std::int32_t {
     Up = 1,
     Right = 2,
@@ -41,6 +51,15 @@ struct Node {
             case Left: return links[3];
         }
         return -1;
+    }
+
+    [[nodiscard]] std::optional<Screen> portal_destination() const noexcept {
+        // Preserve the retail branch priority from the runtime:
+        // 0x80 -> West, 0x100 -> East, 0x200 -> Middle.
+        if ((node_type & kPortalToWest) != 0) return Screen::West;
+        if ((node_type & kPortalToEast) != 0) return Screen::East;
+        if ((node_type & kPortalToMiddle) != 0) return Screen::Middle;
+        return std::nullopt;
     }
 };
 
