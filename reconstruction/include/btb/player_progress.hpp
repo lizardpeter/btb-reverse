@@ -32,7 +32,7 @@ enum class Slot : std::size_t {
     Golf = 62,
 
     // Written to 1 by InitializeFireworksActivity as soon as the finale starts.
-    FireworkFinaleEntered = 63,
+    FireworkFinaleStarted = 63,
 
     // Included by the retail progress-screen sum, but no writer has yet been
     // identified in this executable. Preserve it without inventing semantics.
