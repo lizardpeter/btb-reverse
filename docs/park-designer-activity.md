@@ -400,3 +400,134 @@ The source-level equivalent is now in:
 - `park_designer_runtime.hpp`
 - `park_designer_runtime.cpp`
 - `park_designer_runtime_test.cpp`
+
+
+## Final internal helper closure
+
+The remaining anonymous Park Designer call targets have now been resolved.
+There are no unnamed direct-call targets left inside the Park Designer module.
+
+### Pond rendering
+
+`0x0040D7D0 DrawParkDesignerSegmentedPondSurface`
+
+Retail uses the current Pond variant plus three static tables:
+
+- strip count
+- strip width
+- strip/source height
+
+and repeatedly blits horizontal source strips from the selected Pond bitmap.
+The helper draws the complete segmented Pond shape at the sorted object's
+world position.
+
+`0x0040D870 DrawParkDesignerPondSurfaceSegment`
+
+This is the single-segment path used by the Pond auxiliary records. It derives
+the source strip from the record's `+0x40` value and `bound_variant`, then
+draws exactly that strip from the active Summer/Winter Pond surface.
+
+### Animated fountain
+
+`0x0040D900 UpdateAndDrawParkDesignerFountain`
+
+Object code **7** is the animated fountain family.
+
+The helper:
+
+- finds the persisted fountain record through `PondSpecialRecord`;
+- advances its frame/timer fields;
+- uses a 152-pixel-wide source frame;
+- chooses the active Summer/Winter fountain sheet;
+- loops or changes the fountain animation substate using the retail counters;
+- blits the resulting frame at the object's placed position.
+
+### Sorted object renderer
+
+`0x0040DA60 DrawSortedParkDesignerObjects`
+
+This is the main placed-object render dispatcher used after the retail qsorts.
+It walks the sorted pointer array and selects special draw paths for:
+
+- the segmented Pond family;
+- Pond auxiliary segments;
+- object-code-7 fountain animation;
+- Bandstand records;
+- Decorate records;
+- ordinary placed objects.
+
+This is the function that turns the persistent 400-record table into the
+visible designed park after sort ordering has been established.
+
+## Placement overlap validation
+
+### `0x0040DD50 ParkDesignerRectanglesDoNotOverlapBySamplePoints`
+
+Retail does not use a conventional rectangle-intersection test here.
+
+Instead it samples corners and edge-midpoint-style points from each candidate
+rectangle and repeatedly calls `PointInsideRectExclusive` against the other
+rectangle.
+
+Return values are:
+
+- **0** -> sampled overlap was found
+- **1** -> no sampled overlap was found
+
+The unusual sampled predicate is preserved as retail behavior rather than
+replaced with a cleaner modern AABB intersection rule.
+
+### `0x0040DFF0 CanPlaceParkDesignerObjectWithoutOverlap`
+
+The placement validator walks active placed-object records, skips the object
+currently being moved, constructs the retail comparison rectangles, and calls
+the sampled-overlap predicate.
+
+A zero result aborts placement. A nonzero result lets the editor continue to
+the remaining polygon/mode validation and eventual commit path.
+
+## Record compaction after deletion
+
+### `0x0040E2B0 CompactParkDesignerObjectRecordFamilies`
+
+Retail physically compacts holes after deletes rather than leaving arbitrary
+sparse records in every family.
+
+The helper performs two confirmed compaction passes:
+
+1. records **0..99** (Pond primary)
+2. records **300..399** (Decorate)
+
+When a later record is copied into an earlier hole it:
+
+- copies the full 0x4C record;
+- rewrites the copied record's `record_index`;
+- marks the old source slot empty;
+- repairs special globals when the moved object is code 100 or code 7;
+- recomputes the next-record counters.
+
+This is why the save file normally keeps those two storage families densely
+packed from their respective family starts.
+
+## Drag finalization
+
+### `0x0040E3E0 FinishParkDesignerObjectDrag`
+
+Global `0x00507B14` uses value **2** for an existing-object drag.
+
+When the drag leaves/returns through the editor boundary path, this helper:
+
+- finds the selected record from `0x00507B58`;
+- restores its active/render flag to 1 except for the explicit retail
+  Bandstand special case;
+- clears the drag state;
+- restores the normal cursor through `SetCursorSurface(nullptr)`.
+
+## Internal-call closure
+
+With these helpers named, every direct call whose source and target both lie
+inside the Park Designer module (`0x0040AC90..0x00410FCF`) has a semantic
+symbol in `ghidra/known_symbols.csv`.
+
+The next executable address, `0x00410FD0`, is already Fireworks grid logic,
+so the Park Designer -> Fireworks boundary is now exact at the helper level.
