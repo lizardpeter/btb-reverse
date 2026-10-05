@@ -198,6 +198,40 @@ struct CrowdPhaseStep {
     return kRandomCrowdSoundFirst + variant_roll_0_to_24;
 }
 
+inline constexpr std::int32_t kActivitySelectOuterState = 0x04;
+
+struct ExternalExitDecision {
+    bool exit_activity{};
+    bool save_and_unload{};
+    bool clear_leave_activity_request{};
+    std::optional<std::int32_t> outer_state{};
+};
+
+// UpdateFireworksActivity checks the application-level quit flag and the
+// shared leave-current-activity request (0x51C2E8) before dispatching any
+// Fireworks internal state. Either request saves/unloads Fireworks. The leave
+// request additionally clears itself and routes to outer state 4
+// (Activity Select); application quit leaves outer-state routing untouched.
+[[nodiscard]] constexpr ExternalExitDecision external_exit_decision(
+    bool application_quit_requested,
+    bool leave_activity_requested) noexcept {
+
+    if (!application_quit_requested && !leave_activity_requested) {
+        return {};
+    }
+
+    ExternalExitDecision decision;
+    decision.exit_activity = true;
+    decision.save_and_unload = true;
+
+    if (leave_activity_requested) {
+        decision.clear_leave_activity_request = true;
+        decision.outer_state = kActivitySelectOuterState;
+    }
+
+    return decision;
+}
+
 struct PlaybackEvent {
     std::size_t row{};
     std::size_t column{};
