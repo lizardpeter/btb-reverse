@@ -21,7 +21,7 @@ int main() {
     static_assert(offsetof(RetailSoundManager32, sound_enabled) == 0x6CC);
     static_assert(offsetof(RetailSoundManager32, priority_or_age) == 0xB18);
     static_assert(offsetof(RetailSoundManager32, slot_state) == 0xC58);
-    static_assert(offsetof(RetailSoundManager32, persistent) == 0xD98);
+    static_assert(offsetof(RetailSoundManager32, special_lifetime_flag) == 0xD98);
     static_assert(offsetof(RetailSoundManager32, playback_policy) == 0xED8);
     static_assert(offsetof(RetailSoundManager32, filename_by_sound_id) == 0x1018);
     static_assert(offsetof(RetailSoundManager32, catalog_metadata) == 0x6608);
@@ -38,6 +38,6 @@ int main() {
     manager.slot_by_sound_id[700] = 12;
     assert(manager.mapped_slot(700) == 12);
 
-    manager.slot_state[12] = static_cast<std::int32_t>(SlotState::Playing);
+    manager.slot_state[12] = static_cast<std::int32_t>(SlotState::Active);
     assert(manager.state(12) == SlotState::Playing);
 }
