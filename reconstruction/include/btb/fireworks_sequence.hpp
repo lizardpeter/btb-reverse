@@ -40,13 +40,21 @@ enum class InternalState : std::int32_t {
     CompletionMovieSetup = 14,
     CompletionMoviePlayback = 15,
     Certificate = 16,
-    CompleteAndExit = 17,
+    LegacyCompleteAndExit = 17,
 };
 
 [[nodiscard]] constexpr bool internal_state_is_retail_noop(
     std::int32_t state) noexcept {
     return state == 5 || state == 6 || state == 7 ||
            state == 10 || state == 11 || state == 12;
+}
+
+// The jump table contains a state-17 handler, but exhaustive references to the
+// retail state global show no write of value 17. State 16 is written directly
+// by the show player; state 17 is therefore retained as dormant/legacy code.
+[[nodiscard]] constexpr bool internal_state_has_direct_retail_writer(
+    InternalState state) noexcept {
+    return state != InternalState::LegacyCompleteAndExit;
 }
 
 struct PlaybackEvent {
