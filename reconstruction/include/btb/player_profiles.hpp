@@ -128,6 +128,49 @@ void write_playerinfo(std::ostream& out, const ProfileTable& profiles);
     return profile.name_length > 0 || profile.badge_index >= 0;
 }
 
+enum class ProfileScreenAction : std::int32_t {
+    None,
+    SelectExisting,
+    BeginCreate,
+    OpenHelp,
+    ToggleDeleteMode,
+    ConfirmDelete,
+    BeginQuit,
+};
+
+[[nodiscard]] constexpr ProfileScreenAction profile_screen_action(
+    ProfileScreenTarget target,
+    const ProfileTable& profiles,
+    bool delete_mode) noexcept {
+
+    const auto raw = static_cast<std::int32_t>(target);
+    if (raw >= 0 && raw < 5) {
+        const auto index = static_cast<std::size_t>(raw);
+        const bool occupied = has_profile(profiles[index]);
+
+        if (delete_mode) {
+            return occupied
+                ? ProfileScreenAction::ConfirmDelete
+                : ProfileScreenAction::None;
+        }
+
+        return occupied
+            ? ProfileScreenAction::SelectExisting
+            : ProfileScreenAction::BeginCreate;
+    }
+
+    switch (target) {
+        case ProfileScreenTarget::Help:
+            return ProfileScreenAction::OpenHelp;
+        case ProfileScreenTarget::Delete:
+            return ProfileScreenAction::ToggleDeleteMode;
+        case ProfileScreenTarget::Back:
+            return ProfileScreenAction::BeginQuit;
+        default:
+            return ProfileScreenAction::None;
+    }
+}
+
 void delete_profile_in_memory(
     ProfileTable& profiles,
     std::array<btb::progress::Record, kProfileCount>& progress,
