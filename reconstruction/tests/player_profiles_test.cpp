@@ -8,6 +8,18 @@ using namespace btb::profiles;
 int main() {
     static_assert(kProfileCount == 5);
     static_assert(kMaxNameGlyphs == 9);
+    static_assert(kMaxEnteredNameGlyphs == 8);
+    static_assert(kDirectInputBackspace == 0x0E);
+    static_assert(kDirectInputLeftShift == 0x2A);
+    static_assert(kDirectInputRightShift == 0x36);
+
+    static_assert(profile_name_glyph_for_input(0x1E, 'A', 0) == ('A' - 0x21));
+    static_assert(profile_name_glyph_for_input(0x35, '/', 7) == ('/' - 0x21));
+    static_assert(profile_name_glyph_for_input(0x36, 'A', 0) == -1);
+    static_assert(profile_name_glyph_for_input(0x0E, 'A', 0) == -1);
+    static_assert(profile_name_glyph_for_input(0x1E, 'A', 8) == -1);
+    static_assert(profile_name_glyph_for_input(0x1E, 0x21, 0) == -1);
+    static_assert(profile_name_glyph_for_input(0x1E, 0x80, 0) == -1);
 
     ProfileTable profiles{};
     profiles[0].name_length = 3;
