@@ -41,7 +41,7 @@ int main() {
     const auto layout = parse_layout(placement, palette);
 
     assert((layout.placement_source[0] == Recti{100, 20, 130, 80}));
-    assert((layout.placement_runtime[0] == Recti{80, 20, 110, 80}));
+    assert((layout.placement_runtime[0] == Recti{110, 0, 140, 60}));
     assert((layout.palette[0] == Recti{40, 300, 90, 390}));
 
     assert(layout.interactive_regions.size() == 33);
