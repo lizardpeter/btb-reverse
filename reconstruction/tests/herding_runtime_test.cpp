@@ -28,6 +28,28 @@ int main() {
     assert(required_food_for(EntityType::Sheep) == FoodType::SheepFood);
     assert(required_food_for(EntityType::FarmerPickles) == FoodType::None);
 
+    assert(home_for(EntityType::Sheep) == HomeKind::Pen);
+    assert(home_for(EntityType::Rabbit) == HomeKind::RabbitHutches);
+    assert(home_for(EntityType::Duck) == HomeKind::Pond);
+    assert((home_entrance_target(EntityType::Sheep) == Vec2i{639, 135}));
+    assert((home_entrance_target(EntityType::Rabbit) == Vec2i{815, 91}));
+    assert((home_entrance_target(EntityType::Duck) == Vec2i{1040, 264}));
+
+    assert(animals_per_species(0) == 3);
+    assert(animals_per_species(1) == 4);
+    assert(animals_per_species(2) == 5);
+    assert(!scruffty_enabled(0));
+    assert(scruffty_enabled(1));
+    assert(scruffty_enabled(2));
+
+    assert(attraction_sound_ids(FoodType::DuckFood).a == 585);
+    assert(attraction_sound_ids(FoodType::DuckFood).b == 586);
+    assert(attraction_sound_ids(FoodType::RabbitFood).a == 587);
+    assert(attraction_sound_ids(FoodType::SheepFood).b == 590);
+    assert(species_home_route_sound_id(EntityType::Sheep) == 596);
+    assert(species_home_route_sound_id(EntityType::Rabbit) == 597);
+    assert(species_home_route_sound_id(EntityType::Duck) == 598);
+
     assert(classify_behavior_state(0) == BehaviorClass::FreeRoamFollowAndCollision);
     assert(classify_behavior_state(1) == BehaviorClass::BeginHomeRoute);
     for (int state = 10; state <= 15; ++state) {
@@ -50,6 +72,17 @@ int main() {
     assert(followers.remove(3));
     assert(!followers.contains(3));
     assert(followers.count() == 1);
+
+    RetailEntityRecord32 distracted{};
+    distracted.y = 300;
+    distracted.source_top = 10;
+    distracted.source_bottom = 70;
+    assert(apply_scruffty_distraction(distracted, followers, 7, 123));
+    assert(!followers.contains(7));
+    assert(distracted.target_flag_or_timer == 200);
+    assert(distracted.target_x == 409);
+    assert(distracted.target_y == 330);
+    assert(!apply_scruffty_distraction(distracted, followers, 7, 123));
 
     std::istringstream in(R"(
 719 266
