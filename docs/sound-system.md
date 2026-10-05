@@ -147,3 +147,8 @@ Recovered methods:
 | `0x00404B30` | `WaveFileClose` | closes MMIO and releases reader state |
 
 This closes most of the generic WAV-to-DirectSound path. The remaining sound work is primarily game-specific policy: assigning semantic names to the numeric sound IDs and identifying which activity events trigger each ID.
+
+
+## DirectSound version
+
+The executable imports `DSOUND.dll` by **ordinal 11**. On the DirectX 8 DirectSound export table, ordinal 11 is `DirectSoundCreate8`, so the root sound object is `IDirectSound8`, not the older `IDirectSound` created by `DirectSoundCreate`.
