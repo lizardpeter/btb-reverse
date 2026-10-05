@@ -35,11 +35,52 @@ enum class FoodType : std::int32_t {
     SheepFood = 2,
 };
 
+enum class HomeKind : std::int32_t {
+    Pen,
+    RabbitHutches,
+    Pond,
+};
+
+[[nodiscard]] constexpr HomeKind home_for(EntityType type) noexcept {
+    switch (type) {
+        case EntityType::Sheep: return HomeKind::Pen;
+        case EntityType::Rabbit: return HomeKind::RabbitHutches;
+        case EntityType::Duck: return HomeKind::Pond;
+        default: return HomeKind::Pen;
+    }
+}
+
+// First-stage home entrance targets used by behavior states 10..15.
+// Retail stores X as 679/855/1080 and subtracts 40 before steering.
+[[nodiscard]] constexpr Vec2i home_entrance_target(EntityType type) noexcept {
+    switch (type) {
+        case EntityType::Sheep: return {639, 135};
+        case EntityType::Rabbit: return {815, 91};
+        case EntityType::Duck: return {1040, 264};
+        default: return {-1, -1};
+    }
+}
+
+[[nodiscard]] constexpr std::int32_t animals_per_species(
+    std::int32_t difficulty_index) noexcept {
+    return difficulty_index + 3;
+}
+
+[[nodiscard]] constexpr bool scruffty_enabled(
+    std::int32_t difficulty_index) noexcept {
+    return difficulty_index > 0;
+}
+
 [[nodiscard]] constexpr bool is_herd_animal(EntityType type) noexcept {
     return type == EntityType::Sheep ||
            type == EntityType::Rabbit ||
            type == EntityType::Duck;
 }
+
+struct SoundPair {
+    std::int32_t a{};
+    std::int32_t b{};
+};
 
 [[nodiscard]] constexpr FoodType required_food_for(EntityType type) noexcept {
     switch (type) {
@@ -47,6 +88,27 @@ enum class FoodType : std::int32_t {
         case EntityType::Rabbit: return FoodType::RabbitFood;
         case EntityType::Duck: return FoodType::DuckFood;
         default: return FoodType::None;
+    }
+}
+
+// When an animal first joins Pickles, the retail code selects one of two
+// species/food-specific lines using 0x249 + food_index*2 + rand()%2.
+[[nodiscard]] constexpr SoundPair attraction_sound_ids(FoodType food) noexcept {
+    switch (food) {
+        case FoodType::DuckFood: return {585, 586};   // PC_PIC_05 / PC_PIC_07
+        case FoodType::RabbitFood: return {587, 588}; // PC_PIC_06 / PC_PIC_08
+        case FoodType::SheepFood: return {589, 590};  // PC_PIC_09 / PC_PIC_11
+        default: return {-1, -1};
+    }
+}
+
+[[nodiscard]] constexpr std::int32_t species_home_route_sound_id(
+    EntityType type) noexcept {
+    switch (type) {
+        case EntityType::Sheep: return 596;  // PC_PIC_16
+        case EntityType::Rabbit: return 597; // PC_PIC_17
+        case EntityType::Duck: return 598;   // PC_PIC_18
+        default: return -1;
     }
 }
 
@@ -135,5 +197,14 @@ private:
 
 // Herding group 1 is consumed by Scruffty as a cyclic waypoint list.
 [[nodiscard]] const std::vector<Vec2i>& scruffty_patrol_path(const Data& data);
+
+// Exact non-audio part of the Scruffty collision branch. If the animal is
+// following Pickles, Scruffty removes it from the follower list and gives it
+// a 200-tick horizontal wandering target. random_mod_400 must be 0..399.
+[[nodiscard]] bool apply_scruffty_distraction(
+    RetailEntityRecord32& animal,
+    FollowerList& followers,
+    std::int32_t entity_index,
+    std::int32_t random_mod_400) noexcept;
 
 } // namespace btb::herding
