@@ -39,10 +39,17 @@ Data parse_data(std::istream& in) {
                 throw std::runtime_error("too many Spud Maze screens");
             }
             if (!(in >> token)) {
-                throw std::runtime_error("missing first Spud Maze node label after NEXT");
+                throw std::runtime_error("missing Spud Maze token after NEXT");
             }
-            // Retail falls through immediately: this token is the first node
-            // label of the new screen, not a separate screen-header record.
+            // The shipped file is inconsistent: "NEXT_2nd Screen" has a
+            // separate Screen token, while later NEXT markers include Screen
+            // in the marker itself. Normalize both spellings to the same
+            // effective retail graph.
+            if (token == "Screen") {
+                if (!(in >> token)) {
+                    throw std::runtime_error("missing first node label after NEXT_2nd Screen");
+                }
+            }
         }
 
         Node node;
