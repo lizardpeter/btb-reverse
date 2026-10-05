@@ -184,6 +184,51 @@ home_route_arrival_step(
            type == EntityType::Duck;
 }
 
+enum PicklesMovementMask : std::int32_t {
+    PicklesMoveUp = 1,
+    PicklesMoveRight = 2,
+    PicklesMoveDown = 4,
+    PicklesMoveLeft = 8,
+};
+
+inline constexpr float kPicklesKeyboardStep = 1.5F;
+
+struct PicklesKeyboardMotion {
+    std::int32_t movement_mask{};
+    float delta_x{};
+    float delta_y{};
+};
+
+// Exact keyboard/directional branch in UpdateHerdingActivity.
+// Shared input bits map as:
+//   0x02 -> +X / Right
+//   0x01 -> -X / Left   (only if 0x02 is not set)
+//   0x08 -> +Y / Down
+//   0x04 -> -Y / Up     (only if 0x08 is not set)
+[[nodiscard]] constexpr PicklesKeyboardMotion pickles_keyboard_motion(
+    std::uint8_t input_bits) noexcept {
+
+    PicklesKeyboardMotion result;
+
+    if ((input_bits & 0x02U) != 0U) {
+        result.movement_mask = PicklesMoveRight;
+        result.delta_x += kPicklesKeyboardStep;
+    } else if ((input_bits & 0x01U) != 0U) {
+        result.movement_mask = PicklesMoveLeft;
+        result.delta_x -= kPicklesKeyboardStep;
+    }
+
+    if ((input_bits & 0x08U) != 0U) {
+        result.movement_mask |= PicklesMoveDown;
+        result.delta_y += kPicklesKeyboardStep;
+    } else if ((input_bits & 0x04U) != 0U) {
+        result.movement_mask |= PicklesMoveUp;
+        result.delta_y -= kPicklesKeyboardStep;
+    }
+
+    return result;
+}
+
 struct SoundPair {
     std::int32_t a{};
     std::int32_t b{};
@@ -271,6 +316,62 @@ struct FoodPickupHotspot {
         return choices.pickles_line;
     }
     return -1;
+}
+
+struct FoodSelectionState {
+    // Exact retail globals 0x00443AA4..0x00443AAC initialize to 1.
+    // Selection restores the previous entry to 1 and writes -1 to the new one.
+    // Value 2 is a retail do-not-pick-up gate checked before distance testing.
+    std::array<std::int32_t, 3> bag_states{1, 1, 1};
+    FoodType selected{FoodType::None};
+};
+
+struct FoodSelectionStep {
+    bool changed{};
+    FoodType previous{FoodType::None};
+    FoodType selected{FoodType::None};
+    std::int32_t sound_id{-1};
+    bool release_all_followers{};
+};
+
+[[nodiscard]] constexpr FoodSelectionStep try_select_food(
+    FoodSelectionState& state,
+    FoodType food,
+    std::int32_t pickles_x,
+    std::int32_t pickles_y,
+    std::int32_t random_mod_2) noexcept {
+
+    const auto index = static_cast<std::int32_t>(food);
+    if (index < 0 || index >= 3) {
+        return {};
+    }
+
+    if (state.bag_states[static_cast<std::size_t>(index)] == 2 ||
+        state.selected == food ||
+        !food_pickup_in_range(food, pickles_x, pickles_y)) {
+        return {};
+    }
+
+    const auto sound = food_pickup_sound_id(food, random_mod_2);
+    if (sound < 0) {
+        return {};
+    }
+
+    const auto previous = state.selected;
+    if (previous != FoodType::None) {
+        state.bag_states[static_cast<std::size_t>(previous)] = 1;
+    }
+
+    state.selected = food;
+    state.bag_states[static_cast<std::size_t>(index)] = -1;
+
+    return {
+        true,
+        previous,
+        food,
+        sound,
+        true,
+    };
 }
 
 [[nodiscard]] constexpr SoundPair attraction_sound_ids(FoodType food) noexcept {
