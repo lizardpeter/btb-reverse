@@ -1,0 +1,9 @@
+state_or_range,name,confidence,notes
+0,FreeRoamFollowAndCollision,high,"Main animal AI path: food attraction, follower spacing, wandering/collision, Scruffty/home interactions"
+1,BeginHomeRoute,medium,"Transitions an animal into its species home-route sequence; assigns one of states 10..15"
+2-9,RetailNoOp,high,"Nonzero behavior dispatch maps these values to no-op in retail build"
+10-15,ApproachHomeEntrance,high,"Steers animal toward species-specific first-stage home entrance target"
+16-19,RetailNoOp,high,"Nonzero behavior dispatch maps these values to no-op in retail build"
+20-25,EnterHome,high,"Steers animal through second-stage home path/target; reaching target changes state to 99 and decrements remaining-animal counter"
+26-98,RetailNoOp,high,"Nonzero behavior dispatch maps these values to no-op in retail build"
+99,Delivered,high,"Terminal delivered/home animation state; no longer participates in free animal routing"
