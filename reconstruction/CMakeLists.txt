@@ -74,6 +74,7 @@ add_test(NAME golf_runtime COMMAND btb_golf_runtime_tests)
 
 add_library(btb_maze
     src/maze_data.cpp
+    src/maze_runtime.cpp
 )
 target_include_directories(btb_maze PUBLIC include)
 target_compile_features(btb_maze PUBLIC cxx_std_20)
@@ -83,3 +84,10 @@ add_executable(btb_maze_data_tests
 )
 target_link_libraries(btb_maze_data_tests PRIVATE btb_maze)
 add_test(NAME maze_data COMMAND btb_maze_data_tests)
+
+
+add_executable(btb_maze_runtime_tests
+    tests/maze_runtime_test.cpp
+)
+target_link_libraries(btb_maze_runtime_tests PRIVATE btb_maze)
+add_test(NAME maze_runtime COMMAND btb_maze_runtime_tests)
