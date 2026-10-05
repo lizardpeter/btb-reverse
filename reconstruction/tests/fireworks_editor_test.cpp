@@ -197,7 +197,7 @@ int main() {
     EditorRuntimeState conflict;
     conflict.actor_states[0] = PlacementActorState::PaletteLatched;
     output = update_editor_controls(
-        conflict, {500, 440, true, false, true});
+        conflict, {450, 420, true, false, true});
     assert(
         output.action ==
         EditorControlActionKind::CancelConflictingInteraction);
