@@ -236,11 +236,21 @@ struct FoodPickupSoundChoices {
     }
 }
 
+enum class HomeRouteGateTrigger {
+    None,
+    LeftGate,
+    RightGate,
+};
+
+inline constexpr std::int32_t kHomeRouteGateAnimationTimer = 50;
+
 struct BeginHomeRouteStep {
     std::int32_t assigned_behavior_state{-1};
     std::int32_t next_species_route_counter{};
     bool final_species_animal{};
     std::int32_t sound_id{-1};
+    HomeRouteGateTrigger gate_trigger{HomeRouteGateTrigger::None};
+    std::int32_t gate_animation_timer{};
 };
 
 // Exact state-1 allocation at 0x00416B70 for the shipped retail difficulty
@@ -270,11 +280,25 @@ begin_home_route_step(
 
     const auto next = current_species_route_counter + 1;
     const bool final = next == count;
+
+    HomeRouteGateTrigger gate = HomeRouteGateTrigger::None;
+    if (final) {
+        if (type == EntityType::Sheep) {
+            gate = HomeRouteGateTrigger::LeftGate;
+        } else if (type == EntityType::Rabbit) {
+            gate = HomeRouteGateTrigger::RightGate;
+        }
+    }
+
     return BeginHomeRouteStep{
         10 + current_species_route_counter,
         next,
         final,
         final ? species_home_route_sound_id(type) : -1,
+        gate,
+        gate == HomeRouteGateTrigger::None
+            ? 0
+            : kHomeRouteGateAnimationTimer,
     };
 }
 
