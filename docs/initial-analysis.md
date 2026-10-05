@@ -168,3 +168,17 @@ This is a high-value boundary: most of the global UI/movie configuration can be 
 The actual high-level activity controller is now identified at `0x0042A2C0 RunMainGameFlow`. It dispatches through a 68-state jump table indexed by global `0x0044DE14`.
 
 Dedicated initialize/runtime state pairs have been identified for Herding, Dino, Spud Skate, Maze, Fireworks, Squirrel, Grand Opening, Park Designer, Golf, and Spud Maze. See `docs/game-flow.md` and `ghidra/gameflow_states.csv`.
+
+
+## DirectX stack
+
+This build is best described as a **DirectX 8-era game using DirectDraw 7 for rendering**.
+
+Verified interfaces/imports:
+
+- graphics: `DDRAW.dll!DirectDrawCreateEx` with `IID_IDirectDraw7`
+- input: `DINPUT8.dll!DirectInput8Create`
+- audio: `DSOUND.dll` **ordinal 11 = `DirectSoundCreate8`**
+- Bink audio backend: `BinkOpenDirectSound`
+
+DirectDraw's latest COM interface remained `IDirectDraw7`; there is no `IDirectDraw8`. So the mixed numbering is expected rather than evidence of two unrelated DirectX installs.
