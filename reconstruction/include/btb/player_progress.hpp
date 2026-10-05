@@ -112,4 +112,68 @@ void write_record(std::ostream& out, const Record& record);
     };
 }
 
+[[nodiscard]] constexpr std::int32_t completed_count(
+    const Record& record,
+    std::size_t first,
+    std::size_t count) noexcept {
+
+    std::int32_t completed = 0;
+    for (std::size_t i = 0; i < count; ++i) {
+        if (record.values[first + i] >= 1) {
+            ++completed;
+        }
+    }
+    return completed;
+}
+
+// Mr Bentley progress narration. Retail uses 955/956 as interchangeable
+// positive-completion lines and 957..959 for one/two/three items remaining.
+[[nodiscard]] constexpr std::int32_t progress_feedback_sound(
+    std::int32_t completed,
+    std::int32_t group_size,
+    std::int32_t random_bit) noexcept {
+
+    if (group_size < 1 || group_size > 3 ||
+        completed < 0 || completed > group_size) {
+        return -1;
+    }
+
+    if (completed == group_size) {
+        return random_bit >= 0 && random_bit < 2
+            ? 955 + random_bit
+            : -1;
+    }
+
+    const auto remaining = group_size - completed;
+    return 956 + remaining; // 1 left=957, 2=958, 3=959
+}
+
+[[nodiscard]] constexpr std::int32_t bobs_band_feedback_sound(
+    const Record& record,
+    std::int32_t random_bit) noexcept {
+    return progress_feedback_sound(
+        completed_count(record, 52, 3), 3, random_bit);
+}
+
+[[nodiscard]] constexpr std::int32_t dino_feedback_sound(
+    const Record& record,
+    std::int32_t random_bit) noexcept {
+    return progress_feedback_sound(
+        completed_count(record, 56, 3), 3, random_bit);
+}
+
+[[nodiscard]] constexpr std::int32_t spud_pair_feedback_sound(
+    const Record& record,
+    std::int32_t random_bit) noexcept {
+    return progress_feedback_sound(
+        completed_count(record, 59, 2), 2, random_bit);
+}
+
+[[nodiscard]] constexpr std::int32_t adventure_pair_feedback_sound(
+    const Record& record,
+    std::int32_t random_bit) noexcept {
+    return progress_feedback_sound(
+        completed_count(record, 61, 2), 2, random_bit);
+}
+
 } // namespace btb::progress
