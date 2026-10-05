@@ -94,6 +94,38 @@ int main() {
     static_assert(should_open_progress_screen(
         initial_gate, kFireworkFinaleAction));
 
+    // The unlocked bit is a one-way retail latch. Falling below the threshold
+    // later reasserts locked but does not clear unlocked.
+    constexpr FinaleGate previously_unlocked{false, true};
+    constexpr auto below_threshold_after_unlock =
+        update_finale_gate_from_progress(previously_unlocked, Record{});
+    static_assert(below_threshold_after_unlock.locked);
+    static_assert(below_threshold_after_unlock.unlocked);
+
+    constexpr auto locked_finale_selection =
+        route_activity_selection(initial_gate, kFireworkFinaleAction);
+    static_assert(
+        locked_finale_selection.kind ==
+        ActivitySelectionKind::OpenFinaleProgress);
+    static_assert(locked_finale_selection.outer_state == -1);
+    static_assert(locked_finale_selection.gate.locked);
+
+    constexpr auto locked_other_selection =
+        route_activity_selection(initial_gate, 0x20);
+    static_assert(
+        locked_other_selection.kind ==
+        ActivitySelectionKind::RouteToOuterState);
+    static_assert(locked_other_selection.outer_state == 0x20);
+    static_assert(!locked_other_selection.gate.locked);
+
+    constexpr FinaleGate unlocked_gate{false, true};
+    constexpr auto unlocked_finale_selection =
+        route_activity_selection(unlocked_gate, kFireworkFinaleAction);
+    static_assert(
+        unlocked_finale_selection.kind ==
+        ActivitySelectionKind::RouteToOuterState);
+    static_assert(unlocked_finale_selection.outer_state == 0x22);
+
     static_assert(progress_feedback_sound(0, 3, 0) == 959);
     static_assert(progress_feedback_sound(1, 3, 0) == 958);
     static_assert(progress_feedback_sound(2, 3, 0) == 957);
