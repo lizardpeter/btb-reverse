@@ -191,3 +191,6 @@ address,name,confidence,notes
 0x0040AC90,SaveParkDesignerData,high,"Writes player-specific binary dypdataN.txt: 400x0x4C object records followed by 28 int32 state values"
 0x0040B190,UnloadParkDesignerActivityResources,high,"Park Designer registered cleanup: saves current designer state, releases surfaces/tables, and stops activity music"
 0x0040DBE0,RefreshParkDesignerObjectGeometry,high,"Recomputes placed-object right/bottom bounds and sprite dimensions from its DirectDraw surface, marks it active, and stores self record index"
+0x0040D1D0,ApplyParkDesignerSeason,high,"Selects Summer(0) or Winter(1) surface banks, copies active world/object surfaces, and refreshes placed-object rendering references"
+0x0040DB50,DrawParkDesignerActivity,high,"Draws Park Designer background and depth-sorted active 0x4C object records, then composites designer UI"
+0x0040E440,UpdateParkDesignerEditorInteraction,high,"Handles season/print/view toolbar, object palette controls, Pond/Bandstand/Decorate/View modes, delete/delete-all, selection, scrolling, and placement interaction"
