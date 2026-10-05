@@ -102,7 +102,7 @@ Cell values are:
 
 ### Row meaning
 
-The five rows select one of the five numbered WAV variations/takes.
+The five rows are **musical pitch rows**.
 
 Retail loads the 50 WAV groups as variation 1 through variation 5, with 10 machine types in each variation.
 
@@ -114,15 +114,31 @@ slot = 40 - row*10 + machine_id
 
 Therefore:
 
-| Grid row | WAV variation |
-|---:|---:|
-| 0 | 5 |
-| 1 | 4 |
-| 2 | 3 |
-| 3 | 2 |
-| 4 | 1 |
+| Grid row | WAV suffix | Exact pitch |
+|---:|---:|---|
+| 0 | 5 | C# |
+| 1 | 4 | B |
+| 2 | 3 | A |
+| 3 | 2 | G# |
+| 4 | 1 | F# |
 
-So a grid cell stores only the machine type; the row selects which of that machine's five numbered WAV takes is played.
+### Exact pitches
+
+The WAV files themselves contain Broadcast Wave `bext` descriptions. The shipped Roley one-second clips identify suffixes as:
+
+```text
+roley1_1.wav -> F#
+roley1_2.wav -> G#
+roley1_3.wav -> A
+roley1_4.wav -> B
+roley1_5.wav -> C#
+```
+
+Retail maps suffix 5 to row 0 and suffix 1 to row 4, so the sequencer wall runs **C# / B / A / G# / F# from top to bottom**.
+
+This also matches the original Bob's Band instructions: bricks placed higher in the wall play at a higher pitch, while lower bricks play at a lower pitch.
+
+A grid cell therefore stores only the machine/duration type; the row supplies the exact musical pitch.
 
 ## Timeline
 
