@@ -198,3 +198,77 @@ It currently covers:
 - record-index -> collision polygon mapping
 
 Next work is assigning the three record families and four polygon categories their final editor semantics, then reconstructing place/delete/mode/summer-winter behavior.
+
+
+## Seasons
+
+Global `0x00509344` is the persisted season/theme selection.
+
+| Value | Season |
+|---:|---|
+| 0 | Summer |
+| 1 | Winter |
+
+### `0x0040D1D0 ApplyParkDesignerSeason`
+
+This function selects one of the paired normal/SNOW DirectDraw surface banks and copies the selected surfaces into the active Park Designer tables.
+
+It covers existing placed-object rendering as well as the surface banks used by later placements. The normal branch uses the ordinary SubGameDYP assets; the nonzero branch uses the corresponding `SNOW/` assets.
+
+The loaded save value at `0x00509344` is applied during activity initialization, so the player's chosen season persists in `dypdataN.txt`.
+
+## Editor modes
+
+Global `0x00507B5C` is the editor mode.
+
+The UI dispatch checks control indices 7 through 10 and stores:
+
+```text
+mode = control_index - 7
+```
+
+The asset load order and mode-specific placement/audio paths resolve those values:
+
+| Control index | Mode value | Mode |
+|---:|---:|---|
+| 7 | 0 | Pond |
+| 8 | 1 | Bandstand |
+| 9 | 2 | Decorate |
+| 10 | 3 | View |
+
+Index 11 is the context-sensitive Delete control.
+
+These values are represented by `EditorMode` / `EditorControl` in the reconstruction.
+
+### Delete control
+
+When mode is **View (3)**, the Delete control loads:
+
+`data\\ui\\Deleteallobjects.bmp`
+
+and enters the shared Yes/No confirmation overlay.
+
+A confirmed result in `UpdateParkDesignerActivity`:
+
+1. sets the `object_code` field of all 400 records to `-1`;
+2. resets the Pond placement counter to 0;
+3. resets the Bandstand placement counter to 200;
+4. resets the Decorate placement counter to 300;
+5. clears current selection/editor state.
+
+In Pond/Bandstand/Decorate modes, the same control instead activates the normal delete tool/cursor for removing an individual placed object.
+
+## View toolbar
+
+`UpdateParkDesignerEditorInteraction` has a four-entry View toolbar. The recovered actions are:
+
+- item 0 -> Summer
+- item 1 -> Winter
+- item 2 -> Print
+- item 3 -> View-side auxiliary control/voice path
+
+Items 0 and 1 write the new season to `0x00509344`, play DYP View-family feedback, then call `ApplyParkDesignerSeason`.
+
+Item 2 calls the shared printing function at `0x00409730`. The original support documentation confirms that using an in-game print control first writes `Printme.bmp`, even if the subsequent printer dialog is cancelled. fileciteturn218file0L44-L56
+
+The item-3 hover path is confirmed; its exact click semantics are being kept separate until the downstream branch is fully closed.
