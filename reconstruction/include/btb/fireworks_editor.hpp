@@ -145,6 +145,48 @@ struct PaletteBeginResult {
     };
 }
 
+// Exact 0x00412D50 palette-release branch. Unlike the begin half above, the
+// release path stores the palette action ID to selected_type unconditionally.
+// In normal state-0 dispatch retail calls BeginFireworksEditorAction and then
+// CompleteFireworksEditorAction for the same hit action, so a second palette
+// click can change the selected type even when the actor's state-1 latch
+// prevents another palette voice.
+constexpr void complete_palette_selection(
+    EditorRuntimeState& state,
+    FireworkType type) noexcept {
+    state.selected_type = type;
+}
+
+struct PaletteActionResult {
+    PaletteBeginResult begin{};
+};
+
+// Exact normal-editor ordering for a palette action: begin first, then complete.
+[[nodiscard]] constexpr PaletteActionResult process_palette_action(
+    EditorRuntimeState& state,
+    FireworkType type,
+    std::int32_t random_mod_5) noexcept {
+
+    PaletteActionResult result;
+    result.begin = begin_palette_selection(state, type, random_mod_5);
+    complete_palette_selection(state, type);
+    return result;
+}
+
+struct PlacementBeginResult {
+    bool had_existing_start{};
+    std::optional<FireworkType> removed_type{};
+};
+
+// Exact action-12 begin half at 0x00412C82: if the clicked authored cell holds
+// a start type 0..11, retail removes that event before the release half runs.
+// With the shipped span table every event is one cell, so Sequence::remove is
+// the complete retail effect here.
+[[nodiscard]] PlacementBeginResult begin_placement_region_action(
+    Sequence& sequence,
+    std::size_t row,
+    std::size_t column) noexcept;
+
 // Exact 0x00412D50 placement-release decision before PlaceFireworkGridItem's
 // commit=false validation call.
 struct PlacementReleaseResult {
