@@ -13,6 +13,27 @@ inline constexpr std::size_t kTimelineRows = 3;
 inline constexpr std::size_t kTimelineColumns = 6;
 inline constexpr std::size_t kTimelineSlots = kTimelineRows * kTimelineColumns;
 
+enum class InternalState : std::int32_t {
+    Editor = 0,
+    EditorDragRelease = 1,
+    PreviewSetup = 2,
+    PreviewPlayback = 3,
+    PreviewFinish = 4,
+    ShowSetup = 8,
+    ShowPlayback = 9,
+    DeleteSelected = 13,
+    CompletionMovieSetup = 14,
+    CompletionMoviePlayback = 15,
+    Certificate = 16,
+    CompleteAndExit = 17,
+};
+
+[[nodiscard]] constexpr bool internal_state_is_retail_noop(
+    std::int32_t state) noexcept {
+    return state == 5 || state == 6 || state == 7 ||
+           state == 10 || state == 11 || state == 12;
+}
+
 struct PlaybackEvent {
     std::size_t row{};
     std::size_t column{};
