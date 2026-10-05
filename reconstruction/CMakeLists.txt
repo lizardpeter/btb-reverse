@@ -220,3 +220,16 @@ add_executable(btb_player_progress_tests
 )
 target_link_libraries(btb_player_progress_tests PRIVATE btb_player_progress)
 add_test(NAME player_progress COMMAND btb_player_progress_tests)
+
+
+add_library(btb_player_profiles
+    src/player_profiles.cpp
+)
+target_include_directories(btb_player_profiles PUBLIC include)
+target_compile_features(btb_player_profiles PUBLIC cxx_std_26)
+
+add_executable(btb_player_profiles_tests
+    tests/player_profiles_test.cpp
+)
+target_link_libraries(btb_player_profiles_tests PRIVATE btb_player_profiles)
+add_test(NAME player_profiles COMMAND btb_player_profiles_tests)
