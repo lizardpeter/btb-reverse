@@ -72,8 +72,18 @@ Data parse_data(std::istream& in) {
 
     out.ball_frame_size = read_vec2(in, "ball frame size");
     out.ball_frame_count = read_int(in, "ball frame count");
-    out.trailing_point_a = read_vec2(in, "trailing point A");
-    out.trailing_point_b = read_vec2(in, "trailing point B");
+    out.trailing_point = read_vec2(in, "trailing point");
+
+    // Exact retail behavior: one final fscanf("%d %d") is attempted.
+    // The shipped golfdata.txt reaches its //Comments section here, so this
+    // normally fails and leaves the destination globals unchanged.
+    Vec2i optional{};
+    if (in >> optional.x >> optional.y) {
+        out.final_optional_pair_was_present = true;
+        out.final_optional_pair = optional;
+    } else {
+        in.clear();
+    }
 
     return out;
 }
