@@ -41,6 +41,9 @@ int main() {
     assert(!scruffty_enabled(0));
     assert(scruffty_enabled(1));
     assert(scruffty_enabled(2));
+    assert(initial_undelivered_animal_count(0) == 9);
+    assert(initial_undelivered_animal_count(1) == 12);
+    assert(initial_undelivered_animal_count(2) == 15);
 
     assert(food_pickup_sound_ids(FoodType::DuckFood).pickles_line == 582);
     assert(food_pickup_sound_ids(FoodType::DuckFood).travis_line == 609);
@@ -54,6 +57,23 @@ int main() {
     assert(species_home_route_sound_id(EntityType::Sheep) == 596);
     assert(species_home_route_sound_id(EntityType::Rabbit) == 597);
     assert(species_home_route_sound_id(EntityType::Duck) == 598);
+
+    auto completion = herding_completion_step(1, 0, false, 0);
+    assert(completion.action == CompletionAction::None);
+
+    completion = herding_completion_step(0, 0, true, 0);
+    assert(completion.action == CompletionAction::None);
+
+    completion = herding_completion_step(0, 0, false, 0);
+    assert(completion.stage == 1);
+    assert(completion.action == CompletionAction::PlayFinalLine);
+    assert(completion.sound_id == 599);
+
+    completion = herding_completion_step(0, 0, false, 1);
+    assert(completion.sound_id == 600);
+
+    completion = herding_completion_step(0, 1, false, 0);
+    assert(completion.action == CompletionAction::ExitToPlayAgain);
 
     assert(classify_behavior_state(0) == BehaviorClass::FreeRoamFollowAndCollision);
     assert(classify_behavior_state(1) == BehaviorClass::BeginHomeRoute);
