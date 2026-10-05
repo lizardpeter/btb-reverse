@@ -77,3 +77,5 @@ address,name,confidence,notes
 0x004048F0,WaveFileReset,high,"Seeks/descends back to the data chunk or resets memory cursor"
 0x004049B0,WaveFileRead,high,"Reads WAV bytes through MMIO or from memory-backed data"
 0x00404B30,WaveFileClose,high,"Closes MMIO handle and tears down WAV reader state"
+0x00428010,PlayActivityMusicByIndex,high,"Indexes the fixed activity-music path table, creates a DirectSound buffer group, and starts playback"
+0x004280A0,StopActivityMusic,high,"Stops and releases the shared activity-music DirectSound buffer group"
