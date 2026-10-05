@@ -36,7 +36,7 @@ enum class Slot : std::size_t {
 
     // Included by the retail progress-screen sum, but no writer has yet been
     // identified in this executable. Preserve it without inventing semantics.
-    Unknown64 = 64,
+    Unused64 = 64,
 };
 
 inline constexpr std::size_t kPrerequisiteFirst = 50;
