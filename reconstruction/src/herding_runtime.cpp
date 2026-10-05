@@ -55,6 +55,23 @@ const std::vector<Vec2i>& scruffty_patrol_path(const Data& data) {
         : empty;
 }
 
+const std::vector<Vec2i>& animal_exclusion_polygon(
+    const Data& data) {
+    static const std::vector<Vec2i> empty;
+    return data.coordinate_groups.size() > 2
+        ? data.coordinate_groups[2]
+        : empty;
+}
+
+std::optional<Vec2i> animal_navigation_recovery_target(
+    const Data& data) noexcept {
+    if (data.coordinate_groups.size() <= 3 ||
+        data.coordinate_groups[3].empty()) {
+        return std::nullopt;
+    }
+    return data.coordinate_groups[3].front();
+}
+
 bool apply_scruffty_distraction(
     RetailEntityRecord32& animal,
     FollowerList& followers,
