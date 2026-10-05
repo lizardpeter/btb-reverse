@@ -28,6 +28,7 @@ add_test(NAME dino_runtime COMMAND btb_dino_runtime_tests)
 
 add_library(btb_fireworks
     src/fireworks_layout.cpp
+    src/fireworks_sequence.cpp
 )
 target_include_directories(btb_fireworks PUBLIC include)
 target_compile_features(btb_fireworks PUBLIC cxx_std_20)
@@ -45,3 +46,9 @@ add_executable(btb_dino_character_animation_tests
 target_link_libraries(btb_dino_character_animation_tests PRIVATE btb_dino)
 
 add_test(NAME dino_character_animation COMMAND btb_dino_character_animation_tests)
+
+add_executable(btb_fireworks_sequence_tests
+    tests/fireworks_sequence_test.cpp
+)
+target_link_libraries(btb_fireworks_sequence_tests PRIVATE btb_fireworks)
+add_test(NAME fireworks_sequence COMMAND btb_fireworks_sequence_tests)
