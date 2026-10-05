@@ -56,7 +56,7 @@ data\\subgamegolf\\wendy.bmp
 10 10
 1
 105 247
-304 155
+//Comments
 )");
 
     const auto data = parse_data(in);
