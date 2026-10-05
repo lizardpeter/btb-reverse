@@ -298,12 +298,18 @@ The reconstruction therefore exposes this payload as legacy behavior but does no
 
 ## Progress / three-conductor requirement
 
-Player progress uses a 25-dword stride.
+The persistent progress array at `0x0051B5A0` uses a **100-dword / 400-byte stride per player profile**.
+
+The exact compiler arithmetic is:
+
+```text
+player -> player*5 -> player*25 -> byte offset player*400
+```
 
 When playback is prepared, retail writes:
 
 ```text
-progress[player*25 + conductor] = 1
+progress[player*100 + conductor] = 1
 ```
 
 for conductor values 0..2.
