@@ -332,3 +332,60 @@ The Fireworks reconstruction now includes:
 - exact retail row coordinates and Bink-index arithmetic
 
 What remains for a fully source-level Fireworks recreation is mainly the **show scheduler/timing and Bink event lifetime**, plus the detailed editor animation/hover state.
+
+
+## Exact retail show cadence
+
+The scheduler inside `0x00413450 UpdateFireworksShowPlayback` is now resolved directly from the timing arithmetic.
+
+It computes:
+
+```text
+column = elapsed_ms / 400
+remainder = elapsed_ms % 400
+```
+
+and only launches authored-grid cells while:
+
+```text
+column < 6
+```
+
+This matches the six authored timeline columns exactly.
+
+Within each 400 ms column, rows are intentionally staggered:
+
+| Row | Launch offset within column |
+|---:|---:|
+| 0 | 0 ms |
+| 1 | 100 ms |
+| 2 | 200 ms |
+
+So the nominal scheduled launch time for a cell is:
+
+```text
+launch_ms = column * 400 + row_offset
+```
+
+The final authored column therefore launches at approximately:
+
+- row 0: 2000 ms
+- row 1: 2100 ms
+- row 2: 2200 ms
+
+The scheduler uses guard flags so each row threshold is emitted once per 400 ms window.
+
+### Active event record
+
+Each launched firework is copied into one of the active runtime records beginning at approximately `0x005093F0`. The observed record stride is **16 bytes**:
+
+| Offset | Meaning |
+|---:|---|
+| `+0x00` | firework type, `-1` = free event slot |
+| `+0x04` | playback/event state |
+| `+0x08` | frame/substate field |
+| `+0x0C` | authored row index |
+
+When the event's Bink clip completes, the event type is reset to `-1`, freeing the slot.
+
+This exact cadence is now represented in `fireworks_sequence.hpp` through `kTimelineColumnPeriodMs`, `retail_row_launch_offset_ms`, and `retail_scheduled_launch_ms`.
