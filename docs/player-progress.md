@@ -63,13 +63,20 @@ and the progress write divides by 3, producing species index 0, 1, or 2.
 
 ## Exact retail unlock arithmetic
 
-UpdateProgressScreen walks slots 50 through 64 and sums positive values.
-When that sum reaches 13, it:
+The Activity Select updater walks slots 50 through 64 and sums positive values.
+On every such pass it first reasserts the finale-locked/intercept flag. When
+the sum reaches 13, it:
 
-- sets the finale-unlocked latch;
+- sets the finale-unlocked latch to 1;
 - clears the finale-locked/intercept flag.
 
-Under normal retail-created saves this is equivalent to completing all
+The unlocked value is a **one-way runtime latch**: the below-threshold branch
+does not clear it. If an already-unlocked in-memory state later observes a
+below-threshold record, the locked flag can be reasserted by the sum pass while
+the unlocked latch remains 1; the next Activity Select setup sees that latch
+and does not reassert the lock.
+
+Under normal retail-created saves the threshold is equivalent to completing all
 13 prerequisites, because slots 63 and 64 are zero before the finale starts.
 
 For edited/corrupt saves, the exact executable behavior matters: positive
@@ -80,15 +87,21 @@ values in slots 63 or 64 can contribute to the sum.
 Activity action 0x22 is the Firework Finale route.
 
 While the finale-locked flag is set, selecting action 0x22 does not enter the
-Fireworks pregame state. Instead retail loads:
+Fireworks pregame state and does not replace the outer game-flow state. Instead
+retail stops managed sounds, loads:
 
 - data/ui/Progress-screen.bmp
 - data/ui/star.bmp
 
 and opens the Mr Bentley progress view.
 
+Selecting any **other** activity while the locked flag is set routes normally
+and transiently clears that locked flag. Activity Select setup reasserts it on
+return unless the unlocked latch has already been set.
+
 Once the unlock latch is set, Activity Select no longer intercepts action 0x22
-and the same tile proceeds into the normal Fireworks/Finale pregame flow.
+and the same tile routes directly to outer state **0x22**, the normal
+Fireworks/Finale pregame setup.
 
 ## Finale progress flag
 
