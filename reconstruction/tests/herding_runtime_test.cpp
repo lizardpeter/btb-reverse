@@ -22,6 +22,12 @@ int main() {
     assert(is_herd_animal(EntityType::Rabbit));
     assert(is_herd_animal(EntityType::Duck));
     assert(!is_herd_animal(EntityType::Scruffty));
+    static_assert(entity_type_has_retail_constructor(EntityType::FarmerPickles));
+    static_assert(entity_type_has_retail_constructor(EntityType::Sheep));
+    static_assert(entity_type_has_retail_constructor(EntityType::Scruffty));
+    static_assert(!entity_type_has_retail_constructor(EntityType::DormantLegacy4));
+    static_assert(!entity_type_has_retail_constructor(EntityType::DormantLegacy5));
+    static_assert(!entity_type_has_retail_constructor(EntityType::DormantLegacy6));
 
     assert(required_food_for(EntityType::Duck) == FoodType::DuckFood);
     assert(required_food_for(EntityType::Rabbit) == FoodType::RabbitFood);
@@ -57,6 +63,41 @@ int main() {
     assert(species_home_route_sound_id(EntityType::Sheep) == 596);
     assert(species_home_route_sound_id(EntityType::Rabbit) == 597);
     assert(species_home_route_sound_id(EntityType::Duck) == 598);
+
+    constexpr auto sheep_easy_first =
+        begin_home_route_step(EntityType::Sheep, 0, 0);
+    static_assert(sheep_easy_first);
+    static_assert(sheep_easy_first->assigned_behavior_state == 10);
+    static_assert(sheep_easy_first->next_species_route_counter == 1);
+    static_assert(!sheep_easy_first->final_species_animal);
+    static_assert(sheep_easy_first->sound_id == -1);
+
+    constexpr auto sheep_easy_last =
+        begin_home_route_step(EntityType::Sheep, 2, 0);
+    static_assert(sheep_easy_last);
+    static_assert(sheep_easy_last->assigned_behavior_state == 12);
+    static_assert(sheep_easy_last->next_species_route_counter == 3);
+    static_assert(sheep_easy_last->final_species_animal);
+    static_assert(sheep_easy_last->sound_id == 596);
+
+    constexpr auto rabbit_medium_last =
+        begin_home_route_step(EntityType::Rabbit, 3, 1);
+    static_assert(rabbit_medium_last);
+    static_assert(rabbit_medium_last->assigned_behavior_state == 13);
+    static_assert(rabbit_medium_last->sound_id == 597);
+
+    constexpr auto duck_hard_last =
+        begin_home_route_step(EntityType::Duck, 4, 2);
+    static_assert(duck_hard_last);
+    static_assert(duck_hard_last->assigned_behavior_state == 14);
+    static_assert(duck_hard_last->next_species_route_counter == 5);
+    static_assert(duck_hard_last->final_species_animal);
+    static_assert(duck_hard_last->sound_id == 598);
+
+    static_assert(!begin_home_route_step(EntityType::Scruffty, 0, 0));
+    static_assert(!begin_home_route_step(EntityType::Sheep, 3, 0));
+    static_assert(!begin_home_route_step(EntityType::Sheep, 5, 2));
+    static_assert(!begin_home_route_step(EntityType::Sheep, 0, 3));
 
     auto completion = herding_completion_step(1, 0, false, 0);
     assert(completion.action == CompletionAction::None);
@@ -138,4 +179,15 @@ int main() {
     assert(patrol.size() == 5);
     assert((patrol.front() == Vec2i{450, 360}));
     assert((patrol.back() == Vec2i{755, 360}));
+
+    const auto& exclusion = animal_exclusion_polygon(data);
+    assert(exclusion.size() == 6);
+    assert((exclusion.front() == Vec2i{30, 500}));
+    assert((exclusion.back() == Vec2i{30, 850}));
+    static_assert(kAnimalExclusionEscapeTarget == Vec2i{650, 486});
+
+    const auto recovery = animal_navigation_recovery_target(data);
+    assert(recovery && (*recovery == Vec2i{92, 324}));
+
+    assert((farmer_pickles_start(data) == Vec2i{478, 471}));
 }
