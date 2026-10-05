@@ -25,6 +25,19 @@ enum Direction : std::int32_t {
     Left = 8,
 };
 
+enum class Screen : std::int32_t {
+    West = 0,
+    Middle = 1,
+    East = 2,
+};
+
+enum class NodeType : std::int32_t {
+    Normal = 0,
+    PortalToWest = 0x80,
+    PortalToEast = 0x100,
+    PortalToMiddle = 0x200,
+};
+
 struct Vec2i {
     std::int32_t x{};
     std::int32_t y{};
@@ -51,6 +64,20 @@ struct Node {
             case Left: return links[3];
         }
         return -1;
+    }
+
+    [[nodiscard]] NodeType type() const noexcept {
+        return static_cast<NodeType>(node_type);
+    }
+
+    [[nodiscard]] std::optional<Screen> portal_destination() const noexcept {
+        switch (type()) {
+            case NodeType::PortalToWest: return Screen::West;
+            case NodeType::PortalToEast: return Screen::East;
+            case NodeType::PortalToMiddle: return Screen::Middle;
+            case NodeType::Normal: return std::nullopt;
+        }
+        return std::nullopt;
     }
 
     [[nodiscard]] std::optional<Screen> portal_destination() const noexcept {
