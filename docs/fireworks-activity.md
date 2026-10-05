@@ -20,7 +20,7 @@ The initializer reads:
 
 Both files use eight integers per record, representing four 2D corners. The retail executable keeps only corner 0 and corner 2, giving the top-left and bottom-right rectangle.
 
-For `fireworks.txt`, the parser subtracts 20 from X and 30 from Y. During transfer into the runtime hit table it adds 30 back to Y, so the final placement hit rectangles are the source rectangles shifted 20 pixels left.
+For `fireworks.txt`, the executable subtracts 20 from all four retained coordinates during the temporary parse. When copying those records into the runtime hit table, it adds 30 back to the two X fields only. The exact final transform is therefore `x + 10, y - 20`.
 
 For `fireworkboxes.txt`, the retained rectangle is copied without that placement shift.
 
@@ -229,7 +229,7 @@ commit=true
 
 Only then is the selected type written into `0x0050A678`.
 
-That distinction is reproduced by the clean-room `Sequence::validate_placement` / `Sequence::commit_placement` API.
+That distinction is reproduced by the source-level `Sequence::validate_placement` / `Sequence::commit_placement` API.
 
 ### Replace behavior
 
@@ -297,7 +297,7 @@ The show player uses the row directly:
 
 Thus rows 0 and 1 behave like left/right banks for directional types 0..7, while row 2 uses the base clip at a central/lower position.
 
-The clean-room sequence model exposes this exact arithmetic through `retail_movie_index_for_row`.
+The source-level sequence model exposes this exact arithmetic through `retail_movie_index_for_row`.
 
 ### Retail edge case
 
@@ -314,7 +314,7 @@ This may be an original-game constraint enforced indirectly by UI expectations, 
 
 Machine-readable row rules are in `ghidra/firework_playback_rows.csv`.
 
-## Clean-room reconstruction status
+## source-level reconstruction status
 
 The Fireworks reconstruction now includes:
 
