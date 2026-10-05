@@ -55,9 +55,26 @@ Example: West node 2 at `(87,67)` has mask 6 and links `[-1,3,6,-1]`, meaning Ri
 
 The loader stores each screen in its own 30-node logical range. Encountering a `NEXT` marker advances the internal base by 30 nodes.
 
-## Node types
+## Node types / screen portals
 
-Normal navigation nodes use type 0. Several boundary/portal nodes use values including 128, 256, and 512. These clearly participate in screen-transition behavior, but their exact enum names are still being assigned from the runtime code rather than guessed from the file alone.
+The runtime around the Maze navigation transition branch tests the parsed node-type bits directly and assigns the active screen index.
+
+| Node-type bit | Meaning | Destination screen index |
+|---:|---|---:|
+| `0` | normal navigation node | unchanged |
+| `128 / 0x80` | portal to **West** | 0 |
+| `256 / 0x100` | portal to **East** | 2 |
+| `512 / 0x200` | portal to **Middle** | 1 |
+
+The branch priority is exactly 0x80, then 0x100, then 0x200.
+
+This matches the source graph topology:
+
+- Middle's far-left exit node has type 128 and moves to West.
+- Middle's far-right exit node has type 256 and moves to East.
+- West's far-right boundary node and East's far-left boundary node have type 512 and return to Middle.
+
+When a portal triggers, the executable also seeds the player's new position from the destination entry/reference coordinates and updates the active-screen/node globals.
 
 ## Post-END reference-node table
 
