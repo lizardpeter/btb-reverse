@@ -166,11 +166,26 @@ selected type, then clears that channel to 0. It counts all 18 authored cells;
 if the grid is now full, it plays **860 = ZFE_BOB_06.wav** for the Bob channel
 or **897 = ZFE_WEN_06.wav** for the Wendy channel.
 
-The state-12 branch advances sprite frames, derives a direction/frame from
-actor-to-target geometry, moves with the embedded +/-5 velocity constants, and
-stops within a 10-pixel distance threshold. Exhaustive writes to the channel
-state globals show no write of value 12, so that branch is retained as dormant
-legacy code rather than included in the normal retail placement flow.
+The state-12 branch is now decoded source-level despite being dormant. It
+increments the actor animation tick, advances the source row every six draws,
+and wraps rows **25 -> 13**. It calls the shared retail angle helper toward a
+static per-actor target, rounds the integer angle into one of eight 45-degree
+sprite columns using `(angle + 22) / 45`, then moves exactly:
+
+```text
+x += trunc(sin(angle * 0.0174535308) *  5)
+y += trunc(cos(angle * 0.0174535308) * -5)
+```
+
+The static targets are **Bob (260,210)** and **Wendy (260,20)**. After moving,
+retail computes Euclidean distance to the target; if it is strictly **<10.0**,
+the channel returns to state 0 and source column 4. The angle helper itself
+uses the original 9999.0 vertical sentinel and x87 truncate-toward-zero
+conversion, which the C++ reconstruction preserves.
+
+Exhaustive writes to the two channel-state globals still show **no write of
+value 12**, so this is genuine dormant/legacy code rather than a normal
+placement transition.
 
 ### Exact bottom-control behavior
 
