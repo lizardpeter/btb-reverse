@@ -27,12 +27,42 @@ int main() {
     static_assert(encode_piece_id(parts) == 34);
     constexpr auto decoded = decode_piece_id(34);
     static_assert(decoded.outer_variant == 3);
-    static_assert(decoded.inner_a == 2);
-    static_assert(decoded.inner_b == 1);
+    static_assert(decoded.from_connector == 2);
+    static_assert(decoded.to_connector == 1);
+
+    constexpr RunPlan raw_plan{{
+        {{0,1,2,0}},
+        {{2,2,1,1}},
+        {{0,1,0,2}},
+    }};
+    constexpr auto plan = chain_run_plan(raw_plan);
+    static_assert(plan[0][3] == 0);
+    static_assert(plan[1][0] == 0);
+    static_assert(plan[1][3] == 1);
+    static_assert(plan[2][0] == 1);
+    static_assert((required_connectors(plan, 0, 0) == ConnectorPair{0,1}));
+    static_assert((required_connectors(plan, 0, 1) == ConnectorPair{1,2}));
+    static_assert((required_connectors(plan, 0, 2) == ConnectorPair{2,0}));
+    static_assert(is_correct_connector_pair({1,2}, {1,2}));
+    static_assert(!is_correct_connector_pair({1,0}, {1,2}));
+    static_assert(is_retail_decoy_pair({2,0}, {1,2}));
+    static_assert(!is_retail_decoy_pair({1,0}, {1,2}));
+    static_assert(!is_retail_decoy_pair({2,2}, {1,2}));
 
     static_assert(level_count(Difficulty::Easy) == 1);
     static_assert(level_count(Difficulty::Medium) == 2);
     static_assert(level_count(Difficulty::Hard) == 3);
+    static_assert(kPiecesPerLevel == 3);
+    static_assert(required_correct_placements(Difficulty::Easy) == 3);
+    static_assert(required_correct_placements(Difficulty::Medium) == 6);
+    static_assert(required_correct_placements(Difficulty::Hard) == 9);
+    static_assert((kConveyorItemOrigins[0] == Vec2i{100,300}));
+    static_assert((kConveyorItemOrigins[3] == Vec2i{459,300}));
+    static_assert(kConveyorHitWidth == 89);
+    static_assert(kConveyorHitHeight == 133);
+    static_assert((kRunPlacementTargets[0] == Vec2i{116,327}));
+    static_assert((kRunPlacementTargets[2] == Vec2i{436,327}));
+    static_assert((kLoftyHomeTarget == Vec2i{93,185}));
     static_assert(!run_reached_level_end(6));
     static_assert(run_reached_level_end(7));
     static_assert(should_finish_activity(Difficulty::Easy, 0, 7));
