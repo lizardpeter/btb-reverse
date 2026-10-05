@@ -88,6 +88,43 @@ enum class HomeKind : std::int32_t {
     }
 }
 
+// Final, post-initializer second-stage home waypoints used by behavior
+// states 20..24. The retail initializer starts from 15 raw points at
+// 0x0050B320, subtracts per-species sprite-anchor X values (40/48/50), then
+// applies rabbit (-35,+10) and duck (-27,+36) adjustments.
+//
+// UpdateHerdingAnimal's index arithmetic:
+//   table_index = species_index * 5 + (behavior_state - 20)
+inline constexpr std::array<std::array<Vec2i, 5>, 3>
+kHomeEntryWaypoints{{
+    // Sheep / pen
+    {{{503, 142}, {560, 128}, {707, 99}, {618, 118}, {656, 110}}},
+    // Rabbit / hutches
+    {{{738, 106}, {840, 77}, {759, 94}, {783, 98}, {807, 107}}},
+    // Duck / pond
+    {{{933, 255}, {1073, 331}, {1011, 337}, {964, 278}, {1022, 286}}},
+}};
+
+[[nodiscard]] constexpr std::optional<Vec2i> home_entry_target(
+    EntityType type,
+    std::int32_t behavior_state) noexcept {
+
+    if (behavior_state < 20 || behavior_state > 24) {
+        return std::nullopt;
+    }
+
+    std::size_t species{};
+    switch (type) {
+        case EntityType::Sheep: species = 0; break;
+        case EntityType::Rabbit: species = 1; break;
+        case EntityType::Duck: species = 2; break;
+        default: return std::nullopt;
+    }
+
+    return kHomeEntryWaypoints[species][
+        static_cast<std::size_t>(behavior_state - 20)];
+}
+
 [[nodiscard]] constexpr std::int32_t animals_per_species(
     std::int32_t difficulty_index) noexcept {
     return difficulty_index + 3;
