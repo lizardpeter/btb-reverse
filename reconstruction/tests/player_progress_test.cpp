@@ -43,6 +43,12 @@ int main() {
     static_assert(static_cast<std::size_t>(Slot::Golf) == 62);
     static_assert(static_cast<std::size_t>(Slot::FireworkFinaleStarted) == 63);
     static_assert(static_cast<std::size_t>(Slot::ReservedUnused) == 64);
+    static_assert(!kFireworkFinaleHasSeparateCompletionProgress);
+
+    Record finale_entry;
+    mark_firework_finale_started(finale_entry);
+    assert(finale_entry.get(Slot::FireworkFinaleStarted) == 1);
+    assert(finale_entry.get(Slot::ReservedUnused) == 0);
 
     Record progress;
     assert(retail_progress_sum(progress) == 0);
