@@ -48,9 +48,9 @@ END
     const auto& middle_exit = data.screens[1].nodes[0];
     assert(middle_exit.portal_destination() == Screen::West);
 
-    Node east_exit;
-    east_exit.node_type = kPortalToEast;
-    assert(east_exit.portal_destination() == Screen::East);
+    Node synthetic_east_exit;
+    synthetic_east_exit.node_type = kPortalToEast;
+    assert(synthetic_east_exit.portal_destination() == Screen::East);
 
     const auto& middle_exit_west = data.screens[1].nodes[0];
     assert(middle_exit_west.type() == NodeType::PortalToWest);
