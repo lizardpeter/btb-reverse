@@ -70,4 +70,24 @@ int main() {
     assert(sounds.trigger_frames[7] == 665);
     assert(sound_id_for_random_slot(
         sounds, 0, StuntQuality::Good, 4) == 1019);
+
+    static_assert(kMaximumScore == 24);
+    static_assert(score_for_quality(StuntQuality::Bad) == 0);
+    static_assert(score_for_quality(StuntQuality::Normal) == 1);
+    static_assert(score_for_quality(StuntQuality::Okay) == 2);
+    static_assert(score_for_quality(StuntQuality::Good) == 3);
+
+    static_assert(result_tier(0) == ResultTier::Low);
+    static_assert(result_tier(9) == ResultTier::Low);
+    static_assert(result_tier(10) == ResultTier::Medium);
+    static_assert(result_tier(19) == ResultTier::Medium);
+    static_assert(result_tier(20) == ResultTier::High);
+    static_assert(result_tier(24) == ResultTier::High);
+
+    static_assert(result_sound_id(5, 0) == 773);
+    static_assert(result_sound_id(5, 1) == 774);
+    static_assert(result_sound_id(15, 0) == 775);
+    static_assert(result_sound_id(15, 2) == 777);
+    static_assert(result_sound_id(24, 0) == 778);
+    static_assert(result_sound_id(24, 1) == 779);
 }
