@@ -97,6 +97,52 @@ struct PendingPlacement {
     std::size_t column{};
 };
 
+struct PlacementActorVisual {
+    std::int32_t x{};
+    std::int32_t y{};
+    std::int32_t source_column{};
+    std::int32_t source_row{};
+    std::int32_t frame_tick{};
+};
+
+inline constexpr std::array<PlacementActorVisual, 2>
+kInitialPlacementActorVisuals{{
+    // Bob globals: x=0x104, y=0xA8, source column 4, source row/tick 0.
+    {260, 168, 4, 0, 0},
+    // Wendy globals: x=0x104, y=0, source column 4, source row/tick 0.
+    {260, 0, 4, 0, 0},
+}};
+
+struct ActorSourceRect {
+    std::int32_t left{};
+    std::int32_t top{};
+    std::int32_t right{};
+    std::int32_t bottom{};
+};
+
+[[nodiscard]] constexpr ActorSourceRect placement_actor_source_rect(
+    const PlacementActorVisual& visual) noexcept {
+    const auto left = visual.source_column * 128;
+    const auto top = visual.source_row * 128;
+    return {left, top, left + 128, top + 128};
+}
+
+// The ordinary idle animation path forces source column 4. Its frame timer
+// increments once per DrawFireworksEditor call; after values 1..5 it advances
+// the row on tick 6, clears the timer, and wraps row 9 back to 0.
+constexpr void tick_idle_actor_animation(
+    PlacementActorVisual& visual) noexcept {
+    visual.source_column = 4;
+    ++visual.frame_tick;
+    if (visual.frame_tick > 5) {
+        visual.frame_tick = 0;
+        ++visual.source_row;
+        if (visual.source_row >= 9) {
+            visual.source_row = 0;
+        }
+    }
+}
+
 struct EditorRuntimeState {
     InternalState internal_state{InternalState::Editor};
     FireworkType selected_type{FireworkType::RedAirbomb};
@@ -106,6 +152,10 @@ struct EditorRuntimeState {
         PlacementActorState::Idle,
     };
     std::array<PendingPlacement, 2> pending{};
+    std::array<PlacementActorVisual, 2> actor_visuals{
+        kInitialPlacementActorVisuals[0],
+        kInitialPlacementActorVisuals[1],
+    };
 
     EditorCursor cursor{};
 
