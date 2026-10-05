@@ -7,7 +7,7 @@ The Fireworks activity is the second minigame being taken from address-level not
 - `0x00411C80 InitializeFireworksActivity`
 - `0x00413F10 UpdateFireworksActivity`
 - `0x004115C0 LoadFireworkMovieBank` (high-confidence working name)
-- `0x00411B10 UnloadFireworksActivityResources` (high-confidence working name)
+- `0x00411B10 SaveFireworksLayoutAndUnloadResources`
 
 The activity mixes DirectDraw UI composition with a preloaded Bink bank for the firework effects.
 
@@ -77,18 +77,110 @@ Machine-readable maps:
 
 The routine opens each source file through the CD-fallback path, reads it into retained memory, initializes a per-movie playback/surface record, and then opens the Bink handle from that retained data. This appears designed to avoid repeated CD seeks while playing a user-authored show.
 
-## Next Fireworks boundary
+## Authored 3x6 show grid
 
-The remaining high-value part is the authored sequence itself:
+The user's show is stored as exactly **18 signed 32-bit integers**, arranged as 3 rows x 6 columns at global `0x0050A678`.
 
-- selecting palette type 0-11
-- placing it into one of the 18 authored positions
-- deriving left/right movie choice
-- delete and delete-all behavior
-- play/show sequencing
-- transition to crowd/top clips and completion/replay
+- `-1` = empty
+- `0..11` = a Firework type
+- the code contains generic continuation-marker support for multi-cell items (`type + 14`)
+- the shipped per-type span table at `0x00442734` contains only `1` values, so every retail firework occupies exactly one cell
 
-The data and movie bank are now sufficiently understood to implement the parser and type selection independently of DirectDraw/Bink.
+### Persistence
+
+There are five player-specific filenames in a 50-byte-stride table at `0x00442638`:
+
+- `firedata1.txt`
+- `firedata2.txt`
+- `firedata3.txt`
+- `firedata4.txt`
+- `firedata5.txt`
+
+Despite the `.txt` extension, these files are **binary**. The initializer reads them as 18 four-byte integers and `0x00411B10 SaveFireworksLayoutAndUnloadResources` opens the selected file with mode `wb` and writes all 18 values as 4-byte records.
+
+## Exact editor controls
+
+The combined editor hit table contains 33 regions:
+
+- 18 placement cells -> action 12
+- 12 palette cells -> actions 0..11
+- Play: `(292,416)-(346,472)` -> action 27
+- Delete All: `(102,416)-(156,472)` -> action 25
+- Delete Selected: `(483,416)-(537,472)` -> action 26
+
+The three button meanings are proven from the loaded surfaces and control code:
+
+- **27 Play** -> internal state 14
+- **26 Delete Selected** -> toggles internal state 13 and changes the cursor; clicking a placement slot in state 13 removes that item
+- **25 Delete All** -> opens `data\\ui\\DeleteFireworks.bmp` through the shared Yes/No confirmation modal; a Yes result clears all 18 slots to `-1`
+
+## Placement path
+
+`0x004126F0 HitTestFireworksEditorRegions` resolves the region under the pointer.
+
+`0x00412B50 DecodeSelectedFireworkGridCell` converts a placement-region index into:
+
+`row = index / 6`, `column = index % 6`.
+
+`0x00412BD0 BeginFireworksEditorAction` handles palette press, existing-slot pickup/replacement, Delete All, and Play.
+
+`0x00412D50 CompleteFireworksEditorAction` stores the selected type or validates a placement release. The actual grid commit occurs after the short placement animation, using `PlaceFireworkGridItem(..., commit=1)`.
+
+## Fireworks internal state machine
+
+The activity has its own state global at `0x0050A5BC`, distinct from the 68-state outer game flow.
+
+Observed states:
+
+| State | Meaning |
+|---:|---|
+| 0 | normal editor |
+| 1 | editor drag/release interaction variant |
+| 2 | initialize selected-firework preview event |
+| 3 | play selected-firework preview Bink |
+| 4 | finish preview and return to editor |
+| 8 | prepare authored show: stop sounds, unload editor, load movie bank, initialize timing/events |
+| 9 | active authored show playback via `UpdateFireworksShowPlayback` |
+| 13 | delete-selected mode |
+| 14 | post-show wait / begin completion movie |
+| 15 | play `Data\\movies\\fireworkcomplete.bik` |
+| 16 | certificate/results screen |
+| 17 | finalize completion, save grid, return to outer Play Again flow |
+
+States 5-7 and 10-12 currently dispatch to no-op targets in the retail jump table.
+
+## Show playback
+
+`0x00413450 UpdateFireworksShowPlayback` advances through the six authored columns. For each column it can activate up to three events, one for each row.
+
+Each active event stores its type, playback state, and row. Row determines display position and Bink-bank addressing:
+
+| Row | Position | Retail movie index rule |
+|---:|---|---|
+| 0 | `(0,0)` | `type` |
+| 1 | `(440,0)` | `type + 12` |
+| 2 | `(220,200)` | `type` |
+
+The middle-row arithmetic is unconditional. Therefore retail types 8, 9, and 10 in row 1 map to bank indices 20, 21, and 22 (the special top-middle/crowd clips), while type 11 computes index 23, one past the verified 23-entry bank. The source reconstruction intentionally records this quirk rather than normalizing it.
+
+The show also drives the crowd-loop/crowd-end clips and timed crowd/voice sound effects. When the show reaches its terminal phase, it switches the internal state to 16.
+
+## Completion flow
+
+State 14 waits for the relevant managed sound activity to settle, clears the display, and opens `Data\\movies\\fireworkcomplete.bik`, then enters state 15.
+
+State 15 runs the shared Bink player. When the movie completes it returns through show setup and starts the completion sound path.
+
+State 16 draws the certificate/results screen through `0x004138A0 DrawFireworksCertificateScreen`, including the common print function.
+
+State 17:
+
+1. updates persistent progress
+2. changes outer game-flow state to `0x3C` (Play Again Yes/No)
+3. records Fireworks completion
+4. calls `SaveFireworksLayoutAndUnloadResources`
+
+At this point the Fireworks editor data model, persistence, control actions, movie bank, authored show sequencing, and completion route are all structurally recovered.
 
 
 ## Authored 3x6 timeline
