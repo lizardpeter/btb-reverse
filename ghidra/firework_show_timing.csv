@@ -1,0 +1,4 @@
+row,threshold_ticks_10ms,launch_offset_ms,column_period_ticks_10ms,column_period_ms,notes
+0,0,0,400,4000,"Fires on each observed 400-tick column boundary"
+1,100,1000,400,4000,"Persistent row-1 gate fires once remainder reaches 100"
+2,200,2000,400,4000,"Persistent row-2 gate fires once remainder reaches 200"
