@@ -83,4 +83,47 @@ SoundData parse_sound_info(std::istream& in);
     return sounds.sound_ids[stunt][static_cast<std::size_t>(quality)][random_slot];
 }
 
+inline constexpr std::int32_t kMaximumScore =
+    static_cast<std::int32_t>(kStuntCount) *
+    static_cast<std::int32_t>(StuntQuality::Good);
+
+[[nodiscard]] constexpr std::int32_t score_for_quality(
+    StuntQuality quality) noexcept {
+    return static_cast<std::int32_t>(quality);
+}
+
+enum class ResultTier : std::int32_t {
+    Low,
+    Medium,
+    High,
+};
+
+[[nodiscard]] constexpr ResultTier result_tier(
+    std::int32_t score) noexcept {
+    return score < 10 ? ResultTier::Low
+         : score < 20 ? ResultTier::Medium
+                      : ResultTier::High;
+}
+
+[[nodiscard]] constexpr std::int32_t result_sound_id(
+    std::int32_t score,
+    std::int32_t random_index) noexcept {
+
+    switch (result_tier(score)) {
+        case ResultTier::Low:
+            return random_index >= 0 && random_index < 2
+                ? 773 + random_index  // SS2_SPU_16 / 17
+                : -1;
+        case ResultTier::Medium:
+            return random_index >= 0 && random_index < 3
+                ? 775 + random_index  // SS2_SPU_18..20
+                : -1;
+        case ResultTier::High:
+            return random_index >= 0 && random_index < 2
+                ? 778 + random_index  // SS2_SPU_21 / 22
+                : -1;
+    }
+    return -1;
+}
+
 } // namespace btb::spud_skate
