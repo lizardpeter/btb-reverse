@@ -234,3 +234,6 @@ address,name,confidence,notes
 0x0041F6E0,HandleBobsBandEditorAction,high,"Handles sound-brick selection, 5x24 wall placement/replacement, delete behavior, and special control actions"
 0x0041FB90,HitTestBobsBandRegions,high,"Hit-tests current cursor against sentinel-terminated Bob’s Band editor/control rectangles and returns action index"
 0x0041FC60,ElapsedBobsBandCentiseconds,high,"Computes elapsed FILETIME delta in centiseconds by dividing 100ns ticks by 100000"
+0x00427C30,UpdateProgressScreen,high,"Draws/interacts with Mr Bentley progress screen, renders completed activity stars, plays progress feedback, and updates finale lock/unlock flags from slots 50..64"
+0x0042D060,SaveAndUnloadPlayerProfiles,high,"Releases player/profile UI resources, writes playerinfo.txt, then saves five playerN.txt files with exactly 100 ASCII int32 progress values each"
+0x0042D270,InitializeAndLoadPlayerProfiles,high,"Loads profile UI/resources and playerinfo.txt, zeros five 100-int progress records, then reads player1.txt..player5.txt as ASCII integers"
