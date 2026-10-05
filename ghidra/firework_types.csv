@@ -1,0 +1,13 @@
+type_id,name,thumbnail,bink_left_or_single,bink_right
+0,red_airbomb,red_airbom_01.bmp,airbombredleft.bik,airbombredright.bik
+1,small_green,small_green_01.bmp,smallgreenleft.bik,smallgreenright.bik
+2,medium_red,medium_red_01.bmp,mediumleftred.bik,mediumrightred.bik
+3,large_blue,blue_large_01.bmp,bigblueleft.bik,bigblueright.bik
+4,large_red,red_large_01.bmp,bigredleft.bik,bigredright.bik
+5,medium_green,medium_green_01.bmp,Mediumgreenleft.bik,Mediumgreenright.bik
+6,small_blue,small_blue_01.bmp,smallblueleft.bik,smallblueright.bik
+7,blue_airbomb,blue_airbom_01.bmp,airbombblueleft.bik,airbombblueright.bik
+8,red_candle,red_candel_01.bmp,Candlered.bik,
+9,red_spinner,red_spiner_01.bmp,Wheelred.bik,
+10,green_spinner,green_spiner_01.bmp,Wheelgreen.bik,
+11,blue_candle,blue_candel_01.bmp,Candleblue.bik,
