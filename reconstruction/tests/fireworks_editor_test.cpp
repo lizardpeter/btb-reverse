@@ -35,6 +35,41 @@ int main() {
     static_assert(
         placement_voice_sound_id(PlacementActorChannel::Wendy, 3) == 907);
 
+    static_assert(kPreviewX == 199);
+    static_assert(kPreviewY == 39);
+
+    EditorRuntimeState preview_editor;
+    preview_editor.selected_type = FireworkType::LargeBlue;
+    preview_editor.internal_state = InternalState::PreviewSetup;
+    PreviewRuntime preview_runtime;
+
+    auto preview_step = update_preview_state(
+        preview_editor, preview_runtime, false);
+    assert(preview_editor.internal_state == InternalState::PreviewPlayback);
+    assert(preview_runtime.type == FireworkType::LargeBlue);
+    assert(preview_runtime.playback_state0 == 0);
+    assert(preview_runtime.playback_state1 == 0);
+    assert(!preview_step.decode_preview_movie);
+
+    preview_step = update_preview_state(
+        preview_editor, preview_runtime, false);
+    assert(preview_step.decode_preview_movie);
+    assert(preview_step.movie_index == 3);
+    assert(preview_step.x == 199 && preview_step.y == 39);
+    assert(!preview_step.restart_preview_movie);
+    assert(preview_editor.internal_state == InternalState::PreviewPlayback);
+
+    preview_step = update_preview_state(
+        preview_editor, preview_runtime, true);
+    assert(preview_step.decode_preview_movie);
+    assert(preview_step.restart_preview_movie);
+    assert(preview_editor.internal_state == InternalState::PreviewFinish);
+
+    preview_step = update_preview_state(
+        preview_editor, preview_runtime, false);
+    assert(preview_editor.internal_state == InternalState::Editor);
+    assert(preview_step.draw_editor);
+
     EditorRuntimeState palette;
     auto palette_result = begin_palette_selection(
         palette, FireworkType::MediumRed, 2);
