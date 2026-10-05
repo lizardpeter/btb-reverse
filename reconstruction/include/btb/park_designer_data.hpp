@@ -127,10 +127,51 @@ inline constexpr std::size_t kRetailSaveBytes =
     kObjectRecordCount * sizeof(RetailObjectRecord32)
     + kTrailingStateValueCount * sizeof(std::int32_t);
 
+enum class TrailingStateIndex : std::size_t {
+    PondSelectedPrimary = 0,       // global 0x00507A28
+    Unknown507E38 = 1,
+    PondSpecialRecord = 2,        // global 0x005079FC
+    Unknown507E3C = 3,
+    PondLinkedCount = 4,          // global 0x00507A40
+    SelectedObjectRecord = 5,     // global 0x00507C54
+    PondLinkedRecord0 = 6,        // 0x00507A2C
+    PondLinkedRecord1 = 7,
+    PondLinkedRecord2 = 8,
+    PondLinkedRecord3 = 9,
+    Unknown507B5C = 10,
+    PondLinkedRecord4 = 11,
+    ModePage0 = 12,               // 0x00507AE4
+    ModePage1 = 13,
+    ModePage2 = 14,
+    Unknown507AF0 = 15,
+    Unknown507AF4 = 16,
+    Unknown508BF4 = 17,
+    Unknown508BF8 = 18,
+    Unknown508BFC = 19,
+    Unknown508C00 = 20,
+    Unknown508C04 = 21,
+    NextPondPrimaryRecord = 22,   // global 0x00509340
+    NextDecorateRecord = 23,      // global 0x00441DC8
+    NextBandstandRecord = 24,     // global 0x00441DCC
+    Unknown441DD0 = 25,
+    Unknown441DD4 = 26,
+    Season = 27,                  // global 0x00509344
+};
+
 struct SaveData {
     std::array<RetailObjectRecord32, kObjectRecordCount> objects{};
     std::array<std::int32_t, kTrailingStateValueCount> trailing_state{};
+
+    [[nodiscard]] std::int32_t& state(TrailingStateIndex index) noexcept {
+        return trailing_state[static_cast<std::size_t>(index)];
+    }
+    [[nodiscard]] const std::int32_t& state(TrailingStateIndex index) const noexcept {
+        return trailing_state[static_cast<std::size_t>(index)];
+    }
 };
+
+// Exact persistent portion of the confirmed Delete All path.
+void delete_all_objects(SaveData& data) noexcept;
 
 SaveData read_save(std::istream& in);
 void write_save(std::ostream& out, const SaveData& data);
