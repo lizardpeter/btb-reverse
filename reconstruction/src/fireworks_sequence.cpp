@@ -3,6 +3,129 @@
 #include <stdexcept>
 
 namespace btb::fireworks {
+namespace {
+
+[[nodiscard]] PlaybackEvent make_playback_event(
+    std::size_t row,
+    std::size_t column,
+    FireworkType type) {
+    PlaybackEvent event;
+    event.row = row;
+    event.column = column;
+    event.type = type;
+    event.movie_index = retail_movie_index_for_row(type, row);
+    event.scheduled_launch_ms = retail_scheduled_launch_ms(row, column);
+
+    // Exact row-specific playback placement recovered from 0x00413450.
+    if (row == 0) {
+        event.x = 0;
+        event.y = 0;
+    } else if (row == 1) {
+        event.x = 440;
+        event.y = 0;
+    } else {
+        event.x = 220;
+        event.y = 200;
+    }
+
+    return event;
+}
+
+} // namespace
+
+void RetailShowScheduler::reset() noexcept {
+    previous_elapsed_ticks_ = kInitialPreviousElapsedTicks;
+    row1_pending_ = false;
+    row2_pending_ = false;
+}
+
+ScheduleStep RetailShowScheduler::advance(std::int32_t elapsed_ticks) noexcept {
+    ScheduleStep step;
+
+    const auto previous_column =
+        previous_elapsed_ticks_ / kTimelineColumnPeriodTicks;
+    const auto current_column = elapsed_ticks / kTimelineColumnPeriodTicks;
+    step.column = current_column;
+
+    if (previous_column != current_column) {
+        // Retail has a broader <20 guard here even though the authored grid
+        // contains only six columns.
+        if (current_column < 20) {
+            step.launch_rows[0] = true;
+        }
+        row1_pending_ = true;
+        row2_pending_ = true;
+    }
+
+    const auto remainder = elapsed_ticks % kTimelineColumnPeriodTicks;
+
+    if (row1_pending_ && remainder >= retail_row_launch_offset_ticks(1)) {
+        row1_pending_ = false;
+        step.launch_rows[1] = true;
+    }
+
+    if (row2_pending_ && remainder >= retail_row_launch_offset_ticks(2)) {
+        row2_pending_ = false;
+        step.launch_rows[2] = true;
+    }
+
+    previous_elapsed_ticks_ = elapsed_ticks;
+    return step;
+}
+
+ActiveEventPool::ActiveEventPool() noexcept {
+    reset();
+}
+
+void ActiveEventPool::reset() noexcept {
+    for (auto& record : records_) {
+        record = ActiveEventRecord{};
+    }
+}
+
+std::optional<std::size_t> ActiveEventPool::allocate(
+    FireworkType type,
+    std::size_t row) noexcept {
+    const auto type_id = static_cast<std::int32_t>(type);
+    if (type_id < 0 || type_id > 11 || row >= kTimelineRows) {
+        return std::nullopt;
+    }
+
+    for (std::size_t slot = 0; slot < records_.size(); ++slot) {
+        auto& record = records_[slot];
+        if (!record.free()) {
+            continue;
+        }
+
+        record.type = type_id;
+        record.auxiliary0 = 0;
+        record.auxiliary1 = 0;
+        record.row = static_cast<std::int32_t>(row);
+        return slot;
+    }
+
+    return std::nullopt;
+}
+
+bool ActiveEventPool::complete(std::size_t slot) noexcept {
+    if (slot >= records_.size() || records_[slot].free()) {
+        return false;
+    }
+
+    // 0x004137AA changes only +0x00 back to -1 after rewinding the Bink.
+    records_[slot].type = -1;
+    return true;
+}
+
+std::size_t ActiveEventPool::active_count() const noexcept {
+    std::size_t count = 0;
+    for (const auto& record : records_) {
+        if (!record.free()) {
+            ++count;
+        }
+    }
+    return count;
+}
 
 Sequence::Sequence() {
     clear();
@@ -110,30 +233,49 @@ std::vector<PlaybackEvent> Sequence::events_for_column(
         if (!type) {
             continue;
         }
-
-        PlaybackEvent event;
-        event.row = row;
-        event.column = column;
-        event.type = *type;
-        event.movie_index = retail_movie_index_for_row(*type, row);
-        event.scheduled_launch_ms = retail_scheduled_launch_ms(row, column);
-
-        // Exact row-specific playback placement recovered from 0x00413450.
-        if (row == 0) {
-            event.x = 0;
-            event.y = 0;
-        } else if (row == 1) {
-            event.x = 440;
-            event.y = 0;
-        } else {
-            event.x = 220;
-            event.y = 200;
-        }
-
-        events.push_back(event);
+        events.push_back(make_playback_event(row, column, *type));
     }
 
     return events;
+}
+
+std::vector<LaunchedEvent> launch_scheduled_events(
+    const Sequence& sequence,
+    const ScheduleStep& step,
+    ActiveEventPool& pool) {
+    std::vector<LaunchedEvent> launched;
+    if (!step.in_authored_timeline()) {
+        return launched;
+    }
+
+    const auto column = static_cast<std::size_t>(step.column);
+    launched.reserve(kTimelineRows);
+
+    for (std::size_t row = 0; row < kTimelineRows; ++row) {
+        if (!step.launch_rows[row]) {
+            continue;
+        }
+
+        const auto type = sequence.at(row, column);
+        if (!type) {
+            continue;
+        }
+
+        const auto type_id = static_cast<std::int32_t>(*type);
+        if (type_id < 0 || type_id > 11) {
+            continue;
+        }
+
+        const auto pool_slot = pool.allocate(*type, row);
+        if (!pool_slot) {
+            continue;
+        }
+
+        launched.push_back(
+            LaunchedEvent{*pool_slot, make_playback_event(row, column, *type)});
+    }
+
+    return launched;
 }
 
 } // namespace btb::fireworks
