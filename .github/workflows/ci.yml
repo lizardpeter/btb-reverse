@@ -14,3 +14,15 @@ jobs:
           python-version: "3.12"
       - name: Compile Python tooling
         run: python -m py_compile tools/*.py
+
+
+  reconstruction-cpp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure reconstruction
+        run: cmake -S reconstruction -B build/reconstruction
+      - name: Build reconstruction
+        run: cmake --build build/reconstruction --parallel
+      - name: Test reconstruction
+        run: ctest --test-dir build/reconstruction --output-on-failure
