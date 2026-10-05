@@ -45,6 +45,15 @@ int main() {
     static_assert(playback_buffer_index(4, 0) == 0);
     static_assert(playback_buffer_index(4, 9) == 9);
     static_assert(kTimelineSeconds == 24);
+    static_assert(kSoundFileStems[0] == "roley1");
+    static_assert(kSoundFileStems[1] == "roley2");
+    static_assert(kSoundFileStems[8] == "scoop1");
+    static_assert(kSoundFileStems[9] == "scoop2");
+    static_assert(kConductorBackingTracks[0] == "bobmt.wav");
+    static_assert(kConductorBackingTracks[1] == "Wendymt.wav");
+    static_assert(kConductorBackingTracks[2] == "fpmt.wav");
+    static_assert(static_cast<int>(ToolbarControl::Play) == 0);
+    static_assert(static_cast<int>(ToolbarControl::Delete) == 3);
 
     SequencerGrid grid;
     assert(grid.at(0,0) == kEmptyCell);
