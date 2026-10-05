@@ -82,6 +82,56 @@ void write_save(std::ostream& out, const SaveData& data) {
     }
 }
 
+void clear_pond_primary_objects(
+    SaveData& data,
+    PondClearSelector selector) noexcept {
+
+    for (std::size_t i = 0; i < 100; ++i) {
+        auto& object = data.objects[i];
+        switch (selector) {
+            case PondClearSelector::AllPrimary:
+                object.object_code = -1;
+                data.state(TrailingStateIndex::PondSelectedPrimary) = -1;
+                break;
+
+            case PondClearSelector::ObjectCode7:
+                if (object.object_code == 7) {
+                    object.object_code = -1;
+                    data.state(TrailingStateIndex::PondSpecialRecord) = -1;
+                }
+                break;
+
+            case PondClearSelector::Non7CodeBelow100:
+                if (object.object_code != 7 &&
+                    object.object_code >= 0 &&
+                    object.object_code < 100) {
+                    object.object_code = -1;
+                }
+                break;
+        }
+    }
+}
+
+void clear_bandstand_objects(
+    SaveData& data,
+    BandstandClearSelector selector) noexcept {
+
+    for (std::size_t i = 200; i < 300; ++i) {
+        auto& object = data.objects[i];
+        const auto category = object.bound_category;
+
+        if (selector == BandstandClearSelector::Categories0To2) {
+            if (category >= 0 && category <= 2) {
+                object.object_code = -1;
+            }
+        } else if (selector == BandstandClearSelector::Category2Only) {
+            if (category == 2) {
+                object.object_code = -1;
+            }
+        }
+    }
+}
+
 void delete_all_objects(SaveData& data) noexcept {
     for (auto& object : data.objects) {
         object.object_code = -1;
