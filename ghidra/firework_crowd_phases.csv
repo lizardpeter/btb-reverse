@@ -1,0 +1,5 @@
+phase_before,movie_index,movie,completion_effect,audio_behavior,certificate_condition
+0,21,fireworkcrowdloop.bik,"phase -> 1; restart movie","If no managed sound: 1/10 chance to play random ID 323..347, priority 50, flag 2","none"
+1,21,fireworkcrowdloop.bik,"phase -> 2; restart movie","If no managed sound: 1/10 chance to play random ID 323..347, priority 50, flag 2","none"
+2,21,fireworkcrowdloop.bik,"phase -> 3; restart movie","This frame still uses loop-branch random-sound behavior","none"
+3+,22,fireworkcrowdend.bik,"phase -> 7","Ensure sound 349 is playing; otherwise stop all then play 349, priority 50, flag 1","Enter state 16 when resulting phase is 7 and timeline column >= 2"
