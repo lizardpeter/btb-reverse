@@ -1,0 +1,4 @@
+row,screen_x,screen_y,movie_rule,notes
+0,0,0,type,"Base/left effect bank"
+1,440,0,type+12,"Right bank for types 0..7; retail arithmetic is unconditional"
+2,220,200,type,"Base bank at central/lower screen position"
