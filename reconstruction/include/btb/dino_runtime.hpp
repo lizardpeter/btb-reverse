@@ -41,7 +41,7 @@ struct PieceRuntime {
     Vec2i current{};
     PieceState state{PieceState::Loose};
     Recti source_rect{};
-    bool draw_loose_piece{true};
+    std::int32_t render_mode{1};
     std::int32_t piece_id{-1};
 
     [[nodiscard]] Recti current_bounds() const noexcept {
