@@ -74,6 +74,129 @@ enum class InternalState : std::int32_t {
     return state != InternalState::LegacyCompleteAndExit;
 }
 
+// Pressing Play enters state 14. Retail does not advance to the transition
+// movie until AnyManagedSoundPlaying() returns true; the Play-button path
+// itself starts sound 880 immediately before entering state 14.
+[[nodiscard]] constexpr bool should_open_pre_show_movie(
+    bool any_managed_sound_playing) noexcept {
+    return any_managed_sound_playing;
+}
+
+// When fireworkcomplete.bik finishes in state 15, retail re-enables input,
+// returns to state 8, stops all managed sounds, plays ID 142 at priority 90
+// with playback flag 1, and marks that managed slot persistent.
+inline constexpr std::int32_t kPreShowMovieFollowupSoundId = 142;
+inline constexpr std::int32_t kPreShowMovieFollowupPriority = 90;
+inline constexpr std::int32_t kPreShowMovieFollowupPlaybackFlag = 1;
+
+struct PreShowMovieCompletionAction {
+    InternalState next_state{InternalState::ShowSetup};
+    bool enable_input{true};
+    bool stop_all_managed_sounds{true};
+    std::int32_t sound_id{kPreShowMovieFollowupSoundId};
+    std::int32_t sound_priority{kPreShowMovieFollowupPriority};
+    std::int32_t playback_flag{kPreShowMovieFollowupPlaybackFlag};
+    bool mark_sound_slot_persistent{true};
+};
+
+[[nodiscard]] constexpr PreShowMovieCompletionAction
+pre_show_movie_completion_action() noexcept {
+    return {};
+}
+
+// The final show presentation uses the last three entries of the verified
+// 23-movie bank. Index 20 (topmiddle.bik) is drawn continuously and rewound on
+// completion. Crowd phase starts at 0 whenever LoadFireworkMovieBank runs.
+// Phases 0,1,2 use index 21 (fireworkcrowdloop.bik); each completed loop
+// increments the phase and rewinds that movie. Phases >=3 use index 22
+// (fireworkcrowdend.bik); its completion writes terminal phase 7.
+inline constexpr std::int32_t kCrowdLoopCompletions = 3;
+inline constexpr std::int32_t kCrowdTerminalPhase = 7;
+inline constexpr std::int32_t kCertificateEarliestColumn = 2;
+
+inline constexpr std::int32_t kRandomCrowdSoundFirst = 323;
+inline constexpr std::int32_t kRandomCrowdSoundCount = 25;
+inline constexpr std::int32_t kRandomCrowdSoundPriority = 50;
+inline constexpr std::int32_t kRandomCrowdSoundPlaybackFlag = 2;
+
+inline constexpr std::int32_t kCrowdEndSoundId = 349;
+inline constexpr std::int32_t kCrowdEndSoundPriority = 50;
+inline constexpr std::int32_t kCrowdEndSoundPlaybackFlag = 1;
+
+[[nodiscard]] constexpr bool crowd_loop_branch(
+    std::int32_t phase) noexcept {
+    return phase < kCrowdLoopCompletions;
+}
+
+[[nodiscard]] constexpr std::int32_t crowd_movie_index_for_phase(
+    std::int32_t phase) noexcept {
+    return crowd_loop_branch(phase)
+        ? kCrowdLoopMovieIndex
+        : kCrowdEndMovieIndex;
+}
+
+struct CrowdPhaseStep {
+    std::int32_t phase_before{};
+    std::int32_t phase_after{};
+    std::int32_t movie_index{};
+    bool restart_movie{};
+    bool random_sound_window{};
+    bool ensure_end_sound{};
+    bool enter_certificate{};
+};
+
+// Models the branch ordering in UpdateFireworksShowPlayback exactly. In
+// particular, a frame that completes phase 2 still runs the phase<3 branch;
+// the crowd-end movie/sound begins on the following frame.
+[[nodiscard]] constexpr CrowdPhaseStep advance_crowd_phase(
+    std::int32_t phase,
+    bool current_crowd_movie_finished,
+    std::int32_t current_timeline_column) noexcept {
+
+    CrowdPhaseStep step;
+    step.phase_before = phase;
+    step.phase_after = phase;
+    step.movie_index = crowd_movie_index_for_phase(phase);
+
+    if (crowd_loop_branch(phase)) {
+        step.random_sound_window = true;
+        if (current_crowd_movie_finished) {
+            ++step.phase_after;
+            step.restart_movie = true;
+        }
+    } else {
+        step.ensure_end_sound = true;
+        if (current_crowd_movie_finished) {
+            step.phase_after = kCrowdTerminalPhase;
+        }
+    }
+
+    step.enter_certificate =
+        current_timeline_column >= kCertificateEarliestColumn &&
+        step.phase_after == kCrowdTerminalPhase;
+    return step;
+}
+
+// Retail only attempts these random crowd/voice sounds while executing the
+// phase<3 branch, only if no managed sound is playing, and only on rand()%10
+// == 0. The second rand() chooses IDs 323..347 via rand()%25.
+[[nodiscard]] constexpr std::optional<std::int32_t> random_crowd_sound_id(
+    bool random_sound_window,
+    bool any_managed_sound_playing,
+    std::int32_t chance_roll_0_to_9,
+    std::int32_t variant_roll_0_to_24) noexcept {
+
+    if (!random_sound_window ||
+        any_managed_sound_playing ||
+        chance_roll_0_to_9 != 0 ||
+        variant_roll_0_to_24 < 0 ||
+        variant_roll_0_to_24 >= kRandomCrowdSoundCount) {
+        return std::nullopt;
+    }
+
+    return kRandomCrowdSoundFirst + variant_roll_0_to_24;
+}
+
 struct PlaybackEvent {
     std::size_t row{};
     std::size_t column{};
