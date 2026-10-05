@@ -133,3 +133,16 @@ add_executable(btb_park_designer_runtime_tests
 )
 target_link_libraries(btb_park_designer_runtime_tests PRIVATE btb_park_designer)
 add_test(NAME park_designer_runtime COMMAND btb_park_designer_runtime_tests)
+
+
+add_library(btb_spud_skate
+    src/spud_skate_data.cpp
+)
+target_include_directories(btb_spud_skate PUBLIC include)
+target_compile_features(btb_spud_skate PUBLIC cxx_std_20)
+
+add_executable(btb_spud_skate_data_tests
+    tests/spud_skate_data_test.cpp
+)
+target_link_libraries(btb_spud_skate_data_tests PRIVATE btb_spud_skate)
+add_test(NAME spud_skate_data COMMAND btb_spud_skate_data_tests)
