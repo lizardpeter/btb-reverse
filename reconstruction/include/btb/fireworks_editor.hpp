@@ -113,6 +113,33 @@ struct EditorRuntimeState {
     std::int32_t previous_control_action{-1};
 };
 
+struct DeleteAllConfirmationResult {
+    bool applied{};
+};
+
+// At the top of UpdateFireworksActivity, a nonzero shared Yes/No result clears
+// all 18 authored slots, clears both actor channels, resets Fireworks state 0,
+// restores the normal cursor, and consumes the modal result before any state
+// dispatch. A No result is represented by result=false and does nothing here.
+[[nodiscard]] inline DeleteAllConfirmationResult apply_delete_all_confirmation(
+    EditorRuntimeState& state,
+    Sequence& sequence,
+    bool confirmed_yes) noexcept {
+
+    DeleteAllConfirmationResult result;
+    if (!confirmed_yes) {
+        return result;
+    }
+
+    sequence.clear();
+    state.actor_states[0] = PlacementActorState::Idle;
+    state.actor_states[1] = PlacementActorState::Idle;
+    state.internal_state = InternalState::Editor;
+    state.cursor = {};
+    result.applied = true;
+    return result;
+}
+
 struct PaletteBeginResult {
     bool selection_latched{};
     std::optional<std::int32_t> sound_id{};
