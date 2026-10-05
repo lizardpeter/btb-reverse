@@ -236,3 +236,133 @@ The two modal buttons are fixed rectangles around X=220..312 / 334..421 and Y=26
 `0x0042A1A0 UpdateStartupVideoSequence` walks the ordered `videoseq.txt` table through the shared Bink player. Its state consists of the current sequence index and playback phase; once every entry has completed it reports success to the outer flow.
 
 `0x0042A240 UpdateSceneSetMovie` is a dedicated helper for `data\\movies\\sceneset.bik`; the main flow uses it as one of the early front-end transitions.
+
+
+## Player profiles and name entry
+
+The retail profile system is separate from the generic table-backed UI.
+
+### Player-profile screen
+
+`0x0042E110 UpdatePlayerProfileScreen` draws and updates the five wooden profile signs.
+
+A profile is considered occupied when it has either:
+
+- a non-empty name, or
+- a badge selection.
+
+This matters because the retail UI permits a **badge-only profile**.
+
+The screen supports:
+
+- choosing an existing profile and going directly to Activity Select;
+- choosing an empty slot and opening the name/badge popup;
+- deleting an existing profile;
+- Back/quit behavior.
+
+### Name/badge popup
+
+`0x0042DB70 DrawEnterNamePopup` renders:
+
+- the name-entry background;
+- the selected badge;
+- the typed name centered using the boxed blue-font glyph table;
+- the blinking insertion cursor.
+
+`0x0042DCC0 UpdateEnterNamePopup` handles the keyboard, badge arrows, Start, and Back.
+
+A new profile is routed through state `0x41`, which plays
+`data\\movies\\sceneset.bik`, before Activity Select. An existing profile
+goes directly to state `0x04`.
+
+### Name-entry encoding
+
+Each profile reserves **9 int32 glyph-code slots**, but retail accepts at most
+**8 typed characters**.
+
+The live key path:
+
+1. scans DirectInput key states;
+2. ignores both Shift scan codes `0x2A` and `0x36`;
+3. handles scan code `0x0E` as Backspace;
+4. refuses new characters once length reaches 8;
+5. requires the translated character code to be greater than `0x21` and no
+   greater than `0x7F`;
+6. only accepts physical scan codes through `0x35`;
+7. stores:
+
+```text
+glyph_index = translated_character_code - 0x21
+```
+
+The renderer uses that stored byte directly as the index into the
+`fontdatablue.txt` glyph rectangles.
+
+`loaddata/ascii.txt` is still loaded at startup into a separate global table,
+but no live runtime consumer has been proven in this executable. It is therefore
+treated as retained/legacy source data rather than silently substituted into the
+name-entry path.
+
+### playerinfo.txt
+
+Profile metadata is saved in `playerinfo.txt`.
+
+Retail opens it with `wb` on save but writes ASCII integers with `fprintf`.
+
+The format is two passes:
+
+1. five `name_length badge_index` pairs;
+2. for each profile, exactly `name_length` glyph-code integers.
+
+In memory:
+
+- five name lengths live in a five-int table;
+- five badge indices live in a five-int table;
+- each name has a fixed **9-int / 0x24-byte** backing slot.
+
+The buildable reconstruction is in:
+
+- `reconstruction/include/btb/player_profiles.hpp`
+- `reconstruction/src/player_profiles.cpp`
+- `reconstruction/tests/player_profiles_test.cpp`
+
+### Retail profile deletion
+
+Deleting a profile:
+
+1. sets its name length to 0;
+2. sets its badge index to -1;
+3. deliberately leaves the stale nine-int name backing slot untouched;
+4. zeros only player-progress slots **50..64**;
+5. truncates that player's:
+   - `dypdataN.txt`
+   - `firedataN.txt`
+   - `musicbobN.txt`
+   - `musicwendyN.txt`
+   - `musicfarmerN.txt`
+
+The numbered `playerN.txt` progress file is not truncated at that moment;
+the zeroed in-memory progress record is written later by the normal profile-save
+path.
+
+## Early dispatcher states
+
+The remaining early states are now separated into live and retained paths.
+
+| State | Meaning |
+|---:|---|
+| `0x00` | startup movie sequence, then profile-sign setup |
+| `0x01` | live five-slot profile/name-entry flow |
+| `0x02` | immediate redirect to Activity Select |
+| `0x03` | retained generic `Main_start_screen` / old Activity Select variant |
+| `0x04` | live Activity Select setup |
+| `0x05` | live Activity Select update |
+| `0x06` | generic UI teardown for retained path |
+| `0x07` | deliberate no-op |
+| `0x08` | whole-game quit-confirmation underlay/setup |
+| `0x09` | activate whole-game quit modal and restore Activity Select underneath |
+
+The original tables explain state `0x03`: generic screen 0,
+`Main_start_screen`, contains the same eight activity tiles as the live
+Activity Select but lacks the screen-1 Back/Help rows. Normal startup and
+profile selection bypass it and use screen 1.
