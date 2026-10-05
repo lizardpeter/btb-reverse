@@ -241,3 +241,4 @@ address,name,confidence,notes
 0x0042DCC0,UpdateEnterNamePopup,high,"Handles keyboard name entry/backspace, badge arrows, Start/Back controls, creates the selected profile, and routes new profiles through scene-set movie state 0x41"
 0x0042E110,UpdatePlayerProfileScreen,high,"Draws and updates the five wooden player signs; supports selecting existing profiles, choosing empty slots for name entry, deleting profiles, and quit/back handling"
 0x0042CFD0,PreparePlayAgainTransition,high,"Shared activity-completion presentation: stops/releases activity music, blits data\\ui\\main\\quitmain.bmp, raises shared background flag, stops managed sounds, plays PA_BOB_01.wav (ID 573), and marks the voice persistent before callers enter outer state 0x3C"
+0x00402AF0,NoOpLegacyHook,high,"Function body is a single RET; numerous legacy/front-end call sites pass ignored arguments before continuing"
