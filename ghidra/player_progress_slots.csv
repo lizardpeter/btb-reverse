@@ -13,4 +13,4 @@ index,name,confidence,notes
 61,Maze,high,"Set on Maze completion"
 62,Golf,high,"Set on Golf completion"
 63,FireworkFinaleEntered,high,"InitializeFireworksActivity writes 1 when finale starts"
-64,Unknown64,low,"Included in retail progress sum; no writer identified yet"
+64,Unused64,high,"Included in retail progress sum and profile save/load; no semantic writer exists in this executable, so normal retail-created profiles leave it zero"
