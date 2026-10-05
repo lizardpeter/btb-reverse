@@ -1,0 +1,9 @@
+state,name,confidence,notes
+0,Aim,high,"Aim value clamped to 0..88; pointer/keys adjust it before click advances to PowerMeter"
+1,PowerMeter,high,"Power oscillates 0..1000 using difficulty speed 2/4/6 and direction +/-1; click locks power"
+2,LaunchSetup,high,"Quantizes aim to even degrees, computes initial speed power/3+500, initializes swing/flight fields"
+3,BallFlight,high,"Moves ball using cos/sin velocity and decays speed by max(10,int(speed*0.012)) until below 20"
+4,ResolveLanding,high,"Checks landing proximity against the three course-object target centers and records matched target"
+5,ScoreAndFeedback,high,"Updates shot score/result state and plays context-dependent voice feedback"
+6,ResetNextAttempt,high,"Restores initial ball position, clears power, decrements attempts remaining, resets direction, returns to Aim"
+99,SwingAnimationDelay,high,"Short 8x8 tick/frame delay between launch setup and active ball flight"
