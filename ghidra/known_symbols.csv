@@ -301,3 +301,4 @@ address,name,confidence,notes
 0x00406460,MsvcStringGrow,high,"Dinkumware/MSVC basic_string grow/trim helper; handles COW references, capacity checks, allocation and empty-string cases"
 0x00406790,MsvcStringAllocateCopyBuffer,high,"Dinkumware/MSVC basic_string allocation/copy helper; rounds capacity, allocates COW-prefixed storage, copies old bytes and updates size/capacity"
 0x004068A0,MsvcStringDetachSharedBuffer,high,"Dinkumware/MSVC basic_string copy-on-write detach/freeze helper; releases shared reference, allocates private storage, copies bytes and NUL-terminates"
+0x00402FE0,DisplayManagerDestructor,high,"Restores the DirectDraw display-manager vtable and tail-calls ReleaseDisplayResources at 0x00402FF0"
