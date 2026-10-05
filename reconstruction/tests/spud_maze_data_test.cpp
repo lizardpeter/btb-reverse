@@ -8,15 +8,15 @@ using namespace btb::spud_maze;
 int main() {
     std::ostringstream src;
 
-    src << "Screen0_HEADER\n";
+    src << "WestScreen\n";
     src << "n0 0 100 200 8 256 -1 -1 -1 1\n";
-    src << "NEXT_2nd Screen1_HEADER\n";
+    src << "NEXT_2nd Screen\n";
     src << "n0 0 20 30 2 128 -1 1 -1 -1\n";
-    src << "NEXT_3rdScreen Screen2_HEADER\n";
+    src << "NEXT_3rdScreen\n";
     src << "n0 0 40 50 1 0 1 -1 -1 -1\n";
-    src << "NEXT_4thScreen Screen3_HEADER\n";
+    src << "NEXT_4thScreen\n";
     src << "n0 0 60 70 1 0 1 -1 -1 -1\n";
-    src << "NEXT_LastRightScreen Screen4_HEADER\n";
+    src << "NEXT_LastRightScreen\n";
     src << "n0 0 80 90 1 0 1 -1 -1 -1\n";
     src << "END\n";
 
