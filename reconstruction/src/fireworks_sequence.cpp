@@ -278,4 +278,81 @@ std::vector<LaunchedEvent> launch_scheduled_events(
     return launched;
 }
 
+RetailShowRuntime::RetailShowRuntime() noexcept {
+    reset();
+}
+
+void RetailShowRuntime::reset() noexcept {
+    scheduler_.reset();
+    event_pool_.reset();
+    crowd_phase_ = 0;
+}
+
+ShowFrameOutput RetailShowRuntime::update(
+    const Sequence& sequence,
+    const ShowFrameInput& input) {
+
+    ShowFrameOutput output;
+    output.timeline_column =
+        input.elapsed_ticks / kTimelineColumnPeriodTicks;
+
+    // Retail processes the crowd branch before updating timeline row gates,
+    // active authored events, topmiddle.bik, or launching this frame's cells.
+    output.crowd = advance_crowd_phase(
+        crowd_phase_,
+        input.crowd_movie_finished,
+        output.timeline_column);
+    crowd_phase_ = output.crowd.phase_after;
+
+    if (output.crowd.random_sound_window) {
+        output.sound_id = random_crowd_sound_id(
+            true,
+            input.any_managed_sound_playing,
+            input.random_chance_roll_0_to_9,
+            input.random_variant_roll_0_to_24);
+        if (output.sound_id) {
+            output.sound_priority = kRandomCrowdSoundPriority;
+            output.sound_playback_flag = kRandomCrowdSoundPlaybackFlag;
+        }
+    } else if (output.crowd.ensure_end_sound &&
+               !input.crowd_end_sound_playing) {
+        output.stop_all_before_sound = true;
+        output.sound_id = kCrowdEndSoundId;
+        output.sound_priority = kCrowdEndSoundPriority;
+        output.sound_playback_flag = kCrowdEndSoundPlaybackFlag;
+    }
+
+    // The certificate gate is an early return in retail. A crowd-end sound may
+    // have just been started above; the transition then stops all sounds again.
+    if (output.crowd.enter_certificate) {
+        output.stop_all_for_certificate = true;
+        output.enter_certificate = true;
+        return output;
+    }
+
+    const auto schedule = scheduler_.advance(input.elapsed_ticks);
+
+    // Existing active events are decoded before topmiddle and before newly due
+    // authored cells are allocated. A completed event is rewound externally;
+    // only its type field is freed here.
+    output.completed_event_slots.reserve(kActiveEventCapacity);
+    for (std::size_t slot = 0; slot < kActiveEventCapacity; ++slot) {
+        if (!input.active_event_movie_finished[slot]) {
+            continue;
+        }
+        if (event_pool_.complete(slot)) {
+            output.completed_event_slots.push_back(slot);
+        }
+    }
+
+    output.restart_top_middle_movie = input.top_middle_movie_finished;
+
+    // Retail allocates scheduled cells only after processing all existing
+    // events and topmiddle.bik, so new events first decode on the next frame.
+    output.launched_events =
+        launch_scheduled_events(sequence, schedule, event_pool_);
+
+    return output;
+}
+
 } // namespace btb::fireworks
