@@ -86,7 +86,7 @@ enum class InternalState : std::int32_t {
 // When fireworkcomplete.bik finishes in state 15, retail re-enables input,
 // returns to state 8, stops all managed sounds, plays ID 142 at priority 90
 // with playback flag 1, and marks that managed slot persistent.
-inline constexpr std::int32_t kPreShowMovieFollowupSoundId = 142;
+inline constexpr std::int32_t kPreShowMovieFollowupSoundId = 142; // CT_BOB_01
 inline constexpr std::int32_t kPreShowMovieFollowupPriority = 90;
 inline constexpr std::int32_t kPreShowMovieFollowupPlaybackFlag = 1;
 
@@ -115,12 +115,12 @@ inline constexpr std::int32_t kCrowdLoopCompletions = 3;
 inline constexpr std::int32_t kCrowdTerminalPhase = 7;
 inline constexpr std::int32_t kCertificateEarliestColumn = 2;
 
-inline constexpr std::int32_t kRandomCrowdSoundFirst = 323;
+inline constexpr std::int32_t kRandomCrowdSoundFirst = 323; // FD_ALL_01
 inline constexpr std::int32_t kRandomCrowdSoundCount = 25;
 inline constexpr std::int32_t kRandomCrowdSoundPriority = 50;
 inline constexpr std::int32_t kRandomCrowdSoundPlaybackFlag = 2;
 
-inline constexpr std::int32_t kCrowdEndSoundId = 349;
+inline constexpr std::int32_t kCrowdEndSoundId = 349; // FD_WEN_02
 inline constexpr std::int32_t kCrowdEndSoundPriority = 50;
 inline constexpr std::int32_t kCrowdEndSoundPlaybackFlag = 1;
 
