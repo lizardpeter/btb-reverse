@@ -1,0 +1,6 @@
+state,name,direct_retail_writer,role
+0,idle,yes,"Channel inactive; normal editor actor behavior"
+1,palette_latched,yes,"Set when selecting/picking up a firework for this actor family; gates palette voice and changes hit-test behavior"
+10,placement_queued,yes,"CompleteFireworksEditorAction stores pending row/column and enters this state after placement release"
+11,placement_commit,yes,"DrawFireworksEditor commits PlaceFireworkGridItem(commit=1), clears channel to 0, then checks for full 18-cell grid"
+12,dormant_legacy_motion,no,"Retail DrawFireworksEditor contains animation/motion code for this state, but exhaustive writes to the two state globals find no writer of value 12"
