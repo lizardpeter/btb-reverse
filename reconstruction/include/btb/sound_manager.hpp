@@ -75,4 +75,71 @@ static_assert(offsetof(RetailSoundManager32, filename_by_sound_id) == 0x1018);
 static_assert(offsetof(RetailSoundManager32, catalog_metadata) == 0x6608);
 static_assert(sizeof(RetailSoundManager32) == kRetailSoundManagerBytes);
 
+struct AcquireSlotChoice {
+    std::int32_t slot{-1};
+    bool requires_release{false};
+};
+
+[[nodiscard]] constexpr AcquireSlotChoice select_slot_for_acquire(
+    const RetailSoundManager32& manager,
+    const std::array<bool, kManagedSlotCount>& slot_is_playing) noexcept {
+
+    for (std::size_t i = 0; i < kManagedSlotCount; ++i) {
+        if (manager.slot_state[i] == static_cast<std::int32_t>(SlotState::Free)) {
+            return {static_cast<std::int32_t>(i), false};
+        }
+    }
+
+    std::int32_t best_slot = -1;
+    std::int32_t best_priority = 101;
+
+    for (std::size_t i = 0; i < kManagedSlotCount; ++i) {
+        if (slot_is_playing[i]) {
+            continue;
+        }
+
+        const auto priority = manager.priority_or_age[i];
+        if (priority < best_priority) {
+            best_priority = priority;
+            best_slot = static_cast<std::int32_t>(i);
+        }
+    }
+
+    return {best_slot, best_slot >= 0};
+}
+
+constexpr void clear_released_slot_metadata(
+    RetailSoundManager32& manager,
+    std::size_t slot) noexcept {
+
+    const auto old_sound_id = manager.sound_id_by_slot[slot];
+
+    manager.buffer_group_ptr32[slot] = 0;
+    manager.priority_or_age[slot] = -1;
+    manager.slot_state[slot] = static_cast<std::int32_t>(SlotState::Free);
+
+    if (manager.valid_sound_id(old_sound_id)) {
+        manager.slot_by_sound_id[
+            static_cast<std::size_t>(old_sound_id)] =
+                static_cast<std::int8_t>(-1);
+    }
+
+    manager.sound_id_by_slot[slot] = -1;
+}
+
+constexpr void install_acquired_slot_metadata(
+    RetailSoundManager32& manager,
+    std::size_t slot,
+    std::int32_t sound_id,
+    std::int32_t priority,
+    std::int32_t playback_policy) noexcept {
+
+    manager.sound_id_by_slot[slot] = sound_id;
+    manager.slot_by_sound_id[static_cast<std::size_t>(sound_id)] =
+        static_cast<std::int8_t>(slot);
+    manager.priority_or_age[slot] = priority;
+    manager.special_lifetime_flag[slot] = 0;
+    manager.playback_policy[slot] = playback_policy;
+}
+
 } // namespace btb::sound
