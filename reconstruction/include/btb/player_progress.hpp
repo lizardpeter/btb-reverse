@@ -48,6 +48,53 @@ inline constexpr std::size_t kRetailProgressFirst = 50;
 inline constexpr std::size_t kRetailProgressLast = 64;
 inline constexpr std::int32_t kRetailFinaleThreshold = 13;
 
+// Exact table at 0x00446FA4 used by UpdateProgressScreen while it walks
+// progress slots 50..64. Values index the star-position table.
+inline constexpr std::array<std::int32_t, 15>
+kProgressStarCoordinateIndices{{
+    12, 11, 8, 9, 10,
+    0, 3, 4, 5, 1,
+    2, 6, 7, -1, 1,
+}};
+
+struct StarPosition {
+    std::int32_t x{};
+    std::int32_t y{};
+};
+
+// Coordinate indices 0..12 come from the table rooted at 0x00446F3C.
+// Index -1 deliberately addresses the immediately preceding pair.
+inline constexpr std::array<StarPosition, 14> kProgressStarPositions{{
+    {357, -1}, // lookup index -1
+    {282, 102},
+    {282, 143},
+    {331, 143},
+    {282, 184},
+    {331, 184},
+    {381, 184},
+    {282, 225},
+    {331, 225},
+    {381, 225},
+    {282, 266},
+    {331, 266},
+    {381, 266},
+    {282, 307},
+}};
+
+[[nodiscard]] constexpr StarPosition progress_star_position(
+    std::size_t progress_slot) noexcept {
+    if (progress_slot < kRetailProgressFirst ||
+        progress_slot > kRetailProgressLast) {
+        return {-1, -1};
+    }
+
+    const auto table_index =
+        kProgressStarCoordinateIndices[progress_slot - kRetailProgressFirst];
+
+    // kProgressStarPositions[0] represents retail lookup index -1.
+    return kProgressStarPositions[static_cast<std::size_t>(table_index + 1)];
+}
+
 struct Record {
     std::array<std::int32_t, kValuesPerPlayer> values{};
 
