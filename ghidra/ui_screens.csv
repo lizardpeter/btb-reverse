@@ -1,0 +1,13 @@
+index,name,hot_area_count,notes
+0,main_ui_screen,8,"Main start/options/help/quit screen"
+1,game_select_screen,10,"Activity selection: Pets Corner, Dino, Fireworks, Spud, Squirrel, Music, Adventure Playground, Park Designer"
+2,instruction_with_difficulty,6,"Back, Easy, Medium, Hard, walkthrough/start, help"
+3,dino_sub_chooser,5,"Back, help, and three dinosaur choices"
+4,music_sub_chooser,5,"Back, help, and three music choices; uiHotArea.txt repeats the Dino label here, but uiHotAreaReplace.txt identifies MUSIC_sub_chooser"
+5,spud_activity_chooser,4,"Back, help, and two Spud activity choices"
+6,adventure_playground_chooser,4,"Back, help, and two Adventure Playground choices"
+7,fireworks_instruction,3,"Back, start, help"
+8,instruction_no_difficulty,3,"Back, start, help"
+9,play_again_yes_no,2,"Replay yes/no overlay"
+10,play_again_with_difficulty,3,"Replay Easy/Medium/Hard overlay"
+11,fireworks_edit_view_replay,2,"Fireworks Edit/View replay choice"
