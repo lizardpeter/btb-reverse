@@ -212,14 +212,30 @@ State 16 draws the certificate/results screen through
 `0x004138A0 DrawFireworksCertificateScreen`, including the common print
 function.
 
-State 17's handler would:
+State 17's handler is now decoded exactly. If it were entered, it would:
 
-1. run common progress updating
-2. set outer game-flow state `0x3C` (Play Again Yes/No)
-3. write the Fireworks completion bookkeeping value
-4. call `SaveFireworksLayoutAndUnloadResources`
+1. call `0x0042CFD0 PreparePlayAgainTransition`;
+2. set outer game-flow state `0x3C` (Play Again Yes/No);
+3. write global `0x0051B418 = 0x24` (this address is **outside** the player-progress records);
+4. call `SaveFireworksLayoutAndUnloadResources`;
+5. clear global `0x0051C2FC`.
 
-However, exhaustive direct references to the retail Fireworks state global show **no write of value 17**. State 16 is written explicitly by `UpdateFireworksShowPlayback`; normal exit from the certificate is handled by the shared outer activity/back flow. The state-17 handler is therefore preserved as dormant/legacy retail code rather than treated as the normal certificate transition.
+It does **not** update player progress. Exhaustive direct references to the
+retail Fireworks state global still show no write of value 17, so this handler
+is dormant/legacy retail code rather than the normal certificate transition.
+
+The real certificate exit is the shared leave-current-activity modal
+(`0x00429FE0 UpdateLeaveActivityConfirmation`). Accepting it raises
+`0x0051C2E8`. `UpdateFireworksActivity` checks that flag **before** its
+internal-state dispatch, saves/unloads Fireworks, clears the flag, and routes
+the outer game flow to state **0x04 / Activity Select**.
+
+The profile audit is also closed: `InitializeFireworksActivity` contains the
+sole Fireworks progress write, setting the selected player's slot **63** to
+`1` at `0x00411CE0`. The executable contains no reference to player-0 slot
+64 at `0x0051B5D0`, and certificate drawing/printing, teardown, shared leave,
+and dormant state 17 perform no player-progress write. There is therefore
+**no separate retail Firework Finale completed flag**.
 
 At this point the Fireworks editor data model, persistence, control actions, movie bank, authored show sequencing, certificate path, and completion/exit machinery are structurally recovered.
 
