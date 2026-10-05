@@ -13,8 +13,8 @@ inline constexpr std::size_t kRetailSoundManagerBytes = 0x7738;
 
 enum class SlotState : std::int32_t {
     Free = 0,
-    LoadedReady = 1,
-    Playing = 2,
+    NewlyAcquired = 1,
+    Active = 2,
     Stopped = 3,
 };
 
@@ -36,7 +36,7 @@ struct RetailSoundManager32 {
 
     std::array<std::int32_t, kManagedSlotCount> priority_or_age{};      // +0xB18
     std::array<std::int32_t, kManagedSlotCount> slot_state{};           // +0xC58
-    std::array<std::int32_t, kManagedSlotCount> persistent{};           // +0xD98
+    std::array<std::int32_t, kManagedSlotCount> special_lifetime_flag{};// +0xD98
     std::array<std::int32_t, kManagedSlotCount> playback_policy{};      // +0xED8
 
     std::array<FilenameRecord, kSoundCatalogCount> filename_by_sound_id{}; // +0x1018
@@ -69,7 +69,7 @@ static_assert(offsetof(RetailSoundManager32, slot_by_sound_id) == 0x280);
 static_assert(offsetof(RetailSoundManager32, sound_enabled) == 0x6CC);
 static_assert(offsetof(RetailSoundManager32, priority_or_age) == 0xB18);
 static_assert(offsetof(RetailSoundManager32, slot_state) == 0xC58);
-static_assert(offsetof(RetailSoundManager32, persistent) == 0xD98);
+static_assert(offsetof(RetailSoundManager32, special_lifetime_flag) == 0xD98);
 static_assert(offsetof(RetailSoundManager32, playback_policy) == 0xED8);
 static_assert(offsetof(RetailSoundManager32, filename_by_sound_id) == 0x1018);
 static_assert(offsetof(RetailSoundManager32, catalog_metadata) == 0x6608);
