@@ -45,8 +45,8 @@ enum class Difficulty : std::int32_t {
 [[nodiscard]] constexpr std::int32_t level_index(
     Species species,
     Difficulty difficulty) noexcept {
-    return static_cast<std::int32_t>(species)
-         + 3 * static_cast<std::int32_t>(difficulty);
+    return 3 * static_cast<std::int32_t>(species)
+         + static_cast<std::int32_t>(difficulty);
 }
 
 LevelData parse_level(std::istream& in);
