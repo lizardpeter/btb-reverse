@@ -268,3 +268,6 @@ address,name,confidence,notes
 0x00407A90,ClampCursorCoordinatesAndClearOffset,medium,"Clears cursor hotspot offsets and clamps negative shared mouse coordinates back to zero"
 0x00407AC0,ResetMouseBoundsToGameViewport,high,"Sets shared mouse bounds/state for the 640x480 game viewport, including max X=637 and max Y=477"
 0x00407B60,ReleaseInputAndCursorResources,high,"Unregisters/releases normal/loading cursor surfaces and DirectInput keyboard/mouse interfaces during teardown"
+0x00423030,SearchShortestSpudMazeGraphPath,high,"Recursive DFS over four node links; rejects cycles, accumulates Euclidean edge distance, and copies the lowest-cost route into the shared best-path buffer"
+0x00423220,BuildShortestSpudMazeGraphPath,high,"Initializes best-distance/path globals, seeds the start node, then calls SearchShortestSpudMazeGraphPath"
+0x00423260,DistanceFromActorToCurrentScreenNode,high,"Converts actor float X/Y to integers, looks up target node coordinates on current Spud-Maze screen, and returns integer Euclidean distance"
