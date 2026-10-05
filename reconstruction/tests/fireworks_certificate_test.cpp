@@ -13,6 +13,63 @@ int main() {
     static_assert(certificate_random_voice_sound_id(0) == 144);
     static_assert(certificate_random_voice_sound_id(7) == 151);
     static_assert(certificate_random_voice_sound_id(8) == -1);
+    static_assert(!kCertificateHasDirectExitAction);
+
+    constexpr CertificateInteractionState cert_initial{};
+
+    constexpr CertificateInteractionInput hover_input{
+        320, 440, false, false, -1, -1};
+    constexpr auto hover =
+        update_certificate_interaction(cert_initial, hover_input);
+    static_assert(hover.action == CertificateActionKind::PlayHoverVoice);
+    static_assert(hover.state.print_hover_voice_latched);
+    static_assert(hover.sound_id && *hover.sound_id == 143);
+    static_assert(hover.sound_priority == 50);
+    static_assert(hover.sound_playback_flag == 2);
+
+    constexpr auto hover_again =
+        update_certificate_interaction(hover.state, hover_input);
+    static_assert(hover_again.action == CertificateActionKind::None);
+
+    constexpr CertificateInteractionInput print_input{
+        320, 440, true, false, -1, -1};
+    constexpr auto print =
+        update_certificate_interaction(hover.state, print_input);
+    static_assert(print.action == CertificateActionKind::PrintCurrentFrame);
+    static_assert(print.stop_all_managed_sounds);
+
+    // Moving outside clears the hover latch and starts the one-shot random
+    // certificate voice when no other managed sound is playing.
+    constexpr CertificateInteractionInput random_input{
+        100, 100, false, false, 0, 7};
+    constexpr auto random_voice =
+        update_certificate_interaction(hover.state, random_input);
+    static_assert(!random_voice.state.print_hover_voice_latched);
+    static_assert(random_voice.state.random_voice_latched);
+    static_assert(random_voice.state.last_random_candidate_id == 144);
+    static_assert(random_voice.action == CertificateActionKind::PlayRandomVoice);
+    static_assert(random_voice.sound_id && *random_voice.sound_id == 151);
+    static_assert(random_voice.sound_playback_flag == 0);
+
+    // Retail's stored non-repeat candidate and played voice are separate
+    // random rolls, so this intentionally stores 144 while playing 151.
+    static_assert(
+        random_voice.state.last_random_candidate_id !=
+        *random_voice.sound_id);
+
+    constexpr CertificateInteractionState prior_candidate{
+        false, false, 144};
+    constexpr auto repeat_candidate_blocked =
+        update_certificate_interaction(prior_candidate, random_input);
+    static_assert(
+        repeat_candidate_blocked.action == CertificateActionKind::None);
+    static_assert(!repeat_candidate_blocked.state.random_voice_latched);
+
+    constexpr CertificateInteractionInput sound_busy_input{
+        100, 100, false, true, 1, 1};
+    constexpr auto sound_busy =
+        update_certificate_interaction(cert_initial, sound_busy_input);
+    static_assert(sound_busy.action == CertificateActionKind::None);
 
     static_assert(!certificate_print_hit(296, 419));
     static_assert(certificate_print_hit(297, 419));
