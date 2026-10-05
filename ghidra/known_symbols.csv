@@ -62,7 +62,7 @@ address,name,confidence,notes
 0x00410D10,UpdateParkDesignerActivity,high,"Park Designer runtime/update entry paired with state 0x33"
 0x004145F0,InitializeGolfActivity,high,"Golf initializer; loads Data\\SubGameGolf flag/ball/powerbar/background assets"
 0x00415830,UpdateGolfActivity,high,"Golf runtime/update entry paired with state 0x37"
-0x004207E0,InitializeSpudMazeActivity,high,"Spud Maze initializer; loads screen/timer/repair/toolbar assets"
+0x004207E0,InitializeSpudMazeActivity,high,"Initializes Spud Maze runtime, loads screen/timer/repair/toolbar assets, and applies parsed graph/tuning data"
 0x00423F40,UpdateSpudMazeActivity,high,"Spud Maze runtime/update entry paired with state 0x3B"
 0x00403C40,SetPrimarySoundBufferFormat,high,"Builds PCM WAVEFORMATEX and calls primary IDirectSoundBuffer::SetFormat"
 0x00403D20,CreateSoundBufferGroupFromWave,high,"Allocates CWaveFile-like reader and one-or-more DirectSound buffers from a WAV path"
@@ -205,3 +205,4 @@ address,name,confidence,notes
 0x00410F70,PlayPersistentParkDesignerVoice,high,"Plays a managed sound at priority 50, marks its active slot persistent, and optionally remembers deferred voice state when another sound is active"
 0x00424230,LoadSpudSkateTimingData,high,"Loads difficulty-selected spuddata1/2/3: eight four-threshold stunt windows, eight return-to-Bad frames, and 44/660 loop frame pair"
 0x00424690,UpdateAndDrawSpudSkatePlayback,high,"Runs synchronized Bink playback, frame-window stunt input, quality scoring, data-driven stunt sounds, score display, and final result sequence"
+0x00420560,LoadSpudMazeData,high,"Parses five-screen spudmaze_nodes graph, applies Y-11 correction, reads 5x4 reference triples, difficulty speeds/timers/spawns, animation delay, and trailing screen point lists"
