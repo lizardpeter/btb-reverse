@@ -371,3 +371,32 @@ Draws normal/hover/depressed control surfaces and plays the matching `DYP_G_*` h
 ### `0x00410F70 PlayPersistentParkDesignerVoice`
 
 Centralizes the activity's spoken UI feedback. It plays through the 80-slot managed sound system with priority 50 and marks the resulting slot persistent so the voice is not auto-reaped during editor state transitions.
+
+
+## Exit / completion sequence
+
+Global `0x00509368` is the Park Designer closing-state value used when the player leaves the activity.
+
+The outer `UpdateParkDesignerActivity` path is:
+
+| Stage | Behavior |
+|---:|---|
+| 0 | choose and play one of sounds 246..248 |
+| 1 | keep drawing the designer and wait until managed speech/effects are finished |
+| 2 | save/unload designer state, update progress/completion, and return to the outer game flow |
+
+The three closing lines are:
+
+- 246 = `DYP_G_BOB_12.wav`
+- 247 = `DYP_G_BOB_13.wav`
+- 248 = `DYP_G_BOB_14.wav`
+
+At stage 2 retail calls `UnloadParkDesignerActivityResources`, which saves the player-specific `dypdataN.txt` before freeing activity resources.
+
+The code then scans all 400 persistent object records. If **any** object has `object_code != -1`, the current player's Park Designer progress/completion flag is set.
+
+The source-level equivalent is now in:
+
+- `park_designer_runtime.hpp`
+- `park_designer_runtime.cpp`
+- `park_designer_runtime_test.cpp`
