@@ -47,7 +47,7 @@ address,name,confidence,notes
 0x00419600,InitializeHerdingActivity,high,"Activity initializer in Data\\SubGame1 herd module; called by main flow state 0x0E"
 0x004182B0,UpdateHerdingActivity,medium,"Runtime/update entry paired with InitializeHerdingActivity by main flow state 0x0F"
 0x0040A670,InitializeDinoActivity,high,"Dinosaur activity initializer; references Dino asset/difficulty tables"
-0x00409E00,UpdateDinoActivity,high,"Dino core loop: piece states 0 loose, 1 dragging, 2 correct-snap transition, 3 incorrect-return transition, 4 placed; interaction modes 0 idle, 1 dragging, 2 resolve drop"
+0x00409E00,UpdateDinoActivity,high,"Dino core loop: piece states 0 loose, 1 dragging, 2 accepted-drop transition, 3 rejected-drop feedback, 4 placed; interaction modes 0 idle, 1 carrying, 2 finalize accepted drop"
 0x00424360,InitializeSpudSkateActivity,high,"Spud Skate activity initializer; paired with data loaders for spuddata1/2/3.txt"
 0x00424D10,UpdateSpudSkateActivity,high,"Spud Skate runtime/update entry; called by main flow state 0x1B"
 0x0041A730,InitializeMazeActivity,high,"Maze activity initializer; loads Data\\SubGameMaze assets and lofty engine.wav"
