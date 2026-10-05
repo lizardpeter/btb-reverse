@@ -55,4 +55,25 @@ const std::vector<Vec2i>& scruffty_patrol_path(const Data& data) {
         : empty;
 }
 
+bool apply_scruffty_distraction(
+    RetailEntityRecord32& animal,
+    FollowerList& followers,
+    std::int32_t entity_index,
+    std::int32_t random_mod_400) noexcept {
+
+    if (random_mod_400 < 0 || random_mod_400 >= 400) {
+        return false;
+    }
+    if (!followers.remove(entity_index)) {
+        return false;
+    }
+
+    animal.target_flag_or_timer = 200;
+    animal.target_x = 286 + random_mod_400;
+
+    const auto height = animal.source_bottom - animal.source_top;
+    animal.target_y = animal.y + height / 2;
+    return true;
+}
+
 } // namespace btb::herding
