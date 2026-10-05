@@ -142,8 +142,8 @@ Observed states:
 | 8 | prepare authored show: stop sounds, unload editor, load movie bank, initialize timing/events |
 | 9 | active authored show playback via `UpdateFireworksShowPlayback` |
 | 13 | delete-selected mode |
-| 14 | post-show wait / begin completion movie |
-| 15 | play `Data\\movies\\fireworkcomplete.bik` |
+| 14 | Play-button transition / prepare `Data\\movies\\fireworkcomplete.bik` |
+| 15 | play the pre-show `fireworkcomplete.bik` transition |
 | 16 | certificate/results screen |
 | 17 | legacy save/unload + Play Again handler; present in jump table but no retail write of state 17 has been found |
 
@@ -165,13 +165,52 @@ The middle-row arithmetic is unconditional. Therefore retail types 8, 9, and 10 
 
 The show also drives the crowd-loop/crowd-end clips and timed crowd/voice sound effects. When the show reaches its terminal phase, it switches the internal state to 16.
 
-## Completion flow
+## Play -> transition movie -> authored show -> certificate
 
-State 14 waits for the relevant managed sound activity to settle, clears the display, and opens `Data\\movies\\fireworkcomplete.bik`, then enters state 15.
+The exact runtime order is now resolved. Action **27 / Play** is the only editor
+control that enters state 14. The Play-button path starts managed sound **880**
+and writes internal state **14**.
 
-State 15 runs the shared Bink player. When `fireworkcomplete.bik` finishes, retail re-enables input, writes internal state **8**, stops managed sounds, plays sound ID **142** at priority **90**, and marks that managed-sound slot with the special lifetime/control flag. The activity therefore re-enters the normal show-setup path rather than jumping directly to the certificate.
+State 14 calls `AnyManagedSoundPlaying`. If it returns 0, retail simply redraws
+the editor and remains in state 14. Once it returns 1, retail clears the
+display, disables input, opens `Data\\movies\\fireworkcomplete.bik`, and
+enters state **15**. Despite the filename, this movie is therefore on the
+**pre-show transition path**, not after the authored fireworks.
 
-State 16 draws the certificate/results screen through `0x004138A0 DrawFireworksCertificateScreen`, including the common print function.
+State 15 runs the shared Bink player. When `fireworkcomplete.bik` finishes,
+retail:
+
+1. re-enables input;
+2. writes internal state **8**;
+3. stops all managed sounds;
+4. plays sound **142** at priority **90**, playback flag **1**;
+5. marks that managed-sound slot persistent.
+
+State 8 then reloads the 23-entry Fireworks Bink bank, resets crowd phase to
+**0**, clears the 40 active-event slots, resets the exact show clock, and enters
+state **9**. State 9 is the authored fireworks/crowd show.
+
+The crowd presentation is exact:
+
+- movie bank index **20** = `topmiddle.bik`; it is drawn continuously and
+  rewound whenever it completes;
+- phases **0, 1, 2** draw index **21** = `fireworkcrowdloop.bik`; each
+  completed loop increments the phase and rewinds the movie;
+- while that loop branch is active and no managed sound is playing, retail has
+  a 1-in-10 chance per update to play one random ID from **323..347** at
+  priority **50**, playback flag **2**;
+- phase **3 and above** uses index **22** = `fireworkcrowdend.bik`;
+- on that branch, if sound **349** is not already playing, retail stops all
+  managed sounds and starts ID **349** at priority **50**, playback flag **1**;
+- when `fireworkcrowdend.bik` reaches its final frame, the phase is written
+  directly to terminal value **7**;
+- state **16 / Certificate** is entered only when the timeline column is at
+  least **2** (8 seconds on the corrected 4-second clock) **and** crowd phase
+  is **7**.
+
+State 16 draws the certificate/results screen through
+`0x004138A0 DrawFireworksCertificateScreen`, including the common print
+function.
 
 State 17's handler would:
 
@@ -333,7 +372,12 @@ The Fireworks reconstruction now includes:
 - column-based playback event generation
 - exact retail row coordinates and Bink-index arithmetic
 
-The exact show scheduler/timing and 40-record Bink event lifetime are now source-level as well. The main Fireworks work still below source level is the detailed editor animation/hover presentation and the remaining crowd/completion presentation plumbing around the already recovered state transitions.
+The exact show scheduler/timing, 40-record Bink event lifetime, pre-show movie
+handoff, three-loop crowd phase, crowd-end phase, sound orchestration, and
+certificate gate are now source-level as well. The main Fireworks work still
+below source level is the detailed editor animation/hover presentation and a
+few lower-level DirectDraw/Bink bookkeeping fields that do not change the
+recovered control flow.
 
 
 ## Exact retail show cadence
