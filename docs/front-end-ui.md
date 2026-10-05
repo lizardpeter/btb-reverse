@@ -184,3 +184,35 @@ The late state-machine block is now decoded directly from the screen tables:
 - Progress Screen
 
 These records provide another direct bridge from anonymous numeric sound IDs and hit rectangles to user-facing game semantics.
+
+
+## Modal precedence
+
+Before dispatching the normal 68-state game-flow table, `RunMainGameFlow` checks four modal flags in a fixed order. This means these overlays temporarily intercept the frame without changing the underlying activity state.
+
+1. options flag `0x0051C2BC` -> `0x00429800 UpdateOptionsOverlay`
+2. contextual-help flag `0x0051C2D0` -> `0x00429C90 UpdateContextualHelpOverlay`
+3. whole-game quit flag `0x0051C2C0` -> `0x00429AA0 UpdateQuitConfirmationOverlay`
+4. leave-current-activity flag `0x0051C2C8` -> `0x00429FE0 UpdateLeaveActivityConfirmation`
+
+### Options
+
+`UpdateOptionsOverlay` draws `data\\ui\\options\\optionsscreen.bmp` and `pointer.bmp`, moves the pointer across the slider geometry loaded from `options.txt`, converts that position into the game's global volume value, and propagates it to DirectSound and Bink playback.
+
+### Whole-game quit confirmation
+
+`UpdateQuitConfirmationOverlay` uses the shared quit background and Yes/No button art loaded from `quitsure.txt`. No simply dismisses the modal. Yes stops active sounds, chooses one of several exit voice lines, waits for that line to finish, and then raises the application-level quit flag.
+
+### Contextual help
+
+`UpdateContextualHelpOverlay` selects behavior from the current help-context index populated by `helpinfo.txt`. The table gives explicit contexts for front-end screens and individual activities.
+
+### Leave-current-activity confirmation
+
+`UpdateLeaveActivityConfirmation` deliberately remains separate from the whole-game quit modal even though it reuses much of the Yes/No art. Accepting it raises global `0x0051C2E8`, which the activity update routines poll as their common abort/return-to-front-end request.
+
+## Startup movie helpers
+
+`0x0042A1A0 UpdateStartupVideoSequence` walks the ordered `videoseq.txt` table through the shared Bink player. Its state consists of the current sequence index and playback phase; once every entry has completed it reports success to the outer flow.
+
+`0x0042A240 UpdateSceneSetMovie` is a dedicated helper for `data\\movies\\sceneset.bik`; the main flow uses it as one of the early front-end transitions.
