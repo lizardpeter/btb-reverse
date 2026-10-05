@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <istream>
 #include <ostream>
+#include <optional>
 #include <string_view>
 
 namespace btb::grand_opening {
@@ -54,6 +55,19 @@ enum class Pitch : std::int32_t {
     return "";
 }
 
+enum class Machine : std::int32_t {
+    Roley = 0,
+    Muck = 1,
+    Lofty = 2,
+    Dizzy = 3,
+    Scoop = 4,
+};
+
+enum class Duration : std::int32_t {
+    Short = 0,
+    Long = 1,
+};
+
 enum class MachineType : std::int32_t {
     Roley1Second = 0,
     Roley2Second = 1,
@@ -66,6 +80,27 @@ enum class MachineType : std::int32_t {
     Scoop1Second = 8,
     Scoop2Second = 9,
 };
+
+[[nodiscard]] constexpr MachineType machine_type(
+    Machine machine,
+    Duration duration) noexcept {
+    return static_cast<MachineType>(
+        static_cast<std::int32_t>(machine) * 2 +
+        static_cast<std::int32_t>(duration));
+}
+
+[[nodiscard]] constexpr Machine machine_for_type(
+    MachineType type) noexcept {
+    return static_cast<Machine>(
+        static_cast<std::int32_t>(type) / 2);
+}
+
+[[nodiscard]] constexpr Duration duration_for_type(
+    MachineType type) noexcept {
+    return (static_cast<std::int32_t>(type) & 1) != 0
+        ? Duration::Long
+        : Duration::Short;
+}
 
 enum class ToolbarControl : std::int32_t {
     Play = 0,
@@ -128,6 +163,34 @@ enum class ActivityState : std::int32_t {
     return 40
         - static_cast<std::int32_t>(row) * 10
         + static_cast<std::int32_t>(type);
+}
+
+struct GridCell {
+    std::size_t pitch_row{};
+    std::size_t second{};
+    friend bool operator==(const GridCell&, const GridCell&) = default;
+};
+
+[[nodiscard]] constexpr std::optional<GridCell> decode_grid_region(
+    std::int32_t region_index) noexcept {
+    if (region_index < 0 ||
+        region_index >= static_cast<std::int32_t>(
+            kPitchRowCount * kTimelineStepCount)) {
+        return std::nullopt;
+    }
+    return GridCell{
+        static_cast<std::size_t>(region_index) / kTimelineStepCount,
+        static_cast<std::size_t>(region_index) % kTimelineStepCount,
+    };
+}
+
+[[nodiscard]] constexpr std::int32_t playback_step_from_centiseconds(
+    std::int32_t elapsed_centiseconds) noexcept {
+    if (elapsed_centiseconds < 0) return -1;
+    const auto step = elapsed_centiseconds / 100;
+    return step < static_cast<std::int32_t>(kTimelineStepCount)
+        ? step
+        : -1;
 }
 
 [[nodiscard]] constexpr std::string_view conductor_name(
