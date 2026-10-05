@@ -42,6 +42,11 @@ int main() {
     assert(scruffty_enabled(1));
     assert(scruffty_enabled(2));
 
+    assert(food_pickup_sound_ids(FoodType::DuckFood).pickles_line == 582);
+    assert(food_pickup_sound_ids(FoodType::DuckFood).travis_line == 609);
+    assert(food_pickup_sound_ids(FoodType::RabbitFood).pickles_line == 583);
+    assert(food_pickup_sound_ids(FoodType::SheepFood).travis_line == 611);
+
     assert(attraction_sound_ids(FoodType::DuckFood).a == 585);
     assert(attraction_sound_ids(FoodType::DuckFood).b == 586);
     assert(attraction_sound_ids(FoodType::RabbitFood).a == 587);
@@ -83,6 +88,15 @@ int main() {
     assert(distracted.target_x == 409);
     assert(distracted.target_y == 330);
     assert(!apply_scruffty_distraction(distracted, followers, 7, 123));
+
+    assert(followers.add(9));
+    RetailEntityRecord32 released{};
+    assert(release_follower_for_food_change(released, followers, 9, 10, 20));
+    assert(!followers.contains(9));
+    assert(released.target_flag_or_timer == 200);
+    assert(released.target_x == 296);
+    assert(released.target_y == 470);
+    assert((food_change_wander_target(399, 399) == Vec2i{685, 849}));
 
     std::istringstream in(R"(
 719 266
