@@ -41,13 +41,15 @@ LayoutData parse_layout(std::istream& placement, std::istream& palette) {
     for (std::size_t i = 0; i < result.placement_source.size(); ++i) {
         result.placement_source[i] = placement_rects[i];
 
-        // Net retail behavior after parse-time (-20,-30) and runtime
-        // transfer (+0,+30): placement hit rectangles are shifted left 20.
+        // Exact retail behavior:
+        //   1. parser subtracts 20 from all four retained coordinates
+        //   2. runtime-table transfer adds 30 to the two X coordinates
+        // Final placement hit region = source X + 10, source Y - 20.
         result.placement_runtime[i] = {
-            placement_rects[i].left - 20,
-            placement_rects[i].top,
-            placement_rects[i].right - 20,
-            placement_rects[i].bottom,
+            placement_rects[i].left + 10,
+            placement_rects[i].top - 20,
+            placement_rects[i].right + 10,
+            placement_rects[i].bottom - 20,
         };
     }
 
