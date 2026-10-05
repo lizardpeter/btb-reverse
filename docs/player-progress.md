@@ -126,3 +126,32 @@ as the finale starts.
 Index 64 remains unresolved. It is included in the retail progress-screen sum,
 but no direct writer has yet been identified. The reconstruction therefore
 keeps it as `Unknown64` rather than inventing a certificate/completion meaning.
+
+
+## Mr Bentley progress feedback
+
+`UpdateProgressScreen` does more than draw completed stars. Clicking grouped
+progress items makes Mr Bentley report how much of that group remains.
+
+The shared sound ladder is:
+
+| Remaining in group | Sound |
+|---:|---|
+| 3 | 959 = `ZPT_MRB_06.wav` |
+| 2 | 958 = `ZPT_MRB_05.wav` |
+| 1 | 957 = `ZPT_MRB_04.wav` |
+| 0 | random 955/956 = `ZPT_MRB_02.wav` / `ZPT_MRB_03.wav` |
+
+Verified groups:
+
+- Bob's Band slots 52..54, group size 3
+- Dinosaur slots 56..58, group size 3
+- Spud Maze + Spud Skate slots 59..60, group size 2
+- Maze + Golf slots 61..62, group size 2
+
+Single activity stars use the same pattern: incomplete selects the one-remaining
+line (957), while complete selects one of the two positive-completion lines
+(955/956).
+
+This behavior is reproduced by `progress_feedback_sound` and the grouped helper
+functions in `player_progress.hpp`.
