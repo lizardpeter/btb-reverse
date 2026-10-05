@@ -35,7 +35,7 @@ int main() {
     assert(selected && *selected == 0);
     assert(runtime.mode() == InteractionMode::Carrying);
     assert(runtime.pieces()[0].state == PieceState::Dragging);
-    assert(!runtime.pieces()[0].draw_loose_piece);
+    assert(runtime.pieces()[0].render_mode == 0);
 
     assert(runtime.try_drop({100, 100}, 20) == DropResult::Rejected);
     assert(runtime.mode() == InteractionMode::Carrying);
@@ -48,7 +48,7 @@ int main() {
     assert(runtime.finalize_accepted_drop());
     assert(runtime.mode() == InteractionMode::Idle);
     assert(runtime.pieces()[0].state == PieceState::Placed);
-    assert(runtime.pieces()[0].draw_loose_piece);
+    assert(runtime.pieces()[0].render_mode == 1);
     assert(runtime.completed_piece_count() == 1);
     assert(!runtime.complete());
 
