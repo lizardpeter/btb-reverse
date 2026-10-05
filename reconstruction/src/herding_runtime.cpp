@@ -85,7 +85,7 @@ bool apply_scruffty_distraction(
         return false;
     }
 
-    animal.target_flag_or_timer = 200;
+    animal.temporary_target_timer = 200;
     animal.target_x = 286 + random_mod_400;
 
     const auto height = animal.source_bottom - animal.source_top;
@@ -110,7 +110,7 @@ bool release_follower_for_food_change(
 
     const auto target = food_change_wander_target(
         random_x_mod_400, random_y_mod_400);
-    animal.target_flag_or_timer = 200;
+    animal.temporary_target_timer = 200;
     animal.target_x = target.x;
     animal.target_y = target.y;
     return true;
