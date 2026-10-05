@@ -36,7 +36,7 @@ Ordered fields:
 10. three power-bar speeds, one per difficulty
 11. ball frame size
 12. ball frame count
-13. two additional X/Y pairs not described by the source comments
+13. one additional X/Y pair not described by the source comments, followed by one further `%d %d` scan attempt
 
 For the shipped data:
 
@@ -44,7 +44,7 @@ For the shipped data:
 - power-bar speeds = `2, 4, 6`
 - ball frame size = `10 x 10`
 - ball frame count = `1`
-- trailing pairs = `(105,247)` and `(304,155)`
+- undocumented trailing pair = `(105,247)`\n- the following retail `%d %d` scan fails because the file has reached `//Comments here.`
 
 The three animated course objects are Flag, Windmill, and Clown. The three spectators are Wendy, Spud, and Wendy.
 
@@ -117,7 +117,7 @@ The typed parser lives in:
 - `reconstruction/include/btb/golf_data.hpp`
 - `reconstruction/src/golf_data.cpp`
 
-It intentionally preserves the two undocumented trailing points rather than guessing their meaning.
+It preserves the shipped undocumented `(105,247)` pair and the fact that the executable's next scan fails on the comment section.
 
 The next Golf pass is the runtime state machine: aim/rotation, oscillating power meter, launch velocity, obstacle/hole collision, attempts/scoring, and completion.
 
@@ -214,7 +214,7 @@ The reset state decrements that fixed counter after a shot. Therefore the shippe
 
 By contrast, the power-speed table `2 4 6` is actively read by state 1 using the current difficulty index.
 
-## Clean-room runtime coverage
+## Source runtime coverage
 
 The Golf reconstruction now tests:
 
@@ -233,7 +233,7 @@ The Golf reconstruction now tests:
 - 15-pixel target detection
 - retail fixed initial attempt count
 
-The next Golf work is detailed collision/outcome/scoring behavior around states 4-6 and identifying the two undocumented trailing data points.
+The next Golf work is detailed scoring/feedback naming in states 4-6 and identifying the semantic purpose, if any, of the unused `(105,247)` pair.
 
 
 ## Golf runtime state machine
@@ -351,3 +351,12 @@ The outer `UpdateGolfActivity` handles the eventual completion / Play Again tran
 - 15-pixel target hit radius
 
 The remaining Golf pass is mostly the detailed score/voice branch table and the exact special-target scoring semantics.
+
+
+## Exact module boundary
+
+The Golf loader returns at `0x00415CA6`. The next function begins at `0x00415CB0` and immediately opens:
+
+`Data\\SubGame1\\herd.txt`
+
+That is the Herding data loader. Therefore the Golf-specific block ends at `0x00415CA6`, although shared math helpers used by Golf are physically located just after that boundary.
