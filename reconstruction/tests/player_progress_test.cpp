@@ -12,6 +12,23 @@ int main() {
     static_assert(kPrerequisiteCount == 13);
     static_assert(kRetailFinaleThreshold == 13);
 
+    static_assert(progress_star_position(50).x == 282);
+    static_assert(progress_star_position(50).y == 307);
+    static_assert(progress_star_position(51).x == 381);
+    static_assert(progress_star_position(51).y == 266);
+    static_assert(progress_star_position(52).x == 381);
+    static_assert(progress_star_position(52).y == 225);
+    static_assert(progress_star_position(55).x == 282);
+    static_assert(progress_star_position(55).y == 102);
+    static_assert(progress_star_position(59).x == 282);
+    static_assert(progress_star_position(59).y == 143);
+    static_assert(progress_star_position(62).x == 331);
+    static_assert(progress_star_position(62).y == 225);
+    static_assert(progress_star_position(63).x == 357);
+    static_assert(progress_star_position(63).y == -1);
+    static_assert(progress_star_position(64).x == 282);
+    static_assert(progress_star_position(64).y == 143);
+
     static_assert(static_cast<std::size_t>(Slot::PetsCorner) == 50);
     static_assert(static_cast<std::size_t>(Slot::SquirrelRun) == 51);
     static_assert(static_cast<std::size_t>(Slot::BobsBandBob) == 52);
