@@ -271,3 +271,6 @@ address,name,confidence,notes
 0x00423030,SearchShortestSpudMazeGraphPath,high,"Recursive DFS over four node links; rejects cycles, accumulates Euclidean edge distance, and copies the lowest-cost route into the shared best-path buffer"
 0x00423220,BuildShortestSpudMazeGraphPath,high,"Initializes best-distance/path globals, seeds the start node, then calls SearchShortestSpudMazeGraphPath"
 0x00423260,DistanceFromActorToCurrentScreenNode,high,"Converts actor float X/Y to integers, looks up target node coordinates on current Spud-Maze screen, and returns integer Euclidean distance"
+0x004225E0,UpdatePilchardAnimation,high,"Advances Pilchard sprite animation/state and publishes transition-frame offsets used by graph-motion correction"
+0x004232B0,MovePilchardTowardGraphNode,high,"Moves Pilchard toward a target node at the supplied speed using angle-based motion; applies animation-aware Y snapping/offsets during lane transitions"
+0x00422760,MaybePlayRandomSpudVoice,high,"Occasionally selects a nonrepeating voice from SS1_SPU_01..04 (722..725) while the Spud Maze scene is active"
