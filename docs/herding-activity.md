@@ -351,3 +351,46 @@ This routine:
 Group 2 is copied without that transform and is passed to the shared `PointInPolygon` routine by animal AI. It is therefore a movement/collision constraint polygon, although its more specific in-game semantic name is not assigned yet.
 
 Group 3 remains a single dedicated point `(92,324)`; its precise role is still being traced.
+
+
+## Completion and outer flow
+
+Global `0x00510764` is the count of animals that have not yet completed their home-entry route.
+
+It is initialized by the species-creation loops to:
+
+```text
+3 * (difficulty + 3)
+```
+
+which gives:
+
+- Easy: 9
+- Medium: 12
+- Hard: 15
+
+Every animal that reaches the end of its states-20..25 home path changes to state 99 and decrements this count.
+
+### Completion stage
+
+Global `0x00510774` is the two-stage completion gate.
+
+When the undelivered count reaches zero:
+
+1. stage 0 waits until `AnyManagedSoundPlaying()` reports no active managed speech/effect;
+2. retail randomly plays sound 599 or 600:
+   - 599 = `PC_PIC_19.wav`
+   - 600 = `PC_PIC_20.wav`
+3. completion stage becomes 1;
+4. stage 1 again waits for managed audio to finish;
+5. retail records activity/progress completion;
+6. outer game-flow state becomes **0x3C**, the shared Play Again Yes/No flow;
+7. `0x00419390 UnloadHerdingActivityResources` releases the Pets Corner resources.
+
+The completion gate is reproduced in source as `herding_completion_step`.
+
+## Activity startup audio
+
+A one-time path near the end of `UpdateHerdingActivity` starts shared activity music index **6**, which is the previously recovered `data\\music\\petscorner.wav` entry.
+
+It also starts managed sound ID **581**, `PC_PIC_01.wav`, as the initial Pets Corner voice line and marks that sound persistent for the startup phase.
