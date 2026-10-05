@@ -3,6 +3,7 @@ project(btb_reconstruction LANGUAGES CXX)
 
 add_library(btb_dino
     src/dino_level.cpp
+    src/dino_runtime.cpp
 )
 
 target_include_directories(btb_dino PUBLIC include)
@@ -15,3 +16,11 @@ target_link_libraries(btb_dino_tests PRIVATE btb_dino)
 
 enable_testing()
 add_test(NAME dino_level COMMAND btb_dino_tests)
+
+
+add_executable(btb_dino_runtime_tests
+    tests/dino_runtime_test.cpp
+)
+target_link_libraries(btb_dino_runtime_tests PRIVATE btb_dino)
+
+add_test(NAME dino_runtime COMMAND btb_dino_runtime_tests)
