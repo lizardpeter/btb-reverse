@@ -56,6 +56,15 @@ int main() {
     static_assert(can_pick_up_hammer_x(100, 119));
     static_assert(!can_pick_up_hammer_x(100, 120));
 
+    static_assert(repair_sound_id(0) == 702);
+    static_assert(repair_sound_id(6) == 708);
+    static_assert(no_hammer_sound_id(0) == 709);
+    static_assert(no_hammer_sound_id(1) == 710);
+    static_assert(pilchard_collision_bob_sound_id(0) == 696);
+    static_assert(pilchard_collision_bob_sound_id(5) == 701);
+    static_assert(pilchard_reaction_sound_id(0) == 720);
+    static_assert(pilchard_reaction_sound_id(1) == 721);
+
     static_assert(kStartupMusicIndex == 7);
     static_assert(kStartupVoiceSoundId == 694);
     static_assert(kLowTimerWarningSoundId == 994);
