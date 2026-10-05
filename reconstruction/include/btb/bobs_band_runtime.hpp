@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 
 namespace btb::bobs_band {
 
@@ -30,6 +31,29 @@ enum class Conductor : std::int32_t {
     Bob = 0,
     Wendy = 1,
     FarmerPickles = 2,
+};
+
+inline constexpr std::array<std::string_view, kSoundTypeCount>
+    kSoundFileStems{{
+        "roley1", "roley2",
+        "muck1", "muck2",
+        "lofty1", "lofty2",
+        "dizzy1", "dizzy2",
+        "scoop1", "scoop2",
+    }};
+
+inline constexpr std::array<std::string_view, 3>
+    kConductorBackingTracks{{
+        "bobmt.wav",
+        "Wendymt.wav",
+        "fpmt.wav",
+    }};
+
+enum class ToolbarControl : std::int32_t {
+    Play = 0,
+    Stop = 1,
+    ClearAll = 2,
+    Delete = 3,
 };
 
 enum class ActivityState : std::int32_t {
