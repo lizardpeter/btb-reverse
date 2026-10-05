@@ -91,7 +91,7 @@ struct RetailObjectRecord32 {
     std::int32_t enabled_or_active{};   // +0x24
     std::int32_t sprite_width{};        // +0x28
     std::int32_t sprite_height{};       // +0x2C
-    std::int32_t unknown_30{};          // +0x30
+    std::int32_t sort_layer{};          // +0x30
     std::int32_t record_index{};        // +0x34
     std::int32_t bound_category{};      // +0x38
     std::int32_t bound_variant{};       // +0x3C
