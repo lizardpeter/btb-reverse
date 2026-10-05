@@ -17,6 +17,8 @@ inline constexpr std::size_t kCompositionCellCount =
     kVariationRowCount * kTimelineStepCount;
 inline constexpr std::size_t kCompositionSaveBytes =
     kCompositionCellCount * sizeof(std::int32_t);
+inline constexpr std::int32_t kTimelineStepMilliseconds = 1000;
+inline constexpr std::int32_t kTimelineDurationSeconds = 24;
 
 inline constexpr std::int32_t kEmptyCell = -1;
 inline constexpr std::int32_t kContinuationCell = 10;
@@ -40,8 +42,46 @@ enum class MachineType : std::int32_t {
     Scoop2Second = 9,
 };
 
+enum class ToolbarControl : std::int32_t {
+    Play = 0,
+    Stop = 1,
+    ClearAll = 2,
+    Delete = 3,
+};
+
+enum class ActivityState : std::int32_t {
+    Edit = 0,
+    MachineSelected = 1,
+    Passive2 = 2,
+    Passive3 = 3,
+    Passive4 = 4,
+    Passive5 = 5,
+    Passive6 = 6,
+    Passive7 = 7,
+    PreparePlayback = 8,
+    Playing = 9,
+    ExitToPlayAgain = 10,
+};
+
 [[nodiscard]] constexpr bool is_machine_type(std::int32_t value) noexcept {
     return value >= 0 && value <= 9;
+}
+
+[[nodiscard]] constexpr std::string_view machine_name(
+    MachineType type) noexcept {
+    switch (type) {
+        case MachineType::Roley1Second: return "Roley 1 second";
+        case MachineType::Roley2Second: return "Roley 2 second";
+        case MachineType::Muck1Second: return "Muck 1 second";
+        case MachineType::Muck2Second: return "Muck 2 second";
+        case MachineType::Lofty1Second: return "Lofty 1 second";
+        case MachineType::Lofty2Second: return "Lofty 2 second";
+        case MachineType::Dizzy1Second: return "Dizzy 1 second";
+        case MachineType::Dizzy2Second: return "Dizzy 2 second";
+        case MachineType::Scoop1Second: return "Scoop 1 second";
+        case MachineType::Scoop2Second: return "Scoop 2 second";
+    }
+    return "";
 }
 
 [[nodiscard]] constexpr std::int32_t machine_span(MachineType type) noexcept {
@@ -69,6 +109,16 @@ enum class MachineType : std::int32_t {
         case Conductor::Bob: return "bob";
         case Conductor::Wendy: return "wendy";
         case Conductor::FarmerPickles: return "farmer";
+    }
+    return "";
+}
+
+[[nodiscard]] constexpr std::string_view backing_track_filename(
+    Conductor conductor) noexcept {
+    switch (conductor) {
+        case Conductor::Bob: return "bobmt.wav";
+        case Conductor::Wendy: return "Wendymt.wav";
+        case Conductor::FarmerPickles: return "fpmt.wav";
     }
     return "";
 }
@@ -138,6 +188,11 @@ void write_composition(std::ostream& out, const Composition& composition);
     Conductor conductor) noexcept {
     return zero_based_player_profile * 25
          + static_cast<std::size_t>(conductor);
+}
+
+[[nodiscard]] constexpr bool all_conductors_complete(
+    const std::array<std::int32_t,kConductorCount>& flags) noexcept {
+    return flags[0] != 0 && flags[1] != 0 && flags[2] != 0;
 }
 
 } // namespace btb::grand_opening
