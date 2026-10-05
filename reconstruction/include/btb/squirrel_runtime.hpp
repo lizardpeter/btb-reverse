@@ -59,15 +59,15 @@ inline constexpr std::array<std::array<std::int32_t,4>,7>
 
 struct PieceIdParts {
     std::int32_t outer_variant{};
-    std::int32_t inner_a{};
-    std::int32_t inner_b{};
+    std::int32_t from_connector{};
+    std::int32_t to_connector{};
 };
 
 [[nodiscard]] constexpr std::int32_t encode_piece_id(
     PieceIdParts parts) noexcept {
     return parts.outer_variant * 9
-         + parts.inner_a * 3
-         + parts.inner_b;
+         + parts.from_connector * 3
+         + parts.to_connector;
 }
 
 [[nodiscard]] constexpr PieceIdParts decode_piece_id(
@@ -79,10 +79,82 @@ struct PieceIdParts {
     };
 }
 
+inline constexpr std::size_t kMaximumLevelCount = 3;
+inline constexpr std::size_t kConnectorsPerLevel = 4;
+inline constexpr std::size_t kPiecesPerLevel = 3;
+
+using RunPlan = std::array<
+    std::array<std::int32_t, kConnectorsPerLevel>,
+    kMaximumLevelCount>;
+
+[[nodiscard]] constexpr RunPlan chain_run_plan(
+    RunPlan random_draws) noexcept {
+    // Retail generates all 12 rand()%3 values first, then overwrites the
+    // first connector of levels 1 and 2 with the preceding level's end.
+    random_draws[1][0] = random_draws[0][3];
+    random_draws[2][0] = random_draws[1][3];
+    return random_draws;
+}
+
+struct ConnectorPair {
+    std::int32_t from{};
+    std::int32_t to{};
+    friend bool operator==(const ConnectorPair&, const ConnectorPair&) = default;
+};
+
+[[nodiscard]] constexpr ConnectorPair required_connectors(
+    const RunPlan& plan,
+    std::size_t level,
+    std::size_t piece_index) noexcept {
+    return {
+        plan[level][piece_index],
+        plan[level][piece_index + 1],
+    };
+}
+
+[[nodiscard]] constexpr bool is_correct_connector_pair(
+    ConnectorPair offered,
+    ConnectorPair required) noexcept {
+    return offered == required;
+}
+
+[[nodiscard]] constexpr bool is_retail_decoy_pair(
+    ConnectorPair offered,
+    ConnectorPair required) noexcept {
+    // GenerateSquirrelConveyorChoices explicitly retries each random connector
+    // until both dimensions differ from the required pair.
+    return offered.from != required.from &&
+           offered.to != required.to;
+}
+
 [[nodiscard]] constexpr std::int32_t level_count(
     Difficulty difficulty) noexcept {
     return static_cast<std::int32_t>(difficulty) + 1;
 }
+
+[[nodiscard]] constexpr std::int32_t required_correct_placements(
+    Difficulty difficulty) noexcept {
+    return level_count(difficulty) *
+           static_cast<std::int32_t>(kPiecesPerLevel);
+}
+
+inline constexpr std::array<Vec2i,4> kConveyorItemOrigins{{
+    {100,300},
+    {189,300},
+    {370,300},
+    {459,300},
+}};
+
+inline constexpr std::int32_t kConveyorHitWidth = 89;
+inline constexpr std::int32_t kConveyorHitHeight = 133;
+
+inline constexpr std::array<Vec2i,kPiecesPerLevel> kRunPlacementTargets{{
+    {116,327},
+    {276,327},
+    {436,327},
+}};
+
+inline constexpr Vec2i kLoftyHomeTarget{93,185};
 
 [[nodiscard]] constexpr bool run_reached_level_end(
     std::int32_t run_section) noexcept {
