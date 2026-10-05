@@ -176,4 +176,28 @@ void write_record(std::ostream& out, const Record& record);
         completed_count(record, 61, 2), 2, random_bit);
 }
 
+struct FinaleGate {
+    bool locked{true};
+    bool unlocked{false};
+};
+
+[[nodiscard]] constexpr FinaleGate update_finale_gate_from_progress(
+    const Record& record) noexcept {
+
+    if (retail_finale_available(record)) {
+        return {false, true};
+    }
+    return {true, false};
+}
+
+// Activity Select only intercepts the Firework Finale action while locked.
+// Retail action 0x22 is the Firework pre-game route.
+inline constexpr std::int32_t kFireworkFinaleAction = 0x22;
+
+[[nodiscard]] constexpr bool should_open_progress_screen(
+    const FinaleGate& gate,
+    std::int32_t selected_action) noexcept {
+    return gate.locked && selected_action == kFireworkFinaleAction;
+}
+
 } // namespace btb::progress
