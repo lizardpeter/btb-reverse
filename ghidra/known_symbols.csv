@@ -187,3 +187,4 @@ address,name,confidence,notes
 0x00416370,DrawHerdingActivity,high,"Scrolls large world background around Farmer Pickles, depth-sorts entity records, and draws Pickles/animals/Scruffty/trailer/gates/UI"
 0x004169A0,AnyRectCornerInsideRect,high,"Returns true when any of the first rectangle's four corners lies inside the second rectangle"
 0x00416A30,UpdateHerdingAnimal,high,"Shared sheep/rabbit/duck AI: food attraction/following, collision/wandering, home approach, home entry, delivery, and species animation"
+0x00419390,UnloadHerdingActivityResources,high,"Unregisters/releases Pets Corner DirectDraw surfaces and tears down activity-specific resources during completion/exit"
