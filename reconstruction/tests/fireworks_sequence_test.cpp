@@ -5,6 +5,13 @@
 using namespace btb::fireworks;
 
 int main() {
+    static_assert(static_cast<int>(InternalState::Certificate) == 16);
+    static_assert(static_cast<int>(InternalState::LegacyCompleteAndExit) == 17);
+    static_assert(internal_state_has_direct_retail_writer(
+        InternalState::Certificate));
+    static_assert(!internal_state_has_direct_retail_writer(
+        InternalState::LegacyCompleteAndExit));
+
     Sequence sequence;
     assert(sequence.occupied_count() == 0);
 
