@@ -17,7 +17,16 @@ inline constexpr std::int32_t kCertificatePrintTop = 418;
 inline constexpr std::int32_t kCertificatePrintRight = 348;
 inline constexpr std::int32_t kCertificatePrintBottom = 466;
 
-inline constexpr std::int32_t kCertificatePrintHoverSoundId = 143;
+inline constexpr std::int32_t kCertificatePrintHoverSoundId = 143; // CT_BOB_02
+inline constexpr std::int32_t kCertificateRandomVoiceFirst = 144;
+inline constexpr std::int32_t kCertificateRandomVoiceCount = 8;
+
+[[nodiscard]] constexpr std::int32_t certificate_random_voice_sound_id(
+    std::int32_t random_mod_8) noexcept {
+    return random_mod_8 >= 0 && random_mod_8 < kCertificateRandomVoiceCount
+        ? kCertificateRandomVoiceFirst + random_mod_8
+        : -1;
+}
 
 [[nodiscard]] constexpr bool certificate_print_hit(
     std::int32_t x,
