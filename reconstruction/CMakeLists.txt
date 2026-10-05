@@ -207,3 +207,16 @@ add_executable(btb_grand_opening_sequence_tests
 )
 target_link_libraries(btb_grand_opening_sequence_tests PRIVATE btb_grand_opening)
 add_test(NAME grand_opening_sequence COMMAND btb_grand_opening_sequence_tests)
+
+
+add_library(btb_player_progress
+    src/player_progress.cpp
+)
+target_include_directories(btb_player_progress PUBLIC include)
+target_compile_features(btb_player_progress PUBLIC cxx_std_26)
+
+add_executable(btb_player_progress_tests
+    tests/player_progress_test.cpp
+)
+target_link_libraries(btb_player_progress_tests PRIVATE btb_player_progress)
+add_test(NAME player_progress COMMAND btb_player_progress_tests)
