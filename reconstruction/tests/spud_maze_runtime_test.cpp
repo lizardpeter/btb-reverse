@@ -28,6 +28,29 @@ int main() {
     static_assert(right.node == 7);
     static_assert(right.retail_direction == 2);
 
+    std::vector<Node> graph{
+        Node{0, 0, 0, 0, 0, {1, 2, -1, -1}},
+        Node{1, 10, 0, 0, 0, {0, 3, -1, -1}},
+        Node{2, 0, 20, 0, 0, {0, 3, -1, -1}},
+        Node{3, 20, 0, 0, 0, {1, 2, -1, -1}},
+    };
+
+    const auto shortest = shortest_graph_path(graph, 0, 3);
+    assert(shortest.found);
+    assert(shortest.node_count == 3);
+    assert(shortest.nodes[0] == 0);
+    assert(shortest.nodes[1] == 1);
+    assert(shortest.nodes[2] == 3);
+    assert(shortest.total_cost == 20);
+
+    const auto same = shortest_graph_path(graph, 2, 2);
+    assert(same.found);
+    assert(same.node_count == 1);
+    assert(same.total_cost == 0);
+
+    const auto missing = shortest_graph_path(graph, 0, 99);
+    assert(!missing.found);
+
     for (int seed = 1; seed <= 4; ++seed) {
         const auto easy = select_repair_damage(Difficulty::Easy, seed);
         assert(easy.repairs_remaining == 4);
