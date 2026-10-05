@@ -1,0 +1,5 @@
+value,name,animal_type,confidence,notes
+-1,None,,high,"No food selected"
+0,DuckFood,Duck,high,"Matches duckbag.bmp and type 3 attraction check"
+1,RabbitFood,Rabbit,high,"Matches rabbitbag.bmp and type 2 attraction check"
+2,SheepFood,Sheep,high,"Matches sheepbag.bmp and type 1 attraction check"
