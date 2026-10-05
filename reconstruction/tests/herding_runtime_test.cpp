@@ -102,6 +102,31 @@ int main() {
     assert(food_pickup_sound_ids(FoodType::DuckFood).travis_line == 609);
     assert(food_pickup_sound_ids(FoodType::RabbitFood).pickles_line == 583);
     assert(food_pickup_sound_ids(FoodType::SheepFood).travis_line == 611);
+    static_assert(food_pickup_sound_id(FoodType::DuckFood, 0) == 609);
+    static_assert(food_pickup_sound_id(FoodType::DuckFood, 1) == 582);
+    static_assert(food_pickup_sound_id(FoodType::RabbitFood, 0) == 610);
+    static_assert(food_pickup_sound_id(FoodType::SheepFood, 1) == 584);
+    static_assert(food_pickup_sound_id(FoodType::None, 0) == -1);
+
+    constexpr auto duck_hotspot = food_pickup_hotspot(FoodType::DuckFood);
+    static_assert(duck_hotspot.target == Vec2i{272, 332});
+    static_assert(duck_hotspot.pickles_test_offset == Vec2i{30, 100});
+    static_assert(duck_hotspot.radius == 40);
+
+    constexpr auto rabbit_hotspot = food_pickup_hotspot(FoodType::RabbitFood);
+    static_assert(rabbit_hotspot.target == Vec2i{365, 354});
+    static_assert(rabbit_hotspot.radius == 40);
+
+    constexpr auto sheep_hotspot = food_pickup_hotspot(FoodType::SheepFood);
+    static_assert(sheep_hotspot.target == Vec2i{240, 414});
+    static_assert(sheep_hotspot.radius == 50);
+
+    static_assert(food_pickup_in_range(FoodType::DuckFood, 242, 232));
+    static_assert(!food_pickup_in_range(FoodType::DuckFood, 232, 232));
+    static_assert(food_pickup_in_range(FoodType::RabbitFood, 365, 354));
+    static_assert(!food_pickup_in_range(FoodType::RabbitFood, 405, 354));
+    static_assert(food_pickup_in_range(FoodType::SheepFood, 240, 414));
+    static_assert(!food_pickup_in_range(FoodType::SheepFood, 290, 414));
 
     assert(attraction_sound_ids(FoodType::DuckFood).a == 585);
     assert(attraction_sound_ids(FoodType::DuckFood).b == 586);
