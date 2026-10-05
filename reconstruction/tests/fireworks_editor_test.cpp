@@ -56,6 +56,15 @@ int main() {
         palette.cursor.firework_type &&
         *palette.cursor.firework_type == FireworkType::LargeBlue);
 
+    // Normal state-0 dispatch immediately runs the release half too. Even
+    // though the already-latched Bob channel suppresses another palette voice,
+    // retail still replaces selected_type with the newly clicked palette ID.
+    auto combined_palette = process_palette_action(
+        palette, FireworkType::LargeBlue, 1);
+    assert(!combined_palette.begin.selection_latched);
+    assert(!combined_palette.begin.sound_id);
+    assert(palette.selected_type == FireworkType::LargeBlue);
+
     Sequence sequence;
     EditorRuntimeState placement;
     placement.selected_type = FireworkType::LargeRed;
@@ -99,10 +108,45 @@ int main() {
         placement.actor_states[1] ==
         PlacementActorState::PlacementQueued);
 
-    // Existing start cells are rejected before scheduling an actor.
+    // Calling only the release half rejects an occupied start cell.
     release = complete_placement_release(
         placement, sequence, 1, 2, 0);
     assert(!release.attempted);
+
+    // Normal state-0 action ordering runs the begin half first. That removes an
+    // existing retail start cell, after which the release half can schedule
+    // replacement with the current palette selection.
+    Sequence replacement_sequence;
+    assert(replacement_sequence.commit_placement(
+        0, 3, FireworkType::SmallGreen));
+
+    EditorRuntimeState replacement;
+    replacement.selected_type = FireworkType::LargeRed;
+
+    const auto replacement_begin = begin_placement_region_action(
+        replacement_sequence, 0, 3);
+    assert(replacement_begin.had_existing_start);
+    assert(
+        replacement_begin.removed_type &&
+        *replacement_begin.removed_type == FireworkType::SmallGreen);
+    assert(replacement_sequence.empty(0, 3));
+
+    auto replacement_release = complete_placement_release(
+        replacement, replacement_sequence, 0, 3, 2);
+    assert(replacement_release.attempted);
+    assert(replacement_release.valid);
+    assert(
+        replacement.actor_states[0] ==
+        PlacementActorState::PlacementQueued);
+
+    auto replacement_tick = tick_placement_actor(
+        replacement, replacement_sequence, PlacementActorChannel::Bob);
+    assert(replacement_tick.queued_to_commit);
+    replacement_tick = tick_placement_actor(
+        replacement, replacement_sequence, PlacementActorChannel::Bob);
+    assert(replacement_tick.committed);
+    assert(
+        replacement_sequence.at(0, 3) == FireworkType::LargeRed);
 
     // Full-grid feedback is channel-specific and happens after commit.
     Sequence almost_full;
