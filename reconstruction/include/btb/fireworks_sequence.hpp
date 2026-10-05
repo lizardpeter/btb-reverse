@@ -75,8 +75,9 @@ enum class InternalState : std::int32_t {
 }
 
 // Pressing Play enters state 14. Retail does not advance to the transition
-// movie until AnyManagedSoundPlaying() returns true; the Play-button path
-// itself starts sound 880 immediately before entering state 14.
+// movie until AnyManagedSoundPlaying() returns true. One direct Play-control
+// path starts sound 880 immediately before writing state 14; the shared editor
+// action path can also write state 14 directly.
 [[nodiscard]] constexpr bool should_open_pre_show_movie(
     bool any_managed_sound_playing) noexcept {
     return any_managed_sound_playing;
