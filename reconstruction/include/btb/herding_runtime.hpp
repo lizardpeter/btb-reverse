@@ -194,6 +194,46 @@ struct FoodPickupSoundChoices {
     std::int32_t travis_line{};
 };
 
+struct FoodPickupHotspot {
+    Vec2i target{};
+    Vec2i pickles_test_offset{};
+    std::int32_t radius{};
+};
+
+[[nodiscard]] constexpr FoodPickupHotspot food_pickup_hotspot(
+    FoodType food) noexcept {
+    switch (food) {
+        case FoodType::DuckFood:
+            return {{272, 332}, {30, 100}, 40};
+        case FoodType::RabbitFood:
+            return {{365, 354}, {0, 0}, 40};
+        case FoodType::SheepFood:
+            // Retail overrides the third raw 0x00443AB0 table pair.
+            return {{240, 414}, {0, 0}, 50};
+        default:
+            return {{-1, -1}, {0, 0}, -1};
+    }
+}
+
+[[nodiscard]] constexpr bool food_pickup_in_range(
+    FoodType food,
+    std::int32_t pickles_x,
+    std::int32_t pickles_y) noexcept {
+
+    const auto hotspot = food_pickup_hotspot(food);
+    if (hotspot.radius <= 0) {
+        return false;
+    }
+
+    const auto test_x = pickles_x + hotspot.pickles_test_offset.x;
+    const auto test_y = pickles_y + hotspot.pickles_test_offset.y;
+    const auto dx = test_x - hotspot.target.x;
+    const auto dy = test_y - hotspot.target.y;
+
+    // Retail computes Euclidean distance and requires distance < radius.
+    return dx * dx + dy * dy < hotspot.radius * hotspot.radius;
+}
+
 [[nodiscard]] constexpr FoodType required_food_for(EntityType type) noexcept {
     switch (type) {
         case EntityType::Sheep: return FoodType::SheepFood;
@@ -215,6 +255,22 @@ struct FoodPickupSoundChoices {
         case FoodType::SheepFood: return {584, 611};  // PC_PIC_04 / PC_TR_04
         default: return {-1, -1};
     }
+}
+
+// Exact rand()%2 branch at 0x00418647:
+//   0 -> Travis line (609..611)
+//   1 -> Pickles line (582..584)
+[[nodiscard]] constexpr std::int32_t food_pickup_sound_id(
+    FoodType food,
+    std::int32_t random_mod_2) noexcept {
+    const auto choices = food_pickup_sound_ids(food);
+    if (random_mod_2 == 0) {
+        return choices.travis_line;
+    }
+    if (random_mod_2 == 1) {
+        return choices.pickles_line;
+    }
+    return -1;
 }
 
 [[nodiscard]] constexpr SoundPair attraction_sound_ids(FoodType food) noexcept {
