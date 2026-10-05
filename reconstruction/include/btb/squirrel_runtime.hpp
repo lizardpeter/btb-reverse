@@ -11,15 +11,106 @@ namespace btb::squirrel {
 // the exact story label of the two mirrored paths is not assumed.
 enum class PlacementState : std::int32_t {
     IdleSelect = 0,
-    MoveToSelectedPrimary = 1,
-    MoveToSelectedAlternate = 2,
-    CommitPrimaryPlacement = 3,
-    CommitAlternatePlacement = 4,
+    MoveToSelectedCorrect = 1,
+    MoveToSelectedDecoy = 2,
+    CommitCorrectPlacement = 3,
+    CommitDecoyPlacement = 4,
     ReturnHome = 5,
-    AlternateReturn = 6,
-    MoveToReturnPoint = 7,
-    ReturnPieceToConveyor = 8,
+    ReturnAfterDecoy = 6,
+    MoveToDecoyReturnPoint = 7,
+    ReturnDecoyToConveyor = 8,
 };
+
+enum class Difficulty : std::int32_t {
+    Easy = 0,
+    Medium = 1,
+    Hard = 2,
+};
+
+struct ConveyorMix {
+    std::int32_t correct_items{};
+    std::int32_t decoy_items{};
+
+    [[nodiscard]] constexpr std::int32_t total_items() const noexcept {
+        return correct_items + decoy_items;
+    }
+};
+
+[[nodiscard]] constexpr ConveyorMix conveyor_mix(
+    Difficulty difficulty) noexcept {
+    switch (difficulty) {
+        case Difficulty::Easy: return {3, 0};
+        case Difficulty::Medium: return {3, 1};
+        case Difficulty::Hard: return {2, 2};
+    }
+    return {0, 0};
+}
+
+inline constexpr std::array<std::array<std::int32_t,4>,7>
+    kOuterVariantPermutations{{
+        {{0,1,2,3}},
+        {{0,3,2,1}},
+        {{1,3,2,0}},
+        {{1,0,2,3}},
+        {{3,2,0,1}},
+        {{2,1,3,0}},
+        {{3,1,2,0}},
+    }};
+
+struct PieceIdParts {
+    std::int32_t outer_variant{};
+    std::int32_t inner_a{};
+    std::int32_t inner_b{};
+};
+
+[[nodiscard]] constexpr std::int32_t encode_piece_id(
+    PieceIdParts parts) noexcept {
+    return parts.outer_variant * 9
+         + parts.inner_a * 3
+         + parts.inner_b;
+}
+
+[[nodiscard]] constexpr PieceIdParts decode_piece_id(
+    std::int32_t piece_id) noexcept {
+    return {
+        piece_id / 9,
+        (piece_id % 9) / 3,
+        piece_id % 3,
+    };
+}
+
+[[nodiscard]] constexpr std::int32_t level_count(
+    Difficulty difficulty) noexcept {
+    return static_cast<std::int32_t>(difficulty) + 1;
+}
+
+[[nodiscard]] constexpr bool run_reached_level_end(
+    std::int32_t run_section) noexcept {
+    return run_section > 6;
+}
+
+[[nodiscard]] constexpr bool should_finish_activity(
+    Difficulty difficulty,
+    std::int32_t level_index,
+    std::int32_t run_section) noexcept {
+    return run_reached_level_end(run_section) &&
+           level_index >= static_cast<std::int32_t>(difficulty);
+}
+
+[[nodiscard]] constexpr bool should_advance_level(
+    Difficulty difficulty,
+    std::int32_t level_index,
+    std::int32_t run_section) noexcept {
+    return run_reached_level_end(run_section) &&
+           level_index < static_cast<std::int32_t>(difficulty);
+}
+
+[[nodiscard]] constexpr std::int32_t level_finished_feedback_sound_id(
+    std::int32_t random_mod_4) noexcept {
+    return random_mod_4 >= 0 && random_mod_4 < 4
+        ? 664 + random_mod_4 // SR_WEN_22..25
+        : -1;
+}
 
 struct MotionStep {
     Vec2i position{};
