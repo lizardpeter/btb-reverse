@@ -125,6 +125,44 @@ kHomeEntryWaypoints{{
         static_cast<std::size_t>(behavior_state - 20)];
 }
 
+inline constexpr float kHomeRouteArrivalDistance = 10.0F;
+
+struct HomeRouteArrivalStep {
+    std::int32_t next_behavior_state{};
+    std::int32_t next_undelivered_count{};
+    bool delivered{};
+};
+
+// Exact normal-retail arrival transitions. First-stage states 10..14 become
+// 20..24 when distance to the species entrance falls below 10.0. Second-stage
+// states 20..24 become 99 and decrement the shared undelivered-animal count.
+//
+// State handlers 15/25 exist in the retail jump-table machinery, but normal
+// Easy/Medium/Hard population allocation never produces them.
+[[nodiscard]] constexpr std::optional<HomeRouteArrivalStep>
+home_route_arrival_step(
+    std::int32_t behavior_state,
+    std::int32_t undelivered_count) noexcept {
+
+    if (behavior_state >= 10 && behavior_state <= 14) {
+        return HomeRouteArrivalStep{
+            behavior_state + 10,
+            undelivered_count,
+            false,
+        };
+    }
+
+    if (behavior_state >= 20 && behavior_state <= 24) {
+        return HomeRouteArrivalStep{
+            99,
+            undelivered_count - 1,
+            true,
+        };
+    }
+
+    return std::nullopt;
+}
+
 [[nodiscard]] constexpr std::int32_t animals_per_species(
     std::int32_t difficulty_index) noexcept {
     return difficulty_index + 3;
