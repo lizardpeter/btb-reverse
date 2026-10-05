@@ -71,6 +71,11 @@ enum class HomeKind : std::int32_t {
     return difficulty_index > 0;
 }
 
+[[nodiscard]] constexpr std::int32_t initial_undelivered_animal_count(
+    std::int32_t difficulty_index) noexcept {
+    return 3 * animals_per_species(difficulty_index);
+}
+
 [[nodiscard]] constexpr bool is_herd_animal(EntityType type) noexcept {
     return type == EntityType::Sheep ||
            type == EntityType::Rabbit ||
@@ -127,6 +132,40 @@ struct FoodPickupSoundChoices {
         case EntityType::Duck: return 598;   // PC_PIC_18
         default: return -1;
     }
+}
+
+enum class CompletionAction : std::int32_t {
+    None,
+    PlayFinalLine,
+    ExitToPlayAgain,
+};
+
+struct CompletionStep {
+    std::int32_t stage{};
+    CompletionAction action{CompletionAction::None};
+    std::int32_t sound_id{-1};
+};
+
+[[nodiscard]] constexpr CompletionStep herding_completion_step(
+    std::int32_t undelivered_animals,
+    std::int32_t completion_stage,
+    bool any_managed_sound_playing,
+    std::int32_t random_bit) noexcept {
+
+    if (undelivered_animals > 0 || any_managed_sound_playing) {
+        return {completion_stage, CompletionAction::None, -1};
+    }
+    if (completion_stage == 0) {
+        return {
+            1,
+            CompletionAction::PlayFinalLine,
+            599 + (random_bit & 1), // PC_PIC_19 / PC_PIC_20
+        };
+    }
+    if (completion_stage == 1) {
+        return {1, CompletionAction::ExitToPlayAgain, -1};
+    }
+    return {completion_stage, CompletionAction::None, -1};
 }
 
 enum class BehaviorClass : std::int32_t {
