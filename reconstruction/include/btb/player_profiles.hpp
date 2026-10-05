@@ -15,6 +15,36 @@ inline constexpr std::size_t kProfileCount = 5;
 inline constexpr std::size_t kMaxNameGlyphs = 9;
 inline constexpr std::size_t kMaxEnteredNameGlyphs = 8;
 
+inline constexpr std::int32_t kDirectInputBackspace = 0x0E;
+inline constexpr std::int32_t kDirectInputLeftShift = 0x2A;
+inline constexpr std::int32_t kDirectInputRightShift = 0x36;
+
+[[nodiscard]] constexpr bool is_shift_scan_code(
+    std::int32_t scan_code) noexcept {
+    return scan_code == kDirectInputLeftShift ||
+           scan_code == kDirectInputRightShift;
+}
+
+// Exact live name-entry acceptance gate. The input subsystem has already
+// translated the physical key into an ASCII-like character code at this point.
+// Retail stores translated_code - 0x21 as the blue-font glyph index.
+[[nodiscard]] constexpr std::int32_t profile_name_glyph_for_input(
+    std::int32_t direct_input_scan_code,
+    std::int32_t translated_code,
+    std::size_t current_length) noexcept {
+
+    if (is_shift_scan_code(direct_input_scan_code) ||
+        direct_input_scan_code == kDirectInputBackspace ||
+        direct_input_scan_code > 0x35 ||
+        current_length >= kMaxEnteredNameGlyphs ||
+        translated_code > 0x7F ||
+        translated_code <= 0x21) {
+        return -1;
+    }
+
+    return translated_code - 0x21;
+}
+
 struct ProfileInfo {
     std::int32_t name_length{};
     std::int32_t badge_index{-1};
