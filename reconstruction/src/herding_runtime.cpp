@@ -76,4 +76,27 @@ bool apply_scruffty_distraction(
     return true;
 }
 
+bool release_follower_for_food_change(
+    RetailEntityRecord32& animal,
+    FollowerList& followers,
+    std::int32_t entity_index,
+    std::int32_t random_x_mod_400,
+    std::int32_t random_y_mod_400) noexcept {
+
+    if (random_x_mod_400 < 0 || random_x_mod_400 >= 400 ||
+        random_y_mod_400 < 0 || random_y_mod_400 >= 400) {
+        return false;
+    }
+    if (!followers.remove(entity_index)) {
+        return false;
+    }
+
+    const auto target = food_change_wander_target(
+        random_x_mod_400, random_y_mod_400);
+    animal.target_flag_or_timer = 200;
+    animal.target_x = target.x;
+    animal.target_y = target.y;
+    return true;
+}
+
 } // namespace btb::herding
