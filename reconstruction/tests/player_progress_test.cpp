@@ -69,4 +69,36 @@ int main() {
     constexpr auto band = bobs_band_conductor_slots();
     static_assert(band[0] == Slot::BobsBandBob);
     static_assert(band[2] == Slot::BobsBandFarmerPickles);
+
+    static_assert(progress_feedback_sound(0, 3, 0) == 959);
+    static_assert(progress_feedback_sound(1, 3, 0) == 958);
+    static_assert(progress_feedback_sound(2, 3, 0) == 957);
+    static_assert(progress_feedback_sound(3, 3, 0) == 955);
+    static_assert(progress_feedback_sound(3, 3, 1) == 956);
+
+    static_assert(progress_feedback_sound(0, 2, 0) == 958);
+    static_assert(progress_feedback_sound(1, 2, 0) == 957);
+    static_assert(progress_feedback_sound(2, 2, 1) == 956);
+
+    Record grouped;
+    grouped.set(Slot::BobsBandBob, 1);
+    assert(bobs_band_feedback_sound(grouped, 0) == 958);
+
+    grouped.set(Slot::BobsBandWendy, 1);
+    assert(bobs_band_feedback_sound(grouped, 0) == 957);
+
+    grouped.set(Slot::BobsBandFarmerPickles, 1);
+    assert(bobs_band_feedback_sound(grouped, 1) == 956);
+
+    grouped.set(Slot::DinoRaptor, 1);
+    grouped.set(Slot::DinoTriceratops, 1);
+    grouped.set(Slot::DinoTyrannosaurus, 1);
+    assert(dino_feedback_sound(grouped, 0) == 955);
+
+    grouped.set(Slot::SpudMaze, 1);
+    assert(spud_pair_feedback_sound(grouped, 0) == 957);
+
+    grouped.set(Slot::Maze, 1);
+    grouped.set(Slot::Golf, 1);
+    assert(adventure_pair_feedback_sound(grouped, 1) == 956);
 }
