@@ -271,12 +271,12 @@ void write_composition(std::ostream& out, const Composition& composition);
     return {value,value,value,value,value};
 }
 
-// The Grand Opening progress block uses 25 dwords per player profile.
-// Entering playback marks this conductor slot complete.
+// The persistent progress block uses 100 int32 values (400 bytes) per
+// player profile. Entering playback marks offsets 0..2 for the three conductors.
 [[nodiscard]] constexpr std::size_t conductor_progress_index(
     std::size_t zero_based_player_profile,
     Conductor conductor) noexcept {
-    return zero_based_player_profile * 25
+    return zero_based_player_profile * 100
          + static_cast<std::size_t>(conductor);
 }
 
