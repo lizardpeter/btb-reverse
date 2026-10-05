@@ -53,6 +53,12 @@ add_executable(btb_fireworks_sequence_tests
 target_link_libraries(btb_fireworks_sequence_tests PRIVATE btb_fireworks)
 add_test(NAME fireworks_sequence COMMAND btb_fireworks_sequence_tests)
 
+add_executable(btb_fireworks_certificate_tests
+    tests/fireworks_certificate_test.cpp
+)
+target_link_libraries(btb_fireworks_certificate_tests PRIVATE btb_fireworks)
+add_test(NAME fireworks_certificate COMMAND btb_fireworks_certificate_tests)
+
 add_library(btb_golf
     src/golf_data.cpp
     src/golf_runtime.cpp
