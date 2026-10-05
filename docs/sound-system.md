@@ -40,7 +40,7 @@ The following offsets are directly supported by access patterns in the executabl
 | `+0x6CC` | byte table | per-sound enable/availability flags |
 | `+0xB18` | `int32_t[80]` | priority/age value used for eviction |
 | `+0xC58` | `int32_t[80]` | slot lifecycle/playback state |
-| `+0xD98` | `int32_t[80]` | persistence / auto-reap suppression flag |
+| `+0xD98` | `int32_t[80]` | special lifetime/control flag; participates in frame-state stop policy |
 | `+0xED8` | `int32_t[80]` | additional per-slot mode/flag |
 | `+0x1018` | fixed string records | sound filename catalog; record stride `0x14` |
 | `+0x6608` | dword table | numeric catalog metadata / sound IDs |
@@ -69,7 +69,7 @@ Scans the 80 slots and stops the active ones.
 
 Marks a slot stopped, calls the group-wide DirectSound stop helper, and rewinds the group's buffers to position zero.
 
-### `0x00402CF0 PlaySoundById`
+### `0x00402CF0 PlayManagedSoundById`
 
 High-level managed playback entry. It handles existing/reused slots and falls through to the acquire/load path when the sound is not resident.
 
@@ -91,7 +91,13 @@ This explains why the game can refer to voice/effect assets by compact integer I
 
 ### `0x00402F60 ReapFinishedSounds`
 
-Scans active slots and releases finished sounds that are not marked persistent.
+Scans slots in lifecycle state 2. When a slot should be retired from active
+playback, retail calls `StopSoundSlot`, which stops/rewinds its buffer group and
+moves the slot to lifecycle state 3.
+
+It does **not** free the slot or destroy the buffer group at this point.
+Actual release occurs later through explicit release, cache eviction, or
+SoundManager destruction.
 
 ## DirectSound buffer-group helpers
 
@@ -214,3 +220,45 @@ The C++26 reconstruction now contains a byte-exact host-independent model in:
 
 with `static_assert` checks for every recovered offset and the total
 `0x7738` size.
+
+
+### Exact 80-slot acquisition policy
+
+`0x00402E10 AcquireAndPlaySound` uses the following retail slot-selection
+algorithm:
+
+1. scan slot-state values from 0 through 79;
+2. the **first state-0 slot** is selected immediately;
+3. if no free slot exists, initialize:
+   - candidate = -1
+   - best priority = **101**
+4. scan all 80 occupied slots;
+5. ask whether each slot's currently assigned sound ID is still playing;
+6. ignore playing slots;
+7. among non-playing slots, choose the one with the numerically lowest
+   `priority_or_age` value below the current threshold;
+8. if a candidate was found, release that slot and reuse it;
+9. if no candidate was found, return `-1`.
+
+Because the initial comparison threshold is 101, a non-playing slot whose
+priority value is 101 or greater is not selected by this eviction pass.
+
+After a slot is selected, retail installs:
+
+- `sound_id_by_slot[slot] = sound_id`
+- `slot_by_sound_id[sound_id] = slot`
+- `priority_or_age[slot] = priority_argument`
+- `special_lifetime_flag[slot] = 0`
+- `playback_policy[slot] = policy_argument`
+
+It then resolves the 20-byte catalog filename at:
+
+```text
+0x1018 + sound_id * 20
+```
+
+formats `data\\sound\\%s`, creates a one-buffer DirectSound group, and
+starts/initializes playback state.
+
+The pure metadata portion of this policy is reproduced and tested in
+`reconstruction/include/btb/sound_manager.hpp`.
