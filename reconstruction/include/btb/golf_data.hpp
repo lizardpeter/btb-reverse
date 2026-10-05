@@ -48,10 +48,13 @@ struct Data {
     Vec2i ball_frame_size{};
     std::int32_t ball_frame_count{};
 
-    // Parsed by the retail executable after ball metadata, but not described
-    // by the comments shipped inside golfdata.txt. Kept losslessly.
-    Vec2i trailing_point_a{};
-    Vec2i trailing_point_b{};
+    // The shipped file contains one undocumented pair after the ball data.
+    Vec2i trailing_point{};
+
+    // Retail performs one more "%d %d" fscanf after trailing_point. In the
+    // shipped file the next token is "//Comments", so that scan fails.
+    bool final_optional_pair_was_present{false};
+    Vec2i final_optional_pair{};
 
     [[nodiscard]] Vec2i initial_ball_position() const noexcept {
         return {
