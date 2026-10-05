@@ -25,5 +25,9 @@ The code currently covers:
 - variable-length post-piece coordinate tail
 - permutation validation
 - recovered Dino cursor proximity and rectangle hit tests
+- recovered 0x30-byte piece runtime/state model
+- drag/drop and accepted/rejected placement flow
+- Bob/Ellis 131-frame sprite-sheet animation controller
+- exact six character-animation frame ranges and interaction reaction routing
 
-Next, this module will be expanded with the recovered original piece record, piece-state enum, drag/drop update loop, snap/return transitions, completion tracking, sound-event mapping, and DirectDraw-facing rendering behavior.
+Next, this module will be expanded with persistent progress/completion behavior and a thin DirectDraw-facing rendering adapter. Shared DirectDraw, printing, Bink, input, and sound mechanisms remain documented separately so activity logic does not duplicate platform code.
