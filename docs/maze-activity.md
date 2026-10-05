@@ -38,7 +38,7 @@ Immediately after parsing a node, the loader subtracts **11** from its stored Y 
 
 `retail_y = source_y - 11`
 
-The clean-room data model retains both source and retail coordinates.
+The source reconstruction retains both source and retail coordinates.
 
 ## Direction bits and link order
 
