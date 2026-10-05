@@ -262,3 +262,109 @@ starts/initializes playback state.
 
 The pure metadata portion of this policy is reproduced and tested in
 `reconstruction/include/btb/sound_manager.hpp`.
+
+
+## DirectX SDK DSUtil lineage
+
+The lower WAV/DirectSound layer is now identified as a customized copy of
+Microsoft's DirectX SDK **DSUtil** helper family.
+
+The retail binary preserves the characteristic class/method organization:
+
+- `CSoundManager`
+- `CSound`
+- `CWaveFile`
+
+and the method sequence:
+
+- `CSoundManager::SetPrimaryBufferFormat`
+- `CSoundManager::Create`
+- `CSound::FillBufferWithSound`
+- `CSound::RestoreBuffer`
+- `CSound::GetFreeBuffer`
+- `CSound::Play`
+- `CSound::Stop`
+- `CSound::Reset`
+- `CSound::IsSoundPlaying`
+- `CWaveFile::Open`
+- `CWaveFile::ReadMMIO`
+- `CWaveFile::GetSize`
+- `CWaveFile::ResetFile`
+- `CWaveFile::Read`
+- `CWaveFile::Close`
+
+The EXE is not identical to later DX9/DXUT copies, so the reconstruction keeps
+the **retail 2002 layouts and behavior** rather than importing a later header.
+
+### Retail CSoundManager
+
+Exact object size: **0x04 bytes**.
+
+| Offset | Field |
+|---:|---|
+| `+0x00` | `IDirectSound8 *m_pDS` |
+
+The game's `CSoundManager::Initialize` is customized to take the primary
+format arguments together with HWND/cooperative level:
+
+```text
+Initialize(hwnd, coop_level, channels, sample_rate, bits_per_sample)
+```
+
+The observed startup call is equivalent to:
+
+```text
+channels        = 2
+sample_rate     = 22050
+bits_per_sample = 16
+```
+
+and calls `SetPrimaryBufferFormat` internally.
+
+### Retail CSound
+
+Exact object size: **0x14 bytes**.
+
+| Offset | Field |
+|---:|---|
+| `+0x00` | vtable |
+| `+0x04` | `IDirectSoundBuffer **m_apDSBuffer` |
+| `+0x08` | `DWORD m_dwDSBufferSize` |
+| `+0x0C` | `CWaveFile *m_pWaveFile` |
+| `+0x10` | `DWORD m_dwNumBuffers` |
+
+Unlike later SDK samples, this build has **no `m_dwCreationFlags` member**.
+
+Its `Play` method likewise takes only retail priority/play flags. After
+starting the selected DirectSound buffer it applies the game's shared volume
+through `IDirectSoundBuffer::SetVolume`.
+
+The game adds a small `CSound::SetVolume` helper that applies a volume to
+every duplicate buffer in the object.
+
+### Retail CWaveFile
+
+Exact object size: **0x90 bytes**.
+
+| Offset | Field |
+|---:|---|
+| `+0x00` | `WAVEFORMATEX *m_pwfx` |
+| `+0x04` | `HMMIO m_hmmio` |
+| `+0x08` | `MMCKINFO m_ck` |
+| `+0x1C` | `MMCKINFO m_ckRiff` |
+| `+0x30` | `DWORD m_dwSize` |
+| `+0x34` | `MMIOINFO m_mmioinfoOut` (0x48 bytes on retail x86) |
+| `+0x7C` | `DWORD m_dwFlags` |
+| `+0x80` | `BOOL m_bIsReadingFromMemory` |
+| `+0x84` | `BYTE *m_pbData` |
+| `+0x88` | `BYTE *m_pbDataCur` |
+| `+0x8C` | `ULONG m_ulDataSize` |
+
+The 0x90-byte allocation ends immediately after `m_ulDataSize`; the extra
+resource-buffer members found in some later SDK variants are absent here.
+
+These exact host-independent layouts are now represented by:
+
+`reconstruction/include/btb/dsutil.hpp`
+
+with C++26 offset/size tests.
