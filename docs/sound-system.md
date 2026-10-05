@@ -152,3 +152,65 @@ This closes most of the generic WAV-to-DirectSound path. The remaining sound wor
 ## DirectSound version
 
 The executable imports `DSOUND.dll` by **ordinal 11**. On the DirectX 8 DirectSound export table, ordinal 11 is `DirectSoundCreate8`, so the root sound object is `IDirectSound8`, not the older `IDirectSound` created by `DirectSoundCreate`.
+
+
+## Exact 0x7738 layout closure
+
+The retail SoundManager allocation size is `0x7738` bytes. The recovered
+field offsets now account for **every byte of that object exactly**.
+
+The two sound-ID byte tables each span:
+
+```text
+0x6CC - 0x280 = 0x44C = 1100 entries
+```
+
+and:
+
+```text
+0xB18 - 0x6CC = 0x44C = 1100 entries
+```
+
+The filename catalog spans:
+
+```text
+0x6608 - 0x1018 = 0x55F0
+0x55F0 / 1100 = 20 bytes per filename record
+```
+
+The final metadata table then spans:
+
+```text
+0x7738 - 0x6608 = 0x1130
+0x1130 / 4 = 1100 int32 entries
+```
+
+Therefore the exact retail object is:
+
+| Offset | Exact shape |
+|---:|---|
+| `0x000` | 80 x 32-bit SoundBufferGroup pointers |
+| `0x140` | 80 x int32 sound IDs |
+| `0x280` | 1100 x int8 sound-ID -> slot reverse map |
+| `0x6CC` | 1100 x uint8 sound-enabled/availability flags |
+| `0xB18` | 80 x int32 priority/age values |
+| `0xC58` | 80 x int32 slot lifecycle states |
+| `0xD98` | 80 x int32 persistence flags |
+| `0xED8` | 80 x int32 playback-policy values |
+| `0x1018` | 1100 x 20-byte filename records |
+| `0x6608` | 1100 x int32 catalog metadata |
+| `0x7738` | exact end of object |
+
+Known slot-state values from `PlayManagedSoundById` / `StopSoundSlot` are:
+
+- 0 = free
+- 1 = loaded/ready
+- 2 = playing
+- 3 = stopped
+
+The C++26 reconstruction now contains a byte-exact host-independent model in:
+
+`reconstruction/include/btb/sound_manager.hpp`
+
+with `static_assert` checks for every recovered offset and the total
+`0x7738` size.
