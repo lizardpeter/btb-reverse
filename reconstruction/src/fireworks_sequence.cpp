@@ -116,6 +116,7 @@ std::vector<PlaybackEvent> Sequence::events_for_column(
         event.column = column;
         event.type = *type;
         event.movie_index = retail_movie_index_for_row(*type, row);
+        event.scheduled_launch_ms = retail_scheduled_launch_ms(row, column);
 
         // Exact row-specific playback placement recovered from 0x00413450.
         if (row == 0) {
