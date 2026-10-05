@@ -34,8 +34,9 @@ enum class Slot : std::size_t {
     // Written to 1 by InitializeFireworksActivity as soon as the finale starts.
     FireworkFinaleStarted = 63,
 
-    // Included by the retail progress-screen sum, but no writer has yet been
-    // identified in this executable. Preserve it without inventing semantics.
+    // Included by the retail progress-screen sum, but exhaustive executable
+    // reference analysis finds no game-code writer at all. Preserve it as
+    // reserved/unused rather than inventing Finale-completion semantics.
     ReservedUnused = 64,
 };
 
@@ -47,6 +48,12 @@ inline constexpr std::size_t kPrerequisiteCount =
 inline constexpr std::size_t kRetailProgressFirst = 50;
 inline constexpr std::size_t kRetailProgressLast = 64;
 inline constexpr std::int32_t kRetailFinaleThreshold = 13;
+
+// Exact Fireworks progress behavior. InitializeFireworksActivity writes slot
+// 63 to 1 before gameplay starts. No certificate, teardown, shared-leave, or
+// dormant state-17 path writes another player-progress value, and slot 64 has
+// no game-code writer anywhere in the executable.
+inline constexpr bool kFireworkFinaleHasSeparateCompletionProgress = false;
 
 // Exact table at 0x00446FA4 used by UpdateProgressScreen while it walks
 // progress slots 50..64. Values index the star-position table.
@@ -106,6 +113,11 @@ struct Record {
         values[static_cast<std::size_t>(slot)] = value;
     }
 };
+
+// Mirrors the sole Fireworks player-progress write at 0x00411CE0.
+constexpr void mark_firework_finale_started(Record& record) noexcept {
+    record.set(Slot::FireworkFinaleStarted, 1);
+}
 
 Record read_record(std::istream& in);
 void write_record(std::ostream& out, const Record& record);
