@@ -247,6 +247,28 @@ Observed states:
 
 States 5-7 and 10-12 currently dispatch to no-op targets in the retail jump table.
 
+### Exact selected-firework preview states 2 -> 3 -> 4
+
+The short editor preview path is now source-level too.
+
+- **state 2 / PreviewSetup** redraws the editor, copies the current
+  `selected_type` into preview record `0x005093F0`, zeros the two following
+  preview playback dwords, and increments the internal state to 3;
+- **state 3 / PreviewPlayback** redraws the editor and calls
+  `DecodeAndBlitBinkFrame` on the base-bank movie indexed directly by the
+  selected type at screen origin **(199,39)**;
+- while that movie is still active, state 3 remains state 3;
+- when the Bink helper reports completion, retail increments to state 4 and
+  calls `RestartBinkMovie` on the same movie;
+- **state 4 / PreviewFinish** redraws the editor once, then writes internal
+  state 0.
+
+This preview path always uses the direct palette index **0..11**. It does not
+apply the authored-show row-1 `type+12` arithmetic.
+
+The typed preview controller is in
+`reconstruction/include/btb/fireworks_editor.hpp`.
+
 ## Show playback
 
 `0x00413450 UpdateFireworksShowPlayback` advances through the six authored columns. For each column it can activate up to three events, one for each row.
