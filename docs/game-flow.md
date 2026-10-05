@@ -53,7 +53,8 @@ The state blocks call these entry points directly, and the called code contains 
 The code boundary is especially clear:
 
 - `0x00423F40` is the Spud Maze runtime function.
-- `0x00424100` performs extensive Spud Maze resource cleanup.
+- `0x004240F5` is the end of the Spud Maze runtime region.
+- `0x00424100` is already Spud Skate resource teardown/helper code.
 - `0x00424230` begins parsing the three Spud Skate data tables.
 - `0x00424360` initializes Spud Skate.
 - `0x00424D10` is the Spud Skate runtime state.
