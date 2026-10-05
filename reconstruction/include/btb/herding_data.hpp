@@ -13,6 +13,16 @@ struct Vec2i {
     friend bool operator==(const Vec2i&, const Vec2i&) = default;
 };
 
+inline constexpr std::size_t kFarmerPicklesSetupPositionIndex = 3;
+
+[[nodiscard]] constexpr bool fixed_setup_position_has_herding_consumer(
+    std::size_t index) noexcept {
+    // InitializeHerdingActivity directly reads only source pair #3 before
+    // grouped parsing begins at pair #6. The other five fixed pairs have no
+    // Herding runtime consumer in this retail executable.
+    return index == kFarmerPicklesSetupPositionIndex;
+}
+
 struct Data {
     // The retail initializer consumes the first six pairs directly before it
     // begins processing sentinel-delimited coordinate groups.
