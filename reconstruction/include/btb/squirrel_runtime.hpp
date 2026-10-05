@@ -284,4 +284,45 @@ inline constexpr std::array<std::int32_t,3> kFinalWendyFeedback{
     665, 666, 667 // SR_WEN_23..25
 };
 
+[[nodiscard]] constexpr std::int32_t correct_placement_feedback_sound_id(
+    std::int32_t random_mod_7) noexcept {
+    if (random_mod_7 < 0 || random_mod_7 > 6) return -1;
+    return random_mod_7 < 4
+        ? 633 + random_mod_7
+        : 652 + random_mod_7;
+}
+
+[[nodiscard]] constexpr std::int32_t decoy_lofty_feedback_sound_id(
+    std::int32_t random_bit) noexcept {
+    return random_bit >= 0 && random_bit < 2
+        ? 637 + random_bit
+        : -1;
+}
+
+// This models the non-1-in-5 branch of the retail decoy feedback selector.
+// Generated decoys normally have offered_from != required_from. The equality
+// path is retained because the executable still contains it.
+[[nodiscard]] constexpr std::int32_t decoy_direction_feedback_sound_id(
+    std::int32_t required_from,
+    std::int32_t offered_from,
+    std::int32_t random_index) noexcept {
+
+    if (required_from < offered_from) {
+        return random_index >= 0 && random_index < 3
+            ? 650 + random_index // SR_WEN_08..10
+            : -1;
+    }
+
+    if (required_from > offered_from) {
+        constexpr std::array<std::int32_t,4> ids{
+            645, 646, 648, 649 // SR_WEN_03,04,06,07
+        };
+        return random_index >= 0 && random_index < 4
+            ? ids[static_cast<std::size_t>(random_index)]
+            : -1;
+    }
+
+    return decoy_lofty_feedback_sound_id(random_index);
+}
+
 } // namespace btb::squirrel
