@@ -110,7 +110,7 @@ Immediately after the data loader are two clearly mathematical helpers:
 
 At `0x00414A30`, another helper converts an integer angle plus magnitude into X/Y floating velocity components using cosine/sine. This is part of the golf-ball launch path.
 
-## Clean-room reconstruction
+## Source reconstruction
 
 The typed parser lives in:
 
@@ -234,3 +234,120 @@ The Golf reconstruction now tests:
 - retail fixed initial attempt count
 
 The next Golf work is detailed collision/outcome/scoring behavior around states 4-6 and identifying the two undocumented trailing data points.
+
+
+## Golf runtime state machine
+
+The inner Golf state global is `0x0050AD9C`. `0x00415080 UpdateGolfRoundState` implements these states:
+
+| State | Meaning |
+|---:|---|
+| 0 | Aim |
+| 1 | Power meter |
+| 2 | Launch setup |
+| 99 | Swing animation delay |
+| 3 | Ball flight |
+| 4 | Resolve landing against course targets |
+| 5 | Score/result feedback |
+| 6 | Reset for next attempt |
+
+The machine-readable map is in `ghidra/golf_states.csv`.
+
+### State 0 — Aim
+
+The retail aim value is clamped to **0..88**. Mouse/keyboard input adjusts the value until the shot is accepted, then the round advances to the power-meter state.
+
+### State 1 — Power meter
+
+The power value is bounded to **0..1000**. Each update adds:
+
+```text
+difficulty_speed * direction
+```
+
+where difficulty speed is the parsed `2 / 4 / 6` table and direction is `+1` or `-1`.
+
+At either endpoint the value is clamped and direction reverses.
+
+### State 2 — Launch setup
+
+The aim is converted to an even integer angle:
+
+```text
+angle = trunc(aim / 2.0) * 2
+```
+
+The initial shot magnitude is:
+
+```text
+speed = power / 3 + 500
+```
+
+So retail shots begin in the range **500..833**.
+
+### State 99 — Swing delay
+
+The game intentionally uses state value **99** as an intermediate animation delay rather than placing it contiguously in the 0..6 state range. It advances a small nested frame/tick counter before entering state 3.
+
+### State 3 — Ball flight
+
+`0x00414A30 ComputeGolfVelocityComponents` computes:
+
+```text
+vx = cos(angle * pi / 180) * (speed / 80)
+vy = sin(angle * pi / 180) * (speed / 80)
+```
+
+The ball applies:
+
+```text
+x += vx
+y -= vy
+```
+
+each update.
+
+Retail deceleration is:
+
+```text
+deceleration = max(10, int(speed * 0.012))
+speed -= deceleration
+```
+
+When the resulting speed falls below **20**, it is forced to zero and the state advances.
+
+### State 4 — Landing resolution
+
+The stopped ball is compared against the three parsed course-object target centers. One verified proximity constant is **15.0 pixels**. A matched object index is stored for the score/result state; otherwise the target index remains `-1`.
+
+### State 5 — Score and feedback
+
+This state interprets the landing result and accumulated score/attempt state, then selects one of several voice-feedback groups from the global sound catalog. The exact semantic labels for every voice branch are still being assigned from the sound table.
+
+### State 6 — Reset next attempt
+
+The retail code:
+
+1. restores ball X/Y from the initial integer ball position
+2. clears the power value
+3. decrements attempts remaining
+4. resets power direction to positive
+5. returns the inner state to 0
+
+The outer `UpdateGolfActivity` handles the eventual completion / Play Again transition once attempts reach zero and active result audio has completed.
+
+## Reconstructed runtime
+
+`reconstruction/golf_runtime.*` now preserves:
+
+- exact state enum values, including state 99
+- 0..88 aim clamp
+- even-degree aim quantization
+- 0..1000 oscillating power meter
+- per-difficulty meter speeds
+- `power / 3 + 500` shot magnitude
+- degree-to-radian velocity conversion
+- retail speed decay constants
+- 15-pixel target hit radius
+
+The remaining Golf pass is mostly the detailed score/voice branch table and the exact special-target scoring semantics.
