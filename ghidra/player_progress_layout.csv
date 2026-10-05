@@ -1,0 +1,7 @@
+range,name,confidence,notes
+0,EnteredGameLegacy,high,"Set to 1 by both new-profile and existing-profile routes before entering gameplay; no semantic retail read found"
+1-49,UnusedReserved,high,"No direct semantic references; carried only by generic 100-int load/save loops"
+50-62,FinalePrerequisites,high,"Thirteen intended pre-finale completion requirements"
+63,FireworkFinaleEntered,high,"Set to 1 when Fireworks/Finale initializes"
+64,Unused64,high,"Included in retail progress sum and load/save, but no semantic writer exists"
+65-99,UnusedReserved,high,"No direct semantic references; carried only by generic 100-int load/save loops"
