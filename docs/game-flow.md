@@ -95,8 +95,9 @@ The source-oriented boundary is now exact:
 - `0x0041D7C0` parses Bob's Band `machinedata.txt`.
 - `0x0041DB20` initializes Bob's Band.
 - `0x00420030` runs Bob's Band.
-- Bob's Band internal functions end before `0x00420560`.
+- Bob's Band runtime ends at `0x00420324`.
+- `0x00420360` is already Spud Maze resource teardown/helper code.
 - `0x00420560` begins parsing `loaddata\\spudmaze_nodes.txt`.
 - `0x004207E0` is the later Spud Maze initializer.
 
-So `0x00420560`, rather than `0x004207E0`, is the actual start of the Spud Maze module when data-loader helpers are included.
+So `0x00420360`, rather than `0x00420560` or the later `0x004207E0` initializer, is the actual start of the Spud Maze module when helper/teardown code is included.
