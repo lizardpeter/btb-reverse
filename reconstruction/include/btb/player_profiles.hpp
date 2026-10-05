@@ -14,6 +14,31 @@ namespace btb::profiles {
 inline constexpr std::size_t kProfileCount = 5;
 inline constexpr std::size_t kMaxNameGlyphs = 9;
 inline constexpr std::size_t kMaxEnteredNameGlyphs = 8;
+inline constexpr std::int32_t kBadgeCount = 6;
+inline constexpr std::int32_t kBadgeWidth = 50;
+
+[[nodiscard]] constexpr std::int32_t previous_badge(
+    std::int32_t badge) noexcept {
+    return badge <= 0 ? kBadgeCount - 1 : badge - 1;
+}
+
+[[nodiscard]] constexpr std::int32_t next_badge(
+    std::int32_t badge) noexcept {
+    return badge >= kBadgeCount - 1 ? 0 : badge + 1;
+}
+
+struct BadgeSourceRect {
+    std::int32_t left{};
+    std::int32_t top{};
+    std::int32_t right{};
+    std::int32_t bottom{};
+};
+
+[[nodiscard]] constexpr BadgeSourceRect badge_source_rect(
+    std::int32_t badge) noexcept {
+    const auto left = badge * kBadgeWidth;
+    return {left, 45, left + kBadgeWidth, 103};
+}
 
 inline constexpr std::int32_t kDirectInputBackspace = 0x0E;
 inline constexpr std::int32_t kDirectInputLeftShift = 0x2A;
