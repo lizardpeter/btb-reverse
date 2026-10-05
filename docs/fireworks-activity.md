@@ -269,6 +269,34 @@ apply the authored-show row-1 `type+12` arithmetic.
 The typed preview controller is in
 `reconstruction/include/btb/fireworks_editor.hpp`.
 
+### Exact actor visual initialization
+
+The Bob/Wendy editor actor visual state is now represented explicitly as well.
+`InitializeFireworksActivity` initializes:
+
+| Actor | X | Y | source column | source row | frame tick |
+|---|---:|---:|---:|---:|---:|
+| Bob | 260 | 168 | 4 | 0 | 0 |
+| Wendy | 260 | 0 | 4 | 0 | 0 |
+
+The actor sheets use **128x128** cells. `DrawFireworksEditor` builds each
+source rectangle as:
+
+```text
+left   = source_column * 128
+top    = source_row * 128
+right  = left + 128
+bottom = top + 128
+```
+
+The ordinary idle-animation branch forces source column **4**, increments a
+per-actor frame tick each draw, advances the source row when the tick exceeds
+5, clears the tick, and wraps source row **9 -> 0**. Thus idle row animation
+advances every six editor draws through rows 0..8.
+
+These visual fields and the exact source-rectangle/idle-tick helpers are now in
+`fireworks_editor.hpp`.
+
 ## Show playback
 
 `0x00413450 UpdateFireworksShowPlayback` advances through the six authored columns. For each column it can activate up to three events, one for each row.
