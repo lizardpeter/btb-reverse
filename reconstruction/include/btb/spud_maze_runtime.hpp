@@ -74,6 +74,24 @@ struct RepairSelection {
     std::int32_t repairs_remaining{};
 };
 
+inline constexpr std::size_t kRetailPathNodeLimit = 20;
+
+struct GraphPath {
+    std::array<std::int32_t, kRetailPathNodeLimit> nodes{};
+    std::size_t node_count{};
+    std::int32_t total_cost{};
+    bool found{};
+};
+
+// Source-equivalent form of 0x00423030/0x00423220. Retail performs a
+// recursive depth-first search in link order 0..3, rejects cycles by scanning
+// the current path, accumulates integer Euclidean edge distances, and retains
+// only a route whose cost beats the current best.
+[[nodiscard]] GraphPath shortest_graph_path(
+    const std::vector<Node>& nodes,
+    std::int32_t start_node,
+    std::int32_t target_node);
+
 // Retail computes phase_seed as rand()%4 + 1, then walks all 32 repair spots
 // in screen order. It marks a section broken when counter % divisor == 0 and
 // increments counter after each spot.
