@@ -145,7 +145,7 @@ Observed states:
 | 14 | post-show wait / begin completion movie |
 | 15 | play `Data\\movies\\fireworkcomplete.bik` |
 | 16 | certificate/results screen |
-| 17 | finalize completion, save grid, return to outer Play Again flow |
+| 17 | legacy save/unload + Play Again handler; present in jump table but no retail write of state 17 has been found |
 
 States 5-7 and 10-12 currently dispatch to no-op targets in the retail jump table.
 
@@ -173,14 +173,16 @@ State 15 runs the shared Bink player. When the movie completes it returns throug
 
 State 16 draws the certificate/results screen through `0x004138A0 DrawFireworksCertificateScreen`, including the common print function.
 
-State 17:
+State 17's handler would:
 
-1. updates persistent progress
-2. changes outer game-flow state to `0x3C` (Play Again Yes/No)
-3. records Fireworks completion
-4. calls `SaveFireworksLayoutAndUnloadResources`
+1. run common progress updating
+2. set outer game-flow state `0x3C` (Play Again Yes/No)
+3. write the Fireworks completion bookkeeping value
+4. call `SaveFireworksLayoutAndUnloadResources`
 
-At this point the Fireworks editor data model, persistence, control actions, movie bank, authored show sequencing, and completion route are all structurally recovered.
+However, exhaustive direct references to the retail Fireworks state global show **no write of value 17**. State 16 is written explicitly by `UpdateFireworksShowPlayback`; normal exit from the certificate is handled by the shared outer activity/back flow. The state-17 handler is therefore preserved as dormant/legacy retail code rather than treated as the normal certificate transition.
+
+At this point the Fireworks editor data model, persistence, control actions, movie bank, authored show sequencing, certificate path, and completion/exit machinery are structurally recovered.
 
 
 ## Authored 3x6 timeline
@@ -389,3 +391,41 @@ Each launched firework is copied into one of the active runtime records beginnin
 When the event's Bink clip completes, the event type is reset to `-1`, freeing the slot.
 
 This exact cadence is now represented in `fireworks_sequence.hpp` through `kTimelineColumnPeriodMs`, `retail_row_launch_offset_ms`, and `retail_scheduled_launch_ms`.
+
+
+### Certificate composition
+
+`0x004138A0 DrawFireworksCertificateScreen` is now mapped down to its
+profile-dependent layout and print interaction.
+
+It:
+
+- draws the certificate background;
+- measures the selected player's glyph widths and horizontally centers the
+  profile name around **X=491** at **Y=135**;
+- draws the selected profile badge at **(471,156)** from a horizontal
+  **50x45-pixel** badge strip;
+- tests the print control using strict bounds:
+  **296 < X < 348** and **418 < Y < 466**;
+- on click, draws the depressed print surface and calls
+  `ExportAndPrintGameImage`;
+- on hover, draws the appropriate normal/hover print surface and plays
+  sound **143 = CT_BOB_02.wav** once for the hover latch.
+
+When managed audio is otherwise idle, the certificate can also start one
+random voice from IDs **144..151**:
+
+- 144 `CT_BOB_03.wav`
+- 145 `CT_BOB_04.wav`
+- 146 `CT_DIZ_01.wav`
+- 147 `CT_DIZ_02.wav`
+- 148 `CT_LOF_01.wav`
+- 149 `CT_LOF_02.wav`
+- 150 `CT_MUC_01.wav`
+- 151 `CT_MUC_02.wav`
+
+A separate retail latch means that random certificate line is started only
+once during the certificate state.
+
+The exact layout constants are in
+`reconstruction/include/btb/fireworks_certificate.hpp`.
