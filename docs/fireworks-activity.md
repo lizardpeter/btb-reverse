@@ -207,6 +207,23 @@ The typed C++26 model is in
 `reconstruction/include/btb/fireworks_editor.hpp` and
 `reconstruction/src/fireworks_editor.cpp`, with a dedicated editor test.
 
+The state-0 dispatcher ordering is now represented exactly too. A normal hit
+calls `BeginFireworksEditorAction(action)` and then immediately
+`CompleteFireworksEditorAction(action)` for the **same action**.
+
+That exposes two retail details that were easy to miss when those helpers were
+modeled independently:
+
+- palette actions 0..11: the begin half changes the cursor and only latches/
+  voices Bob or Wendy if that channel is idle, but the complete half writes
+  `selected_type = action` **unconditionally**. Therefore clicking another
+  palette item while the actor channel remains state 1 can change the selected
+  firework without replaying the palette voice;
+- placement action 12: the begin half removes an existing start item from the
+  clicked cell before the complete half validates replacement. This is the
+  exact reason occupied cells are replaceable even though the release half by
+  itself rejects a cell that still contains a start type 0..11.
+
 ## Fireworks internal state machine
 
 The activity has its own state global at `0x0050A5BC`, distinct from the 68-state outer game flow.
