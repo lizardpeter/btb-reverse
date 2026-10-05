@@ -1,155 +1,129 @@
 # Player progress and Firework Finale unlock
 
-The game has five player profiles. Each profile owns a fixed progress record of
-**100 signed 32-bit integers (400 bytes in memory)**.
+The game keeps five player progress records. Each record contains exactly 100
+signed 32-bit integers and is stored as ASCII integers in player1.txt through
+player5.txt.
 
-The five records begin at `0x0051B4D0` with a stride of `0x190` bytes.
+The in-memory base for player 0 is 0x0051B4D0 and each player record is
+400 bytes (100 x 4).
 
-## Save files
+## Visible progress block
 
-Retail uses:
+Slots 50 through 64 are the only progress values cleared by retail profile
+deletion and the only range consumed by UpdateProgressScreen.
 
-- `player1.txt`
-- `player2.txt`
-- `player3.txt`
-- `player4.txt`
-- `player5.txt`
+| Slot | Player-0 address | Meaning |
+|---:|---:|---|
+| 50 | 0x0051B598 | Pets Corner |
+| 51 | 0x0051B59C | Squirrel Run |
+| 52 | 0x0051B5A0 | Bob's Band - Bob |
+| 53 | 0x0051B5A4 | Bob's Band - Wendy |
+| 54 | 0x0051B5A8 | Bob's Band - Farmer Pickles |
+| 55 | 0x0051B5AC | Park Designer |
+| 56 | 0x0051B5B0 | Raptor skeleton |
+| 57 | 0x0051B5B4 | Triceratops skeleton |
+| 58 | 0x0051B5B8 | T-Rex skeleton |
+| 59 | 0x0051B5BC | Spud Maze |
+| 60 | 0x0051B5C0 | Spud Skate |
+| 61 | 0x0051B5C4 | Maze |
+| 62 | 0x0051B5C8 | Golf |
+| 63 | 0x0051B5CC | Firework Finale started |
+| 64 | 0x0051B5D0 | reserved/unused |
 
-Despite the fixed int32 in-memory representation, these files are **text**.
-The save routine writes exactly 100 values using `%d `; the load routine
-zeroes the 100-value record and reads the same format back.
+Every slot 50 through 63 has an identified game-code writer.
 
-The source-level equivalent is:
+No game-code writer exists for slot 64. It is only touched by generic player
+load/save/delete code and by the Progress-screen sum loop, so normal retail
+profiles leave it at zero.
 
-- `reconstruction/include/btb/player_progress.hpp`
-- `reconstruction/src/player_progress.cpp`
-- `reconstruction/tests/player_progress_test.cpp`
+## Thirteen prerequisites
 
-## Activity progress block
+The actual pre-finale requirements are exactly slots 50 through 62: 13 values.
 
-The Progress screen treats indices 50 through 64 as the visible activity
-progress block.
+This matches the original activity design:
 
-| Index | Meaning |
-|---:|---|
-| 50 | Pets Corner |
-| 51 | Squirrel Run |
-| 52 | Bob's Band — Bob conductor |
-| 53 | Bob's Band — Wendy conductor |
-| 54 | Bob's Band — Farmer Pickles conductor |
-| 55 | Park Designer |
-| 56 | Dinosaur Discovery — Raptor |
-| 57 | Dinosaur Discovery — Triceratops |
-| 58 | Dinosaur Discovery — T-Rex |
-| 59 | Spud Maze / skateboard repair |
-| 60 | Spud Skate |
-| 61 | Maze |
-| 62 | Golf |
-| 63 | Firework Finale entered |
-| 64 | unused/reserved retail progress slot |
+- Pets Corner
+- Squirrel Run
+- Bob's Band with Bob
+- Bob's Band with Wendy
+- Bob's Band with Farmer Pickles
+- Park Designer
+- all three dinosaur species
+- Spud Maze
+- Spud Skate
+- Maze
+- Golf
 
-The machine-readable version is `ghidra/player_progress_slots.csv`.
+The Dino completion write is species-based. The selected level index is
+species-major:
 
-## Thirteen pre-finale requirements
+species * 3 + difficulty
 
-The intended pre-finale requirement block is exactly indices **50..62**:
-13 values.
-
-This agrees with the original manual:
-
-- every other activity must have been completed;
-- Bob's Band must have been played with **all three conductors**;
-- Dinosaur Discovery must have completed **all three dinosaur skeletons**.
-
-The Dino completion write is especially useful evidence. Retail computes the
-selected Dino level as:
-
-```text
-level_index = species * 3 + difficulty
-```
-
-and divides that value by 3 when selecting the persistent completion slot.
-Therefore the three Dino progress flags are species flags, not difficulty flags.
+and the progress write divides by 3, producing species index 0, 1, or 2.
 
 ## Exact retail unlock arithmetic
 
-The Progress-screen update loops over **all 15 values 50..64**.
+UpdateProgressScreen walks slots 50 through 64 and sums positive values.
+When that sum reaches 13, it:
 
-For each positive value it adds the full integer value to a running total.
-It then performs:
+- sets the finale-unlocked latch;
+- clears the finale-locked/intercept flag.
 
-```text
-FinaleLocked = 1
+Under normal retail-created saves this is equivalent to completing all
+13 prerequisites, because slots 63 and 64 are zero before the finale starts.
 
-if progress_sum >= 13:
-    FinaleUnlocked = 1
-    FinaleLocked = 0
-```
+For edited/corrupt saves, the exact executable behavior matters: positive
+values in slots 63 or 64 can contribute to the sum.
 
-The relevant globals are:
+## Activity Select interception
 
-- `0x0051C304` — Firework Finale locked/intercept-click flag
-- `0x0051C308` — Firework Finale unlocked latch
+Activity action 0x22 is the Firework Finale route.
 
-Under normal gameplay, slots 63 and 64 are zero before the finale, so reaching
-13 means all thirteen prerequisite flags 50..62 are complete.
+While the finale-locked flag is set, selecting action 0x22 does not enter the
+Fireworks pregame state. Instead retail loads:
 
-The reconstruction deliberately also preserves the executable's exact arithmetic:
-an edited/corrupt save can satisfy the threshold using positive values in 63/64.
+- data/ui/Progress-screen.bmp
+- data/ui/star.bmp
 
-## Activity Select behavior
+and opens the Mr Bentley progress view.
 
-The Activity Select table assigns action **34 / 0x22** to the
-`open` activity tile. State `0x22` is the already recovered Fireworks
-pregame state.
+Once the unlock latch is set, Activity Select no longer intercepts action 0x22
+and the same tile proceeds into the normal Fireworks/Finale pregame flow.
 
-When `FinaleLocked != 0` and the player clicks action 0x22, the generic UI
-handler intercepts the action rather than changing the game-flow state. It
-loads:
+## Finale progress flag
 
-- `data\\ui\\Progress-screen.bmp`
-- `data\\ui\\star.bmp`
+InitializeFireworksActivity writes slot 63 to 1 immediately at function entry,
+before gameplay begins.
 
-and raises the Progress-screen overlay state.
+Therefore slot 63 means Firework Finale started/entered, not completed.
 
-When the finale is unlocked, the lock flag is zero, the interception does not
-occur, and action 0x22 proceeds normally into the Firework Finale.
+There is no separate finale-completed writer in the 50..64 progress block.
 
-During Activity Select setup, if the unlocked latch is still zero, retail
-explicitly reasserts `FinaleLocked = 1`.
+## Star layout
 
-## Finale-side slots
+UpdateProgressScreen walks all 15 storage slots, but the visual layout was
+designed around the 13 prerequisites.
 
-Index 63 is not a prerequisite. `InitializeFireworksActivity` writes it to 1
-as the finale starts.
+The exact coordinate-index table is:
 
-Index 64 is now classified as an **unused/reserved retail field**. It remains part of the 100-int profile record and the Progress-screen sum, but direct static xrefing found no semantic writer to that slot in this executable. Normal retail-created profiles therefore leave it zero.
+12, 11, 8, 9, 10, 0, 3, 4, 5, 1, 2, 6, 7, -1, 1
 
+for slots 50..64 respectively.
 
-## Mr Bentley progress feedback
+Slot 63 resolves to (357,-1), effectively hiding its star above the screen.
+Slot 64 reuses the same visible coordinate as index 1, but the slot remains
+zero in normal retail saves.
 
-`UpdateProgressScreen` does more than draw completed stars. Clicking grouped
-progress items makes Mr Bentley report how much of that group remains.
+## Grouped Mr Bentley feedback
 
-The shared sound ladder is:
+Hovering prerequisite stars uses grouped progress narration:
 
-| Remaining in group | Sound |
-|---:|---|
-| 3 | 959 = `ZPT_MRB_06.wav` |
-| 2 | 958 = `ZPT_MRB_05.wav` |
-| 1 | 957 = `ZPT_MRB_04.wav` |
-| 0 | random 955/956 = `ZPT_MRB_02.wav` / `ZPT_MRB_03.wav` |
+- Bob's Band: slots 52..54
+- dinosaurs: slots 56..58
+- Spud activities: slots 59..60
+- Adventure Playground: slots 61..62
 
-Verified groups:
+Retail uses sound IDs 955/956 as positive-completion variants and 957..959
+for one, two, or three items remaining.
 
-- Bob's Band slots 52..54, group size 3
-- Dinosaur slots 56..58, group size 3
-- Spud Maze + Spud Skate slots 59..60, group size 2
-- Maze + Golf slots 61..62, group size 2
-
-Single activity stars use the same pattern: incomplete selects the one-remaining
-line (957), while complete selects one of the two positive-completion lines
-(955/956).
-
-This behavior is reproduced by `progress_feedback_sound` and the grouped helper
-functions in `player_progress.hpp`.
+The typed C++26 reconstruction is in player_progress.hpp/.cpp and tests.
