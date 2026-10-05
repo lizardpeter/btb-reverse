@@ -23,7 +23,7 @@ Runtime::Runtime(const LevelData& level) {
         piece.current = level.start_positions[slot];
         piece.state = PieceState::Loose;
         piece.source_rect = {};
-        piece.draw_loose_piece = true;
+        piece.render_mode = 1;
         piece.piece_id = id;
         pieces_.push_back(piece);
     }
@@ -57,7 +57,7 @@ std::optional<std::size_t> Runtime::begin_drag(Vec2i cursor) {
         selected_piece_ = i;
         mode_ = InteractionMode::Carrying;
         piece.state = PieceState::Dragging;
-        piece.draw_loose_piece = false;
+        piece.render_mode = 0;
         return i;
     }
 
@@ -90,12 +90,12 @@ bool Runtime::finalize_accepted_drop() {
     auto& piece = pieces_.at(*selected_piece_);
     if (piece.state == PieceState::AcceptedDrop) {
         piece.state = PieceState::Placed;
-        piece.draw_loose_piece = true;
+        piece.render_mode = 1;
         ++completed_piece_count_;
     } else {
         // Defensive path present in the original mode-2 code.
         piece.state = PieceState::Loose;
-        piece.draw_loose_piece = true;
+        piece.render_mode = 1;
     }
 
     selected_piece_.reset();
