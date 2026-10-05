@@ -95,4 +95,19 @@ int main() {
     assert(roundtrip.objects[399].record_index == 399);
     assert(roundtrip.trailing_state[0] == 0x11223344);
     assert(roundtrip.trailing_state[27] == -7);
+
+    auto reset = roundtrip;
+    for (auto& object : reset.objects) {
+        object.object_code = 42;
+    }
+    reset.state(TrailingStateIndex::NextPondPrimaryRecord) = 77;
+    reset.state(TrailingStateIndex::NextBandstandRecord) = 222;
+    reset.state(TrailingStateIndex::NextDecorateRecord) = 333;
+    delete_all_objects(reset);
+    for (const auto& object : reset.objects) {
+        assert(object.object_code == -1);
+    }
+    assert(reset.state(TrailingStateIndex::NextPondPrimaryRecord) == 0);
+    assert(reset.state(TrailingStateIndex::NextBandstandRecord) == 200);
+    assert(reset.state(TrailingStateIndex::NextDecorateRecord) == 300);
 }
