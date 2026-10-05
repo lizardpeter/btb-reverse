@@ -70,13 +70,13 @@ void advance_ball(BallMotion& ball) noexcept {
     ball.position.y -= velocity.y;
 
     auto deceleration = static_cast<std::int32_t>(
-        static_cast<double>(ball.speed) * 0.012);
-    if (deceleration < 10) {
-        deceleration = 10;
+        static_cast<double>(ball.speed) * kBallSpeedDecayFraction);
+    if (deceleration < kBallSpeedMinimumDecay) {
+        deceleration = kBallSpeedMinimumDecay;
     }
 
     ball.speed -= deceleration;
-    if (ball.speed < 20) {
+    if (ball.speed < kBallStopThreshold) {
         ball.speed = 0;
     }
 }
