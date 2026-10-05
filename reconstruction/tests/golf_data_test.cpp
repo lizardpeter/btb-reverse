@@ -84,6 +84,6 @@ data\\subgamegolf\\wendy.bmp
     assert((data.power_bar_speed_by_difficulty == std::array<std::int32_t, 3>{2, 4, 6}));
     assert((data.ball_frame_size == Vec2i{10, 10}));
     assert(data.ball_frame_count == 1);
-    assert((data.trailing_point_a == Vec2i{105, 247}));
-    assert((data.trailing_point_b == Vec2i{304, 155}));
+    assert((data.trailing_point == Vec2i{105, 247}));
+    assert(!data.final_optional_pair_was_present);
 }
