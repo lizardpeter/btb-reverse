@@ -13,6 +13,13 @@ int main() {
     static_assert(kTrailingStateValueCount == 28);
     static_assert(kRetailSaveBytes == 30512);
 
+    static_assert(static_cast<int>(Season::Summer) == 0);
+    static_assert(static_cast<int>(Season::Winter) == 1);
+    static_assert(editor_mode_for_control(EditorControl::Pond) == EditorMode::Pond);
+    static_assert(editor_mode_for_control(EditorControl::Bandstand) == EditorMode::Bandstand);
+    static_assert(editor_mode_for_control(EditorControl::Decorate) == EditorMode::Decorate);
+    static_assert(editor_mode_for_control(EditorControl::View) == EditorMode::View);
+
     // Generate the exact retail 3 x 4 x 5 polygon ordering without copying
     // proprietary source data into the test fixture.
     std::ostringstream source;
