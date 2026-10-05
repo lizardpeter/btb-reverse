@@ -1,0 +1,16 @@
+species,entity_type,behavior_state,retail_target_x,retail_target_y,home
+Sheep,1,20,503,142,Pen
+Sheep,1,21,560,128,Pen
+Sheep,1,22,707,99,Pen
+Sheep,1,23,618,118,Pen
+Sheep,1,24,656,110,Pen
+Rabbit,2,20,738,106,RabbitHutches
+Rabbit,2,21,840,77,RabbitHutches
+Rabbit,2,22,759,94,RabbitHutches
+Rabbit,2,23,783,98,RabbitHutches
+Rabbit,2,24,807,107,RabbitHutches
+Duck,3,20,933,255,Pond
+Duck,3,21,1073,331,Pond
+Duck,3,22,1011,337,Pond
+Duck,3,23,964,278,Pond
+Duck,3,24,1022,286,Pond
