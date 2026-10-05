@@ -364,4 +364,67 @@ private:
     const ScheduleStep& step,
     ActiveEventPool& pool);
 
+struct ShowFrameInput {
+    std::int32_t elapsed_ticks{};
+    bool crowd_movie_finished{};
+    bool top_middle_movie_finished{};
+    bool any_managed_sound_playing{};
+    bool crowd_end_sound_playing{};
+    std::int32_t random_chance_roll_0_to_9{-1};
+    std::int32_t random_variant_roll_0_to_24{-1};
+    std::array<bool, kActiveEventCapacity> active_event_movie_finished{};
+};
+
+struct ShowFrameOutput {
+    std::int32_t timeline_column{};
+    CrowdPhaseStep crowd{};
+
+    // Audio commands are ordered like retail: the crowd-end branch can stop
+    // all sounds and start 349, then a same-frame certificate transition can
+    // stop all sounds again.
+    bool stop_all_before_sound{};
+    std::optional<std::int32_t> sound_id{};
+    std::int32_t sound_priority{};
+    std::int32_t sound_playback_flag{};
+    bool stop_all_for_certificate{};
+
+    bool restart_top_middle_movie{};
+    std::vector<std::size_t> completed_event_slots{};
+    std::vector<LaunchedEvent> launched_events{};
+
+    bool enter_certificate{};
+};
+
+// Source-level coordinator for the exact state-9 ordering in
+// UpdateFireworksShowPlayback. Movie decode/blit work remains external; the
+// caller reports which Binks completed this frame and receives the retail
+// state/audio/restart/allocation decisions.
+class RetailShowRuntime {
+public:
+    RetailShowRuntime() noexcept;
+
+    void reset() noexcept;
+
+    [[nodiscard]] std::int32_t crowd_phase() const noexcept {
+        return crowd_phase_;
+    }
+
+    [[nodiscard]] const RetailShowScheduler& scheduler() const noexcept {
+        return scheduler_;
+    }
+
+    [[nodiscard]] const ActiveEventPool& event_pool() const noexcept {
+        return event_pool_;
+    }
+
+    [[nodiscard]] ShowFrameOutput update(
+        const Sequence& sequence,
+        const ShowFrameInput& input);
+
+private:
+    RetailShowScheduler scheduler_{};
+    ActiveEventPool event_pool_{};
+    std::int32_t crowd_phase_{0};
+};
+
 } // namespace btb::fireworks
