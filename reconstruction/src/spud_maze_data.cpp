@@ -5,10 +5,6 @@
 namespace btb::spud_maze {
 namespace {
 
-constexpr std::array<std::size_t, kScreenCount> kTrailingPointCounts{
-    8, 5, 4, 6, 9
-};
-
 bool starts_with_next(const std::string& token) {
     return token.size() >= 4 &&
            token[0] == 'N' &&
@@ -105,9 +101,9 @@ Data parse_data(std::istream& in) {
     }
 
     for (std::size_t s = 0; s < kScreenCount; ++s) {
-        auto& points = out.trailing_screen_points[s];
-        points.reserve(kTrailingPointCounts[s]);
-        for (std::size_t i = 0; i < kTrailingPointCounts[s]; ++i) {
+        auto& points = out.repair_points[s];
+        points.reserve(kRepairPointCounts[s]);
+        for (std::size_t i = 0; i < kRepairPointCounts[s]; ++i) {
             std::array<std::int32_t,2> point{};
             if (!(in >> point[0] >> point[1])) {
                 throw std::runtime_error("short trailing Spud Maze screen-point table");
