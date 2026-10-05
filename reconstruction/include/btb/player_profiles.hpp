@@ -13,6 +13,7 @@ namespace btb::profiles {
 
 inline constexpr std::size_t kProfileCount = 5;
 inline constexpr std::size_t kMaxNameGlyphs = 9;
+inline constexpr std::size_t kMaxEnteredNameGlyphs = 8;
 
 struct ProfileInfo {
     std::int32_t name_length{};
