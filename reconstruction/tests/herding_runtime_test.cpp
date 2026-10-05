@@ -61,6 +61,27 @@ int main() {
         *home_entry_target(EntityType::Duck, 24) == Vec2i{1022, 286});
     static_assert(!home_entry_target(EntityType::Duck, 25));
     static_assert(!home_entry_target(EntityType::Scruffty, 20));
+    static_assert(kHomeRouteArrivalDistance == 10.0F);
+
+    constexpr auto entrance_arrival = home_route_arrival_step(10, 9);
+    static_assert(entrance_arrival);
+    static_assert(entrance_arrival->next_behavior_state == 20);
+    static_assert(entrance_arrival->next_undelivered_count == 9);
+    static_assert(!entrance_arrival->delivered);
+
+    constexpr auto entrance_arrival_last_slot = home_route_arrival_step(14, 9);
+    static_assert(entrance_arrival_last_slot);
+    static_assert(entrance_arrival_last_slot->next_behavior_state == 24);
+
+    constexpr auto delivered_arrival = home_route_arrival_step(24, 1);
+    static_assert(delivered_arrival);
+    static_assert(delivered_arrival->next_behavior_state == 99);
+    static_assert(delivered_arrival->next_undelivered_count == 0);
+    static_assert(delivered_arrival->delivered);
+
+    static_assert(!home_route_arrival_step(15, 9));
+    static_assert(!home_route_arrival_step(25, 9));
+    static_assert(!home_route_arrival_step(99, 0));
 
     assert(animals_per_species(0) == 3);
     assert(animals_per_species(1) == 4);
