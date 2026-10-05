@@ -44,7 +44,7 @@ address,name,confidence,notes
 0x004069C0,LoadCreditsSlideshow,high,"Parses loaddata\\credits.txt and loads up to ten timed credit bitmap surfaces"
 0x00406AD0,UpdateCreditsSlideshow,high,"Advances timed credit images and releases them when the slideshow completes"
 0x0042A2C0,RunMainGameFlow,high,"Central 68-state high-level dispatcher keyed by global game-flow state at 0x0044DE14"
-0x00419600,InitializeHerdingActivity,high,"Activity initializer in Data\\SubGame1 herd module; called by main flow state 0x0E"
+0x00419600,InitializeHerdingActivity,high,"Builds Herding resources/entity table and interprets herd.txt into fixed setup points plus four sentinel-delimited groups"
 0x004182B0,UpdateHerdingActivity,medium,"Runtime/update entry paired with InitializeHerdingActivity by main flow state 0x0F"
 0x0040A670,InitializeDinoActivity,high,"Dinosaur activity initializer; references Dino asset/difficulty tables"
 0x00409E00,UpdateDinoActivity,high,"Dino core loop: piece states 0 loose, 1 dragging, 2 accepted-drop transition, 3 rejected-drop feedback, 4 placed; interaction modes 0 idle, 1 carrying, 2 finalize accepted drop"
@@ -182,3 +182,4 @@ address,name,confidence,notes
 0x0041CBE0,FindMazeShortestPath,high,"Initializes Maze path-search globals with start/target nodes and invokes recursive search"
 0x0041CC20,MoveMazeActorTowardNode,high,"Advances a float actor position toward a node using integer angle plus per-frame speed"
 0x0041CCB0,UpdateMazeSpudNPC,high,"Eight-state Spud NPC controller for spawn delay, target/path selection, path following, package behavior, and reset"
+0x00415CB0,LoadHerdingCoordinateData,high,"Loads Data\\SubGame1\\herd.txt as X/Y pairs, preserves embedded -1/-1 separators, and appends an EOF sentinel"
