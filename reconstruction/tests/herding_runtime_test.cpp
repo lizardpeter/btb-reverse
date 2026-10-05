@@ -13,11 +13,13 @@ int main() {
     static_assert(offsetof(RetailEntityRecord32, direction_degrees) == 0x1C);
     static_assert(offsetof(RetailEntityRecord32, x_float) == 0x20);
     static_assert(offsetof(RetailEntityRecord32, y_float) == 0x24);
+    static_assert(offsetof(RetailEntityRecord32, movement_input_mask) == 0x28);
     static_assert(offsetof(RetailEntityRecord32, type) == 0x30);
     static_assert(offsetof(RetailEntityRecord32, source_left) == 0x34);
     static_assert(offsetof(RetailEntityRecord32, surface_ptr32) == 0x44);
     static_assert(offsetof(RetailEntityRecord32, movement_speed) == 0x48);
     static_assert(offsetof(RetailEntityRecord32, behavior_state) == 0x50);
+    static_assert(offsetof(RetailEntityRecord32, temporary_target_timer) == 0x58);
     static_assert(offsetof(RetailEntityRecord32, target_y) == 0x60);
 
     assert(is_herd_animal(EntityType::Sheep));
@@ -204,7 +206,7 @@ int main() {
     distracted.source_bottom = 70;
     assert(apply_scruffty_distraction(distracted, followers, 7, 123));
     assert(!followers.contains(7));
-    assert(distracted.target_flag_or_timer == 200);
+    assert(distracted.temporary_target_timer == 200);
     assert(distracted.target_x == 409);
     assert(distracted.target_y == 330);
     assert(!apply_scruffty_distraction(distracted, followers, 7, 123));
@@ -213,7 +215,7 @@ int main() {
     RetailEntityRecord32 released{};
     assert(release_follower_for_food_change(released, followers, 9, 10, 20));
     assert(!followers.contains(9));
-    assert(released.target_flag_or_timer == 200);
+    assert(released.temporary_target_timer == 200);
     assert(released.target_x == 296);
     assert(released.target_y == 470);
     assert((food_change_wander_target(399, 399) == Vec2i{685, 849}));
