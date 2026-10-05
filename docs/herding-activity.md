@@ -174,9 +174,9 @@ The runtime array begins at `0x0050B3A8`, with a stride of **0x64 bytes**.
 | `+0x10` | integer Y |
 | `+0x14` | previous X |
 | `+0x18` | previous Y |
-| `+0x1C` | floating X |
-| `+0x20` | floating Y |
-| `+0x24` | unknown |
+| `+0x1C` | direction in degrees as float; initialized from integer direction × 45.0 |
+| `+0x20` | floating X |
+| `+0x24` | floating Y |
 | `+0x28` | unknown |
 | `+0x2C` | animation/timing counter |
 | `+0x30` | entity type |
@@ -370,7 +370,37 @@ valid handler but is not assigned by normal retail population counts.
 When the first-stage target is reached, the code adds 10 to the behavior state,
 entering the corresponding 20..24 state in normal retail play.
 
-States 20-25 use a second species/state waypoint table. Reaching the final target writes behavior state **99** and decrements the global undelivered-animal counter at `0x00510764`.
+States 20-25 use a second species/state waypoint table. For normal retail
+Easy/Medium/Hard allocation, only states **20..24** are reached. The exact
+post-initializer steering points are:
+
+| State | Sheep / pen | Rabbit / hutches | Duck / pond |
+|---:|---|---|---|
+| 20 | (503,142) | (738,106) | (933,255) |
+| 21 | (560,128) | (840,77) | (1073,331) |
+| 22 | (707,99) | (759,94) | (1011,337) |
+| 23 | (618,118) | (783,98) | (964,278) |
+| 24 | (656,110) | (807,107) | (1022,286) |
+
+The initializer constructs these from 15 embedded raw points, subtracts the
+per-species sprite anchor X values **40/48/50**, then applies extra rabbit
+**(-35,+10)** and duck **(-27,+36)** adjustments. The runtime index arithmetic
+simplifies to:
+
+```text
+waypoint_index = species_index * 5 + (behavior_state - 20)
+```
+
+Both the first-stage entrance and second-stage target use the exact arrival
+threshold **distance < 10.0**.
+
+On first-stage arrival, retail adds 10 to the behavior state. On second-stage
+arrival, it writes behavior state **99** and decrements the global
+undelivered-animal counter at `0x00510764`.
+
+The final sheep entering state 1 also starts the **left gate (type 15)**
+animation with timer 50; the final rabbit starts the **right gate (type 16)**
+with timer 50. Ducks do not trigger a gate.
 
 State 99 fixes the animal to its terminal/home-facing animation sequence.
 
