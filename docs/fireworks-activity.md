@@ -153,7 +153,7 @@ States 5-7 and 10-12 currently dispatch to no-op targets in the retail jump tabl
 
 `0x00413450 UpdateFireworksShowPlayback` advances through the six authored columns. For each column it can activate up to three events, one for each row.
 
-Each active event stores its type, playback state, and row. Row determines display position and Bink-bank addressing:
+Show setup clears the type field of exactly **40 active-event records** at `0x005093F0..0x0050966F`, each with a 16-byte stride. A launch takes the first record whose type is `-1`, writes the type, zeros the two middle dwords, and stores the authored row. Row determines display position and Bink-bank addressing:
 
 | Row | Position | Retail movie index rule |
 |---:|---|---|
@@ -169,7 +169,7 @@ The show also drives the crowd-loop/crowd-end clips and timed crowd/voice sound 
 
 State 14 waits for the relevant managed sound activity to settle, clears the display, and opens `Data\\movies\\fireworkcomplete.bik`, then enters state 15.
 
-State 15 runs the shared Bink player. When the movie completes it returns through show setup and starts the completion sound path.
+State 15 runs the shared Bink player. When `fireworkcomplete.bik` finishes, retail re-enables input, writes internal state **8**, stops managed sounds, plays sound ID **142** at priority **90**, and marks that managed-sound slot with the special lifetime/control flag. The activity therefore re-enters the normal show-setup path rather than jumping directly to the certificate.
 
 State 16 draws the certificate/results screen through `0x004138A0 DrawFireworksCertificateScreen`, including the common print function.
 
@@ -333,65 +333,88 @@ The Fireworks reconstruction now includes:
 - column-based playback event generation
 - exact retail row coordinates and Bink-index arithmetic
 
-What remains for a fully source-level Fireworks recreation is mainly the **show scheduler/timing and Bink event lifetime**, plus the detailed editor animation/hover state.
+The exact show scheduler/timing and 40-record Bink event lifetime are now source-level as well. The main Fireworks work still below source level is the detailed editor animation/hover presentation and the remaining crowd/completion presentation plumbing around the already recovered state transitions.
 
 
 ## Exact retail show cadence
 
-The scheduler inside `0x00413450 UpdateFireworksShowPlayback` is now resolved directly from the timing arithmetic.
+The scheduler inside `0x00413450 UpdateFireworksShowPlayback` uses the shared
+`0x0041FC60 FileTimeDeltaCentiseconds` helper. That helper subtracts the low
+DWORDs of two FILETIME values and divides the 100 ns delta by **100000**.
+Its result is therefore in **10 ms units**.
 
+This matters because the retail scheduler constants are not milliseconds.
 It computes:
 
 ```text
-column = elapsed_ms / 400
-remainder = elapsed_ms % 400
+elapsed_10ms = FileTimeDeltaCentiseconds(show_start, now)
+column       = elapsed_10ms / 400
+remainder    = elapsed_10ms % 400
 ```
 
-and only launches authored-grid cells while:
+So one authored timeline column lasts **400 x 10 ms = 4 seconds**.
+
+`UpdateFireworksShowPlayback` also calls
+`0x00413420 FileTimeDeltaMilliseconds`, which divides by 10000, but that
+return value is immediately discarded. Treating that unused millisecond result
+as the scheduler clock caused the earlier factor-of-ten reconstruction error.
+
+Within each four-second column the three rows are staggered exactly as follows:
+
+| Row | Retail threshold | Launch offset |
+|---:|---:|---:|
+| 0 | boundary | 0 ms |
+| 1 | remainder >= 100 | 1000 ms |
+| 2 | remainder >= 200 | 2000 ms |
+
+The nominal launch time is therefore:
 
 ```text
-column < 6
+launch_ms = column * 4000 + row_offset_ms
 ```
 
-This matches the six authored timeline columns exactly.
+and the final authored column launches at approximately:
 
-Within each 400 ms column, rows are intentionally staggered:
+- row 0: **20000 ms**
+- row 1: **21000 ms**
+- row 2: **22000 ms**
 
-| Row | Launch offset within column |
-|---:|---:|
-| 0 | 0 ms |
-| 1 | 100 ms |
-| 2 | 200 ms |
+Show setup initializes the previous elapsed value to **-401**. Crossing a
+400-tick boundary fires row 0 and arms two persistent threshold gates for rows
+1 and 2. If a frame skips past a threshold, retail fires that row on the first
+observed frame after the threshold. If a frame skips directly into a new column
+past the +1 s or +2 s thresholds, multiple row launches can therefore happen
+on the same frame.
 
-So the nominal scheduled launch time for a cell is:
+### Exact 40-record active-event pool
+
+State 8 clears the type field of records spanning
+`0x005093F0..0x0050966F`:
 
 ```text
-launch_ms = column * 400 + row_offset
+40 records * 16 bytes = 0x280 bytes
 ```
 
-The final authored column therefore launches at approximately:
-
-- row 0: 2000 ms
-- row 1: 2100 ms
-- row 2: 2200 ms
-
-The scheduler uses guard flags so each row threshold is emitted once per 400 ms window.
-
-### Active event record
-
-Each launched firework is copied into one of the active runtime records beginning at approximately `0x005093F0`. The observed record stride is **16 bytes**:
+Each retail record is:
 
 | Offset | Meaning |
 |---:|---|
-| `+0x00` | firework type, `-1` = free event slot |
-| `+0x04` | playback/event state |
-| `+0x08` | frame/substate field |
+| `+0x00` | firework type; `-1` means free |
+| `+0x04` | zeroed auxiliary dword on allocation |
+| `+0x08` | zeroed auxiliary dword on allocation |
 | `+0x0C` | authored row index |
 
-When the event's Bink clip completes, the event type is reset to `-1`, freeing the slot.
+For every due authored cell, retail scans from record 0 upward and takes the
+**first free record**. If all 40 are occupied, the launch is silently skipped.
 
-This exact cadence is now represented in `fireworks_sequence.hpp` through `kTimelineColumnPeriodMs`, `retail_row_launch_offset_ms`, and `retail_scheduled_launch_ms`.
+During playback, the row selects the exact Bink index and screen position. When
+the shared Bink draw/update helper reports completion, retail rewinds that Bink
+and writes only `-1` to the record's type field. The other three dwords are
+left stale until a later allocation overwrites them.
 
+The exact threshold scheduler and active-event allocation/lifetime are now
+represented in `reconstruction/include/btb/fireworks_sequence.hpp` and
+`reconstruction/src/fireworks_sequence.cpp`.
 
 ### Certificate composition
 
