@@ -12,6 +12,26 @@ int main() {
     static_assert(!internal_state_has_direct_retail_writer(
         InternalState::LegacyCompleteAndExit));
 
+    constexpr auto no_external_exit =
+        external_exit_decision(false, false);
+    static_assert(!no_external_exit.exit_activity);
+
+    constexpr auto leave_exit =
+        external_exit_decision(false, true);
+    static_assert(leave_exit.exit_activity);
+    static_assert(leave_exit.save_and_unload);
+    static_assert(leave_exit.clear_leave_activity_request);
+    static_assert(
+        leave_exit.outer_state &&
+        *leave_exit.outer_state == kActivitySelectOuterState);
+
+    constexpr auto app_quit_exit =
+        external_exit_decision(true, false);
+    static_assert(app_quit_exit.exit_activity);
+    static_assert(app_quit_exit.save_and_unload);
+    static_assert(!app_quit_exit.clear_leave_activity_request);
+    static_assert(!app_quit_exit.outer_state);
+
     static_assert(kRetailTimelineTickMs == 10);
     static_assert(kTimelineColumnPeriodTicks == 400);
     static_assert(kTimelineColumnPeriodMs == 4000);
