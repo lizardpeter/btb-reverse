@@ -1,0 +1,11 @@
+type,machine,duration,span,wav_stem,confidence
+0,Roley,short,1,roley1,high
+1,Roley,long,2,roley2,high
+2,Muck,short,1,muck1,high
+3,Muck,long,2,muck2,high
+4,Lofty,short,1,lofty1,high
+5,Lofty,long,2,lofty2,high
+6,Dizzy,short,1,dizzy1,high
+7,Dizzy,long,2,dizzy2,high
+8,Scoop,short,1,scoop1,high
+9,Scoop,long,2,scoop2,high
