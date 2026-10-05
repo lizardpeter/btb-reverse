@@ -8,10 +8,25 @@ using namespace btb::grand_opening;
 int main() {
     static_assert(kCompositionCellCount == 120);
     static_assert(kCompositionSaveBytes == 480);
+    static_assert(kTimelineStepMilliseconds == 1000);
+    static_assert(kTimelineDurationSeconds == 24);
+    static_assert(static_cast<int>(ToolbarControl::Play) == 0);
+    static_assert(static_cast<int>(ToolbarControl::Stop) == 1);
+    static_assert(static_cast<int>(ToolbarControl::ClearAll) == 2);
+    static_assert(static_cast<int>(ToolbarControl::Delete) == 3);
+    static_assert(static_cast<int>(ActivityState::PreparePlayback) == 8);
+    static_assert(static_cast<int>(ActivityState::Playing) == 9);
+    static_assert(static_cast<int>(ActivityState::ExitToPlayAgain) == 10);
 
     static_assert(static_cast<int>(Conductor::Bob) == 0);
     static_assert(static_cast<int>(Conductor::Wendy) == 1);
     static_assert(static_cast<int>(Conductor::FarmerPickles) == 2);
+    static_assert(backing_track_filename(Conductor::Bob) == "bobmt.wav");
+    static_assert(backing_track_filename(Conductor::Wendy) == "Wendymt.wav");
+    static_assert(backing_track_filename(Conductor::FarmerPickles) == "fpmt.wav");
+
+    static_assert(machine_name(MachineType::Roley1Second) == "Roley 1 second");
+    static_assert(machine_name(MachineType::Scoop2Second) == "Scoop 2 second");
 
     static_assert(machine_span(MachineType::Roley1Second) == 1);
     static_assert(machine_span(MachineType::Roley2Second) == 2);
@@ -93,4 +108,6 @@ int main() {
     static_assert(conductor_progress_index(0, Conductor::Bob) == 0);
     static_assert(conductor_progress_index(0, Conductor::FarmerPickles) == 2);
     static_assert(conductor_progress_index(4, Conductor::Wendy) == 101);
+    static_assert(!all_conductors_complete({1,1,0}));
+    static_assert(all_conductors_complete({1,1,1}));
 }
