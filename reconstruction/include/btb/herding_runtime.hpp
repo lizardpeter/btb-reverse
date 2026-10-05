@@ -314,7 +314,7 @@ inline constexpr Vec2i kAnimalExclusionEscapeTarget{650, 486};
 [[nodiscard]] constexpr Vec2i farmer_pickles_start(
     const Data& data) noexcept {
     // InitializeHerdingActivity reads fixed setup pair #3 directly.
-    return data.setup_positions[3];
+    return data.setup_positions[kFarmerPicklesSetupPositionIndex];
 }
 
 enum class CompletionAction : std::int32_t {
