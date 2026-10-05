@@ -46,7 +46,7 @@ progress block.
 | 61 | Maze |
 | 62 | Golf |
 | 63 | Firework Finale entered |
-| 64 | unresolved retail progress slot |
+| 64 | unused/reserved retail progress slot |
 
 The machine-readable version is `ghidra/player_progress_slots.csv`.
 
@@ -123,9 +123,7 @@ explicitly reasserts `FinaleLocked = 1`.
 Index 63 is not a prerequisite. `InitializeFireworksActivity` writes it to 1
 as the finale starts.
 
-Index 64 remains unresolved. It is included in the retail progress-screen sum,
-but no direct writer has yet been identified. The reconstruction therefore
-keeps it as `Unknown64` rather than inventing a certificate/completion meaning.
+Index 64 is now classified as an **unused/reserved retail field**. It remains part of the 100-int profile record and the Progress-screen sum, but direct static xrefing found no semantic writer to that slot in this executable. Normal retail-created profiles therefore leave it zero.
 
 
 ## Mr Bentley progress feedback
