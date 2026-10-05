@@ -70,6 +70,13 @@ int main() {
     static_assert(band[0] == Slot::BobsBandBob);
     static_assert(band[2] == Slot::BobsBandFarmerPickles);
 
+    constexpr auto initial_gate = update_finale_gate_from_progress(Record{});
+    static_assert(initial_gate.locked);
+    static_assert(!initial_gate.unlocked);
+    static_assert(kFireworkFinaleAction == 0x22);
+    static_assert(should_open_progress_screen(
+        initial_gate, kFireworkFinaleAction));
+
     static_assert(progress_feedback_sound(0, 3, 0) == 959);
     static_assert(progress_feedback_sound(1, 3, 0) == 958);
     static_assert(progress_feedback_sound(2, 3, 0) == 957);
