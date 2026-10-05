@@ -105,3 +105,45 @@ The lower-level helpers line up directly with the `IDirectSoundBuffer` vtable.
 | `0x004044B0` | `IsAnyBufferPlaying` | calls vtable `+0x24` = `GetStatus` and tests `DSBSTATUS_PLAYING` |
 
 The remaining high-value function here is `0x00403D20`, which constructs/loads the actual DirectSound buffer group from a WAV path. That is the next boundary to type in detail.
+
+
+## WAV / DirectSound utility layer
+
+The lower sound layer is now mapped almost completely and follows the classic DirectX-era sound utility architecture.
+
+### Sound-manager helpers
+
+- `0x00403C40 SetPrimarySoundBufferFormat` constructs a PCM `WAVEFORMATEX` from channel/rate/bit-depth arguments and calls the primary DirectSound buffer's `SetFormat`.
+- `0x00403D20 CreateSoundBufferGroupFromWave` allocates an array of DirectSound buffers, opens a WAV reader, creates the first buffer, duplicates additional buffers when requested, fills them from the WAV, and produces the group used by the managed sound cache.
+- `0x00404100 FillSoundBufferFromWave` locks the DirectSound buffer, reads PCM bytes from the WAV reader, writes silence for any unused tail, and unlocks the buffer.
+- `0x00404270 RestoreSoundBufferIfLost` checks the lost-buffer status and retries `IDirectSoundBuffer::Restore`.
+- `0x004042F0 GetFreeSoundBuffer` prefers a duplicate buffer that is not playing; if all are busy it selects one from the group.
+
+### RIFF/WAV helper
+
+The WAV helper is approximately `0x90` bytes and is backed by the standard WinMM multimedia I/O API:
+
+- `mmioOpenA`
+- `mmioDescend`
+- `mmioAscend`
+- `mmioRead`
+- `mmioSeek`
+- `mmioGetInfo`
+- `mmioAdvance`
+- `mmioSetInfo`
+- `mmioClose`
+
+Recovered methods:
+
+| Address | Name | Purpose |
+|---|---|---|
+| `0x00404510` | `WaveFileConstructor` | zeroes initial WAV-reader fields |
+| `0x00404530` | `WaveFileDestructor` | closes reader and frees owned format data |
+| `0x00404560` | `WaveFileOpen` | opens file/memory source and initializes parsing |
+| `0x00404750` | `WaveFileReadFormat` | verifies `RIFF/WAVE`, finds `fmt `, builds `WAVEFORMATEX` |
+| `0x004048E0` | `WaveFileGetSize` | returns cached PCM data size |
+| `0x004048F0` | `WaveFileReset` | seeks/descends back to the `data` chunk |
+| `0x004049B0` | `WaveFileRead` | reads PCM data from MMIO or memory source |
+| `0x00404B30` | `WaveFileClose` | closes MMIO and releases reader state |
+
+This closes most of the generic WAV-to-DirectSound path. The remaining sound work is primarily game-specific policy: assigning semantic names to the numeric sound IDs and identifying which activity events trigger each ID.
