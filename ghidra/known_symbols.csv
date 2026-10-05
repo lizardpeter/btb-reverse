@@ -283,3 +283,4 @@ address,name,confidence,notes
 0x00413420,FileTimeDeltaMilliseconds,high,"Subtracts the low DWORD of two FILETIME values and divides 100ns ticks by 10000, yielding retail elapsed milliseconds for the Fireworks scheduler"
 0x00424C80,SeekAndDecodeBinkToExactFrame,high,"Uses BinkGetKeyFrame/BinkGoto, locks a DirectDraw surface, decodes/copies frames forward with BinkDoFrame/BinkCopyToBuffer/BinkNextFrame until the requested exact frame, then unlocks"
 0x004211A0,ComputeSpudMazeBobInputDirection,high,"Resolves Bob X/Y movement intents from mouse direction around Bob or DirectInput direction bits, returning -1/0/+1 axis values before graph traversal"
+0x0041AEB0,DebounceMazeDirectionalInput,high,"Maintains three-sample histories for X/Y movement intents; if either axis is not stable across all three samples, zeros both output intents to suppress direction flicker"
