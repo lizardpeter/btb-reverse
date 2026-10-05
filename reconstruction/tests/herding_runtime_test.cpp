@@ -98,6 +98,39 @@ int main() {
     assert(initial_undelivered_animal_count(1) == 12);
     assert(initial_undelivered_animal_count(2) == 15);
 
+    static_assert(kPicklesKeyboardStep == 1.5F);
+
+    constexpr auto right = pickles_keyboard_motion(0x02);
+    static_assert(right.movement_mask == PicklesMoveRight);
+    static_assert(right.delta_x == 1.5F);
+    static_assert(right.delta_y == 0.0F);
+
+    constexpr auto left = pickles_keyboard_motion(0x01);
+    static_assert(left.movement_mask == PicklesMoveLeft);
+    static_assert(left.delta_x == -1.5F);
+
+    constexpr auto down = pickles_keyboard_motion(0x08);
+    static_assert(down.movement_mask == PicklesMoveDown);
+    static_assert(down.delta_y == 1.5F);
+
+    constexpr auto up = pickles_keyboard_motion(0x04);
+    static_assert(up.movement_mask == PicklesMoveUp);
+    static_assert(up.delta_y == -1.5F);
+
+    constexpr auto down_right = pickles_keyboard_motion(0x0A);
+    static_assert(
+        down_right.movement_mask == (PicklesMoveRight | PicklesMoveDown));
+    static_assert(down_right.delta_x == 1.5F);
+    static_assert(down_right.delta_y == 1.5F);
+
+    // Retail gives +X priority over -X and +Y priority over -Y.
+    constexpr auto opposite_pairs = pickles_keyboard_motion(0x0F);
+    static_assert(
+        opposite_pairs.movement_mask ==
+        (PicklesMoveRight | PicklesMoveDown));
+    static_assert(opposite_pairs.delta_x == 1.5F);
+    static_assert(opposite_pairs.delta_y == 1.5F);
+
     assert(food_pickup_sound_ids(FoodType::DuckFood).pickles_line == 582);
     assert(food_pickup_sound_ids(FoodType::DuckFood).travis_line == 609);
     assert(food_pickup_sound_ids(FoodType::RabbitFood).pickles_line == 583);
@@ -127,6 +160,39 @@ int main() {
     static_assert(!food_pickup_in_range(FoodType::RabbitFood, 405, 354));
     static_assert(food_pickup_in_range(FoodType::SheepFood, 240, 414));
     static_assert(!food_pickup_in_range(FoodType::SheepFood, 290, 414));
+
+    FoodSelectionState food_state;
+    auto food_step = try_select_food(
+        food_state, FoodType::DuckFood, 242, 232, 0);
+    assert(food_step.changed);
+    assert(food_step.previous == FoodType::None);
+    assert(food_step.selected == FoodType::DuckFood);
+    assert(food_step.sound_id == 609);
+    assert(food_step.release_all_followers);
+    assert(food_state.selected == FoodType::DuckFood);
+    assert(food_state.bag_states[0] == -1);
+
+    // Selecting the already-held food is a no-op.
+    food_step = try_select_food(
+        food_state, FoodType::DuckFood, 242, 232, 1);
+    assert(!food_step.changed);
+
+    // Changing food restores the old bag state and selects the new one.
+    food_step = try_select_food(
+        food_state, FoodType::RabbitFood, 365, 354, 1);
+    assert(food_step.changed);
+    assert(food_step.previous == FoodType::DuckFood);
+    assert(food_step.sound_id == 583);
+    assert(food_state.bag_states[0] == 1);
+    assert(food_state.bag_states[1] == -1);
+    assert(food_state.selected == FoodType::RabbitFood);
+
+    FoodSelectionState blocked_food;
+    blocked_food.bag_states[2] = 2;
+    food_step = try_select_food(
+        blocked_food, FoodType::SheepFood, 240, 414, 1);
+    assert(!food_step.changed);
+    assert(blocked_food.selected == FoodType::None);
 
     assert(attraction_sound_ids(FoodType::DuckFood).a == 585);
     assert(attraction_sound_ids(FoodType::DuckFood).b == 586);
