@@ -1,14 +1,14 @@
-# Clean-room reconstruction
+# Source reconstruction
 
-This directory contains source-level reconstructions derived from observed game behavior, static analysis, and the external data formats.
+This directory contains **direct source-level reconstructions of the original game** derived from the executable, recovered data structures, external data files, API behavior, and decompiler/static-analysis evidence.
 
-It does **not** contain original game code or proprietary assets.
+The objective is fidelity to the original implementation:
 
-The goal is to move progressively from:
+`binary evidence -> named original structures/functions -> compilable reconstructed source`
 
-`binary evidence -> named structures/algorithms -> buildable source-level equivalent`
+Where a function, structure, enum, constant, table, or state-machine behavior can be recovered, the reconstruction should preserve it rather than intentionally redesigning it.
 
-The first buildable module is the Dinosaur level-data layer.
+The first buildable module is the Dinosaur level-data and gameplay layer.
 
 ## Build
 
@@ -24,6 +24,6 @@ The code currently covers:
 - `dino.txt` parsing
 - variable-length post-piece coordinate tail
 - permutation validation
-- the recovered Dino cursor proximity and rectangle hit tests
+- recovered Dino cursor proximity and rectangle hit tests
 
-The DirectDraw-backed activity runtime will be added separately so the portable data/gameplay model stays independent of the original Windows rendering layer.
+Next, this module will be expanded with the recovered original piece record, piece-state enum, drag/drop update loop, snap/return transitions, completion tracking, sound-event mapping, and DirectDraw-facing rendering behavior.
