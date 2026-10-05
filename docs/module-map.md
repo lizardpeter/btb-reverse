@@ -5,9 +5,9 @@ This is a working source-oriented map of the main executable. Boundaries are bas
 | Approximate code range | Module |
 |---|---|
 | `0x00401000-0x00409DFF` | startup/core, DirectDraw, DirectSound, input, global data helpers |
-| `0x00409E00-0x0040AE9F` | Dinosaur |
-| `0x0040AEA0-0x004111BF` | Park Designer / DYP |
-| `0x004111C0-0x004145EF` | Fireworks |
+| `0x00409E00-0x0040AC8F` | Dinosaur |
+| `0x0040AC90-0x00410FCF` | Park Designer / DYP (save routine at `0x0040AC90`; loader at `0x0040AEA0`) |
+| `0x00410FD0-0x0041440F` | Fireworks (grid helpers begin at `0x00410FD0`; movie/editor teardown follows at `0x004110E0`/`0x004111C0`) |
 | `0x004145F0-~0x00417FFF` | Golf |
 | `~0x00418000-0x0041A72F` | Herding / SubGame1 |
 | `0x0041A730-0x0041DB1F` | Maze |
