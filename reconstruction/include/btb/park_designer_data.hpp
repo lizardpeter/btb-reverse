@@ -77,6 +77,21 @@ static_assert(offsetof(RetailObjectRecord32, record_index) == 0x34);
 static_assert(offsetof(RetailObjectRecord32, bound_category) == 0x38);
 static_assert(offsetof(RetailObjectRecord32, bound_variant) == 0x3C);
 
+enum class RecordFamily : std::int32_t {
+    PondPrimary,
+    PondAuxiliary,
+    Bandstand,
+    Decorate,
+};
+
+[[nodiscard]] constexpr RecordFamily record_family_for_index(
+    std::int32_t record_index) noexcept {
+    return record_index < 100 ? RecordFamily::PondPrimary
+         : record_index < 200 ? RecordFamily::PondAuxiliary
+         : record_index < 300 ? RecordFamily::Bandstand
+                              : RecordFamily::Decorate;
+}
+
 inline constexpr std::size_t kObjectRecordCount = 400;
 inline constexpr std::size_t kTrailingStateValueCount = 28;
 inline constexpr std::size_t kRetailSaveBytes =
