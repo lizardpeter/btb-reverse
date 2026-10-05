@@ -28,7 +28,7 @@ This means the executable is not one monolithic game loop. The central dispatche
 | `0x20 / 0x21` | Maze | `0x0041A730` | `0x0041D4D0` | high |
 | `0x24 / 0x25` | Fireworks | `0x00411C80` | `0x00413F10` | high |
 | `0x28 / 0x29` | Squirrel | `0x00425160` | `0x004279F0` | high |
-| `0x2E / 0x2F` | Grand Opening / music sequencer | `0x0041DB20` | `0x00420030` | high / medium |
+| `0x2E / 0x2F` | Bob's Band / music sequencer | `0x0041DB20` | `0x00420030` | high |
 | `0x32 / 0x33` | Park Designer / DYP | `0x0040B7E0` | `0x00410D10` | high |
 | `0x36 / 0x37` | Golf | `0x004145F0` | `0x00415830` | high |
 | `0x3A / 0x3B` | Spud Maze | `0x004207E0` | `0x00423F40` | high |
@@ -46,7 +46,7 @@ The state blocks call these entry points directly, and the called code contains 
 - Park Designer is rooted in `Data\\SubGameDYP` and `boundareas.txt`.
 - Dino uses the Raptor/Triceratops/T-Rex difficulty tables and per-level `dino.txt`.
 - Herding is the `Data\\SubGame1` cluster containing Pickles, sheep, rabbit, duck, gates, trailer, Travis cab, and `herd.txt`.
-- Grand Opening owns the `Data\\SubGameOpen` instrument/player UI and multi-track WAV assets.
+- Bob's Band owns the `Data\\SubGameOpen` five-machine sequencer, three conductor tracks, 5x24 grid, and multi-pitch WAV banks.
 
 ## Spud Maze -> Spud Skate boundary
 
@@ -86,3 +86,17 @@ The next useful pass is to name the shared transition states rather than only th
 - generic play-again / quit flow
 
 Once those are named, nearly every branch in `RunMainGameFlow` should read semantically.
+
+
+## Bob's Band -> Spud Maze boundary
+
+The source-oriented boundary is now exact:
+
+- `0x0041D7C0` parses Bob's Band `machinedata.txt`.
+- `0x0041DB20` initializes Bob's Band.
+- `0x00420030` runs Bob's Band.
+- Bob's Band internal functions end before `0x00420560`.
+- `0x00420560` begins parsing `loaddata\\spudmaze_nodes.txt`.
+- `0x004207E0` is the later Spud Maze initializer.
+
+So `0x00420560`, rather than `0x004207E0`, is the actual start of the Spud Maze module when data-loader helpers are included.
