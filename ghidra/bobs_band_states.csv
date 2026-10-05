@@ -1,0 +1,12 @@
+state,name,confidence,notes
+0,EditIdle,high,"Normal editor draw/input path"
+1,BrickSelected,high,"Sound brick selected; cursor/hover placement helper active"
+2,DrawOnly,high,"Draws Bob's Band scene without normal editor action dispatch"
+3,RetailNoOp,high,"Jump table targets common post-state path directly"
+4,RetailNoOp,high,"Jump table targets common post-state path directly"
+5,RetailNoOp,high,"Jump table targets common post-state path directly"
+6,RetailNoOp,high,"Jump table targets common post-state path directly"
+7,RetailNoOp,high,"Jump table targets common post-state path directly"
+8,BeginPlayback,high,"Marks current player/conductor progress, captures start time, rewinds/starts selected backing track, advances to state 9"
+9,Playback,high,"Runs 24-second sequencer playback; Stop returns to edit state"
+10,ExitToPlayAgain,high,"Runs common progress save, releases Bob's Band resources, sets outer state 0x3C"
