@@ -228,13 +228,27 @@ struct FinaleGate {
     bool unlocked{false};
 };
 
+// Exact tail of the generic Activity Select updater at 0x00428DFE:
+// each pass reasserts the locked/intercept flag, then a sum >= 13 latches
+// unlocked=true and clears locked. The below-threshold path never clears the
+// unlocked latch.
 [[nodiscard]] constexpr FinaleGate update_finale_gate_from_progress(
+    FinaleGate current,
     const Record& record) noexcept {
 
+    current.locked = true;
     if (retail_finale_available(record)) {
-        return {false, true};
+        current.unlocked = true;
+        current.locked = false;
     }
-    return {true, false};
+    return current;
+}
+
+// Convenience for a fresh process/session state. Use the two-argument overload
+// when reproducing retail latch history across Activity Select updates.
+[[nodiscard]] constexpr FinaleGate update_finale_gate_from_progress(
+    const Record& record) noexcept {
+    return update_finale_gate_from_progress(FinaleGate{}, record);
 }
 
 // Activity Select only intercepts the Firework Finale action while locked.
@@ -245,6 +259,45 @@ inline constexpr std::int32_t kFireworkFinaleAction = 0x22;
     const FinaleGate& gate,
     std::int32_t selected_action) noexcept {
     return gate.locked && selected_action == kFireworkFinaleAction;
+}
+
+enum class ActivitySelectionKind {
+    RouteToOuterState,
+    OpenFinaleProgress,
+};
+
+struct ActivitySelectionResult {
+    ActivitySelectionKind kind{ActivitySelectionKind::RouteToOuterState};
+    std::int32_t outer_state{-1};
+    FinaleGate gate{};
+};
+
+// Exact selection-completion branch in the generic UI updater. While locked,
+// action 0x22 is intercepted and leaves the outer game-flow state untouched.
+// Selecting any other action while locked routes normally and transiently
+// clears the locked flag; Activity Select setup reasserts it on return unless
+// the unlocked latch has been set.
+[[nodiscard]] constexpr ActivitySelectionResult route_activity_selection(
+    FinaleGate gate,
+    std::int32_t selected_action) noexcept {
+
+    if (should_open_progress_screen(gate, selected_action)) {
+        return {
+            ActivitySelectionKind::OpenFinaleProgress,
+            -1,
+            gate,
+        };
+    }
+
+    if (gate.locked) {
+        gate.locked = false;
+    }
+
+    return {
+        ActivitySelectionKind::RouteToOuterState,
+        selected_action,
+        gate,
+    };
 }
 
 } // namespace btb::progress
