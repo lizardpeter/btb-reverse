@@ -277,3 +277,6 @@ address,name,confidence,notes
 0x00422DD0,DrawSpudMazeScreenTransition,high,"Draws current/adjacent screen backgrounds during horizontal lane transitions, advances slide offsets/counter, and keeps repair-layer rendering aligned until transition completes"
 0x00420360,UnloadSpudMazeActivityResources,high,"Unregisters/releases Spud Maze screen, Pilchard, repair, toolbar and per-screen damaged-section surfaces; clears activity state and stops shared activity music"
 0x00424100,UnloadSpudSkateActivityResources,high,"Closes Spud Skate Bink handles, frees retained movie/path buffers, unregisters/releases score/UI surfaces, clears cursor resources and activity state"
+0x00425780,UpdateAndDrawSquirrelLevelTransition,high,"Runs the inter-level transition: slides level/background framing geometry, draws transition pieces, advances current level when complete, and resets transition/conveyor state"
+0x00425F40,UpdateAndDrawSquirrelRunAssembly,high,"Builds current run geometry from connector/piece state, updates run/squirrel progression fields, and draws the squirrel sprite over the assembled run"
+0x00427320,UpdateSquirrelConveyorSlideCycle,high,"Moves conveyor horizontal offset through its out/in cycle, advances conveyor animation phase, regenerates choices when fully offscreen, then slides the new set back in"
