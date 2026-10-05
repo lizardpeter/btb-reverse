@@ -14,7 +14,7 @@ The activity has three dinosaur choices and three difficulty levels:
 
 The selected level is encoded as:
 
-`level_index = dinosaur_index + 3 * difficulty_index`
+`level_index = species_index + 3 * difficulty_index`
 
 and stored in global `0x004FC438`.
 
@@ -46,7 +46,7 @@ The exact tail length is not completely fixed. Eight levels contain two extra co
 - `N` — piece count.
 - first `N` coordinate pairs — assembled-skeleton **target positions**, indexed by piece ID.
 - second `N` coordinate pairs — on-screen **starting/tray positions**, indexed by display slot.
-- coordinate pair `2N` — a runtime animation anchor copied into globals `0x004FC400/0x004FC404` (and float mirrors). It is `(80, 300)` in eight levels but **`(456, 248)` in Raptor Easy**.
+- coordinate pair `2N` — a special render anchor copied into globals `0x004FC400/0x004FC404` (and float mirrors). It is `(80, 300)` in eight levels but **`(456, 248)` in Raptor Easy**. The normal drag/drop path does not use this anchor.
 - any later coordinate pairs before the sentinel — additional level-specific positions. The common trailing values `(80, 300)` and `(100, 120)` occur after the Raptor Easy special anchor; their exact consumers are still being traced.
 - `-1 -1` — coordinate-list terminator.
 - final `N` integers — permutation assigning a real `piece<ID>.bmp` to each display/start slot.
@@ -110,7 +110,7 @@ The stride is **0x30 bytes**.
 | `+0x18` | `src_rect.top` | initialized to 0 |
 | `+0x1C` | `src_rect.right` | surface width from `GetSurfaceDesc` |
 | `+0x20` | `src_rect.bottom` | surface height from `GetSurfaceDesc` |
-| `+0x24` | `draw_loose_piece` | 1 in the tray / after final placement; 0 while the piece is represented by the cursor |
+| `+0x24` | `render_mode` | initialized to 1; set to 0 while the selected piece is cursor-owned; value 2 selects a special anchored render path |
 | `+0x28` | `piece_id` | copied from permutation table |
 | `+0x2C` | `surface` | loaded DirectDraw piece surface |
 
@@ -124,7 +124,7 @@ The field at piece-record offset `+0x10` is now recoverable as a small state enu
 |---:|---|---|
 | 0 | Loose | piece is available at its start/tray position |
 | 1 | Dragging | selected piece; tray copy hidden and piece surface installed as cursor |
-| 2 | AcceptedDrop | cursor is cleared and the renderer uses the shared snap-transition anchor |
+| 2 | AcceptedDrop | correct drop accepted; cursor cleared; interaction mode 2 finalizes the piece on the next update |
 | 3 | RejectedDrop | wrong placement feedback; piece remains carried and can be tried again |
 | 4 | Placed | renderer draws the piece permanently at its target position |
 
@@ -197,9 +197,21 @@ This routine draws:
 2. shared animated/character UI elements
 3. every piece according to its current runtime state and position
 
-Placed/snapping/dragging states choose different position sources. The piece surface and source dimensions come directly from the runtime record.
+Rendering is a two-pass piece compositor:
 
-The common sprite compositor invoked by this routine is shared with other activities and is being named separately from Dino-specific logic.
+1. state-4 (`Placed`) pieces are drawn at their permanent `target_x/target_y`;
+2. states 0-3 are drawn at `current_x/current_y` only when `render_mode != 0`.
+
+Selecting a piece sets `render_mode = 0`, because `SetCursorSurface` makes the cursor own the bone image while it is carried. A correct drop clears the cursor and sets state 2; on the next update the piece becomes state 4 and `render_mode` is restored to 1.
+
+There is also a `render_mode == 2` branch which renders from the special anchor using fixed offset tables:
+
+- X: `0, 10, 20, 10, 0, -10, -20, -10`
+- Y: `-40, -10, 0, 10, 40, 10, 0, -10`
+
+However, normal Dino initialization/update code only writes render modes 0 and 1. Its table-index global `0x004FC424` is initialized/reset to 4, and no normal runtime update of that index was found. This is therefore a dormant/legacy special rendering path, not the accepted-drop animation.
+
+The shared compositor is `0x00415E50 BlitColorKeyedSurfaceClipped`.
 
 ## Dino-specific geometry helpers
 
@@ -225,15 +237,27 @@ Tests the current cursor position against an inclusive rectangle. It is used whe
 
 Unregisters/releases the Dino background, shared Dino surfaces, every loaded piece surface, associated animation resources, and then stops shared activity music.
 
-## Remaining Dino work
+## Current reconstruction status
 
-The activity is now structurally reconstructed. The remaining pass is narrower:
+The buildable C++ reconstruction under `reconstruction/` now covers:
 
-- assign exact enum names to the per-piece state values
-- identify the runtime animation anchor and trailing extra positions' final semantic names
-- name the shared sprite/animation helpers called from `DrawDinoActivity`
-- map the numeric Dino feedback sound IDs back to filenames from `Data/sound/binklist.txt`
-- write a clean source-level equivalent of the Dino loader and update loop
+- exact species/difficulty indexing
+- `dino.txt` parsing and permutation validation
+- the recovered 0x30-byte piece model
+- loose-piece selection/hit testing
+- cursor-owned dragging
+- correct and incorrect drop behavior
+- accepted-drop finalization
+- completed-piece tracking
+- the retail snap-tolerance rule
+
+Those tests are passing in GitHub Actions.
+
+The remaining Dino-specific work is mostly presentation/persistence integration: shared character animations, progress-table writes, activity-completion transition details, the print-button presentation layer, and a DirectDraw-facing renderer adapter.
+
+## Shared print button
+
+`0x00409CD0 UpdateDinoPrintButton` calls the common `0x00409730 PrintCurrentGameFrame` path. That same print function is used by Park Designer and Fireworks; see `docs/printing-system.md`.
 
 
 ### Coordinate-tail validation
