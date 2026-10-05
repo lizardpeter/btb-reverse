@@ -116,6 +116,7 @@ add_test(NAME herding_runtime COMMAND btb_herding_runtime_tests)
 
 add_library(btb_park_designer
     src/park_designer_data.cpp
+    src/park_designer_runtime.cpp
 )
 target_include_directories(btb_park_designer PUBLIC include)
 target_compile_features(btb_park_designer PUBLIC cxx_std_20)
@@ -125,3 +126,10 @@ add_executable(btb_park_designer_data_tests
 )
 target_link_libraries(btb_park_designer_data_tests PRIVATE btb_park_designer)
 add_test(NAME park_designer_data COMMAND btb_park_designer_data_tests)
+
+
+add_executable(btb_park_designer_runtime_tests
+    tests/park_designer_runtime_test.cpp
+)
+target_link_libraries(btb_park_designer_runtime_tests PRIVATE btb_park_designer)
+add_test(NAME park_designer_runtime COMMAND btb_park_designer_runtime_tests)
