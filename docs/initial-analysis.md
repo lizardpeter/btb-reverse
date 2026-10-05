@@ -182,3 +182,16 @@ Verified interfaces/imports:
 - Bink audio backend: `BinkOpenDirectSound`
 
 DirectDraw's latest COM interface remained `IDirectDraw7`; there is no `IDirectDraw8`. So the mixed numbering is expected rather than evidence of two unrelated DirectX installs.
+
+
+### DirectX 8.0a baseline
+
+The original retail troubleshooting documentation on the disc specifically refers to machines with **DirectX older than v8.0a** as a compatibility/install case. Combined with the executable imports, the most precise description is:
+
+- documented retail baseline: **DirectX 8.0a**
+- graphics API: **IDirectDraw7**
+- input API: **DirectInput 8**
+- sound API: **DirectSound 8**
+- Bink uses the DirectDraw/DirectSound backends
+
+Later DirectX runtimes remain backward-compatible with these APIs; this is about the original game's API/runtime generation.
