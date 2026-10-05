@@ -1,5 +1,6 @@
 #include "btb/sound_manager.hpp"
 
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -39,5 +40,53 @@ int main() {
     assert(manager.mapped_slot(700) == 12);
 
     manager.slot_state[12] = static_cast<std::int32_t>(SlotState::Active);
-    assert(manager.state(12) == SlotState::Playing);
+    assert(manager.state(12) == SlotState::Active);
+
+    std::array<bool, kManagedSlotCount> playing{};
+
+    auto choice = select_slot_for_acquire(manager, playing);
+    assert(choice.slot == 0);
+    assert(!choice.requires_release);
+
+    for (std::size_t i = 0; i < kManagedSlotCount; ++i) {
+        manager.slot_state[i] = static_cast<std::int32_t>(SlotState::Active);
+        manager.priority_or_age[i] = 50;
+        playing[i] = true;
+    }
+
+    playing[7] = false;
+    manager.priority_or_age[7] = 20;
+    playing[13] = false;
+    manager.priority_or_age[13] = 10;
+
+    choice = select_slot_for_acquire(manager, playing);
+    assert(choice.slot == 13);
+    assert(choice.requires_release);
+
+    manager.priority_or_age[7] = 101;
+    manager.priority_or_age[13] = 101;
+    choice = select_slot_for_acquire(manager, playing);
+    assert(choice.slot == -1);
+    assert(!choice.requires_release);
+
+    manager.sound_id_by_slot[5] = 700;
+    manager.slot_by_sound_id[700] = 5;
+    manager.buffer_group_ptr32[5] = 0x12345678;
+    manager.priority_or_age[5] = 44;
+    manager.slot_state[5] = static_cast<std::int32_t>(SlotState::Stopped);
+
+    clear_released_slot_metadata(manager, 5);
+
+    assert(manager.buffer_group_ptr32[5] == 0);
+    assert(manager.priority_or_age[5] == -1);
+    assert(manager.slot_state[5] == static_cast<std::int32_t>(SlotState::Free));
+    assert(manager.sound_id_by_slot[5] == -1);
+    assert(manager.slot_by_sound_id[700] == -1);
+
+    install_acquired_slot_metadata(manager, 9, 711, 50, 2);
+    assert(manager.sound_id_by_slot[9] == 711);
+    assert(manager.slot_by_sound_id[711] == 9);
+    assert(manager.priority_or_age[9] == 50);
+    assert(manager.special_lifetime_flag[9] == 0);
+    assert(manager.playback_policy[9] == 2);
 }
