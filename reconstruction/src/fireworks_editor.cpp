@@ -1,5 +1,7 @@
 #include "btb/fireworks_editor.hpp"
 
+#include <cmath>
+
 namespace btb::fireworks {
 namespace {
 
@@ -28,7 +30,96 @@ namespace {
     return static_cast<std::int32_t>(action);
 }
 
+[[nodiscard]] std::int32_t retail_actor_angle_degrees(
+    std::int32_t x,
+    std::int32_t y,
+    std::int32_t target_x,
+    std::int32_t target_y) noexcept {
+
+    const auto xdiff = x - target_x;
+    const auto ydiff = y - target_y;
+
+    const auto abs_x = std::abs(xdiff);
+    const auto abs_y = std::abs(ydiff);
+
+    // 0x00415D70 substitutes 9999.0 when abs(xdiff)==0, then uses atan.
+    const float ratio =
+        abs_x == 0
+            ? 9999.0F
+            : static_cast<float>(abs_y) / static_cast<float>(abs_x);
+
+    float angle = std::atan(ratio) * 57.29499816894531F;
+
+    if (xdiff < 0) {
+        angle = ydiff < 0 ? angle + 90.0F : 90.0F - angle;
+    } else {
+        angle = ydiff < 0 ? 270.0F - angle : angle + 270.0F;
+    }
+
+    // The retail helper at 0x004304D0 temporarily changes the x87 rounding
+    // mode to truncate toward zero before returning the integer angle.
+    return static_cast<std::int32_t>(angle);
+}
+
 } // namespace
+
+DormantMotionStep tick_dormant_legacy_motion(
+    EditorRuntimeState& state,
+    PlacementActorChannel channel) noexcept {
+
+    DormantMotionStep result;
+    const auto index = placement_actor_index(channel);
+    if (state.actor_states[index] != PlacementActorState::DormantLegacyMotion) {
+        return result;
+    }
+
+    result.active = true;
+    auto& visual = state.actor_visuals[index];
+
+    ++visual.frame_tick;
+    if (visual.frame_tick > 5) {
+        visual.frame_tick = 0;
+        ++visual.source_row;
+        if (visual.source_row >= kDormantMotionRowEndExclusive) {
+            visual.source_row = kDormantMotionFirstRow;
+        }
+    }
+
+    const auto [target_x, target_y] = kDormantPlacementActorTargets[index];
+    result.angle_degrees = retail_actor_angle_degrees(
+        visual.x, visual.y, target_x, target_y);
+
+    auto direction = (result.angle_degrees + 22) / 45;
+    if (direction >= 8) {
+        direction -= 8;
+    }
+    visual.source_column = direction;
+
+    constexpr float kDegreesToRadians = 0.017453530803322792F;
+    const float radians =
+        static_cast<float>(result.angle_degrees) * kDegreesToRadians;
+
+    result.delta_x = static_cast<std::int32_t>(
+        std::sin(radians) * static_cast<float>(kDormantMotionSpeed));
+    result.delta_y = static_cast<std::int32_t>(
+        std::cos(radians) * static_cast<float>(-kDormantMotionSpeed));
+
+    visual.x += result.delta_x;
+    visual.y += result.delta_y;
+
+    const auto dx = visual.x - target_x;
+    const auto dy = visual.y - target_y;
+    result.distance_after_move = std::sqrt(
+        static_cast<float>(dx * dx + dy * dy));
+
+    if (result.distance_after_move < kDormantMotionArrivalDistance) {
+        state.actor_states[index] = PlacementActorState::Idle;
+        visual.source_column = 4;
+        result.arrived = true;
+    }
+
+    return result;
+}
 
 PlacementBeginResult begin_placement_region_action(
     Sequence& sequence,
