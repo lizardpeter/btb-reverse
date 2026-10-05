@@ -12,5 +12,5 @@ index,address_player0,name,confidence,notes
 60,0x0051B5C0,SpudSkate,high,"Set on Spud Skate completion"
 61,0x0051B5C4,Maze,high,"Set on Maze completion"
 62,0x0051B5C8,Golf,high,"Set on Golf completion"
-63,0x0051B5CC,FireworkFinaleEntered,high,"InitializeFireworksActivity writes 1 when the Firework Finale starts"
+63,0x0051B5CC,FireworkFinaleStarted,high,"InitializeFireworksActivity writes 1 when the Firework Finale starts"
 64,0x0051B5D0,ReservedUnused,high,"No game-code writer exists. Only generic player load/save/delete and the Progress-screen 50..64 sum touch this slot; normal retail-created profiles leave it zero"
