@@ -20,6 +20,22 @@ int main() {
     static_assert(badge0.top == 45 && badge0.bottom == 103);
     constexpr auto badge5 = badge_source_rect(5);
     static_assert(badge5.left == 250 && badge5.right == 300);
+
+    static_assert(hit_test_profile_screen(92, 180) == 0);
+    static_assert(hit_test_profile_screen(160, 320) == 1);
+    static_assert(hit_test_profile_screen(292, 200) == 2);
+    static_assert(hit_test_profile_screen(390, 320) == 3);
+    static_assert(hit_test_profile_screen(530, 240) == 4);
+    static_assert(hit_test_profile_screen(40, 445) ==
+        static_cast<int>(ProfileScreenTarget::Help));
+    static_assert(hit_test_profile_screen(320, 445) ==
+        static_cast<int>(ProfileScreenTarget::Delete));
+    static_assert(hit_test_profile_screen(600, 445) ==
+        static_cast<int>(ProfileScreenTarget::Back));
+
+    // Retail uses strict interior comparisons, so boundaries do not hit.
+    static_assert(hit_test_profile_screen(42, 180) == -1);
+    static_assert(hit_test_profile_screen(92, 140) == -1);
     static_assert(kDirectInputBackspace == 0x0E);
     static_assert(kDirectInputLeftShift == 0x2A);
     static_assert(kDirectInputRightShift == 0x36);
