@@ -6,6 +6,15 @@
 using namespace btb::golf;
 
 int main() {
+    static_assert(static_cast<int>(RoundState::Aim) == 0);
+    static_assert(static_cast<int>(RoundState::PowerMeter) == 1);
+    static_assert(static_cast<int>(RoundState::LaunchSetup) == 2);
+    static_assert(static_cast<int>(RoundState::BallFlight) == 3);
+    static_assert(static_cast<int>(RoundState::ResolveLanding) == 4);
+    static_assert(static_cast<int>(RoundState::ScoreAndFeedback) == 5);
+    static_assert(static_cast<int>(RoundState::ResetNextAttempt) == 6);
+    static_assert(static_cast<int>(RoundState::SwingAnimationDelay) == 99);
+
     assert(clamp_aim(-1) == 0);
     assert(clamp_aim(100) == 88);
     assert(quantize_aim_angle(87) == 86);
