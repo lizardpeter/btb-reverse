@@ -269,6 +269,6 @@ In Pond/Bandstand/Decorate modes, the same control instead activates the normal 
 
 Items 0 and 1 write the new season to `0x00509344`, play DYP View-family feedback, then call `ApplyParkDesignerSeason`.
 
-Item 2 calls the shared printing function at `0x00409730`. The original support documentation confirms that using an in-game print control first writes `Printme.bmp`, even if the subsequent printer dialog is cancelled. fileciteturn218file0L44-L56
+Item 2 calls the shared printing function at `0x00409730`. The original retail support documentation confirms that using an in-game print control first writes `Printme.bmp`, even if the subsequent printer dialog is cancelled.
 
 The item-3 hover path is confirmed; its exact click semantics are being kept separate until the downstream branch is fully closed.
