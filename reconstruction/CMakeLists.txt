@@ -239,3 +239,11 @@ add_executable(btb_player_profiles_tests
 )
 target_link_libraries(btb_player_profiles_tests PRIVATE btb_player_profiles)
 add_test(NAME player_profiles COMMAND btb_player_profiles_tests)
+
+
+add_executable(btb_sound_manager_tests
+    tests/sound_manager_test.cpp
+)
+target_include_directories(btb_sound_manager_tests PRIVATE include)
+target_compile_features(btb_sound_manager_tests PRIVATE cxx_std_26)
+add_test(NAME sound_manager COMMAND btb_sound_manager_tests)
