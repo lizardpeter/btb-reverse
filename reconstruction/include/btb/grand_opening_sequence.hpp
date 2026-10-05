@@ -11,10 +11,10 @@ namespace btb::grand_opening {
 
 inline constexpr std::size_t kConductorCount = 3;
 inline constexpr std::size_t kPlayerProfileCount = 5;
-inline constexpr std::size_t kVariationRowCount = 5;
+inline constexpr std::size_t kPitchRowCount = 5;
 inline constexpr std::size_t kTimelineStepCount = 24;
 inline constexpr std::size_t kCompositionCellCount =
-    kVariationRowCount * kTimelineStepCount;
+    kPitchRowCount * kTimelineStepCount;
 inline constexpr std::size_t kCompositionSaveBytes =
     kCompositionCellCount * sizeof(std::int32_t);
 inline constexpr std::int32_t kTimelineStepMilliseconds = 1000;
@@ -28,6 +28,31 @@ enum class Conductor : std::int32_t {
     Wendy = 1,
     FarmerPickles = 2,
 };
+
+// Verified from the BEXT metadata embedded in roley1_1.wav .. roley1_5.wav.
+// Retail displays row 0 from WAV suffix 5 and row 4 from suffix 1.
+enum class Pitch : std::int32_t {
+    CSharp = 0,
+    B = 1,
+    A = 2,
+    GSharp = 3,
+    FSharp = 4,
+};
+
+[[nodiscard]] constexpr Pitch pitch_for_row(std::size_t row) noexcept {
+    return static_cast<Pitch>(row);
+}
+
+[[nodiscard]] constexpr std::string_view pitch_name(Pitch pitch) noexcept {
+    switch (pitch) {
+        case Pitch::CSharp: return "C#";
+        case Pitch::B: return "B";
+        case Pitch::A: return "A";
+        case Pitch::GSharp: return "G#";
+        case Pitch::FSharp: return "F#";
+    }
+    return "";
+}
 
 enum class MachineType : std::int32_t {
     Roley1Second = 0,
@@ -88,11 +113,13 @@ enum class ActivityState : std::int32_t {
     return (static_cast<std::int32_t>(type) & 1) == 0 ? 1 : 2;
 }
 
-[[nodiscard]] constexpr std::int32_t clip_variation_for_row(
+[[nodiscard]] constexpr std::int32_t wav_suffix_for_pitch_row(
     std::size_t row) noexcept {
-    // WAV groups are loaded variation 1 -> 5 into slots 0..49, while retail
-    // playback starts row 0 from slot base 40 and subtracts 10 per row.
-    return static_cast<std::int32_t>(kVariationRowCount - row);
+    // Embedded WAV BEXT labels prove suffixes 1..5 are pitches:
+    // 1=F#, 2=G#, 3=A, 4=B, 5=C#.
+    return row < kPitchRowCount
+        ? static_cast<std::int32_t>(kPitchRowCount - row)
+        : -1;
 }
 
 [[nodiscard]] constexpr std::int32_t loaded_sound_slot_index(
@@ -126,7 +153,7 @@ enum class ActivityState : std::int32_t {
 struct Composition {
     std::array<
         std::array<std::int32_t, kTimelineStepCount>,
-        kVariationRowCount> cells{};
+        kPitchRowCount> cells{};
 
     Composition() noexcept {
         clear();
