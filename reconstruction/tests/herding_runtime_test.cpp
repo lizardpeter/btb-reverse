@@ -41,6 +41,27 @@ int main() {
     assert((home_entrance_target(EntityType::Rabbit) == Vec2i{815, 91}));
     assert((home_entrance_target(EntityType::Duck) == Vec2i{1040, 264}));
 
+    static_assert(
+        home_entry_target(EntityType::Sheep, 20) &&
+        *home_entry_target(EntityType::Sheep, 20) == Vec2i{503, 142});
+    static_assert(
+        home_entry_target(EntityType::Sheep, 24) &&
+        *home_entry_target(EntityType::Sheep, 24) == Vec2i{656, 110});
+    static_assert(
+        home_entry_target(EntityType::Rabbit, 20) &&
+        *home_entry_target(EntityType::Rabbit, 20) == Vec2i{738, 106});
+    static_assert(
+        home_entry_target(EntityType::Rabbit, 24) &&
+        *home_entry_target(EntityType::Rabbit, 24) == Vec2i{807, 107});
+    static_assert(
+        home_entry_target(EntityType::Duck, 20) &&
+        *home_entry_target(EntityType::Duck, 20) == Vec2i{933, 255});
+    static_assert(
+        home_entry_target(EntityType::Duck, 24) &&
+        *home_entry_target(EntityType::Duck, 24) == Vec2i{1022, 286});
+    static_assert(!home_entry_target(EntityType::Duck, 25));
+    static_assert(!home_entry_target(EntityType::Scruffty, 20));
+
     assert(animals_per_species(0) == 3);
     assert(animals_per_species(1) == 4);
     assert(animals_per_species(2) == 5);
