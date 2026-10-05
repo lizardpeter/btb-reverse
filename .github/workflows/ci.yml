@@ -20,7 +20,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install C++26 compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-14
       - name: Configure reconstruction
+        env:
+          CXX: g++-14
         run: cmake -S reconstruction -B build/reconstruction
       - name: Build reconstruction
         run: cmake --build build/reconstruction --parallel
