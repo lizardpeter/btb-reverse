@@ -1,0 +1,16 @@
+conductor,player_index,filename,bytes,confidence
+Bob,0,musicbob1.txt,480,high
+Bob,1,musicbob2.txt,480,high
+Bob,2,musicbob3.txt,480,high
+Bob,3,musicbob4.txt,480,high
+Bob,4,musicbob5.txt,480,high
+Wendy,0,musicwendy1.txt,480,high
+Wendy,1,musicwendy2.txt,480,high
+Wendy,2,musicwendy3.txt,480,high
+Wendy,3,musicwendy4.txt,480,high
+Wendy,4,musicwendy5.txt,480,high
+FarmerPickles,0,musicfarmer1.txt,480,high
+FarmerPickles,1,musicfarmer2.txt,480,high
+FarmerPickles,2,musicfarmer3.txt,480,high
+FarmerPickles,3,musicfarmer4.txt,480,high
+FarmerPickles,4,musicfarmer5.txt,480,high
