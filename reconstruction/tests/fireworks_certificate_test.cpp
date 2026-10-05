@@ -10,6 +10,9 @@ int main() {
     static_assert(kCertificateBadgeX == 471);
     static_assert(kCertificateBadgeY == 156);
     static_assert(kCertificatePrintHoverSoundId == 143);
+    static_assert(certificate_random_voice_sound_id(0) == 144);
+    static_assert(certificate_random_voice_sound_id(7) == 151);
+    static_assert(certificate_random_voice_sound_id(8) == -1);
 
     static_assert(!certificate_print_hit(296, 419));
     static_assert(certificate_print_hit(297, 419));
