@@ -40,10 +40,10 @@ def main() -> int:
 
     runtime_placement = [
         {
-            "left": r["left"] - 20,
-            "top": r["top"],
-            "right": r["right"] - 20,
-            "bottom": r["bottom"],
+            "left": r["left"] + 10,
+            "top": r["top"] - 20,
+            "right": r["right"] + 10,
+            "bottom": r["bottom"] - 20,
         }
         for r in placement
     ]
