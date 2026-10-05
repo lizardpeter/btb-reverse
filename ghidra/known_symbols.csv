@@ -276,3 +276,4 @@ address,name,confidence,notes
 0x00422760,MaybePlayRandomSpudVoice,high,"Occasionally selects a nonrepeating voice from SS1_SPU_01..04 (722..725) while the Spud Maze scene is active"
 0x00422DD0,DrawSpudMazeScreenTransition,high,"Draws current/adjacent screen backgrounds during horizontal lane transitions, advances slide offsets/counter, and keeps repair-layer rendering aligned until transition completes"
 0x00420360,UnloadSpudMazeActivityResources,high,"Unregisters/releases Spud Maze screen, Pilchard, repair, toolbar and per-screen damaged-section surfaces; clears activity state and stops shared activity music"
+0x00424100,UnloadSpudSkateActivityResources,high,"Closes Spud Skate Bink handles, frees retained movie/path buffers, unregisters/releases score/UI surfaces, clears cursor resources and activity state"
