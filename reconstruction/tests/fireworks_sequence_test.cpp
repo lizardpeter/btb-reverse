@@ -88,6 +88,79 @@ int main() {
     assert(sequence.commit_placement(1, 0, FireworkType::SmallGreen));
     assert(sequence.commit_placement(2, 0, FireworkType::RedCandle));
 
+    // Full state-9 frame ordering: launch row 0 at t=0, row 1 at +1s,
+    // process a completed old slot before allocating the +2s row into the
+    // newly freed first slot.
+    RetailShowRuntime show_runtime;
+
+    ShowFrameInput frame0;
+    frame0.elapsed_ticks = 0;
+    frame0.top_middle_movie_finished = true;
+    auto show0 = show_runtime.update(sequence, frame0);
+    assert(show0.timeline_column == 0);
+    assert(show0.restart_top_middle_movie);
+    assert(show0.launched_events.size() == 1);
+    assert(show0.launched_events[0].pool_slot == 0);
+    assert(show0.launched_events[0].event.row == 0);
+
+    ShowFrameInput frame1;
+    frame1.elapsed_ticks = 100;
+    auto show1 = show_runtime.update(sequence, frame1);
+    assert(show1.launched_events.size() == 1);
+    assert(show1.launched_events[0].pool_slot == 1);
+    assert(show1.launched_events[0].event.row == 1);
+
+    ShowFrameInput frame2;
+    frame2.elapsed_ticks = 200;
+    frame2.active_event_movie_finished[0] = true;
+    auto show2 = show_runtime.update(sequence, frame2);
+    assert(show2.completed_event_slots.size() == 1);
+    assert(show2.completed_event_slots[0] == 0);
+    assert(show2.launched_events.size() == 1);
+    assert(show2.launched_events[0].pool_slot == 0);
+    assert(show2.launched_events[0].event.row == 2);
+
+    // Three completed crowd-loop passes advance phase 0 -> 1 -> 2 -> 3.
+    // The third completion still belongs to the loop branch; crowd-end audio
+    // and movie behavior begins on the following frame.
+    RetailShowRuntime finale_runtime;
+    Sequence empty_show;
+
+    ShowFrameInput crowd_frame;
+    crowd_frame.crowd_movie_finished = true;
+    crowd_frame.elapsed_ticks = 0;
+    auto crowd_out = finale_runtime.update(empty_show, crowd_frame);
+    assert(finale_runtime.crowd_phase() == 1);
+    assert(crowd_out.crowd.restart_movie);
+    assert(!crowd_out.crowd.ensure_end_sound);
+
+    crowd_frame.elapsed_ticks = 1;
+    crowd_out = finale_runtime.update(empty_show, crowd_frame);
+    assert(finale_runtime.crowd_phase() == 2);
+
+    crowd_frame.elapsed_ticks = 2;
+    crowd_out = finale_runtime.update(empty_show, crowd_frame);
+    assert(finale_runtime.crowd_phase() == 3);
+    assert(crowd_out.crowd.movie_index == kCrowdLoopMovieIndex);
+    assert(!crowd_out.crowd.ensure_end_sound);
+
+    // At >=8 seconds, completing crowdend.bik starts/ensures sound 349 first,
+    // then the certificate early-return immediately stops all managed sounds.
+    ShowFrameInput end_frame;
+    end_frame.elapsed_ticks = 800;
+    end_frame.crowd_movie_finished = true;
+    end_frame.crowd_end_sound_playing = false;
+    auto end_out = finale_runtime.update(empty_show, end_frame);
+    assert(finale_runtime.crowd_phase() == 7);
+    assert(end_out.crowd.movie_index == kCrowdEndMovieIndex);
+    assert(end_out.stop_all_before_sound);
+    assert(end_out.sound_id && *end_out.sound_id == 349);
+    assert(end_out.sound_priority == 50);
+    assert(end_out.sound_playback_flag == 1);
+    assert(end_out.stop_all_for_certificate);
+    assert(end_out.enter_certificate);
+    assert(end_out.launched_events.empty());
+
     auto events = sequence.events_for_column(0);
     assert(events.size() == 3);
 
