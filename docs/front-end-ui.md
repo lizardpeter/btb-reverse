@@ -191,7 +191,7 @@ These records provide another direct bridge from anonymous numeric sound IDs and
 Before dispatching the normal 68-state game-flow table, `RunMainGameFlow` checks four modal flags in a fixed order. This means these overlays temporarily intercept the frame without changing the underlying activity state.
 
 1. options flag `0x0051C2BC` -> `0x00429800 UpdateOptionsOverlay`
-2. contextual-help flag `0x0051C2D0` -> `0x00429C90 UpdateContextualHelpOverlay`
+2. generic Yes/No confirmation state `0x0051C2D0` -> `0x00429C90 UpdateYesNoConfirmationOverlay`
 3. whole-game quit flag `0x0051C2C0` -> `0x00429AA0 UpdateQuitConfirmationOverlay`
 4. leave-current-activity flag `0x0051C2C8` -> `0x00429FE0 UpdateLeaveActivityConfirmation`
 
@@ -203,9 +203,29 @@ Before dispatching the normal 68-state game-flow table, `RunMainGameFlow` checks
 
 `UpdateQuitConfirmationOverlay` uses the shared quit background and Yes/No button art loaded from `quitsure.txt`. No simply dismisses the modal. Yes stops active sounds, chooses one of several exit voice lines, waits for that line to finish, and then raises the application-level quit flag.
 
-### Contextual help
+### Generic Yes/No confirmation
 
-`UpdateContextualHelpOverlay` selects behavior from the current help-context index populated by `helpinfo.txt`. The table gives explicit contexts for front-end screens and individual activities.
+`UpdateYesNoConfirmationOverlay` is a reusable modal, not the contextual-help renderer. Callers set:
+
+- `0x0051C2D0` — modal lifecycle/active state
+- `0x0051C310` — underlay/context selector
+- `0x0051C294` — caller-selected modal bitmap
+- `0x0051C2DC` — result flag written by the modal
+
+The modal redraws the underlying screen according to context before compositing the confirmation bitmap. Context values currently observed are:
+
+- 0 -> underlay helper `0x0042DB70`
+- 1 -> `0x0040DB50`
+- 2 -> `0x0041F090`
+- 3 -> `0x00412E50` (Fireworks edit screen)
+
+Fireworks **Delete All** is confirmed evidence for context 3: it loads `data\\ui\\DeleteFireworks.bmp`, activates this modal, and consumes `0x0051C2DC` on return.
+
+The two modal buttons are fixed rectangles around X=220..312 / 334..421 and Y=260..312. A Yes click writes result 1; No writes result 0. Both dismiss the modal and restore normal input/Bink pause state.
+
+### Contextual help data
+
+`helpinfo.txt` is still the game's contextual-help table, but it is consumed elsewhere in the front-end/activity help paths rather than by `0x00429C90`.
 
 ### Leave-current-activity confirmation
 
