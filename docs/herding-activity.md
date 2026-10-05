@@ -61,7 +61,10 @@ The first six source pairs are:
 (100,120)
 ```
 
-Their exact object names are being assigned from the initializer/runtime consumers rather than guessed from coordinates.
+One fixed pair is now exact: pair **#3 = (478,471)** is read directly by
+`InitializeHerdingActivity` into the first entity's floating X/Y fields, so
+it is **Farmer Pickles' retail start position**. The remaining fixed pairs are
+kept unnamed until a direct Herding consumer is proven.
 
 ## First coordinate group transform
 
@@ -76,15 +79,39 @@ into the runtime table beginning at `0x004439F8`, and stores the resulting point
 
 For the shipped data, group 0 contains 12 points.
 
-## Remaining groups
+## Remaining coordinate groups
 
 After each embedded `-1 -1`, the initializer advances to the next group.
 
-- group 1: copied into a runtime coordinate table beginning around `0x00510628`; shipped count 5
-- group 2: copied into another runtime coordinate table around `0x005104E8`; shipped count 6
-- group 3: one final coordinate `(92,324)`, copied into dedicated globals near `0x0050AF70/0x0050AF74`
+- **group 1** -> `0x00510628`, 5 points: exact **Scruffty patrol path**
+- **group 2** -> `0x005104E8`, 6 points: exact **animal exclusion polygon**
+- **group 3** -> `0x0050AF70/0x0050AF74`, one point `(92,324)`: exact
+  **animal free-roam navigation recovery/re-entry target**
 
-The runtime consumers are now being traced to determine whether these are animal routes, enclosure boundaries, spawn paths, or interaction regions. The reconstruction intentionally preserves them as ordered coordinate groups until that evidence is complete.
+Group 2 is the lower-world polygon:
+
+```text
+(30,500)
+(500,500)
+(500,500)
+(1200,500)
+(1200,850)
+(30,850)
+```
+
+For a non-following herd animal, `UpdateHerdingAnimal` tests its current
+integer position against this polygon. If the animal is inside, retail restores
+its previous position and repeatedly steers it toward **(650,486)**, retesting
+the polygon after each movement step until it is outside. This is therefore an
+exclusion/escape region rather than a route.
+
+Group 3 is used by the outer Herding free-roam update. After an animal's normal
+movement step, retail tests the new position against group 0. If it crossed
+outside that navigation polygon, the position is restored and the animal is
+steered toward **(92,324)**. This makes group 3 the recovery/re-entry target.
+
+These semantics are machine-readable in
+`ghidra/herding_coordinate_groups.csv`.
 
 ## Runtime entity table
 
@@ -163,7 +190,9 @@ The runtime array begins at `0x0050B3A8`, with a stride of **0x64 bytes**.
 | `+0x5C` | temporary target X |
 | `+0x60` | temporary target Y |
 
-The source reconstruction intentionally leaves unresolved fields as `unknown_*` instead of inventing semantics.
+The source reconstruction intentionally leaves unresolved record fields as
+`unknown_*` instead of inventing semantics. The previously unknown entity
+type IDs 4..6, however, are now closed as dormant/no-constructor retail IDs.
 
 ## Entity types
 
@@ -183,7 +212,11 @@ Verified type IDs:
 | 16 | right gate |
 | 17 | inactive/free entity slot |
 
-Types 4-6 are referenced by retail collision/state logic but are deliberately not named yet.
+Types **4, 5, and 6 are dormant legacy IDs**. Exhaustive writes to the entity
+type field inside `InitializeHerdingActivity` construct only 0, 1, 2, 3, 7,
+12, 13, 14, 15, 16, and the cleared/inactive value 17. No retail entity is
+constructed with type 4, 5, or 6, even though generic branches can still
+compare against those values.
 
 The entity map is also in `ghidra/herding_entity_types.csv`.
 
@@ -314,13 +347,28 @@ The executable actually stores X as 679/855/1080 and subtracts 40 before steerin
 | 26-98 | retail no-op |
 | 99 | delivered/home terminal animation |
 
-State 1 allocates one of the 10-15 route states using a per-species counter. When the final animal of a species enters this phase, retail plays:
+State 1 is now exact. Each species has its own counter at
+`0x0050AFD0 + species*4`, initialized to zero. Retail executes:
+
+```text
+assigned_state = 10 + species_counter
+species_counter += 1
+```
+
+and writes `assigned_state` directly to the animal's behavior state. If the
+incremented counter equals `difficulty_index + 3`, the animal is the final
+member of that species and retail plays:
 
 - sheep: 596 `PC_PIC_16.wav`
 - rabbit: 597 `PC_PIC_17.wav`
 - duck: 598 `PC_PIC_18.wav`
 
-When the first-stage target is reached, the code adds 10 to the behavior state, entering 20-25.
+With shipped difficulty values 0/1/2, species counts are 3/4/5, so the normal
+allocator reaches only states **10..12 / 10..13 / 10..14**. State 15 has a
+valid handler but is not assigned by normal retail population counts.
+
+When the first-stage target is reached, the code adds 10 to the behavior state,
+entering the corresponding 20..24 state in normal retail play.
 
 States 20-25 use a second species/state waypoint table. Reaching the final target writes behavior state **99** and decrements the global undelivered-animal counter at `0x00510764`.
 
@@ -346,11 +394,16 @@ This routine:
 
 ## Navigation polygons
 
-`herd.txt` group 0 is transformed by `(-64,-100)` and used by the world/player movement path.
+`herd.txt` group 0 is transformed by `(-64,-100)` and is the main
+**navigation polygon**. The outer update uses it for Farmer Pickles movement
+validation, and free-roaming animals also validate their next movement step
+against it.
 
-Group 2 is copied without that transform and is passed to the shared `PointInPolygon` routine by animal AI. It is therefore a movement/collision constraint polygon, although its more specific in-game semantic name is not assigned yet.
+Group 2 is the separate **animal exclusion polygon** described above. Its exact
+escape steering target is **(650,486)**.
 
-Group 3 remains a single dedicated point `(92,324)`; its precise role is still being traced.
+Group 3 is the single **free-roam navigation recovery target (92,324)** used
+after an animal's attempted movement leaves group 0.
 
 
 ## Completion and outer flow
