@@ -34,6 +34,48 @@ struct BadgeSourceRect {
     std::int32_t bottom{};
 };
 
+enum class ProfileScreenTarget : std::int32_t {
+    Profile0 = 0,
+    Profile1 = 1,
+    Profile2 = 2,
+    Profile3 = 3,
+    Profile4 = 4,
+    Help = 5,
+    Delete = 6,
+    Back = 7,
+};
+
+struct ProfileHitRect {
+    std::int32_t left{};
+    std::int32_t top{};
+    std::int32_t right{};
+    std::int32_t bottom{};
+};
+
+inline constexpr std::array<ProfileHitRect, 8> kProfileHitRects{{
+    {42, 140, 142, 223},
+    {90, 261, 230, 386},
+    {232, 156, 352, 247},
+    {321, 261, 454, 372},
+    {471, 195, 597, 291},
+    {17, 425, 61, 467},
+    {293, 421, 345, 472},
+    {576, 424, 618, 467},
+}};
+
+[[nodiscard]] constexpr std::int32_t hit_test_profile_screen(
+    std::int32_t x,
+    std::int32_t y) noexcept {
+    for (std::size_t i = 0; i < kProfileHitRects.size(); ++i) {
+        const auto& r = kProfileHitRects[i];
+        if (x > r.left && x < r.right &&
+            y > r.top && y < r.bottom) {
+            return static_cast<std::int32_t>(i);
+        }
+    }
+    return -1;
+}
+
 [[nodiscard]] constexpr BadgeSourceRect badge_source_rect(
     std::int32_t badge) noexcept {
     const auto left = badge * kBadgeWidth;
