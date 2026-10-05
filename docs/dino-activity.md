@@ -153,7 +153,7 @@ When a piece is selected:
 - drag-position globals are initialized
 - the routine records cursor/piece offsets used during movement
 
-### Mode 1 — dragging / release decision
+### Mode 1 — carrying / release decision
 
 On release, the code compares the current pointer position against the target coordinate of the selected piece using `0x00409C60`, a square-distance/tolerance test.
 
@@ -168,22 +168,16 @@ If the release is close enough:
 
 If the release is not valid:
 
-- the piece enters a different return/failure state
+- the piece enters state 3 (`RejectedDrop`)
 - randomized negative/return feedback is played
+- **interaction mode stays at 1**, so the player is still carrying the selected bone and may immediately try another drop
 - the record remains unplaced
 
-### Mode 2 — finalize snap / return
+### Mode 2 — finalize accepted drop
 
-The record's animation/state value determines the result.
+Only a correct drop changes the interaction mode to 2. On the next pass the selected piece transitions from state 2 to state 4 (`Placed`), the completed-piece counter at `0x004FC440` increments, the cursor/piece-selection globals are reset, and interaction mode returns to idle.
 
-For a successful snap:
-
-- piece state changes to the final placed state
-- the placed/enabled field is updated
-- the completed-piece counter at `0x004FC440` increments
-- the global interaction mode returns to idle
-
-The render/update logic handles the intermediate movement state between the current position and target position.
+There is a defensive state-reset branch in the mode-2 code, but rejected drops do not normally enter mode 2.
 
 ## Completion
 
@@ -305,3 +299,17 @@ The executable's fixed path table establishes the actual index order:
 - 2 = T-Rex
 
 Difficulty is 0 = Easy, 1 = Medium, 2 = Hard, so `species + 3*difficulty` spans the nine path-table records in their exact binary order.
+
+
+## Dino sound groups
+
+The numeric IDs used by the activity can now be mapped back to the WAV catalog in `Data/sound/binklist.txt`.
+
+| Purpose | IDs | WAV entries |
+|---|---:|---|
+| Correct bone drop | 164-169 | `DD_MRE_04.wav`, `DD_MRE_05.wav`, `DD_MRE_06.wav`, `DD_BOB_01.wav` (two IDs), `DD_BOB_03.wav` |
+| Incorrect bone drop | 170-175 | `DD_MRE_07.wav`, `DD_MRE_08.wav`, `DD_MRE_09.wav`, `DD_BOB_04.wav`, `DD_BOB_05.wav`, `DD_BOB_06.wav` |
+| Difficulty intro group | 185-187 | `DD_MRE_13.wav`, `DD_MRE_14.wav`, `DD_MRE_15.wav` |
+| Completion group | 188-190 | `DD_MRE_18.wav`, `DD_MRE_17.wav`, `DD_MRE_16.wav` |
+
+The correct/incorrect drop groups are chosen by `rand() % 6`. The initializer's snap tolerance is also exact: encoded level index 2 uses tolerance 9; every other Dino level uses tolerance 20.
