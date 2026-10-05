@@ -44,4 +44,35 @@ int main() {
     assert(roundtrip[1].name_glyph_codes[1] == 9);
     assert(has_profile(roundtrip[0]));
     assert(!has_profile(roundtrip[4]));
+
+    ProfileInfo badge_only{};
+    badge_only.name_length = 0;
+    badge_only.badge_index = 3;
+    assert(has_profile(badge_only));
+
+    auto mutable_profiles = roundtrip;
+    std::array<btb::progress::Record, kProfileCount> progress{};
+    mutable_profiles[0].name_glyph_codes[0] = 1234;
+    for (auto& value : progress[0].values) {
+        value = 7;
+    }
+
+    delete_profile_in_memory(mutable_profiles, progress, 0);
+    assert(mutable_profiles[0].name_length == 0);
+    assert(mutable_profiles[0].badge_index == -1);
+    // Retail leaves the fixed 9-int backing slot untouched.
+    assert(mutable_profiles[0].name_glyph_codes[0] == 1234);
+
+    assert(progress[0].values[49] == 7);
+    for (std::size_t i = 50; i <= 64; ++i) {
+        assert(progress[0].values[i] == 0);
+    }
+    assert(progress[0].values[65] == 7);
+
+    const auto files = activity_files_for_profile(2);
+    assert(files[0] == "dypdata3.txt");
+    assert(files[1] == "firedata3.txt");
+    assert(files[2] == "musicbob3.txt");
+    assert(files[3] == "musicwendy3.txt");
+    assert(files[4] == "musicfarmer3.txt");
 }
