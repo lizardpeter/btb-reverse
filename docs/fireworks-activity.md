@@ -197,11 +197,11 @@ The crowd presentation is exact:
 - phases **0, 1, 2** draw index **21** = `fireworkcrowdloop.bik`; each
   completed loop increments the phase and rewinds the movie;
 - while that loop branch is active and no managed sound is playing, retail has
-  a 1-in-10 chance per update to play one random ID from **323..347** at
-  priority **50**, playback flag **2**;
+  a 1-in-10 chance per update to play one random ID from **323..347**, the
+  retail **FD_*** Finale-dialogue group, at priority **50**, playback flag **2**;
 - phase **3 and above** uses index **22** = `fireworkcrowdend.bik`;
-- on that branch, if sound **349** is not already playing, retail stops all
-  managed sounds and starts ID **349** at priority **50**, playback flag **1**;
+- on that branch, if **349 = FD_WEN_02.wav** is not already playing, retail
+  stops all managed sounds and starts it at priority **50**, playback flag **1**;
 - when `fireworkcrowdend.bik` reaches its final frame, the phase is written
   directly to terminal value **7**;
 - state **16 / Certificate** is entered only when the timeline column is at
@@ -494,5 +494,25 @@ random voice from IDs **144..151**:
 A separate retail latch means that random certificate line is started only
 once during the certificate state.
 
-The exact layout constants are in
+The random-line selection itself has an exact retail quirk. When the cursor is
+outside the Print button and no managed sound is active, retail calls
+`rand()%8` **twice**:
+
+1. the first roll becomes a candidate ID **144..151**, is compared against the
+   previous candidate, and is stored if different;
+2. a second independent roll becomes the ID **144..151** that is actually
+   played.
+
+The stored non-repeat candidate can therefore differ from the played line, and
+the line that actually plays can repeat despite the apparent non-repeat code.
+
+The certificate Print button is also not a completion/exit button. On click it
+stops managed sounds, draws the pressed Print surface, and calls the shared
+`0x00409730 ExportAndPrintGameImage` path. `DrawFireworksCertificateScreen`
+contains **no write** to the Fireworks internal state or outer game-flow state.
+Therefore state **17** remains dormant; leaving the certificate is handled by
+the shared activity-level back/exit flags checked at the top of
+`UpdateFireworksActivity`.
+
+The exact layout and interaction model are in
 `reconstruction/include/btb/fireworks_certificate.hpp`.
