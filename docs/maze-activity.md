@@ -111,7 +111,7 @@ The remaining values are explicitly documented by the source file:
 
 The dramatic hard-mode spawn interval confirms that difficulty is not merely cosmetic in this activity.
 
-## Clean-room reconstruction
+## Source reconstruction
 
 The typed graph parser is in:
 
