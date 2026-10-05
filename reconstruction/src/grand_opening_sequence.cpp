@@ -70,7 +70,7 @@ bool can_place_event(
     std::size_t step,
     MachineType type) noexcept {
 
-    if (row >= kVariationRowCount || step >= kTimelineStepCount) {
+    if (row >= kPitchRowCount || step >= kTimelineStepCount) {
         return false;
     }
 
@@ -113,7 +113,7 @@ std::int32_t remove_event_at(
     std::size_t row,
     std::size_t step) noexcept {
 
-    if (row >= kVariationRowCount || step >= kTimelineStepCount) {
+    if (row >= kPitchRowCount || step >= kTimelineStepCount) {
         return kEmptyCell;
     }
 
