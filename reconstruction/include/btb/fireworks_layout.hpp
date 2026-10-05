@@ -63,6 +63,22 @@ LayoutData parse_layout(std::istream& placement, std::istream& palette);
     return choice.left_or_single;
 }
 
+// Exact retail show-player mapping. Rows 0 and 2 use the raw type index;
+// row 1 adds 12 unconditionally. That means row-1 types 8..10 resolve to
+// special bank entries 20..22 and type 11 resolves to 23, one past the
+// verified 23-entry bank. The reconstruction preserves this behavior.
+[[nodiscard]] constexpr std::int32_t retail_movie_index_for_row(
+    FireworkType type,
+    std::size_t row) noexcept {
+    const auto id = static_cast<std::int32_t>(type);
+    return row == 1 ? id + 12 : id;
+}
+
+[[nodiscard]] constexpr bool movie_index_is_in_verified_bank(
+    std::int32_t index) noexcept {
+    return index >= 0 && index < 23;
+}
+
 inline constexpr std::int32_t kTopMiddleMovieIndex = 20;
 inline constexpr std::int32_t kCrowdLoopMovieIndex = 21;
 inline constexpr std::int32_t kCrowdEndMovieIndex = 22;
