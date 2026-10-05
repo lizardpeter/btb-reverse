@@ -253,3 +253,7 @@ address,name,confidence,notes
 0x004084B0,PollDirectInputAndUpdateState,high,"Per-frame DirectInput poll/get-device-state path; updates keyboard/mouse/button/cursor globals and activity input state"
 0x00409390,ShutdownDirectSound8,high,"Releases the global DirectSound8 manager object and clears its global pointer"
 0x00406C00,AbortForRemovedRetailCD,high,"Fatal CD-removed path: marks fatal exit, destroys display, shows CD Removed error, posts quit, tears down input/audio/sound manager and exits CRT"
+0x00401000,PlayHelpVoice,high,"Context-help voice helper: optionally stops all managed sounds, then plays supplied sound ID at priority 50 with retail playback flag 2"
+0x004011B0,EnterContextualHelpMode,high,"Draws retained background, activates help mode, plays GENH_WEN_01 (476), maps current outer game-flow state to one of 20 help contexts, with profile/progress special cases"
+0x00401700,UpdateContextualHelpMode,high,"Draws retained help background, runs context-specific and helpinfo.txt hotspot hit tests, plays hover/help voices, and exits help mode from common help/back region"
+0x004282C0,UpdateHelpButtonController,high,"Shared Help-button state machine: hit-test/draw Help control, advances activation phase 0->1->2, switches help cursor and stops current sounds before EnterContextualHelpMode"
