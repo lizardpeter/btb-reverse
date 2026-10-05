@@ -9,6 +9,35 @@
 
 namespace btb::park_designer {
 
+enum class Season : std::int32_t {
+    Summer = 0,
+    Winter = 1,
+};
+
+enum class EditorMode : std::int32_t {
+    Pond = 0,
+    Bandstand = 1,
+    Decorate = 2,
+    View = 3,
+};
+
+enum class EditorControl : std::int32_t {
+    ScrollUp = 5,
+    ScrollDown = 6,
+    Pond = 7,
+    Bandstand = 8,
+    Decorate = 9,
+    View = 10,
+    DeleteOrDeleteAll = 11,
+};
+
+[[nodiscard]] constexpr EditorMode editor_mode_for_control(
+    EditorControl control) noexcept {
+    return static_cast<EditorMode>(
+        static_cast<std::int32_t>(control)
+        - static_cast<std::int32_t>(EditorControl::Pond));
+}
+
 struct Vec2i {
     std::int32_t x{};
     std::int32_t y{};
