@@ -120,3 +120,117 @@ The typed parser lives in:
 It intentionally preserves the two undocumented trailing points rather than guessing their meaning.
 
 The next Golf pass is the runtime state machine: aim/rotation, oscillating power meter, launch velocity, obstacle/hole collision, attempts/scoring, and completion.
+
+
+## Runtime state machine
+
+The core gameplay routine is `0x00415080 UpdateGolfGameplayState`, keyed by global state `0x0050AD9C`.
+
+The high-confidence phases are:
+
+| State | Meaning |
+|---:|---|
+| 0 | aim selection |
+| 1 | oscillating power meter |
+| 2 | calculate shot parameters / begin swing |
+| 99 | Bob swing animation transition |
+| 3 | moving ball / friction / obstacle-target checks |
+| 4 | resolve and snap to a course-object target when close enough |
+| 5 | evaluate shot outcome, play feedback, choose next transition |
+| 6 | reset ball for another attempt and decrement remaining attempts |
+
+### Aim
+
+The aim control is clamped to **0..88**. The shot setup quantizes it to an even integer degree:
+
+`angle = (aim / 2) * 2`
+
+### Power meter
+
+State 1 indexes `power_bar_speed_by_difficulty` and adds:
+
+`power += speed[difficulty] * direction`
+
+The value is clamped to **0..1000**. On hitting either end, the direction changes sign.
+
+### Launch
+
+State 2 derives the moving-ball speed from power:
+
+`speed = power / 3 + 500`
+
+The current aim is converted to the even-degree launch angle.
+
+### Ball movement
+
+During the moving-ball state:
+
+`magnitude = speed / 80`
+
+```text
+x += cos(angle * pi/180) * magnitude
+y -= sin(angle * pi/180) * magnitude
+```
+
+Friction uses the double constant **0.012** embedded at `0x0043B3B0`:
+
+`deceleration = max(10, floor(speed * 0.012))`
+
+Then:
+
+`speed -= deceleration`
+
+If speed drops below 20, retail sets it to zero.
+
+### Course-object targets
+
+For each of the three Flag/Windmill/Clown records, the target center is:
+
+`graphic_position + hot_area_position`
+
+For the shipped file that gives:
+
+- Flag: `(330,178) + (99,160) = (429,338)`
+- Windmill: `(230,15) + (129,164) = (359,179)`
+- Clown: `(429,31) + (103,129) = (532,160)`
+
+The executable uses a **15.0-pixel** target distance threshold. When a stopped ball is close enough, the resolution state snaps it to that target center and records the selected target index.
+
+## Parsed-but-unused attempt table
+
+The file explicitly contains difficulty attempt counts:
+
+`5 4 3`
+
+and `LoadGolfData` parses them into a three-element global table.
+
+However, a full code-reference sweep shows no runtime read of that table in this executable. `InitializeGolfActivity` instead assigns the remaining-attempt counter:
+
+`0x0050ABB0 = 5`
+
+unconditionally.
+
+The reset state decrements that fixed counter after a shot. Therefore the shipped comments/data appear to preserve an intended difficulty-dependent attempt feature that is inactive in this retail executable.
+
+By contrast, the power-speed table `2 4 6` is actively read by state 1 using the current difficulty index.
+
+## Clean-room runtime coverage
+
+The Golf reconstruction now tests:
+
+- retail data-file parsing
+- Bob frame-size override
+- ball-offset correction and derived start position
+- aim clamp/quantization
+- difficulty power-meter speed
+- power-meter bounce at 0/1000
+- launch speed equation
+- angle/magnitude vector conversion
+- per-tick ball movement
+- 1.2% / minimum-10 friction
+- stop threshold
+- target-center calculation
+- 15-pixel target detection
+- retail fixed initial attempt count
+
+The next Golf work is detailed collision/outcome/scoring behavior around states 4-6 and identifying the two undocumented trailing data points.
