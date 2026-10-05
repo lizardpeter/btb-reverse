@@ -170,6 +170,26 @@ struct SaveData {
     }
 };
 
+enum class PondClearSelector : std::int32_t {
+    AllPrimary = 0,
+    ObjectCode7 = 1,
+    Non7CodeBelow100 = 2,
+};
+
+enum class BandstandClearSelector : std::int32_t {
+    Categories0To2 = 0,
+    Category2Only = 1,
+};
+
+// Exact persistent portions of the retail cleanup helpers.
+void clear_pond_primary_objects(
+    SaveData& data,
+    PondClearSelector selector) noexcept;
+
+void clear_bandstand_objects(
+    SaveData& data,
+    BandstandClearSelector selector) noexcept;
+
 // Exact persistent portion of the confirmed Delete All path.
 void delete_all_objects(SaveData& data) noexcept;
 
