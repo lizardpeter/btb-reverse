@@ -12,6 +12,21 @@ namespace btb::fireworks {
 inline constexpr std::size_t kTimelineRows = 3;
 inline constexpr std::size_t kTimelineColumns = 6;
 inline constexpr std::size_t kTimelineSlots = kTimelineRows * kTimelineColumns;
+inline constexpr std::int32_t kTimelineColumnPeriodMs = 400;
+
+[[nodiscard]] constexpr std::int32_t retail_row_launch_offset_ms(
+    std::size_t row) noexcept {
+    return row == 0 ? 0 : row == 1 ? 100 : row == 2 ? 200 : -1;
+}
+
+[[nodiscard]] constexpr std::int32_t retail_scheduled_launch_ms(
+    std::size_t row,
+    std::size_t column) noexcept {
+    const auto offset = retail_row_launch_offset_ms(row);
+    return offset < 0 || column >= kTimelineColumns
+        ? -1
+        : static_cast<std::int32_t>(column) * kTimelineColumnPeriodMs + offset;
+}
 
 enum class InternalState : std::int32_t {
     Editor = 0,
@@ -41,6 +56,7 @@ struct PlaybackEvent {
     std::int32_t movie_index{};
     std::int32_t x{};
     std::int32_t y{};
+    std::int32_t scheduled_launch_ms{};
 
     [[nodiscard]] bool movie_index_in_verified_bank() const noexcept {
         return movie_index_is_in_verified_bank(movie_index);
