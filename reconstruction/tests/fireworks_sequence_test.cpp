@@ -18,6 +18,66 @@ int main() {
     static_assert(kActiveEventCapacity == 40);
     static_assert(sizeof(ActiveEventRecord) == 16);
 
+    static_assert(static_cast<int>(InternalState::PreShowMovieSetup) == 14);
+    static_assert(static_cast<int>(InternalState::PreShowMoviePlayback) == 15);
+    static_assert(should_open_pre_show_movie(true));
+    static_assert(!should_open_pre_show_movie(false));
+
+    constexpr auto pre_show_done = pre_show_movie_completion_action();
+    static_assert(pre_show_done.next_state == InternalState::ShowSetup);
+    static_assert(pre_show_done.enable_input);
+    static_assert(pre_show_done.stop_all_managed_sounds);
+    static_assert(pre_show_done.sound_id == 142);
+    static_assert(pre_show_done.sound_priority == 90);
+    static_assert(pre_show_done.playback_flag == 1);
+    static_assert(pre_show_done.mark_sound_slot_persistent);
+
+    static_assert(kTopMiddleMovieIndex == 20);
+    static_assert(kCrowdLoopMovieIndex == 21);
+    static_assert(kCrowdEndMovieIndex == 22);
+    static_assert(kCrowdLoopCompletions == 3);
+    static_assert(kCrowdTerminalPhase == 7);
+    static_assert(kCertificateEarliestColumn == 2);
+
+    constexpr auto crowd0 = advance_crowd_phase(0, false, 0);
+    static_assert(crowd0.movie_index == kCrowdLoopMovieIndex);
+    static_assert(crowd0.phase_after == 0);
+    static_assert(crowd0.random_sound_window);
+    static_assert(!crowd0.ensure_end_sound);
+    static_assert(!crowd0.enter_certificate);
+
+    constexpr auto crowd0_done = advance_crowd_phase(0, true, 0);
+    static_assert(crowd0_done.phase_after == 1);
+    static_assert(crowd0_done.restart_movie);
+
+    constexpr auto crowd2_done = advance_crowd_phase(2, true, 8);
+    static_assert(crowd2_done.phase_after == 3);
+    static_assert(crowd2_done.movie_index == kCrowdLoopMovieIndex);
+    static_assert(crowd2_done.random_sound_window);
+    static_assert(!crowd2_done.ensure_end_sound);
+    static_assert(!crowd2_done.enter_certificate);
+
+    constexpr auto crowd3 = advance_crowd_phase(3, false, 1);
+    static_assert(crowd3.movie_index == kCrowdEndMovieIndex);
+    static_assert(crowd3.ensure_end_sound);
+    static_assert(!crowd3.restart_movie);
+    static_assert(!crowd3.enter_certificate);
+
+    constexpr auto crowd_end_too_early = advance_crowd_phase(3, true, 1);
+    static_assert(crowd_end_too_early.phase_after == 7);
+    static_assert(!crowd_end_too_early.enter_certificate);
+
+    constexpr auto crowd_end_ready = advance_crowd_phase(3, true, 2);
+    static_assert(crowd_end_ready.phase_after == 7);
+    static_assert(crowd_end_ready.enter_certificate);
+
+    constexpr auto random_crowd =
+        random_crowd_sound_id(true, false, 0, 24);
+    static_assert(random_crowd && *random_crowd == 347);
+    static_assert(!random_crowd_sound_id(true, true, 0, 0));
+    static_assert(!random_crowd_sound_id(true, false, 1, 0));
+    static_assert(!random_crowd_sound_id(false, false, 0, 0));
+
     Sequence sequence;
     assert(sequence.occupied_count() == 0);
 
