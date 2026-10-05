@@ -1,0 +1,200 @@
+# Park Designer / DYP activity
+
+Park Designer is the `Data/SubGameDYP` module entered through:
+
+- `0x0040B7E0 InitializeParkDesignerActivity`
+- `0x00410D10 UpdateParkDesignerActivity`
+
+It is a data-driven object-placement editor with summer/winter asset banks, three editor modes, deletion/printing controls, per-object collision polygons, and a player-specific binary save.
+
+## Source assets
+
+The activity contains large summer and winter banks for:
+
+- grass/background pieces
+- flowers
+- benches
+- trees
+- bushes
+- bases / pillars / roofs
+- pond shapes
+- fountains
+- reeds / rocks / lilies
+- decoration objects
+- bandstand objects
+- pond objects
+
+UI assets include:
+
+- Summer / Winter toggles
+- Delete / Delete All
+- Print
+- View
+- Decorate / Band / Pond mode controls
+- three mode trays
+- up/down controls
+- delete cursor
+
+The `SNOW/` directory supplies the winter versions of the world/object art.
+
+## Bound-area loader
+
+### `0x0040AEA0 LoadParkDesignerData`
+
+The routine first opens:
+
+`data\\subgamedyp\\boundareas.txt`
+
+using the shared CD-fallback file loader.
+
+Retail has a fixed in-memory polygon corpus:
+
+- **3 modes**
+- **4 categories per mode**
+- **5 variants per category**
+- **60 polygons total**
+- **30 coordinate slots per polygon**
+
+Each polygon is a stream of integer X/Y pairs terminated by `-1 -1`.
+
+The backing count table begins at `0x00508B04`. Counts include the sentinel because retail stores the sentinel pair before testing X for `-1`. Collision code therefore passes `count - 1` to `PointInPolygon`.
+
+The coordinate backing store begins at `0x005041B8`.
+
+### Exact indexing formula
+
+The collision lookup around `0x0040D3B7` proves the dimensions:
+
+```text
+mode = record_index < 100 ? 0
+     : record_index < 300 ? 1
+                          : 2
+
+polygon_index =
+    mode * 20
+  + bound_category * 5
+  + bound_variant
+```
+
+The source file has 12 visual paragraph groups of five lines each, exactly matching:
+
+`3 modes × 4 categories × 5 variants`.
+
+This is reproduced in `parse_bound_areas`.
+
+## Persistent object table
+
+The designer owns exactly **400 object records**, beginning at `0x004FCAB0`.
+
+Each record is **0x4C bytes**. The reconstructed byte-exact structure is `RetailObjectRecord32`.
+
+High-confidence fields:
+
+| Offset | Meaning |
+|---:|---|
+| `+0x00` | left/world X |
+| `+0x04` | top/world Y |
+| `+0x08` | right bound |
+| `+0x0C` | bottom bound |
+| `+0x10` | 32-bit DirectDraw surface pointer |
+| `+0x1C` | object code/type |
+| `+0x20` | object subcode |
+| `+0x24` | enabled/active flag |
+| `+0x28` | sprite width |
+| `+0x2C` | sprite height |
+| `+0x34` | record index |
+| `+0x38` | bound-area category 0..3 |
+| `+0x3C` | bound-area variant 0..4 |
+
+Fields whose exact semantic role is not yet closed remain named `unknown_*` in source.
+
+### Record-index families
+
+The polygon lookup partitions the 400 records into three families:
+
+- records 0..99 -> bound mode 0
+- records 100..299 -> bound mode 1
+- records 300..399 -> bound mode 2
+
+The editor also contains explicit compaction/copy logic for the 0..99 and 300..399 ranges, confirming that these ranges are intentional storage classes rather than incidental object counts.
+
+## Geometry refresh
+
+### `0x0040DBE0 RefreshParkDesignerObjectGeometry`
+
+Given an object record index, this helper:
+
+1. resolves the record's object code to a DirectDraw surface bank;
+2. queries the surface description;
+3. derives sprite width/height;
+4. updates `right = left + width`;
+5. updates `bottom = top + height`;
+6. sets the active flag;
+7. stores width/height and the record's own index;
+8. records an object-code-dependent runtime value.
+
+This is used immediately after placement and when reconstructing loaded objects.
+
+## Save format
+
+The player-specific save filenames are:
+
+- `dypdata1.txt`
+- `dypdata2.txt`
+- `dypdata3.txt`
+- `dypdata4.txt`
+- `dypdata5.txt`
+
+Despite the extension, they are **binary**.
+
+### `0x0040AC90 SaveParkDesignerData`
+
+The routine opens the selected file in binary write mode and writes:
+
+1. all **400 × 0x4C-byte object records**
+2. exactly **28 additional int32 state values**
+
+### Load half of `0x0040AEA0`
+
+After loading `boundareas.txt`, the same routine opens the selected `dypdataN.txt` with `rb` and reads the exact same sequence.
+
+Therefore a complete retail save is:
+
+```text
+400 * 76 + 28 * 4 = 30,512 bytes
+```
+
+The source reconstruction provides lossless `read_save` / `write_save` routines and intentionally preserves every unresolved field.
+
+## Collision / placement validation
+
+The activity uses the shared `PointInPolygon` routine at `0x00428520`.
+
+The object-collision path uses:
+
+- object record index -> one of the 3 bound modes
+- record `+0x38` -> category
+- record `+0x3C` -> variant
+- the corresponding polygon from `boundareas.txt`
+
+The mouse/object-local point is tested against the polygon after subtracting the object's top-left world position.
+
+## Source reconstruction
+
+Current buildable source:
+
+- `reconstruction/include/btb/park_designer_data.hpp`
+- `reconstruction/src/park_designer_data.cpp`
+- `reconstruction/tests/park_designer_data_test.cpp`
+
+It currently covers:
+
+- exact 3×4×5 bound-area layout
+- sentinel/count behavior
+- exact 0x4C object-record layout
+- 400-record storage
+- exact 28-value save tail
+- binary save read/write
+- record-index -> collision polygon mapping
+
+Next work is assigning the three record families and four polygon categories their final editor semantics, then reconstructing place/delete/mode/summer-winter behavior.
