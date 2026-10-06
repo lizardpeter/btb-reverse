@@ -171,4 +171,118 @@ int main() {
     static_assert(kStopGroupPlan.iterate_all_buffers);
     static_assert(kStopGroupPlan.or_hresult_results);
     static_assert(kRewindGroupPlan.requires_buffer_array);
+
+    static_assert(kFourCcRiff == 0x46464952U);
+    static_assert(kFourCcWave == 0x45564157U);
+    static_assert(kFourCcFmt == 0x20746D66U);
+    static_assert(kFourCcData == 0x61746164U);
+    static_assert(kFourCcFact == 0x74636166U);
+    static_assert(kMmioReadOpenFlags == 0x00010000U);
+    static_assert(kMmioWriteOpenFlags == 0x00011002U);
+
+    constexpr auto pcm_fmt = wave_format_read_plan(
+        kFourCcRiff, kFourCcWave, 16, 1);
+    static_assert(pcm_fmt.valid_riff);
+    static_assert(pcm_fmt.valid_wave);
+    static_assert(pcm_fmt.valid_fmt_chunk);
+    static_assert(pcm_fmt.pcm);
+    static_assert(pcm_fmt.allocation_bytes == 18);
+    static_assert(!pcm_fmt.read_extra_size_word);
+    static_assert(pcm_fmt.extra_size == 0);
+
+    constexpr auto compressed_fmt = wave_format_read_plan(
+        kFourCcRiff, kFourCcWave, 18, 0x55, 12);
+    static_assert(!compressed_fmt.pcm);
+    static_assert(compressed_fmt.read_extra_size_word);
+    static_assert(compressed_fmt.extra_size == 12);
+    static_assert(compressed_fmt.allocation_bytes == 30);
+
+    constexpr auto bad_riff = wave_format_read_plan(
+        0, kFourCcWave, 16, 1);
+    static_assert(!bad_riff.valid_riff);
+    static_assert(bad_riff.allocation_bytes == 0);
+
+    constexpr auto short_fmt = wave_format_read_plan(
+        kFourCcRiff, kFourCcWave, 15, 1);
+    static_assert(!short_fmt.valid_fmt_chunk);
+    static_assert(short_fmt.allocation_bytes == 0);
+
+    constexpr auto open_read =
+        wave_open_plan(WaveOpenMode::Read);
+    static_assert(open_read.require_filename);
+    static_assert(open_read.mmio_open_flags == 0x10000);
+    static_assert(open_read.free_existing_owned_format);
+    static_assert(open_read.read_riff_format);
+    static_assert(!open_read.write_riff_format);
+    static_assert(open_read.reset_after_open);
+    static_assert(open_read.cache_data_chunk_size_after_reset);
+
+    constexpr auto open_write =
+        wave_open_plan(WaveOpenMode::Write);
+    static_assert(open_write.mmio_open_flags == 0x11002);
+    static_assert(!open_write.free_existing_owned_format);
+    static_assert(!open_write.read_riff_format);
+    static_assert(open_write.write_riff_format);
+    static_assert(open_write.reset_after_open);
+    static_assert(!open_write.cache_data_chunk_size_after_reset);
+
+    constexpr auto memory_reset =
+        wave_reset_plan(true, WaveOpenMode::Read);
+    static_assert(memory_reset.reset_memory_cursor);
+    static_assert(!memory_reset.require_mmio_handle);
+
+    constexpr auto file_read_reset =
+        wave_reset_plan(false, WaveOpenMode::Read);
+    static_assert(file_read_reset.require_mmio_handle);
+    static_assert(file_read_reset.seek_to_riff_data_area);
+    static_assert(file_read_reset.descend_data_chunk);
+    static_assert(!file_read_reset.create_data_chunk);
+
+    constexpr auto file_write_reset =
+        wave_reset_plan(false, WaveOpenMode::Write);
+    static_assert(file_write_reset.require_mmio_handle);
+    static_assert(file_write_reset.create_data_chunk);
+    static_assert(file_write_reset.get_mmio_info);
+    static_assert(file_write_reset.zero_remaining_chunk_bytes);
+
+    constexpr auto memory_read =
+        memory_wave_read_step(1000, 900, 200, true);
+    static_assert(memory_read.initialized);
+    static_assert(memory_read.bytes_to_copy == 100);
+    static_assert(memory_read.next_cursor_offset == 1000);
+
+    constexpr auto memory_read2 =
+        memory_wave_read_step(1000, 100, 200, true);
+    static_assert(memory_read2.bytes_to_copy == 200);
+    static_assert(memory_read2.next_cursor_offset == 300);
+
+    constexpr auto memory_bad =
+        memory_wave_read_step(1000, 100, 200, false);
+    static_assert(!memory_bad.initialized);
+
+    static_assert(kFileWaveReadPlan.require_mmio_handle);
+    static_assert(kFileWaveReadPlan.require_destination);
+    static_assert(kFileWaveReadPlan.require_bytes_read_output);
+    static_assert(kFileWaveReadPlan.zero_bytes_read_first);
+    static_assert(kFileWaveReadPlan.get_mmio_info);
+    static_assert(kFileWaveReadPlan.clamp_to_remaining_data_chunk);
+    static_assert(kFileWaveReadPlan.advance_mmio_when_buffer_exhausted);
+    static_assert(kFileWaveReadPlan.set_mmio_info_after_copy);
+
+    constexpr auto close_read =
+        wave_close_plan(false, WaveOpenMode::Read, true);
+    static_assert(close_read.close_mmio);
+    static_assert(!close_read.ascend_data_chunk_before_close);
+    static_assert(!close_read.patch_riff_size_for_write);
+    static_assert(close_read.clear_mmio_handle);
+
+    constexpr auto close_write =
+        wave_close_plan(false, WaveOpenMode::Write, true);
+    static_assert(close_write.close_mmio);
+    static_assert(close_write.ascend_data_chunk_before_close);
+    static_assert(close_write.patch_riff_size_for_write);
+
+    constexpr auto close_memory =
+        wave_close_plan(true, WaveOpenMode::Read, true);
+    static_assert(!close_memory.close_mmio);
 }
