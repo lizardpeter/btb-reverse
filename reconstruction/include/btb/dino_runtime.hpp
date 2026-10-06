@@ -54,6 +54,31 @@ struct PieceRuntime {
     }
 };
 
+inline constexpr std::array<Vec2i,8> kSpecialRenderOffsets{{
+    {0,-40},
+    {10,-10},
+    {20,0},
+    {10,10},
+    {0,40},
+    {-10,10},
+    {-20,0},
+    {-10,-10},
+}};
+
+inline constexpr std::int32_t kInitialSpecialRenderOffsetIndex = 4;
+
+[[nodiscard]] constexpr std::optional<Vec2i> special_render_position(
+    Vec2i anchor,
+    std::int32_t table_index) noexcept {
+    if (table_index < 0 ||
+        table_index >= static_cast<std::int32_t>(kSpecialRenderOffsets.size())) {
+        return std::nullopt;
+    }
+    const auto offset =
+        kSpecialRenderOffsets[static_cast<std::size_t>(table_index)];
+    return Vec2i{anchor.x + offset.x, anchor.y + offset.y};
+}
+
 class Runtime {
 public:
     explicit Runtime(const LevelData& level);
