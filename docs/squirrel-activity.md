@@ -62,11 +62,74 @@ header:
 
 delay: 7
 discarded: 105 79
-tuning tuple: 1 2 2 3
-alignment offset: 70
+loaded-but-unused scalars: 1 2 2 3
+initial horizontal alignment offset: 70
 ```
 
-The header and 8x7 table are dynamically indexed by the animation/placement runtime. They are preserved with neutral names in reconstruction because their exact authored column labels are not present in the binary.
+The header/table semantics are now closed from the only live consumers in
+`0x00425F40 UpdateAndDrawSquirrelRunAssembly`.
+
+The seven header values are the shared **horizontal movement deltas** for seven
+animation/motion substeps:
+
+```text
+substep: 0  1  2  3  4   5   6
+dx:      0  3 10 27  8  -4  -4
+```
+
+Every full seven-substep movement therefore advances **+40 pixels in X**.
+
+The 8x7 table contains **vertical movement profiles** for those same substeps:
+
+| Profile | Seven Y deltas | Net Y | Live? |
+|---:|---|---:|---|
+| 0 | `0 0 1 -1 0 0 0` | 0 | yes |
+| 1 | `0 0 0 0 0 0 0` | 0 | yes |
+| 2 | `0 0 1 -17 0 0 0` | -16 | yes |
+| 3 | `0 0 1 -33 0 0 0` | -32 | yes |
+| 4 | `0 0 -1 17 0 0 0` | +16 | yes |
+| 5 | `0 0 19 13 0 0 0` | +32 | yes |
+| 6 | `0 0 0 -32 0 0 0` | -32 | **loaded but not selected** |
+| 7 | `0 0 0 32 0 0 0` | +32 | **loaded but not selected** |
+
+Retail splits the seven steps into two movement phases: **0..2** and **3..6**.
+
+`0x004259D0 SelectSquirrelPlacementMotionProfile` first selects compact motion
+keys 0..13. The renderer maps those keys to vertical profiles with the exact
+stack table:
+
+```text
+key:      0 1 2 3 4 5 6 7 8 9 10 11 12 13
+profile:  0 0 3 3 5 5 4 4 2 2  0  0  1  1
+```
+
+Consequently profiles 6 and 7 are genuine authored/loaded legacy rows but have
+no live selector key in this executable build.
+
+The C++ model now names these as `horizontal_motion_deltas`,
+`vertical_motion_deltas`, `VerticalMotionProfile`, and
+`vertical_profile_for_motion_key`. The machine-readable evidence is in
+`ghidra/squirrel_motion_profiles.csv`.
+
+### Remaining loaded scalars
+
+The two values **105 79** are scanned into a stack temporary and never stored.
+
+The next four values **1 2 2 3** are stored into globals
+`0x51505C`, `0x515060`, `0x515064`, and `0x514F04`.
+An exhaustive executable reference sweep finds only the loader writes: there is
+**no later read of any of these four globals** in this build. They are therefore
+loaded-but-unused legacy scalars, not live runtime tuning.
+
+The final value **70** is live. It is stored at `0x515084` and read exactly
+once by `InitializeSquirrelActivity`, where retail computes the initial run X
+position as:
+
+```text
+initial_run_x = fixed_x_base - 70
+```
+
+The reconstruction names it `initial_horizontal_alignment_offset`.
 
 ### Unread legacy tail
 
@@ -418,6 +481,10 @@ Tests:
 Current source coverage includes:
 
 - exact retail sqdata read boundary;
+- exact seven-step horizontal motion deltas and eight vertical motion profiles;
+- exact 14-key -> live vertical-profile mapping;
+- proof that loaded profiles 6/7 and the four stored legacy scalars are unused;
+- exact initial horizontal alignment use of the final loaded value 70;
 - preservation of discarded and unread legacy values;
 - exact 0-8 placement-state IDs;
 - exact +/-2 / <=3-snap movement rule;
