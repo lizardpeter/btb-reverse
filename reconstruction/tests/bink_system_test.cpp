@@ -12,6 +12,14 @@ int main() {
     static_assert(kSharedPlaybackSurface.height == 480);
     static_assert(kSharedPlaybackSurface.surface_caps == 0x40);
 
+    static_assert(kInitializePlan.create_offscreen_surface);
+    static_assert(kInitializePlan.bind_bink_sound_system);
+    static_assert(kInitializePlan.use_bink_open_direct_sound);
+    static_assert(kInitializePlan.bink_sound_system_user_value == 0);
+    static_assert(!kInitializePlan.paused_after_initialize);
+    static_assert(kRestartPlan.target_frame == 1);
+    static_assert(kRestartPlan.flags == 0);
+
     const auto fallback = cd_fallback_path(
         "Data\\Movies\\intro.bik", 4);
     assert(fallback);
@@ -139,6 +147,20 @@ int main() {
     static_assert(looping_end.advance_frame);
     static_assert(looping_end.blit_to_backbuffer);
 
+    constexpr auto no_advance_ok =
+        no_advance_frame_step({false});
+    static_assert(no_advance_ok.decode_frame);
+    static_assert(no_advance_ok.lock_surface);
+    static_assert(no_advance_ok.copy_to_surface);
+    static_assert(no_advance_ok.unlock_surface);
+    static_assert(!no_advance_ok.failed);
+
+    constexpr auto no_advance_fail =
+        no_advance_frame_step({true});
+    static_assert(no_advance_fail.failed);
+    static_assert(!no_advance_fail.copy_to_surface);
+    static_assert(!no_advance_fail.unlock_surface);
+
     // The global movie loop has a separate contract: it closes on end or
     // enabled skip input, otherwise it always advances/waits and blits at 0,0.
     constexpr auto global_end = global_frame_step({
@@ -194,6 +216,27 @@ int main() {
     static_assert(bink_volume_from_game_volume(5) == 1550);
     static_assert(bink_volume_from_game_volume(10) == 3100);
     static_assert(bink_volume_from_game_volume(100) == 31000);
+
+    GlobalPlaybackState lifecycle;
+    auto opened = on_global_open_success(lifecycle, 10);
+    assert(lifecycle.has_movie);
+    assert(!lifecycle.paused);
+    assert(!lifecycle.input_processing_enabled);
+    assert(opened.apply_volume);
+    assert(opened.volume == 3100);
+    assert(opened.disable_input_processing);
+
+    auto closed = close_global_movie(lifecycle);
+    assert(closed.call_bink_close);
+    assert(closed.clear_global_handle);
+    assert(closed.enable_input_processing);
+    assert(!lifecycle.has_movie);
+    assert(lifecycle.input_processing_enabled);
+
+    closed = close_global_movie(lifecycle);
+    assert(!closed.call_bink_close);
+    assert(closed.clear_global_handle);
+    assert(closed.enable_input_processing);
 
     GlobalPlaybackState playback{true,false,true};
     auto pause = pause_global_movie(playback);
