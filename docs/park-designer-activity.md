@@ -172,7 +172,49 @@ Therefore a complete retail save is:
 400 * 76 + 28 * 4 = 30,512 bytes
 ```
 
-The source reconstruction provides lossless `read_save` / `write_save` routines and intentionally preserves every unresolved field.
+The source reconstruction provides lossless `read_save` / `write_save`
+routines. The 28-value tail is now semantically mapped rather than preserved
+as anonymous integers.
+
+### Exact 28-value trailing state map
+
+| Index | Global | Reconstructed meaning |
+|---:|---|---|
+| 0 | `0x00507A28` | selected primary Pond record |
+| 1 | `0x00507E38` | **Pond shape/segmented-render variant** |
+| 2 | `0x005079FC` | special linked Pond record |
+| 3 | `0x00507E3C` | **active Bandstand-family record index** |
+| 4 | `0x00507A40` | linked Pond record count |
+| 5 | `0x00507C54` | generic selected-object record |
+| 6..9 | `0x00507A2C..0x00507A38` | linked Pond records 0..3 |
+| 10 | `0x00507B5C` | active `EditorMode`: Pond/Bandstand/Decorate/View = 0/1/2/3 |
+| 11 | `0x00507A3C` | linked Pond record 4 |
+| 12..15 | `0x00507AE4..0x00507AF0` | current page slots for Pond/Bandstand/Decorate/View |
+| 16 | `0x00507AF4` | fifth persisted page slot; no runtime mode value 4 |
+| 17..20 | `0x00508BF4..0x00508C00` | corresponding maximum/last-page slots for Pond/Bandstand/Decorate/View |
+| 21 | `0x00508C04` | fifth persisted max-page slot; no runtime mode value 4 |
+| 22 | `0x00509340` | next Pond-primary record |
+| 23 | `0x00441DC8` | next Decorate record, initialized to 300 |
+| 24 | `0x00441DCC` | next Bandstand record, initialized to 200 |
+| 25 | `0x00441DD0` | segmented-Pond drag anchor mouse X |
+| 26 | `0x00441DD4` | segmented-Pond drag anchor mouse Y |
+| 27 | `0x00509344` | season |
+
+The two page arrays are real contiguous five-entry arrays. Modes 0..3 are
+reachable. The fifth entries are retained/persisted legacy slots.
+
+`0x00507E38` is copied from the selected Pond palette variant when a segmented
+Pond is committed. `DrawParkDesignerSegmentedPondSurface` then uses it to
+index the authored strip-count, strip-size, source-surface and hit-geometry
+tables.
+
+`0x00507E3C` is initialized to -1. The Bandstand placement branch either
+reuses the selected 200-series record or allocates the next record beginning at
+200, stores that record index here, and collision/ordering code treats it as the
+currently active Bandstand record until it is cleared back to -1.
+
+The exact mapping is also retained in
+`ghidra/park_designer_trailing_state.csv`.
 
 ## Collision / placement validation
 
@@ -201,11 +243,13 @@ It currently covers:
 - sentinel/count behavior
 - exact 0x4C object-record layout
 - 400-record storage
-- exact 28-value save tail
+- exact **semantically mapped** 28-value save tail
 - binary save read/write
+- Pond/Bandstand/Decorate/View page and max-page arrays
+- segmented-Pond variant and drag-anchor persistence
+- active Bandstand-record persistence
 - record-index -> collision polygon mapping
-
-Next work is assigning the three record families and four polygon categories their final editor semantics, then reconstructing place/delete/mode/summer-winter behavior.
+- place/delete/mode/summer-winter behavior in the runtime reconstruction
 
 
 ## Seasons
@@ -227,7 +271,8 @@ The loaded save value at `0x00509344` is applied during activity initialization,
 
 ## Editor modes
 
-Global `0x00507B5C` is the editor mode.
+Global `0x00507B5C` is the persisted active editor mode and is also save-tail
+index 10.
 
 The UI dispatch checks control indices 7 through 10 and stores:
 
