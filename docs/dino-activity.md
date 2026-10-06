@@ -47,7 +47,7 @@ The exact tail length is not completely fixed. Eight levels contain two extra co
 - first `N` coordinate pairs — assembled-skeleton **target positions**, indexed by piece ID.
 - second `N` coordinate pairs — on-screen **starting/tray positions**, indexed by display slot.
 - coordinate pair `2N` — a special render anchor copied into globals `0x004FC400/0x004FC404` (and float mirrors). It is `(80, 300)` in eight levels but **`(456, 248)` in Raptor Easy**. The normal drag/drop path does not use this anchor.
-- any later coordinate pairs before the sentinel — additional level-specific positions. The common trailing values `(80, 300)` and `(100, 120)` occur after the Raptor Easy special anchor; their exact consumers are still being traced.
+- any later coordinate pairs before the sentinel — **legacy/unused tail data in this executable**. Exhaustive Dino-module references show no reader after the first extra pair. Thus `(100,120)` is unused in all nine shipped levels; in Raptor Easy, the trailing `(80,300)` is also unused because `(456,248)` is the first extra pair and therefore the actual special-render anchor.
 - `-1 -1` — coordinate-list terminator.
 - final `N` integers — permutation assigning a real `piece<ID>.bmp` to each display/start slot.
 
@@ -253,7 +253,7 @@ The buildable C++ reconstruction under `reconstruction/` now covers:
 
 Those tests are passing in GitHub Actions.
 
-The remaining Dino-specific work is mostly presentation/persistence integration: shared character animations, progress-table writes, activity-completion transition details, the print-button presentation layer, and a DirectDraw-facing renderer adapter.
+The remaining Dino-specific work is mostly presentation/persistence integration: shared character animations, progress-table writes, activity-completion transition details, the print-button presentation layer, and a DirectDraw-facing renderer adapter. The variable coordinate tail is no longer an unresolved item: only its first pair is consumed by Dino, and all later pairs are legacy/unused data in this build.
 
 ## Shared print button
 
@@ -277,6 +277,15 @@ All nine original files were checked against the parser model:
 | Triceratops Hard | 13 | 28 | `(80,300), (100,120)` |
 
 This is why the parser intentionally treats everything after the two N-sized coordinate blocks and before `-1 -1` as a variable-length extra-position tail.
+
+The executable-side consumption is now exact:
+
+- pair index `2N` is copied by `InitializeDinoActivity` into the special-render anchor globals `0x004FC400/0x004FC404` and their mirrors;
+- no later extra-pair address is referenced by Dino gameplay/render code;
+- the dormant `render_mode == 2` renderer applies the fixed 8-entry offset table around that first extra pair, with retail table index initialized to **4**.
+
+The source model therefore exposes `special_render_anchor()` separately from
+`legacy_unused_tail()`, while still preserving every parsed pair losslessly.
 
 
 ## Dino feedback sound groups
