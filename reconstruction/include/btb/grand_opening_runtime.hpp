@@ -552,6 +552,47 @@ enum class ToolbarVisual {
     Pressed,
 };
 
+enum class ToolbarSurface {
+    PlayHover,       // mpplayred.bmp
+    PlayPressed,     // mpplaydep.bmp
+    StopHover,       // mpstopred.bmp
+    StopPressed,     // mpstopdep.bmp
+    ClearAllHover,   // mpclearallred.bmp
+    ClearAllPressed, // mpclearalldep.bmp
+    DeleteHover,     // mpdeletered.bmp
+    DeletePressed,   // mpdeletedep.bmp
+};
+
+[[nodiscard]] constexpr std::optional<ToolbarSurface> toolbar_surface(
+    ToolbarControl control,
+    ToolbarVisual visual) noexcept {
+
+    if (visual == ToolbarVisual::None) {
+        return std::nullopt;
+    }
+
+    const bool pressed = visual == ToolbarVisual::Pressed;
+    switch (control) {
+    case ToolbarControl::Play:
+        return pressed
+            ? ToolbarSurface::PlayPressed
+            : ToolbarSurface::PlayHover;
+    case ToolbarControl::Stop:
+        return pressed
+            ? ToolbarSurface::StopPressed
+            : ToolbarSurface::StopHover;
+    case ToolbarControl::ClearAll:
+        return pressed
+            ? ToolbarSurface::ClearAllPressed
+            : ToolbarSurface::ClearAllHover;
+    case ToolbarControl::Delete:
+        return pressed
+            ? ToolbarSurface::DeletePressed
+            : ToolbarSurface::DeleteHover;
+    }
+    return std::nullopt;
+}
+
 enum class ToolbarActionKind {
     None,
     PlayVoicePending,
@@ -575,6 +616,9 @@ struct ToolbarStep {
     ToolbarActionKind action{ToolbarActionKind::None};
     std::optional<ToolbarControl> control{};
     ToolbarVisual visual{ToolbarVisual::None};
+    std::optional<ToolbarSurface> surface{};
+    std::int32_t surface_x{};
+    std::int32_t surface_y{};
     // Hover is processed before click dispatch, so the first clicked frame on
     // a control can produce both requests.
     std::optional<std::int32_t> hover_sound_id{};
@@ -592,6 +636,34 @@ struct ToolbarStep {
     EditorRuntimeState& state,
     Conductor conductor,
     const ToolbarInput& input) noexcept;
+
+struct SecondaryStopRegionStep {
+    bool draw_stop_hover_surface{};
+    std::int32_t surface_x{260};
+    std::int32_t surface_y{416};
+    bool stop_backing_track{};
+    ActivityState next_state{ActivityState::Playing};
+};
+
+// State 9 performs a second hit-test path after the toolbar controller. Action
+// 22 always draws the Stop-red overlay at (260,416); a click stops/resets the
+// backing track and returns the internal state to Edit. Action 23 is ignored.
+[[nodiscard]] constexpr SecondaryStopRegionStep update_secondary_stop_region(
+    std::int32_t region_action,
+    bool click_active) noexcept {
+
+    SecondaryStopRegionStep step;
+    if (region_action != kSecondaryStopAction) {
+        return step;
+    }
+
+    step.draw_stop_hover_surface = true;
+    if (click_active) {
+        step.stop_backing_track = true;
+        step.next_state = ActivityState::Edit;
+    }
+    return step;
+}
 
 struct PlayingStateStep {
     ActivityState next_state{ActivityState::Playing};
