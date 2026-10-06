@@ -300,3 +300,11 @@ add_executable(btb_game_flow_tests
 target_include_directories(btb_game_flow_tests PRIVATE include)
 target_compile_features(btb_game_flow_tests PRIVATE cxx_std_26)
 add_test(NAME game_flow COMMAND btb_game_flow_tests)
+
+
+add_executable(btb_front_end_ui_tests
+    tests/front_end_ui_test.cpp
+)
+target_include_directories(btb_front_end_ui_tests PRIVATE include)
+target_compile_features(btb_front_end_ui_tests PRIVATE cxx_std_26)
+add_test(NAME front_end_ui COMMAND btb_front_end_ui_tests)
