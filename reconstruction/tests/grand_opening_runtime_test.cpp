@@ -96,7 +96,7 @@ int main() {
     assert(animations[0] == 7);
 
     step = update_playback_second(
-        composition, 2399, 2300, animations);
+        composition, 2300, 2299, animations);
     assert(step.second == 23);
     assert(step.triggers.size() == 1);
     assert(step.triggers[0].machine_type == MachineType::Scoop1Second);
