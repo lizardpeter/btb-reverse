@@ -169,4 +169,64 @@ EndMovieFrameStep update_end_movie_phase(
     return step;
 }
 
+OuterActivityStep update_outer_activity(
+    const RuntimeState& runtime,
+    const OuterActivityInput& input) noexcept {
+
+    OuterActivityStep step;
+
+    // Shared input/update runs before this decision in retail. Quit or the
+    // shared leave-current-activity flag takes precedence over phase handling.
+    if (input.application_quit_requested ||
+        input.leave_activity_requested) {
+
+        step.return_abort = true;
+        step.block_shared_frontend_input = true;
+
+        // This is exactly what the retail EXE calls, even though it is the Maze
+        // resource unloader and not 0x00424100 UnloadSpudSkateActivityResources.
+        step.unload_path = SpudSkateUnloadPath::RetailMazeResourcesBug;
+
+        if (input.leave_activity_requested) {
+            step.clear_leave_activity_request = true;
+            step.outer_state = kSpudChooserOuterState;
+        }
+
+        // Shared completion/movie code overrides the chooser route when set.
+        if (input.shared_completion_code_present) {
+            step.outer_state = kSharedMovieTransitionOuterState;
+        }
+
+        return step;
+    }
+
+    if (runtime.phase == PlaybackPhase::Complete) {
+        step.block_shared_frontend_input = true;
+        step.run_play_again_transition = true;
+        step.unload_path = SpudSkateUnloadPath::SpudSkateResources;
+        step.outer_state = kPlayAgainOuterState;
+
+        // Exact generic navigation metadata written by the retail completion
+        // branch after entering Play Again.
+        step.saved_frontend_state = 0x16;
+        step.next_ui_context = 0x1A;
+        step.clear_shared_transition_flag = true;
+        return step;
+    }
+
+    // During active play, mouse Y >400 raises the shared front-end blocking
+    // flag while the actual playback/update function still runs.
+    step.block_shared_frontend_input = input.mouse_y > 400;
+    step.call_playback = true;
+
+    if (input.startup_audio_pending) {
+        step.clear_startup_audio_pending = true;
+        step.play_startup_music = true;
+        step.startup_music_index = kSpudSkateMusicIndex;
+        step.startup_sound_id = kSpudSkateStartupSoundId;
+    }
+
+    return step;
+}
+
 } // namespace btb::spud_skate
