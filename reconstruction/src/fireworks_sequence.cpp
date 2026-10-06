@@ -312,14 +312,14 @@ ShowFrameOutput RetailShowRuntime::update(
             input.random_variant_roll_0_to_24);
         if (output.sound_id) {
             output.sound_priority = kRandomCrowdSoundPriority;
-            output.sound_playback_flag = kRandomCrowdSoundPlaybackFlag;
+            output.sound_arbitration_class = kRandomCrowdSoundArbitrationClass;
         }
     } else if (output.crowd.ensure_end_sound &&
                !input.crowd_end_sound_playing) {
         output.stop_all_before_sound = true;
         output.sound_id = kCrowdEndSoundId;
         output.sound_priority = kCrowdEndSoundPriority;
-        output.sound_playback_flag = kCrowdEndSoundPlaybackFlag;
+        output.sound_arbitration_class = kCrowdEndSoundArbitrationClass;
     }
 
     // The certificate gate is an early return in retail. A crowd-end sound may
