@@ -11,13 +11,29 @@ int main() {
     activity.click_sound_id = 451;
 
     GenericUiRuntimeState state;
-    auto hover = enter_generic_ui_area(state, activity, 3, 1);
+    auto activity_runtime = initialize_replacement_runtime(activity, 0);
+    // Two sounds and random seed 0 initializes index 0; retail increments to
+    // index 1 on entry, so the first hover plays ID 39.
+    auto hover = enter_generic_ui_area(
+        state, activity, activity_runtime, 3);
     assert(hover.selected);
     assert(hover.selected_area_one_based == 4);
     assert(hover.hover_animation_delay == 8);
     assert(hover.hover_animation_frame == 0);
     assert(hover.hover_sound_id && *hover.hover_sound_id == 39);
+    assert(!hover.locked_fireworks_special);
+    assert(activity_runtime.hover_sound_index == 1);
+    assert(activity_runtime.hover_animation_delay == 8);
+    assert(activity_runtime.hover_animation_frame == 0);
     assert(state.selected_area_one_based == 4);
+
+    // Re-entering the same record after leaving cycles the sound index and
+    // wraps it back to ID 7.
+    assert(leave_generic_ui_area(state));
+    hover = enter_generic_ui_area(
+        state, activity, activity_runtime, 3);
+    assert(hover.hover_sound_id && *hover.hover_sound_id == 7);
+    assert(activity_runtime.hover_sound_index == 0);
 
     assert(leave_generic_ui_area(state));
     assert(state.selected_area_one_based == 0);
@@ -63,6 +79,24 @@ int main() {
 
     state = {};
     state.fireworks_finale_locked = true;
+
+    // Activity Select's third tile has a special hover path while the finale
+    // is locked: ASH_WEN_09 / ID 65 replaces the normal record hover sound.
+    fireworks.hover_sound_ids = {10,20,-1};
+    auto fireworks_runtime =
+        initialize_replacement_runtime(fireworks, 0);
+    hover = enter_generic_ui_area(
+        state, fireworks, fireworks_runtime, 2, true);
+    assert(hover.selected);
+    assert(hover.locked_fireworks_special);
+    assert(hover.hover_sound_id &&
+           *hover.hover_sound_id == kLockedFireworksHoverSoundId);
+    assert(hover.hover_sound_priority == 50);
+    assert(hover.hover_sound_arbitration_class == 2);
+    // Special path skips normal sound-index advancement.
+    assert(fireworks_runtime.hover_sound_index == 0);
+    assert(leave_generic_ui_area(state));
+
     click = arm_generic_ui_click(state, fireworks, 2);
     assert(click.armed);
     assert(click.stop_all_managed_sounds);
@@ -112,7 +146,43 @@ int main() {
     ReplacementRecord malformed;
     malformed.hover_sound_ids = {10,-1,30};
     state = {};
-    hover = enter_generic_ui_area(state, malformed, 0, 1);
+    auto malformed_runtime =
+        initialize_replacement_runtime(malformed, 0);
+    // Count is two; seeded index 0 increments to direct slot 1, which is -1.
+    hover = enter_generic_ui_area(
+        state, malformed, malformed_runtime, 0);
     assert(hover.selected);
     assert(!hover.hover_sound_id);
+    assert(malformed_runtime.hover_sound_index == 1);
+
+    // Hover animation advances only when the 8-tick countdown expires.
+    ReplacementRecord animated;
+    animated.hover_frame_count = 3;
+    ReplacementRuntimeState animation_runtime;
+    for (int i = 0; i < 7; ++i) {
+        const auto animation =
+            update_hover_animation(animated, animation_runtime);
+        assert(!animation.frame_advanced);
+        assert(animation.frame == 0);
+    }
+    auto animation =
+        update_hover_animation(animated, animation_runtime);
+    assert(animation.frame_advanced);
+    assert(animation.frame == 1);
+    assert(animation.delay == 8);
+
+    animation_runtime.hover_animation_frame = 2;
+    animation_runtime.hover_animation_delay = 1;
+    animation = update_hover_animation(animated, animation_runtime);
+    assert(animation.frame_advanced);
+    assert(animation.frame == 0);
+    assert(animation.delay == 8);
+
+    // Loader seed uses rand()%count only when multiple hover sounds exist.
+    auto seeded = initialize_replacement_runtime(activity, 5);
+    assert(seeded.hover_sound_index == 1);
+    ReplacementRecord single;
+    single.hover_sound_ids = {42,-1,-1};
+    seeded = initialize_replacement_runtime(single, 999);
+    assert(seeded.hover_sound_index == 0);
 }
