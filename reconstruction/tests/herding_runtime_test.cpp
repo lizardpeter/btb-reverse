@@ -13,7 +13,7 @@ int main() {
     static_assert(offsetof(RetailEntityRecord32, direction_degrees) == 0x1C);
     static_assert(offsetof(RetailEntityRecord32, x_float) == 0x20);
     static_assert(offsetof(RetailEntityRecord32, y_float) == 0x24);
-    static_assert(offsetof(RetailEntityRecord32, movement_input_mask) == 0x28);
+    static_assert(offsetof(RetailEntityRecord32, movement_direction_mask) == 0x28);
     static_assert(offsetof(RetailEntityRecord32, type) == 0x30);
     static_assert(offsetof(RetailEntityRecord32, source_left) == 0x34);
     static_assert(offsetof(RetailEntityRecord32, surface_ptr32) == 0x44);
@@ -130,6 +130,29 @@ int main() {
         (PicklesMoveRight | PicklesMoveDown));
     static_assert(opposite_pairs.delta_x == 1.5F);
     static_assert(opposite_pairs.delta_y == 1.5F);
+
+    static_assert(
+        pickles_facing_direction_from_mask(PicklesMoveUp) == 0);
+    static_assert(
+        pickles_facing_direction_from_mask(
+            PicklesMoveUp | PicklesMoveRight) == 1);
+    static_assert(
+        pickles_facing_direction_from_mask(PicklesMoveRight) == 2);
+    static_assert(
+        pickles_facing_direction_from_mask(
+            PicklesMoveRight | PicklesMoveDown) == 3);
+    static_assert(
+        pickles_facing_direction_from_mask(PicklesMoveDown) == 4);
+    static_assert(
+        pickles_facing_direction_from_mask(
+            PicklesMoveDown | PicklesMoveLeft) == 5);
+    static_assert(
+        pickles_facing_direction_from_mask(PicklesMoveLeft) == 6);
+    static_assert(
+        pickles_facing_direction_from_mask(
+            PicklesMoveLeft | PicklesMoveUp) == 7);
+    static_assert(
+        !pickles_facing_direction_from_mask(0).has_value());
 
     assert(food_pickup_sound_ids(FoodType::DuckFood).pickles_line == 582);
     assert(food_pickup_sound_ids(FoodType::DuckFood).travis_line == 609);
