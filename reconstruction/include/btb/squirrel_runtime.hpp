@@ -43,6 +43,84 @@ vertical_profile_for_motion_key(std::int32_t key) noexcept {
     return false;
 }
 
+enum class PlacementState : std::int32_t {
+    IdleSelect = 0,
+    MoveToSelectedCorrect = 1,
+    MoveToSelectedDecoy = 2,
+    CommitCorrectPlacement = 3,
+    CommitDecoyPlacement = 4,
+    ReturnHome = 5,
+    ReturnAfterDecoy = 6,
+    MoveToDecoyReturnPoint = 7,
+    ReturnDecoyToConveyor = 8,
+};
+
+enum class Difficulty : std::int32_t {
+    Easy = 0,
+    Medium = 1,
+    Hard = 2,
+};
+
+struct ConveyorMix {
+    std::int32_t correct_items{};
+    std::int32_t decoy_items{};
+
+    [[nodiscard]] constexpr std::int32_t total_items() const noexcept {
+        return correct_items + decoy_items;
+    }
+};
+
+[[nodiscard]] constexpr ConveyorMix conveyor_mix(
+    Difficulty difficulty) noexcept {
+    switch (difficulty) {
+        case Difficulty::Easy: return {3, 0};
+        case Difficulty::Medium: return {3, 1};
+        case Difficulty::Hard: return {2, 2};
+    }
+    return {0, 0};
+}
+
+inline constexpr std::array<std::array<std::int32_t,4>,7>
+    kOuterVariantPermutations{{
+        {{0,1,2,3}},
+        {{0,3,2,1}},
+        {{1,3,2,0}},
+        {{1,0,2,3}},
+        {{3,2,0,1}},
+        {{2,1,3,0}},
+        {{3,1,2,0}},
+    }};
+
+struct PieceIdParts {
+    std::int32_t outer_variant{};
+    std::int32_t from_connector{};
+    std::int32_t to_connector{};
+};
+
+[[nodiscard]] constexpr std::int32_t encode_piece_id(
+    PieceIdParts parts) noexcept {
+    return parts.outer_variant * 9
+         + parts.from_connector * 3
+         + parts.to_connector;
+}
+
+[[nodiscard]] constexpr PieceIdParts decode_piece_id(
+    std::int32_t piece_id) noexcept {
+    return {
+        piece_id / 9,
+        (piece_id % 9) / 3,
+        piece_id % 3,
+    };
+}
+
+inline constexpr std::size_t kMaximumLevelCount = 3;
+inline constexpr std::size_t kConnectorsPerLevel = 4;
+inline constexpr std::size_t kPiecesPerLevel = 3;
+
+using RunPlan = std::array<
+    std::array<std::int32_t, kConnectorsPerLevel>,
+    kMaximumLevelCount>;
+
 inline constexpr std::array<std::int32_t,3>
 kConnectorMotionLookupIndices{{0,16,33}};
 
@@ -201,84 +279,6 @@ select_run_assembly_motion_keys(
         placed_slot,
     };
 }
-
-enum class PlacementState : std::int32_t {
-    IdleSelect = 0,
-    MoveToSelectedCorrect = 1,
-    MoveToSelectedDecoy = 2,
-    CommitCorrectPlacement = 3,
-    CommitDecoyPlacement = 4,
-    ReturnHome = 5,
-    ReturnAfterDecoy = 6,
-    MoveToDecoyReturnPoint = 7,
-    ReturnDecoyToConveyor = 8,
-};
-
-enum class Difficulty : std::int32_t {
-    Easy = 0,
-    Medium = 1,
-    Hard = 2,
-};
-
-struct ConveyorMix {
-    std::int32_t correct_items{};
-    std::int32_t decoy_items{};
-
-    [[nodiscard]] constexpr std::int32_t total_items() const noexcept {
-        return correct_items + decoy_items;
-    }
-};
-
-[[nodiscard]] constexpr ConveyorMix conveyor_mix(
-    Difficulty difficulty) noexcept {
-    switch (difficulty) {
-        case Difficulty::Easy: return {3, 0};
-        case Difficulty::Medium: return {3, 1};
-        case Difficulty::Hard: return {2, 2};
-    }
-    return {0, 0};
-}
-
-inline constexpr std::array<std::array<std::int32_t,4>,7>
-    kOuterVariantPermutations{{
-        {{0,1,2,3}},
-        {{0,3,2,1}},
-        {{1,3,2,0}},
-        {{1,0,2,3}},
-        {{3,2,0,1}},
-        {{2,1,3,0}},
-        {{3,1,2,0}},
-    }};
-
-struct PieceIdParts {
-    std::int32_t outer_variant{};
-    std::int32_t from_connector{};
-    std::int32_t to_connector{};
-};
-
-[[nodiscard]] constexpr std::int32_t encode_piece_id(
-    PieceIdParts parts) noexcept {
-    return parts.outer_variant * 9
-         + parts.from_connector * 3
-         + parts.to_connector;
-}
-
-[[nodiscard]] constexpr PieceIdParts decode_piece_id(
-    std::int32_t piece_id) noexcept {
-    return {
-        piece_id / 9,
-        (piece_id % 9) / 3,
-        piece_id % 3,
-    };
-}
-
-inline constexpr std::size_t kMaximumLevelCount = 3;
-inline constexpr std::size_t kConnectorsPerLevel = 4;
-inline constexpr std::size_t kPiecesPerLevel = 3;
-
-using RunPlan = std::array<
-    std::array<std::int32_t, kConnectorsPerLevel>,
-    kMaximumLevelCount>;
 
 [[nodiscard]] constexpr RunPlan chain_run_plan(
     RunPlan random_draws) noexcept {
