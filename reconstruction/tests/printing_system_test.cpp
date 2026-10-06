@@ -168,6 +168,83 @@ int main() {
         {0,0,640,480});
     assert(!clip.intersects);
 
+    static_assert(kDocInfoSize == 20);
+    static_assert(kRasterCapsRejectedPaletteBit == 0x100);
+    static_assert(kEscapeQuerySupport == 8);
+    static_assert(kEscapeNextBand == 3);
+    static_assert(kStretchMode == 3);
+    static_assert(kStretchRopSrcCopy == 0x00CC0020);
+    static_assert(kDibRgbColors == 0);
+
+    constexpr auto no_bitmap =
+        document_print_plan(false, true, 1, 1);
+    static_assert(
+        no_bitmap.error == PrintValidationError::NoBitmapDefined);
+    static_assert(!no_bitmap.call_start_doc);
+
+    constexpr auto no_dc =
+        document_print_plan(true, false, 1, 1);
+    static_assert(no_dc.error == PrintValidationError::InvalidPrinterDc);
+
+    constexpr auto start_doc_failed =
+        document_print_plan(true, true, 0, 1);
+    static_assert(start_doc_failed.call_start_doc);
+    static_assert(!start_doc_failed.call_start_page);
+    static_assert(!start_doc_failed.call_end_doc);
+
+    constexpr auto start_page_failed =
+        document_print_plan(true, true, 1, 0);
+    static_assert(start_page_failed.call_start_doc);
+    static_assert(start_page_failed.call_start_page);
+    static_assert(!start_page_failed.call_render_to_dc);
+    static_assert(!start_page_failed.call_end_page);
+    static_assert(start_page_failed.call_end_doc);
+
+    constexpr auto print_ok =
+        document_print_plan(true, true, 1, 1);
+    static_assert(print_ok.call_start_doc);
+    static_assert(print_ok.call_start_page);
+    static_assert(print_ok.call_render_to_dc);
+    static_assert(print_ok.call_end_page);
+    static_assert(print_ok.call_end_doc);
+
+    constexpr auto bad_target =
+        stretch_dib_plan({0,0,0,100}, 0, true, true);
+    static_assert(
+        bad_target.error ==
+        PrintValidationError::InvalidTargetRectangle);
+
+    constexpr auto palette_printer =
+        stretch_dib_plan({0,0,100,100}, 0x100, true, true);
+    static_assert(
+        palette_printer.error ==
+        PrintValidationError::UnsupportedPalettePrinter);
+
+    constexpr auto missing_dib =
+        stretch_dib_plan({0,0,100,100}, 0, true, false);
+    static_assert(
+        missing_dib.error == PrintValidationError::MissingDibInfo);
+
+    constexpr auto stretch_ok =
+        stretch_dib_plan({0,0,100,100}, 0, true, true);
+    static_assert(stretch_ok.error == PrintValidationError::None);
+    static_assert(stretch_ok.call_escape_query_support);
+    static_assert(stretch_ok.escape_query_code == 8);
+    static_assert(stretch_ok.escape_requested_operation == 3);
+    static_assert(stretch_ok.call_get_version_ex);
+    static_assert(stretch_ok.call_set_stretch_mode);
+    static_assert(stretch_ok.stretch_mode == 3);
+    static_assert(stretch_ok.call_stretch_dibits);
+    static_assert(stretch_ok.dib_usage == 0);
+    static_assert(stretch_ok.raster_op == 0x00CC0020);
+
+    static_assert(
+        stretch_result_error(-1) ==
+        PrintValidationError::StretchDibFailed);
+    static_assert(
+        stretch_result_error(0) ==
+        PrintValidationError::None);
+
     constexpr auto red565 = analyze_channel_mask(0xF800);
     static_assert(red565.trailing_zero_bits == 11);
     static_assert(red565.contiguous_one_bits == 5);
