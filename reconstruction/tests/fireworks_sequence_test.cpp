@@ -49,8 +49,8 @@ int main() {
     static_assert(pre_show_done.stop_all_managed_sounds);
     static_assert(pre_show_done.sound_id == 142);
     static_assert(pre_show_done.sound_priority == 90);
-    static_assert(pre_show_done.playback_flag == 1);
-    static_assert(pre_show_done.mark_sound_slot_persistent);
+    static_assert(pre_show_done.arbitration_class == 1);
+    static_assert(pre_show_done.mark_sound_slot_input_interruptible);
 
     static_assert(kTopMiddleMovieIndex == 20);
     static_assert(kCrowdLoopMovieIndex == 21);
@@ -176,7 +176,7 @@ int main() {
     assert(end_out.stop_all_before_sound);
     assert(end_out.sound_id && *end_out.sound_id == 349);
     assert(end_out.sound_priority == 50);
-    assert(end_out.sound_playback_flag == 1);
+    assert(end_out.sound_arbitration_class == 1);
     assert(end_out.stop_all_for_certificate);
     assert(end_out.enter_certificate);
     assert(end_out.launched_events.empty());
