@@ -25,6 +25,35 @@ The 12 table-backed screens are also source-level in
 `reconstruction/include/btb/front_end_ui.hpp`; the exact counts come from
 `NumUiHotArea.txt`'s sequence `8 10 6 5 5 4 4 3 3 2 3 2 -1`.
 
+The retail table formats are also reconstructed rather than merely summarized:
+
+- `front_end_ui_data.hpp/.cpp` parses `NumUiHotArea.txt`,
+  `uiHotArea.txt`, and the 15-field `uiHotAreaReplace.txt` records;
+- `front_end_ui_runtime.hpp` models hover selection, retail hover-sound
+  indexing, click-sound gating, deferred target routing, Options target
+  **-99**, and the locked-Fireworks **0x22 -> Progress** interception.
+
+The replacement-row format proven from `0x00407100` is:
+
+```text
+x y secondary_x secondary_y hover_bitmap
+hover_sound_0 hover_sound_1 hover_sound_2
+optional_surface target_code hover_frame_count
+pressed_surface click_sound_id secondary_frame_count secondary_bitmap
+```
+
+`NULL` string fields are normalized to empty pointers/strings by the retail
+loader. Hover sound setup contains a small assumption worth preserving:
+retail counts the non-`-1` values in the three-element sound array, chooses
+`rand()%count`, then later directly indexes the original array. It does not
+compact holes, so the shipped files rely on `-1` sentinels being trailing.
+
+`uiHotArea.txt` is a point-pair stream:
+
+- `-1 -1` terminates one polygon/hot area;
+- `-2 -2` advances to the next screen/header;
+- `-99 -99` terminates the complete table.
+
 The 12 table-backed screens are:
 
 | Index | Screen | Hot areas |
