@@ -21,6 +21,10 @@ The machine-readable ordered generic-screen map is in `ghidra/ui_screens.csv`.
 
 Global `0x0051C27C` selects the current generic UI screen. The executable uses it to index the parsed hot-area counts and replacement records.
 
+The 12 table-backed screens are also source-level in
+`reconstruction/include/btb/front_end_ui.hpp`; the exact counts come from
+`NumUiHotArea.txt`'s sequence `8 10 6 5 5 4 4 3 3 2 3 2 -1`.
+
 The 12 table-backed screens are:
 
 | Index | Screen | Hot areas |
@@ -186,14 +190,30 @@ The late state-machine block is now decoded directly from the screen tables:
 These records provide another direct bridge from anonymous numeric sound IDs and hit rectangles to user-facing game semantics.
 
 
-## Modal precedence
+## Dispatcher interception precedence
 
-Before dispatching the normal 68-state game-flow table, `RunMainGameFlow` checks four modal flags in a fixed order. This means these overlays temporarily intercept the frame without changing the underlying activity state.
+Before dispatching the normal 68-state game-flow table, `RunMainGameFlow`
+checks a larger fixed chain than the four confirmation overlays alone:
 
-1. options flag `0x0051C2BC` -> `0x00429800 UpdateOptionsOverlay`
-2. generic Yes/No confirmation state `0x0051C2D0` -> `0x00429C90 UpdateYesNoConfirmationOverlay`
-3. whole-game quit flag `0x0051C2C0` -> `0x00429AA0 UpdateQuitConfirmationOverlay`
-4. leave-current-activity flag `0x0051C2C8` -> `0x00429FE0 UpdateLeaveActivityConfirmation`
+1. shutdown/credits phase `0x0044DDB0`;
+2. Options flag `0x0051C2BC` -> `UpdateOptionsOverlay`;
+3. Progress flag `0x0051C324` -> `UpdateProgressScreen`;
+4. generic Yes/No state `0x0051C2D0` -> `UpdateYesNoConfirmationOverlay`;
+5. whole-game Quit flag `0x0051C2C0` -> `UpdateQuitConfirmationOverlay`;
+6. leave-current-activity flag `0x0051C2C8` -> `UpdateLeaveActivityConfirmation`;
+7. Play Again overlay flag `0x0051C2CC` -> `UpdatePlayAgainPrompt`;
+8. positive legacy intercept `0x0051C2D8`;
+9. global-Bink screen modes 13/14;
+10. normal outer-state dispatch.
+
+This means Progress, Play Again, and the Bink transition modes are peers of the
+confirmation overlays in the central dispatcher rather than ordinary
+state-table handlers. Options/Yes-No/Quit/Leave/Play-Again pause the shared
+global Bink before updating; Progress does not.
+
+The exact chain is retained in
+`ghidra/gameflow_dispatch_precedence.csv` and
+`reconstruction/include/btb/game_flow.hpp`.
 
 ### Options
 
