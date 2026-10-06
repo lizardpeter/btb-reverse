@@ -89,17 +89,23 @@ This explains why the printer helper itself only needs to understand normal Win3
 
 ### Object layout
 
-`0x00404DD0 BitmapPrinterConstructor` initializes an object of approximately **0x124 bytes** and installs the vtable at `0x0043B2F4`.
+`0x00404DD0 BitmapPrinterConstructor` initializes an exact **0x124-byte**
+object and installs the vtable at `0x0043B2F4`.
 
-Important recovered fields:
+The layout is now source-level:
 
-| Offset | Meaning |
-|---:|---|
-| `+0x04` | owned DIB header/allocation |
-| `+0x08` | pointer to owned DIB pixel data |
-| `+0x0C` | fixed document-name buffer |
-| `+0x110` | configured target `RECT` |
-| `+0x120` | print scaling mode |
+| Offset | Size | Meaning |
+|---:|---:|---|
+| `+0x00` | 4 | vtable pointer |
+| `+0x04` | 4 | owned DIB header/allocation |
+| `+0x08` | 4 | pointer to owned DIB pixel data |
+| `+0x0C` | **0x104 / 260 bytes** | fixed document-name buffer |
+| `+0x110` | 16 | configured target `RECT` |
+| `+0x120` | 4 | print scaling mode |
+
+The 260-byte document-name field is proven directly by
+`BitmapPrinterSetDocumentName`, which calls
+`lstrcpynA(object+0x0C, name, 0x104)`.
 
 ### `0x00404E30 BitmapPrinterSetBitmap`
 
@@ -176,9 +182,23 @@ The game chooses **mode 2** when printing its activity/certificate image.
 
 ### `0x00405490 BitmapPrinterComputeTargetRect`
 
-Uses printer device caps to calculate the output rectangle according to the selected scaling mode.
+The four scaling modes are now reconstructed exactly.
 
-The queried caps include physical/logical dimensions and resolution values needed to size/position the bitmap on the page.
+- **mode 0**: fit printable width, correcting physical aspect with
+  `printer_dpi_y / printer_dpi_x`.
+- **mode 1**: fit printable height, correcting physical aspect with
+  `printer_dpi_x / printer_dpi_y`.
+- **mode 2**: the mode actually selected by `ExportAndPrintGameImage`.
+  Retail obtains the owner-window DC, compares screen/printer DPI in each axis,
+  forces each ratio >=1 by dividing larger by smaller, multiplies the Y ratio
+  by a hard-coded **1.5**, then centers a scaled 640x480 image. The function
+  also has an original resource-lifetime quirk: no matching `ReleaseDC` is
+  executed on this path.
+- **mode 3**: leave the explicitly configured target `RECT` unchanged.
+
+Mode 2 also preserves an unusual raw-RECT write from the shipped executable:
+the centered `left/top` are stored normally, but `right/bottom` receive the
+scaled width/height values directly rather than `left+width/top+height`.
 
 ### `0x00405350 BitmapPrinterSetTargetRect`
 
@@ -212,3 +232,26 @@ It receives a source DirectDraw surface, destination position, and optional sour
 7. translates DirectDraw HRESULT failures into the game's graphics-error code global at `0x004439A8`
 
 This is a common sprite compositor used by Dino and many other activity modules. It should therefore stay in the shared graphics layer rather than be reconstructed inside any one minigame.
+
+
+## C++26 reconstruction status
+
+The shared printer is now represented in
+`reconstruction/include/btb/printing_system.hpp` and
+`reconstruction/src/printing_system.cpp`.
+
+Covered source-level behavior includes:
+
+- exact 0x124-byte object layout;
+- the 260-byte document title buffer;
+- scale-mode validation and explicit-target mode;
+- all four target-rectangle calculations;
+- proportional clipped-destination -> source-rectangle mapping;
+- `StartDoc` / `StartPage` / render / `EndPage` / `EndDoc` lifecycle;
+- retail `RASTERCAPS` / `Escape` / `StretchDIBits` checks;
+- DirectDraw RGB-mask analysis and 16-bit -> 24-bit print-export conversion;
+- the shipped G,R,B output-byte ordering;
+- `PrintMe.bmp`, scale mode 2, and document title constants.
+
+The current reconstruction tests preserve the retail oddities rather than
+normalizing them for the later modern rewrite.
