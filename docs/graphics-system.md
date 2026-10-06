@@ -18,7 +18,7 @@ Recovered layout:
 | `+0x14` | `HWND` | game window |
 | `+0x18` | `RECT` | destination/client rectangle in screen coordinates |
 | `+0x28` | `BOOL` | 1 = windowed, 0 = exclusive fullscreen |
-| `+0x2C` | unknown/reserved | not yet required by recovered paths |
+| `+0x2C` | unused retail dword | allocated as part of the 0x30-byte object but never initialized, read, or written by any retail code path |
 
 The IID passed to `DirectDrawCreateEx` at `0x0043B568` decodes to:
 
@@ -296,3 +296,19 @@ HBITMAP, and returns the new DirectDraw surface.
 
 A small shipped leak is preserved as evidence: when **both** surface-creation
 attempts fail, the function returns without deleting the HBITMAP.
+
+
+### DisplayManager +0x2C closure
+
+The final dword of the 0x30-byte DisplayManager object is no longer treated as
+an unresolved field. A whole-executable reference audit shows:
+
+- `DisplayManagerConstructor` initializes only vtable and members through
+  `+0x10`;
+- all recovered DisplayManager methods use members only through `+0x28`;
+- tracking every load of the global DisplayManager pointer
+  `0x0044DE08` finds no dereference at `+0x2C`;
+- no external path writes that offset.
+
+The reconstruction therefore names it `unused_retail_2c` and deliberately
+leaves it semantically inert.
