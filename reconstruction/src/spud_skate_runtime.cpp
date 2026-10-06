@@ -106,6 +106,15 @@ PlaybackFrameStep update_synchronized_run(
         }
     }
 
+    // On ordinary synchronized-run frames, reaching the actual end of any
+    // quality stream causes retail to reset all four quality Binks and seek
+    // every stream to the configured frame-44 start. The second 660 marker is
+    // an early end.bik transition and returns before this synchronization path.
+    if (!step.start_end_movie && input.quality_stream_reached_end) {
+        step.resync_quality_streams = true;
+        step.resync_frame = timing.loop_start_frame;
+    }
+
     step.quality_after = state.quality;
     step.active_stunt_after = state.active_stunt;
     step.score_after = state.score;
@@ -115,6 +124,46 @@ PlaybackFrameStep update_synchronized_run(
     if (state.quality != StuntQuality::Bad) {
         step.quality_overlay_index =
             static_cast<std::int32_t>(state.quality);
+    }
+
+    return step;
+}
+
+EndMovieFrameStep update_end_movie_phase(
+    RuntimeState& state,
+    const EndMovieFrameInput& input) noexcept {
+
+    EndMovieFrameStep step;
+    if (state.phase != PlaybackPhase::EndMovie) {
+        return step;
+    }
+
+    // 0x005148B8 starts at 0 and becomes -1 after this one-shot result branch.
+    if (!state.result_voice_started) {
+        step.result_one_shot = true;
+        step.stop_all_managed_sounds = true;
+        step.result = result_presentation(state.score);
+        step.mark_spud_skate_progress_complete = true;
+
+        // Retail also checks player progress slot 59 (Spud Maze). If it is 1,
+        // it writes shared activity code 2 to 0x00446F38.
+        step.set_shared_completion_code_2 =
+            input.spud_maze_progress_complete;
+
+        state.result_voice_started = true;
+    }
+
+    if (!input.end_movie_finished) {
+        step.draw_or_decode_end_movie = true;
+        return step;
+    }
+
+    // On the final Bink frame retail still draws the end-movie surface, then
+    // waits until managed audio is idle before setting phase 2.
+    step.draw_or_decode_end_movie = true;
+    if (!input.any_managed_sound_playing) {
+        state.phase = PlaybackPhase::Complete;
+        step.complete_activity = true;
     }
 
     return step;
