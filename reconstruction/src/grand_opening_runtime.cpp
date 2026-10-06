@@ -79,6 +79,125 @@ PlaybackSecondStep update_playback_second(
     return result;
 }
 
+EditorFrameComposition compose_editor_frame(
+    const Composition& composition,
+    Conductor conductor,
+    EditorVisualRuntimeState& visual_state,
+    std::int32_t random_mod_3,
+    std::int32_t animation_tick_delta) {
+
+    EditorFrameComposition result;
+    result.commands.reserve(128);
+
+    // 0x513F1C: Data\\SubGameOpen\\music_01.bmp. Retail does not install a
+    // source color key on this surface.
+    result.commands.push_back({
+        EditorRenderLayer::Background,
+        0,
+        0,
+        false,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+    });
+
+    // The composition wall is traversed row-major: all 24 seconds of row 0,
+    // then row 1, through row 4. Only event starts 0..9 are drawn.
+    for (std::size_t row = 0; row < kPitchRowCount; ++row) {
+        for (std::size_t second = 0; second < kTimelineStepCount; ++second) {
+            const auto value = composition.cells[row][second];
+            if (!is_machine_type(value)) {
+                continue;
+            }
+
+            const auto position =
+                composition_cell_draw_position(row, second);
+            result.commands.push_back({
+                EditorRenderLayer::EventBrick,
+                position.x,
+                position.y,
+                true,
+                static_cast<MachineType>(value),
+                std::nullopt,
+                std::nullopt,
+                std::nullopt,
+            });
+        }
+    }
+
+    // Retail walks machine state globals backwards, yielding this exact visual
+    // overlap order: Scoop, Dizzy, Lofty, Muck, Roley.
+    constexpr std::array machine_draw_order{
+        Machine::Scoop,
+        Machine::Dizzy,
+        Machine::Lofty,
+        Machine::Muck,
+        Machine::Roley,
+    };
+
+    for (const auto machine : machine_draw_order) {
+        auto& state =
+            visual_state.machines[static_cast<std::size_t>(machine)];
+        const auto draw =
+            tick_machine_visual(machine, state, animation_tick_delta);
+
+        result.commands.push_back({
+            draw.draw_animation_state == 2
+                ? EditorRenderLayer::MachineLong
+                : EditorRenderLayer::MachineShort,
+            draw.x,
+            draw.y,
+            true,
+            std::nullopt,
+            machine,
+            std::nullopt,
+            VisualSourceRect{
+                draw.source_left,
+                draw.source_top,
+                draw.source_right,
+                draw.source_bottom,
+            },
+        });
+    }
+
+    result.conductor_animation =
+        tick_idle_conductor_animation(
+            conductor,
+            visual_state.conductor,
+            random_mod_3,
+            animation_tick_delta);
+
+    const auto& conductor_spec =
+        kConductorVisualSpecs[static_cast<std::size_t>(conductor)];
+    result.commands.push_back({
+        EditorRenderLayer::Conductor,
+        conductor_spec.x,
+        conductor_spec.y,
+        true,
+        std::nullopt,
+        std::nullopt,
+        conductor,
+        conductor_source_rect(
+            conductor, visual_state.conductor.frame),
+    });
+
+    // 0x513F20: Data\\SubGameOpen\\toolbar.bmp. The initializer explicitly
+    // registers magenta 0x00FF00FF as its source color key.
+    result.commands.push_back({
+        EditorRenderLayer::Toolbar,
+        0,
+        0,
+        true,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+    });
+
+    return result;
+}
+
 PaletteActionStep select_palette_from_edit(
     EditorRuntimeState& state,
     MachineType type) noexcept {
