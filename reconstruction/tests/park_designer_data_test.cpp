@@ -13,6 +13,54 @@ int main() {
     static_assert(kTrailingStateValueCount == 28);
     static_assert(kRetailSaveBytes == 30512);
 
+    // Exact trailing 28-int save order from the retail fwrite/fread sequence.
+    static_assert(static_cast<std::size_t>(
+        TrailingStateIndex::PondSelectedPrimary) == 0);
+    static_assert(static_cast<std::size_t>(
+        TrailingStateIndex::PondShapeVariant) == 1);
+    static_assert(static_cast<std::size_t>(
+        TrailingStateIndex::PondSpecialRecord) == 2);
+    static_assert(static_cast<std::size_t>(
+        TrailingStateIndex::BandstandSelectedRecord) == 3);
+    static_assert(static_cast<std::size_t>(
+        TrailingStateIndex::ActivePaletteFamily) == 10);
+
+    static_assert(kPaletteCurrentPageStateByFamily[0] ==
+        TrailingStateIndex::PondPalettePage);
+    static_assert(kPaletteCurrentPageStateByFamily[1] ==
+        TrailingStateIndex::BandstandPalettePage);
+    static_assert(kPaletteCurrentPageStateByFamily[2] ==
+        TrailingStateIndex::DecoratePalettePage);
+
+    static_assert(kPaletteMaxPageStateByFamily[0] ==
+        TrailingStateIndex::PondPaletteMaxPage);
+    static_assert(kPaletteMaxPageStateByFamily[1] ==
+        TrailingStateIndex::BandstandPaletteMaxPage);
+    static_assert(kPaletteMaxPageStateByFamily[2] ==
+        TrailingStateIndex::DecoratePaletteMaxPage);
+
+    static_assert(static_cast<std::size_t>(
+        TrailingStateIndex::LegacyPalettePage3) == 15);
+    static_assert(static_cast<std::size_t>(
+        TrailingStateIndex::LegacyPalettePage4) == 16);
+    static_assert(static_cast<std::size_t>(
+        TrailingStateIndex::LegacyPaletteMaxPage3) == 20);
+    static_assert(static_cast<std::size_t>(
+        TrailingStateIndex::LegacyPaletteMaxPage4) == 21);
+
+    static_assert(static_cast<std::size_t>(
+        TrailingStateIndex::NextPondPrimaryRecord) == 22);
+    static_assert(static_cast<std::size_t>(
+        TrailingStateIndex::NextDecorateRecord) == 23);
+    static_assert(static_cast<std::size_t>(
+        TrailingStateIndex::NextBandstandRecord) == 24);
+    static_assert(static_cast<std::size_t>(
+        TrailingStateIndex::PondDragAnchorMouseX) == 25);
+    static_assert(static_cast<std::size_t>(
+        TrailingStateIndex::PondDragAnchorMouseY) == 26);
+    static_assert(static_cast<std::size_t>(
+        TrailingStateIndex::Season) == 27);
+
     static_assert(offsetof(RetailObjectRecord32, unused_persisted_14) == 0x14);
     static_assert(offsetof(RetailObjectRecord32, unused_persisted_18) == 0x18);
     static_assert(offsetof(RetailObjectRecord32, visual_frame_or_segment) == 0x40);
