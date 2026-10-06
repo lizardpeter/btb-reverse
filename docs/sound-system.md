@@ -297,6 +297,64 @@ The pure metadata portion of this policy is reproduced and tested in
 `reconstruction/include/btb/sound_manager.hpp`.
 
 
+### Source-level managed SoundManager runtime
+
+The 80-slot policy is now implemented in
+`reconstruction/src/sound_manager.cpp`, not only represented as layout
+helpers.
+
+The constructor's exact metadata defaults are:
+
+- 80 group pointers = null;
+- 80 assigned sound IDs = -1;
+- 80 priorities = **101**;
+- 80 slot states = **0 / Free**;
+- 80 arbitration classes = **-1**;
+- 1100 sound-ID -> slot bytes = **-1 / 0xFF**;
+- 1100 sound-enabled bytes = **1**.
+
+The complete `PlayManagedSoundById` / `AcquireAndPlaySound` policy is now
+modeled:
+
+1. disabled catalog entry -> return **0**;
+2. if the sound's mapped slot is already lifecycle state 2 -> return **2**
+   immediately;
+3. for incoming arbitration class >0, scan playing managed slots:
+   - existing class 1 rejects the incoming request;
+   - existing class 2 is stopped/rewound by incoming class 1 or 2;
+4. if the sound is unmapped:
+   - choose the first free state-0 slot;
+   - otherwise evict the nonplaying slot with the lowest priority below 101;
+   - install sound-ID/slot mappings, priority, interruptible=0 and arbitration
+     class;
+   - load `data\\sound\\<catalog filename>`;
+5. state 1 transitions to state 2 and starts the CSound;
+6. state 3 restarts the existing CSound and transitions back to state 2.
+
+Two original-code quirks are intentionally preserved:
+
+- **new sounds are started twice**: `AcquireAndPlaySound` calls
+  `CSound::Play(0,0)` immediately after creation, writes slot state 1, and
+  then the caller changes state 1 -> 2 and calls `CSound::Play(0,0)` again;
+- if low-level CSound creation fails after the mappings are installed, the
+  mapped slot remains state 0, yet the public managed-play function can still
+  return **1 / accepted**.
+
+Another impossible/error edge is documented but host-safened: if all 80 slots
+are occupied and every one is still playing (or has priority >=101), retail
+acquisition returns -1 and the x86 caller subsequently indexes slot -1. The
+C++26 reconstruction reports that would-invalid-index condition instead of
+performing undefined memory access.
+
+`ReapFinishedSounds` is also source-level: only lifecycle-state-2 slots are
+examined; an input-interruptible slot stops immediately on either shared input
+pulse, and every active slot stops normally when its DirectSound group is no
+longer playing. Stopping changes state 2 -> 3, calls group Stop, then rewinds
+all duplicate buffers to position zero.
+
+The full policy is covered by C++26 regression tests.
+
+
 ## DirectX SDK DSUtil lineage
 
 The lower WAV/DirectSound layer is now identified as a customized copy of
