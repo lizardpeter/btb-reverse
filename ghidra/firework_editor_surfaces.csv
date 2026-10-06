@@ -1,0 +1,8 @@
+role,global_or_table,asset,color_keyed,draw_order,screen_x,screen_y,notes
+editor_background,0x0050AB0C,Data\SubGameFirework\graph\Bk_01e.bmp,no,0,0,0,"Opaque full-screen BltFast before every editor layer"
+firework_type_table,0x0050A4B8..0x0050A4E4,12 type BMPs,yes,"1-2 and 7",dynamic,dynamic,"Rows 0 and 2 draw before actors; row 1 draws last after state-11 commits"
+wendy_actor,0x0050A498 alias 0x0050AB1C,Data\SubGameFirework\graph\wendysprite8_bit.bmp,yes,3,dynamic,dynamic,"128x128 sprite-sheet source rectangle; actor channel 1"
+middle_overlay,0x0050AAA8,Data\SubGameFirework\graph\middle.bmp,yes,4,205,104,"Drawn after Wendy and before Bob"
+bob_actor,0x0050A494 alias 0x0050AB18,Data\SubGameFirework\graph\bobsprite1_8bit.bmp,yes,5,dynamic,dynamic,"128x128 sprite-sheet source rectangle; actor channel 0"
+bottom_overlay,0x0050AB08,Data\SubGameFirework\graph\bottom.bmp,yes,6,37,284,"Drawn after Bob and before center-row fireworks"
+show_background,0x0050AB10,Data\SubGameFirework\graph\BK_01v.bmp,no,not_editor,0,0,"Used by authored-show playback rather than DrawFireworksEditor"
