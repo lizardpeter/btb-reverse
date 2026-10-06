@@ -181,11 +181,44 @@ There is a defensive state-reset branch in the mode-2 code, but rejected drops d
 
 ## Completion
 
-When the completed-piece counter reaches `N`, the activity waits for managed feedback sounds to finish before transitioning into its completion/replay flow.
+When the completed-piece counter reaches `N`, the completion gate is exact.
 
-The main activity flow eventually enters state `0x3C`, the already recovered **Play Again Yes/No** screen.
+- if managed feedback is still playing and completion phase is not 1, retail
+  keeps drawing the activity and waits;
+- phase **0** begins the certificate/completion presentation;
+- phase **1** keeps the certificate interactive even while its completion voice
+  is still playing;
+- a retained phase **10** branch performs the Play Again transition directly,
+  although no normal Dino writer to phase 10 has been identified.
 
-The code updates one persistent completion flag for the selected **dinosaur species**. Difficulty does not choose a separate progress slot.
+The phase-0 branch:
+
+1. derives **species = encoded_level_index / 3**;
+2. stops all managed sounds;
+3. plays **completion sound 185 + species** at priority 50, arbitration class 1;
+4. writes the selected species progress slot to 1 if it was still zero;
+5. writes shared completion code 1;
+6. loads/registers the species completion artwork:
+   - Raptor -> `data\\subgamedino\\vel.bmp`
+   - Triceratops -> `data\\subgamedino\\tri.bmp`
+   - Tyrannosaurus -> `data\\subgamedino\\trex.bmp`
+7. advances completion phase to 1;
+8. runs the certificate print-button controller.
+
+The persistent progress slots are exactly:
+
+- Raptor -> slot 56
+- Triceratops -> slot 57
+- Tyrannosaurus -> slot 58
+
+Difficulty does not choose a separate progress slot.
+
+The retained phase-10 branch calls the shared Play Again transition, stores
+front-end state `0x10`, enters outer state **0x3C**, sets next UI context
+`0x14`, unloads Dino resources, and preserves the species progress write.
+
+The central game-flow dispatcher also owns the live user-exit handoff from the
+certificate to the same Play Again state.
 
 ## Rendering
 
@@ -197,10 +230,31 @@ This routine draws:
 2. shared animated/character UI elements
 3. every piece according to its current runtime state and position
 
-Rendering is a two-pass piece compositor:
+Rendering is now source-level end-to-end.
 
-1. state-4 (`Placed`) pieces are drawn at their permanent `target_x/target_y`;
-2. states 0-3 are drawn at `current_x/current_y` only when `render_mode != 0`.
+The exact order is:
+
+1. opaque level background;
+2. advance both Dino character animation channels;
+3. Bob;
+4. Ellis;
+5. first piece pass: every state-4 (`Placed`) piece at permanent
+   `target_x/target_y`;
+6. second piece pass:
+   - `render_mode == 2`: special-anchor/offset rendering;
+   - otherwise states 0-3 at `current_x/current_y` when
+     `render_mode != 0`.
+
+The character destination positions are species-specific:
+
+| Species | Bob | Ellis |
+|---|---|---|
+| Raptor | (268,20) | (366,20) |
+| Triceratops | (312,20) | (414,21) |
+| Tyrannosaurus | (308,20) | (394,20) |
+
+Bob uses a **113x97** horizontal sprite sheet; Ellis uses **93x105**.
+Source left/right are `frame*width` and `(frame+1)*width`.
 
 Selecting a piece sets `render_mode = 0`, because `SetCursorSurface` makes the cursor own the bone image while it is carried. A correct drop clears the cursor and sets state 2; on the next update the piece becomes state 4 and `render_mode` is restored to 1.
 
@@ -253,11 +307,39 @@ The buildable C++ reconstruction under `reconstruction/` now covers:
 
 Those tests are passing in GitHub Actions.
 
-The remaining Dino-specific work is mostly presentation/persistence integration: shared character animations, progress-table writes, activity-completion transition details, the print-button presentation layer, and a DirectDraw-facing renderer adapter. The variable coordinate tail is no longer an unresolved item: only its first pair is consumed by Dino, and all later pairs are legacy/unused data in this build.
+Dino is now effectively source-level for its game-owned logic and presentation:
+level parsing, piece runtime, shared Bob/Ellis animations, exact frame composition,
+species progress writes, startup/completion sound mapping, completion/certificate
+flow, print-button behavior, and resource/outer-state integration are all
+represented in the C++26 reconstruction.
+
+The variable coordinate tail is no longer an unresolved item: only its first
+pair is consumed by Dino, and all later pairs are legacy/unused data in this
+build.
 
 ## Shared print button
 
-`0x00409CD0 UpdateDinoPrintButton` calls the common `0x00409730 PrintCurrentGameFrame` path. That same print function is used by Park Designer and Fireworks; see `docs/printing-system.md`.
+`0x00409CD0 UpdateDinoPrintButton` is now reconstructed exactly.
+
+It always draws the current species completion artwork first. The print hit box
+uses strict interior bounds:
+
+```text
+x: 298 < x < 347
+y: 421 < y < 465
+```
+
+Hover/pressed overlays are drawn at **(292,417)**:
+
+- `Data\\SubGameFirework\\certprint.bmp` for normal hover;
+- `Data\\SubGameFirework\\certprintdep.bmp` for pressed visual state.
+
+The first hover plays managed sound **143** at priority 50, arbitration class 2,
+with a one-shot hover latch that resets when the pointer leaves the rectangle.
+
+A click stops managed sounds, draws `data\\ui\\printbar.bmp`, then calls
+the common `0x00409730 PrintCurrentGameFrame` path. That same print function
+is used by Park Designer and Fireworks; see `docs/printing-system.md`.
 
 
 ### Coordinate-tail validation
@@ -310,18 +392,33 @@ The managed sound catalog resolves the hard-coded numeric groups used by the upd
 - 174 `DD_BOB_05.wav`
 - 175 `DD_BOB_06.wav`
 
-### Difficulty-specific groups
+### Species-specific intro/completion groups
 
-The initializer stores the difficulty index at `0x004FC43C`.
+A direct initializer trace corrects an older label: global `0x004FC43C`
+stores the **species index**, not difficulty.
 
-- activity-start group: `185 + difficulty`
-  - 185 `DD_MRE_13.wav`
-  - 186 `DD_MRE_14.wav`
-  - 187 `DD_MRE_15.wav`
-- completion group: `188 + difficulty`
-  - 188 `DD_MRE_18.wav`
-  - 189 `DD_MRE_17.wav`
-  - 190 `DD_MRE_16.wav`
+The initializer computes:
+
+```text
+encoded_level = species * 3 + difficulty
+```
+
+and stores species separately at `0x004FC43C`.
+
+The actual sound use is:
+
+- **completion group: `185 + species`**
+  - Raptor: 185 `DD_MRE_13.wav`
+  - Triceratops: 186 `DD_MRE_14.wav`
+  - Tyrannosaurus: 187 `DD_MRE_15.wav`
+- **activity-start group: `188 + species`**
+  - Raptor: 188 `DD_MRE_18.wav`
+  - Triceratops: 189 `DD_MRE_17.wav`
+  - Tyrannosaurus: 190 `DD_MRE_16.wav`
+
+Startup uses priority **90**, arbitration class **1**, and then marks the
+resolved managed slot input-interruptible. Completion uses priority **50**,
+arbitration class **1**.
 
 ## Species index ordering
 
@@ -342,7 +439,19 @@ The numeric IDs used by the activity can now be mapped back to the WAV catalog i
 |---|---:|---|
 | Correct bone drop | 164-169 | `DD_MRE_04.wav`, `DD_MRE_05.wav`, `DD_MRE_06.wav`, `DD_BOB_01.wav` (two IDs), `DD_BOB_03.wav` |
 | Incorrect bone drop | 170-175 | `DD_MRE_07.wav`, `DD_MRE_08.wav`, `DD_MRE_09.wav`, `DD_BOB_04.wav`, `DD_BOB_05.wav`, `DD_BOB_06.wav` |
-| Difficulty intro group | 185-187 | `DD_MRE_13.wav`, `DD_MRE_14.wav`, `DD_MRE_15.wav` |
-| Completion group | 188-190 | `DD_MRE_18.wav`, `DD_MRE_17.wav`, `DD_MRE_16.wav` |
+| Species completion group | 185-187 | `DD_MRE_13.wav`, `DD_MRE_14.wav`, `DD_MRE_15.wav` |
+| Species activity-start group | 188-190 | `DD_MRE_18.wav`, `DD_MRE_17.wav`, `DD_MRE_16.wav` |
 
 The correct/incorrect drop groups are chosen by `rand() % 6`. The initializer's snap tolerance is also exact: encoded level index 2 uses tolerance 9; every other Dino level uses tolerance 20.
+
+
+## C++26 presentation module
+
+The newly closed presentation/completion layer is in:
+
+- `reconstruction/include/btb/dino_presentation.hpp`
+- `reconstruction/src/dino_presentation.cpp`
+- `reconstruction/tests/dino_presentation_test.cpp`
+
+It intentionally preserves the dormant `render_mode == 2` and phase-10 paths
+as retail behavior instead of deleting them from the faithful reconstruction.
