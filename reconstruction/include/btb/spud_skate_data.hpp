@@ -83,8 +83,12 @@ SoundData parse_sound_info(std::istream& in);
     return sounds.sound_ids[stunt][static_cast<std::size_t>(quality)][random_slot];
 }
 
+// The synchronized run reaches the 660 marker twice. Pass one scores all
+// eight stunt areas (the eighth via a special marker branch); pass two scores
+// the first seven before entering end.bik at the second 660 marker.
+inline constexpr std::int32_t kScoringOpportunityCount = 15;
 inline constexpr std::int32_t kMaximumScore =
-    static_cast<std::int32_t>(kStuntCount) *
+    kScoringOpportunityCount *
     static_cast<std::int32_t>(StuntQuality::Good);
 
 [[nodiscard]] constexpr std::int32_t score_for_quality(
