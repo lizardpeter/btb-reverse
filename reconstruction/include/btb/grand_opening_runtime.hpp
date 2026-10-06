@@ -402,6 +402,87 @@ struct VisualSourceRect {
     return {left,0,left + spec.frame_width,spec.frame_height};
 }
 
+enum class EditorRenderLayer {
+    Background,
+    EventBrick,
+    MachineShort,
+    MachineLong,
+    Conductor,
+    Toolbar,
+};
+
+struct EditorRenderCommand {
+    EditorRenderLayer layer{EditorRenderLayer::Background};
+    std::int32_t x{};
+    std::int32_t y{};
+    bool color_keyed{};
+    std::optional<MachineType> machine_type{};
+    std::optional<Machine> machine{};
+    std::optional<Conductor> conductor{};
+    std::optional<VisualSourceRect> source_rect{};
+};
+
+struct EditorVisualRuntimeState {
+    std::array<MachineVisualState,5> machines{};
+    ConductorAnimationState conductor{};
+};
+
+struct EditorFrameComposition {
+    std::vector<EditorRenderCommand> commands{};
+    ConductorIdleStep conductor_animation{};
+};
+
+// Exact 0x0041F090 frame layering:
+// music_01.bmp -> row-major event bricks -> Scoop/Dizzy/Lofty/Muck/Roley ->
+// selected conductor -> toolbar.bmp.
+//
+// All layers after music_01.bmp are source-color-keyed in the retail
+// initializer. Machine animation state advances before each machine blit, and
+// the conductor idle clock advances before its blit.
+[[nodiscard]] EditorFrameComposition compose_editor_frame(
+    const Composition& composition,
+    Conductor conductor,
+    EditorVisualRuntimeState& visual_state,
+    std::int32_t random_mod_3,
+    std::int32_t animation_tick_delta = 1);
+
+[[nodiscard]] constexpr std::string_view conductor_bitmap_filename(
+    Conductor conductor) noexcept {
+    switch (conductor) {
+    case Conductor::Bob: return "BOBINSTAND.bmp";
+    case Conductor::Wendy: return "wendyINSTAND.bmp";
+    case Conductor::FarmerPickles: return "picklesINSTAND.bmp";
+    }
+    return "";
+}
+
+[[nodiscard]] constexpr std::string_view machine_short_bitmap_filename(
+    Machine machine) noexcept {
+    switch (machine) {
+    case Machine::Roley: return "ROLEY1SEC.bmp";
+    case Machine::Muck: return "MUCK1SEC.bmp";
+    case Machine::Lofty: return "lofty1sec.bmp";
+    case Machine::Dizzy: return "dizzy1sec.BMP";
+    case Machine::Scoop: return "SCOOP1SEC.bmp";
+    }
+    return "";
+}
+
+[[nodiscard]] constexpr std::string_view machine_long_bitmap_filename(
+    Machine machine) noexcept {
+    switch (machine) {
+    case Machine::Roley: return "ROLEY2SEC.bmp";
+    case Machine::Muck: return "MUCK2SEC.bmp";
+    case Machine::Lofty: return "lofty2sec.bmp";
+    case Machine::Dizzy: return "dizzy2sec.BMP";
+    case Machine::Scoop: return "SCOOP2SEC.bmp";
+    }
+    return "";
+}
+
+inline constexpr std::string_view kEditorBackgroundBitmap = "music_01.bmp";
+inline constexpr std::string_view kEditorToolbarBitmap = "toolbar.bmp";
+
 struct ToolbarRect {
     std::int32_t left{};
     std::int32_t top{};
