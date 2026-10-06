@@ -492,6 +492,8 @@ int main() {
     auto output = update_editor_controls(controls, input);
     assert(output.control && *output.control == EditorAction::Play);
     assert(output.visual == EditorControlVisual::Hover);
+    assert(output.surface && *output.surface == EditorControlSurface::PlayHover);
+    assert(output.surface_x == 292 && output.surface_y == 416);
     assert(output.sound_id && *output.sound_id == kPlayHoverSoundId);
 
     output = update_editor_controls(controls, input);
@@ -595,11 +597,37 @@ int main() {
     output = update_editor_controls(
         pressed, {120, 440, false, true, false});
     assert(output.visual == EditorControlVisual::Pressed);
+    assert(
+        output.surface &&
+        *output.surface == EditorControlSurface::DeleteAllPressed);
+    assert(output.surface_x == 102 && output.surface_y == 416);
     assert(!output.sound_id);
+
+    EditorRuntimeState play_pressed;
+    output = update_editor_controls(
+        play_pressed, {300, 430, false, true, false});
+    assert(output.visual == EditorControlVisual::Pressed);
+    assert(
+        output.surface &&
+        *output.surface == EditorControlSurface::PlayPressed);
+    assert(output.surface_x == 292 && output.surface_y == 416);
+
+    EditorRuntimeState delete_pressed;
+    output = update_editor_controls(
+        delete_pressed, {500, 440, false, true, false});
+    assert(output.visual == EditorControlVisual::Pressed);
+    assert(
+        output.surface &&
+        *output.surface == EditorControlSurface::DeletePressed);
+    assert(output.surface_x == 483 && output.surface_y == 416);
 
     EditorRuntimeState delete_hover;
     output = update_editor_controls(
         delete_hover, {500, 440, false, false, false});
     assert(output.visual == EditorControlVisual::Hover);
+    assert(
+        output.surface &&
+        *output.surface == EditorControlSurface::DeleteHover);
+    assert(output.surface_x == 483 && output.surface_y == 416);
     assert(output.sound_id && *output.sound_id == kDeleteHoverSoundId);
 }
