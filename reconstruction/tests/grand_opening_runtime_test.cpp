@@ -15,6 +15,47 @@ int main() {
     static_assert(
         prepared.previous_elapsed_centiseconds ==
         kPlaybackPreviousStepSentinel);
+    static_assert(prepared.shared_completion_code == 6);
+
+    static_assert(kConductorPlaybackStartFrame == 50);
+    static_assert(kConductorPlaybackEndExclusive[0] == 90);
+    static_assert(kConductorPlaybackEndExclusive[1] == 85);
+    static_assert(kConductorPlaybackEndExclusive[2] == 105);
+    static_assert(kConductorPlaybackFrameTicks == 4);
+
+    ConductorAnimationState bob_animation;
+    for (int i = 0; i < 3; ++i) {
+        const auto anim = tick_conductor_animation(
+            Conductor::Bob, bob_animation);
+        assert(!anim.frame_advanced);
+        assert(bob_animation.frame == 0);
+    }
+    auto conductor_step = tick_conductor_animation(
+        Conductor::Bob, bob_animation);
+    assert(conductor_step.frame_advanced);
+    assert(!conductor_step.wrapped);
+    assert(bob_animation.frame == 50);
+    assert(bob_animation.tick == 0);
+
+    bob_animation.frame = 89;
+    bob_animation.tick = 3;
+    conductor_step = tick_conductor_animation(
+        Conductor::Bob, bob_animation);
+    assert(conductor_step.frame_advanced);
+    assert(conductor_step.wrapped);
+    assert(bob_animation.frame == 50);
+
+    ConductorAnimationState wendy_animation{84, 3};
+    conductor_step = tick_conductor_animation(
+        Conductor::Wendy, wendy_animation);
+    assert(conductor_step.wrapped);
+    assert(wendy_animation.frame == 50);
+
+    ConductorAnimationState farmer_animation{104, 3};
+    conductor_step = tick_conductor_animation(
+        Conductor::FarmerPickles, farmer_animation);
+    assert(conductor_step.wrapped);
+    assert(farmer_animation.frame == 50);
 
     Composition composition;
     assert(place_event(
@@ -121,4 +162,54 @@ int main() {
     constexpr auto still_playing =
         update_playing_state(false, true);
     static_assert(still_playing.next_state == ActivityState::Playing);
+
+    static_assert(kMusicChooserOuterState == 0x2A);
+    static_assert(kPlayAgainOuterState == 0x3C);
+    static_assert(kSharedMovieOuterState == 0x40);
+    static_assert(kBobsBandPlayAgainContext == 0x2E);
+
+    constexpr auto normal_edit =
+        update_outer_activity({ActivityState::Edit, false, false, false});
+    static_assert(!normal_edit.return_abort);
+    static_assert(!normal_edit.save_and_unload);
+
+    constexpr auto leave_to_music =
+        update_outer_activity({ActivityState::Edit, false, true, false});
+    static_assert(leave_to_music.return_abort);
+    static_assert(leave_to_music.save_and_unload);
+    static_assert(leave_to_music.clear_leave_activity_request);
+    static_assert(
+        leave_to_music.saved_frontend_state &&
+        *leave_to_music.saved_frontend_state == 0x2A);
+    static_assert(
+        leave_to_music.outer_state &&
+        *leave_to_music.outer_state == 0x2A);
+
+    constexpr auto leave_to_shared_movie =
+        update_outer_activity({ActivityState::Edit, false, true, true});
+    static_assert(
+        leave_to_shared_movie.outer_state &&
+        *leave_to_shared_movie.outer_state == 0x40);
+
+    constexpr auto quit_with_shared_movie =
+        update_outer_activity({ActivityState::Edit, true, false, true});
+    static_assert(quit_with_shared_movie.return_abort);
+    static_assert(quit_with_shared_movie.save_and_unload);
+    static_assert(
+        quit_with_shared_movie.outer_state &&
+        *quit_with_shared_movie.outer_state == 0x40);
+
+    constexpr auto completion =
+        update_outer_activity(
+            {ActivityState::ExitToPlayAgain, false, false, false});
+    static_assert(completion.return_abort);
+    static_assert(completion.save_and_unload);
+    static_assert(completion.prepare_play_again);
+    static_assert(
+        completion.outer_state &&
+        *completion.outer_state == 0x3C);
+    static_assert(
+        completion.play_again_context &&
+        *completion.play_again_context == 0x2E);
+    static_assert(completion.clear_shared_transition_flag);
 }
