@@ -30,6 +30,9 @@ int main() {
     display.windowed = 0;
     assert(!display.is_windowed());
 
+    static_assert(offsetof(RetailDisplayManager32, unused_retail_2c) == 0x2C);
+    static_assert(sizeof(RetailDisplayManager32) == 0x30);
+
     static_assert(kDisplayManagerVtable32 == 0x0043B2E0);
     static_assert(kDdscFullscreenExclusive == 0x11);
     static_assert(kDdscNormal == 0x08);
