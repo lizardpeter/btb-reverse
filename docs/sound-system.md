@@ -459,3 +459,93 @@ These exact host-independent layouts are now represented by:
 `reconstruction/include/btb/dsutil.hpp`
 
 with C++26 offset/size tests.
+
+
+## Source-level DSUtil / CWaveFile behavior
+
+The customized DirectX-era DSUtil layer is now modeled beyond byte layout.
+
+### CSoundManager / CSound
+
+The exact primary PCM format helper builds:
+
+```text
+wFormatTag      = WAVE_FORMAT_PCM (1)
+nChannels       = caller
+nSamplesPerSec  = caller
+wBitsPerSample  = caller
+nBlockAlign     = channels * (bits/8)
+nAvgBytesPerSec = blockAlign * sampleRate
+cbSize          = 0
+```
+
+Its primary-buffer descriptor is **0x24 bytes** with raw flags **0x81**.
+
+The game's `CSoundManager::Initialize` releases an existing DirectSound
+object, calls `DirectSoundCreate8`, sets cooperative level, and then calls
+the primary-format helper. A retail quirk is preserved: once DirectSound
+creation and cooperative-level setup succeed, **Initialize returns success
+even if the primary-format helper fails**.
+
+`CSound::RestoreBuffer` has another unusual return convention:
+
+- invalid buffer -> `CO_E_NOTINITIALIZED`;
+- `GetStatus` failure -> propagate HRESULT;
+- buffer not lost -> return **1**;
+- buffer lost -> retry `Restore`, sleeping 10 ms on `DSERR_BUFFERLOST`,
+  set the restored-output flag, and return **0**.
+
+`GetFreeBuffer` chooses the first non-null duplicate without
+`DSBSTATUS_PLAYING`; if every duplicate is playing it returns
+`rand()%m_dwNumBuffers`.
+
+`FillBufferWithSound` restores and locks the whole DirectSound buffer,
+resets the CWaveFile, reads PCM, and either repeats the wave to fill the tail
+or fills unused bytes with silence (**0x80 for 8-bit PCM, 0 otherwise**).
+
+### CWaveFile exact RIFF path
+
+The 0x90-byte CWaveFile object now has source-level RIFF behavior.
+
+Constructor initialization is intentionally minimal:
+
+- `m_pwfx = nullptr`
+- `m_hmmio = nullptr`
+- `m_dwSize = 0`
+- `m_bIsReadingFromMemory = 0`
+
+Read-mode `Open` uses MMIO flags **0x00010000**. Write mode uses
+**0x00011002**.
+
+`ReadMMIO` requires:
+
+- RIFF ID **'RIFF' / 0x46464952**
+- RIFF type **'WAVE' / 0x45564157**
+- a **'fmt '** chunk of at least 16 bytes.
+
+For PCM format tag 1, retail allocates exactly **18 bytes** for WAVEFORMATEX
+and forces `cbSize=0`. For a non-PCM format it reads the two-byte extra-size
+field and allocates exactly **18 + cbSize** bytes.
+
+`ResetFile`:
+
+- memory-backed read: resets `m_pbDataCur = m_pbData`;
+- file-backed read: seeks back into the RIFF and descends to the **'data'**
+  chunk;
+- file-backed write: creates the data chunk, obtains MMIO buffer info, and
+  zeros the remaining data-chunk byte count.
+
+Memory-backed `Read` clamps the requested byte count to
+`m_ulDataSize - current_offset`, copies that many bytes, advances the current
+pointer, and reports the actual count.
+
+File-backed `Read` requires HMMIO, destination, and bytes-read output,
+initializes bytes-read to zero, obtains MMIO info, clamps to remaining chunk
+bytes, advances MMIO when its internal buffer is exhausted, copies bytes, and
+writes MMIO info back afterward.
+
+Write-mode `Close` ascends/finalizes the data chunk and patches RIFF sizes
+before closing MMIO; read-mode close simply closes the file handle. Memory
+backed close does not call `mmioClose`.
+
+These contracts are covered by `dsutil_test.cpp`.
