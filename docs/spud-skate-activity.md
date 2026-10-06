@@ -87,7 +87,7 @@ When the current frame reaches that stunt's return frame, retail:
 
 This is the file comment's “returns to bad.bnk” behavior.
 
-## Main Bink loop range
+## Main Bink loop / pass markers
 
 The final pair is:
 
@@ -95,12 +95,20 @@ The final pair is:
 44 660
 ```
 
-The first value is passed into the Bink synchronization/seek helper for the four activity movie streams. The second is compared against the current Bink frame as the end of the main synchronized run.
+The first value is the synchronized-stream seek target used when a Bink reaches
+its actual movie end. All four quality streams are returned to exact frame
+**44** through `0x00424C80 SeekAndDecodeBinkToExactFrame`.
 
-The reconstruction names them:
+The second value, **660**, is not simply a one-shot "end of game" frame. Global
+`0x00514EA8` counts how many times the primary stream has reached frame 660:
 
-- `loop_start_frame = 44`
-- `loop_end_frame = 660`
+- first encounter: counter becomes 1 and gameplay continues;
+- second encounter: counter becomes 2, playback phase changes to 1, and retail
+  starts `end.bik`.
+
+Thus the synchronized stunt sequence runs through a first pass, continues to
+the actual Bink end, seeks back to frame 44, and then runs a second pass until
+frame 660.
 
 ## soundinfo.txt
 
@@ -138,18 +146,109 @@ When the frame equals that stunt's trigger frame, it:
 
 This means Bad/Normal/OK/Good feedback is fully data-driven from the same quality value chosen by the stunt timing window.
 
-## Score / completion observations
+## Exact score and two-pass runtime
 
-The main display code shows a numeric score using the score bitmap. The activity's running score global is updated from stunt quality values as playback progresses.
+The runtime globals are now closed:
 
-The exact score weighting is being traced separately; it is not guessed in the source parser.
+| Global | Meaning |
+|---|---|
+| `0x00514EA4` | current quality: 0 Bad, 1 Normal, 2 Okay, 3 Good |
+| `0x00514EA8` | number of times frame 660 has been reached |
+| `0x00514EAC` | playback phase: 0 synchronized run, 1 end movie, 2 complete |
+| `0x00514EB0` | running score |
+| `0x0044656C` | active stunt index, or -1 |
 
-When the activity's playback state reaches 2, `UpdateSpudSkateActivity`:
+On a successful stunt press, retail derives exactly the same numeric quality
+used by the four Bink streams:
 
-1. marks the activity complete;
-2. runs the common progress/save update;
-3. releases Spud Skate resources;
-4. enters main game-flow state `0x3C` (Play Again Yes/No).
+```text
+0 = bad.bik
+1 = normal.bik
+2 = ok.bik
+3 = good.bik
+```
+
+At a stunt's configured sound-trigger frame, the game selects a non-`-1`
+sound from `sound_ids[stunt][quality]` and then performs:
+
+```text
+score += current_quality
+```
+
+So the exact weights really are:
+
+- Bad = **0**
+- Normal = **1**
+- Okay = **2**
+- Good = **3**
+
+### Why the retail maximum is 45, not 24
+
+The eighth stunt has sound trigger frame **665**, but the pass marker is
+**660**. Retail therefore has a special first-pass frame-660 branch that uses
+the final stunt's sound row and adds its current quality to the score before
+playback later wraps to frame 44.
+
+The scoring opportunities are consequently:
+
+- pass 1: stunts 0..6 at their normal trigger frames + stunt 7 at the special
+  frame-660 branch = **8 scores**;
+- pass 2: stunts 0..6 at their normal trigger frames; the second frame-660
+  encounter enters `end.bik` before stunt 7 can score = **7 scores**.
+
+Total: **15 scoring opportunities**.
+
+With Good worth 3, the exact maximum is therefore:
+
+```text
+15 * 3 = 45
+```
+
+This replaces the earlier provisional 24-point maximum.
+
+### Exact per-frame ordering
+
+Within the synchronized-run branch, retail processes the important gameplay
+events in this order:
+
+1. if this is a configured stunt sound-trigger frame, play the quality-row
+   sound and add the current quality to score;
+2. if this is the active stunt's return frame, reset quality to Bad and clear
+   the active stunt;
+3. if stunt input is active and no stunt is active, classify the current
+   timing window and latch quality 1/2/3;
+4. if frame == 660, increment the pass-marker count:
+   - hit 1: special-score final stunt;
+   - hit 2: enter `end.bik`.
+
+The ordering matters because sound/score happens before return-to-Bad, and
+frame-660 input is classified before the special final-stunt score.
+
+### Result presentation quirk
+
+When playback phase becomes 1, the result voice branch runs once and marks
+player progress slot **60 / SpudSkate** complete.
+
+The score thresholds are exactly **10** and **20**, but the low branch has a
+retail fallthrough:
+
+- score <10: play one of **773..774 (SS2_SPU_16/17)** and then also fall
+  through to play one of **775..777 (SS2_SPU_18..20)**;
+- score 10..19: play one of **775..777**;
+- score >=20: play one of **778..779 (SS2_SPU_21/22)**.
+
+After the result Bink reaches its final frame and managed audio has finished,
+playback phase becomes **2**.
+
+When `UpdateSpudSkateActivity` sees phase 2 it:
+
+1. runs the shared Play Again transition;
+2. unloads Spud Skate resources;
+3. enters main game-flow state `0x3C` (Play Again Yes/No).
+
+The exact gameplay runtime is now represented in
+`reconstruction/include/btb/spud_skate_runtime.hpp` and
+`reconstruction/src/spud_skate_runtime.cpp`.
 
 ## Source reconstruction
 
@@ -159,12 +258,15 @@ Current source:
 - `reconstruction/src/spud_skate_data.cpp`
 - `reconstruction/tests/spud_skate_data_test.cpp`
 
-It implements:
+It now implements:
 
 - exact 8-window timing format
 - difficulty timing thresholds
 - Normal/OK/Good frame classification
 - eight return-to-Bad frames
-- the 44/660 loop range
-- exact 8×4×5 sound matrix
-- eight sound trigger frames
+- exact synchronized Bink quality selection
+- frame-44 seek / two-hit frame-660 pass lifecycle
+- exact 15-opportunity, 45-point scoring model
+- exact 8×4×5 sound matrix and eight normal trigger frames
+- special first-pass final-stunt score at frame 660
+- result-tier voice behavior, including the low-score fallthrough quirk
