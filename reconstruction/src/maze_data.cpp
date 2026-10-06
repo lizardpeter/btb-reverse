@@ -68,10 +68,10 @@ Data parse_data(const std::string& text) {
         throw std::runtime_error("maze_nodes.txt missing END marker");
     }
 
-    for (auto& screen_refs : out.reference_nodes) {
-        for (auto& ref : screen_refs) {
-            if (!(in >> ref.position.x >> ref.position.y >> ref.node_id)) {
-                throw std::runtime_error("could not parse Maze reference-node table");
+    for (auto& screen_boxes : out.box_locations) {
+        for (auto& box : screen_boxes) {
+            if (!(in >> box.position.x >> box.position.y >> box.node_id)) {
+                throw std::runtime_error("could not parse Maze box-location table");
             }
         }
     }
