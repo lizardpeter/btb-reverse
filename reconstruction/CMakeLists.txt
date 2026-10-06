@@ -199,6 +199,7 @@ add_test(NAME spud_maze_runtime COMMAND btb_spud_maze_runtime_tests)
 add_library(btb_squirrel
     src/squirrel_data.cpp
     src/squirrel_runtime.cpp
+    src/squirrel_presentation.cpp
 )
 target_include_directories(btb_squirrel PUBLIC include)
 target_compile_features(btb_squirrel PUBLIC cxx_std_26)
@@ -214,6 +215,12 @@ add_executable(btb_squirrel_runtime_tests
 )
 target_link_libraries(btb_squirrel_runtime_tests PRIVATE btb_squirrel)
 add_test(NAME squirrel_runtime COMMAND btb_squirrel_runtime_tests)
+
+add_executable(btb_squirrel_presentation_tests
+    tests/squirrel_presentation_test.cpp
+)
+target_link_libraries(btb_squirrel_presentation_tests PRIVATE btb_squirrel)
+add_test(NAME squirrel_presentation COMMAND btb_squirrel_presentation_tests)
 
 
 add_library(btb_grand_opening
