@@ -235,4 +235,55 @@ struct EndMovieFrameStep {
     RuntimeState& state,
     const EndMovieFrameInput& input) noexcept;
 
+inline constexpr std::int32_t kSpudSkateMusicIndex = 8; // Skateboardrace.wav
+inline constexpr std::int32_t kSpudSkateStartupSoundId = 758; // SS2_SPU_01
+inline constexpr std::int32_t kSpudSkateStartupSoundPriority = 50;
+inline constexpr std::int32_t kSpudSkateStartupSoundFlag = 1;
+
+inline constexpr std::int32_t kSpudChooserOuterState = 0x16;
+inline constexpr std::int32_t kPlayAgainOuterState = 0x3C;
+inline constexpr std::int32_t kSharedMovieTransitionOuterState = 0x40;
+
+struct OuterActivityInput {
+    bool application_quit_requested{};
+    bool leave_activity_requested{};
+    bool shared_completion_code_present{};
+    bool startup_audio_pending{};
+    std::int32_t mouse_y{};
+};
+
+enum class SpudSkateUnloadPath {
+    None,
+    SpudSkateResources,
+    RetailMazeResourcesBug,
+};
+
+struct OuterActivityStep {
+    bool return_abort{};
+    bool block_shared_frontend_input{};
+    bool call_playback{};
+    bool run_play_again_transition{};
+    bool clear_leave_activity_request{};
+    bool clear_startup_audio_pending{};
+    bool play_startup_music{};
+    std::int32_t startup_music_index{-1};
+    std::optional<std::int32_t> startup_sound_id{};
+    std::optional<std::int32_t> outer_state{};
+    SpudSkateUnloadPath unload_path{SpudSkateUnloadPath::None};
+
+    // Exact generic navigation globals written on normal completion.
+    std::optional<std::int32_t> saved_frontend_state{};
+    std::optional<std::int32_t> next_ui_context{};
+    bool clear_shared_transition_flag{};
+};
+
+// Exact control-flow decisions in 0x00424D10 UpdateSpudSkateActivity.
+//
+// Retail quirk preserved: quit/leave calls 0x0041A390
+// UnloadMazeActivityResources rather than Spud Skate's own 0x00424100
+// unloader. Normal completion does call the correct Spud Skate unloader.
+[[nodiscard]] OuterActivityStep update_outer_activity(
+    const RuntimeState& runtime,
+    const OuterActivityInput& input) noexcept;
+
 } // namespace btb::spud_skate
