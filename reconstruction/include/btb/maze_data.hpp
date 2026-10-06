@@ -79,14 +79,14 @@ struct ScreenGraph {
     std::vector<Node> nodes;
 };
 
-struct ReferenceNode {
+struct BoxLocation {
     Vec2i position{};
     std::int32_t node_id{};
 };
 
 struct Data {
     std::array<ScreenGraph, 3> screens;
-    std::array<std::array<ReferenceNode, 4>, 3> reference_nodes{};
+    std::array<std::array<BoxLocation, 4>, 3> box_locations{};
 
     float player_speed{};
     std::array<std::int32_t, 3> spud_speed_regular{};
