@@ -287,6 +287,60 @@ at **(267,415)**.
 The runtime/global map is machine-readable in
 `ghidra/spud_skate_runtime_globals.csv`.
 
+## Source-level presentation contract
+
+The presentation layer is now represented directly in:
+
+- `reconstruction/include/btb/spud_skate_presentation.hpp`
+- `reconstruction/tests/spud_skate_presentation_test.cpp`
+
+The exact retail surface bindings are:
+
+| Global | Asset | Role |
+|---|---|---|
+| `0x00514E8C` | `bad.bik` | Bad-quality 600x380 movie surface |
+| `0x00514E90` | `normal.bik` | Normal-quality movie surface |
+| `0x00514E94` | `ok.bik` | Okay-quality movie surface |
+| `0x00514E98` | `good.bik` | Good-quality movie surface |
+| `0x00514E9C` | `end.bik` | result/end movie surface |
+| `0x00514EA0` | `minimised.bmp` | activity background |
+| `0x005148B4` | `skatespudscore.bmp` | score-digit strip |
+| `0x00514B60` | `1.bmp` | Normal overlay |
+| `0x00514B64` | `2.bmp` | Okay overlay |
+| `0x00514B68` | `3.bmp` | Good overlay |
+
+During synchronized play:
+
+```text
+quality 0 -> bad.bik
+quality 1 -> normal.bik + 1.bmp
+quality 2 -> ok.bik     + 2.bmp
+quality 3 -> good.bik   + 3.bmp
+```
+
+Only qualities 1..3 draw an overlay. The movie destination remains
+**(20,20), 600x380**. The overlay destination is **(267,415)**.
+
+The score plan is exact and independent of quality:
+
+- ones digit always at **(475,415)**;
+- tens digit only when nonzero at **(450,415)**;
+- each source digit is a **24x50** cell from `skatespudscore.bmp`.
+
+When playback phase becomes `EndMovie`, the selected synchronized quality
+surface is replaced by `end.bik`; no quality overlay is present. The score
+remains represented by the same digit plan while the result/end-movie phase is
+active.
+
+The four quality streams remain synchronized as a set. When they hit their
+actual movie end, the runtime requests all four to be reset and exact-seeked to
+the timing-file loop start, shipped value **44**. This is represented by
+`quality_stream_set` and the existing
+`PlaybackFrameStep::resync_quality_streams/resync_frame` contract.
+
+The machine-readable global/asset map is
+`ghidra/spud_skate_surface_map.csv`.
+
 ## Outer activity flow and retail cleanup quirk
 
 `0x00424D10 UpdateSpudSkateActivity` now has a source-level outer controller.
@@ -322,7 +376,12 @@ Current source:
 
 - `reconstruction/include/btb/spud_skate_data.hpp`
 - `reconstruction/src/spud_skate_data.cpp`
+- `reconstruction/include/btb/spud_skate_runtime.hpp`
+- `reconstruction/src/spud_skate_runtime.cpp`
+- `reconstruction/include/btb/spud_skate_presentation.hpp`
 - `reconstruction/tests/spud_skate_data_test.cpp`
+- `reconstruction/tests/spud_skate_runtime_test.cpp`
+- `reconstruction/tests/spud_skate_presentation_test.cpp`
 
 It now implements:
 
@@ -336,3 +395,8 @@ It now implements:
 - exact 8×4×5 sound matrix and eight normal trigger frames
 - special first-pass final-stunt score at frame 660
 - result-tier voice behavior, including the low-score fallthrough quirk
+- exact Bink/surface asset bindings
+- quality-to-movie and quality-to-overlay presentation mapping
+- exact movie, score-digit and quality-overlay geometry
+- end-movie presentation selection
+- four-stream frame-44 synchronization contract
