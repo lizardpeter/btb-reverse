@@ -9,6 +9,39 @@ namespace btb::squirrel {
 
 // Global 0x5150E4. Names intentionally describe the observed transition role;
 // the exact story label of the two mirrored paths is not assumed.
+inline constexpr std::size_t kMotionKeyCount = 14;
+inline constexpr std::size_t kFirstMotionPhaseSubsteps = 3;
+inline constexpr std::size_t kSecondMotionPhaseFirstSubstep = 3;
+
+// Stack table reconstructed from 0x00425F40. The four motion-key globals
+// selected by 0x004259D0 are mapped through this table before indexing the
+// loaded 8x7 vertical-motion table.
+inline constexpr std::array<std::int32_t,kMotionKeyCount>
+kVerticalProfileByMotionKey{{
+    0, 0, 3, 3, 5, 5, 4, 4, 2, 2, 0, 0, 1, 1,
+}};
+
+[[nodiscard]] constexpr std::optional<VerticalMotionProfile>
+vertical_profile_for_motion_key(std::int32_t key) noexcept {
+    if (key < 0 ||
+        key >= static_cast<std::int32_t>(kMotionKeyCount)) {
+        return std::nullopt;
+    }
+    return static_cast<VerticalMotionProfile>(
+        kVerticalProfileByMotionKey[static_cast<std::size_t>(key)]);
+}
+
+[[nodiscard]] constexpr bool loaded_profile_is_live(
+    VerticalMotionProfile profile) noexcept {
+    const auto value = static_cast<std::size_t>(profile);
+    for (const auto selected : kVerticalProfileByMotionKey) {
+        if (static_cast<std::size_t>(selected) == value) {
+            return true;
+        }
+    }
+    return false;
+}
+
 enum class PlacementState : std::int32_t {
     IdleSelect = 0,
     MoveToSelectedCorrect = 1,
