@@ -250,6 +250,72 @@ The exact gameplay runtime is now represented in
 `reconstruction/include/btb/spud_skate_runtime.hpp` and
 `reconstruction/src/spud_skate_runtime.cpp`.
 
+
+## Exact synchronized rendering
+
+The initializer opens exactly five Bink streams:
+
+1. `bad.bik`
+2. `normal.bik`
+3. `ok.bik`
+4. `good.bik`
+5. `end.bik`
+
+Each uses a **600x380** DirectDraw surface. During synchronized gameplay the
+current quality value 0..3 directly selects which of the four quality surfaces
+is presented at **(20,20)**, while all four Binks remain synchronized.
+
+When the quality Binks reach their actual movie end, retail resets all four and
+uses `0x00424C80 SeekAndDecodeBinkToExactFrame` to bring each one back to the
+timing-file loop start **frame 44**.
+
+The remaining UI surfaces are:
+
+- `minimised.bmp` — activity background;
+- `skatespudscore.bmp` — 10 score digits, each **24x50**;
+- `1.bmp`, `2.bmp`, `3.bmp` — Normal/Okay/Good quality overlays.
+
+Score rendering is exact:
+
+- tens, only when nonzero: **(450,415)**;
+- ones, always: **(475,415)**;
+- source digit N: `(N*24,0)-((N+1)*24,50)`.
+
+For quality >0, the matching `1.bmp` / `2.bmp` / `3.bmp` surface is drawn
+at **(267,415)**.
+
+The runtime/global map is machine-readable in
+`ghidra/spud_skate_runtime_globals.csv`.
+
+## Outer activity flow and retail cleanup quirk
+
+`0x00424D10 UpdateSpudSkateActivity` now has a source-level outer controller.
+
+The one-time startup path:
+
+- starts activity music index **8 = Skateboardrace.wav**;
+- plays managed sound **758 = SS2_SPU_01.wav** at priority 50, flag 1;
+- clears the shared startup-audio latch.
+
+Normal completion, after playback phase reaches 2:
+
+1. raises the shared front-end blocking flag;
+2. runs `PreparePlayAgainTransition`;
+3. calls the correct `0x00424100 UnloadSpudSkateActivityResources`;
+4. sets outer state **0x3C / Play Again Yes/No**;
+5. writes the retail navigation metadata values **0x16** and **0x1A** and clears
+   the shared transition flag.
+
+The quit/leave path has a notable original-code asymmetry. Instead of calling
+Spud Skate's own unloader, retail calls **0x0041A390
+UnloadMazeActivityResources**. The reconstruction intentionally records this
+as a retail cleanup bug rather than silently correcting it.
+
+If the shared leave-current-activity flag caused the exit, retail clears that
+flag and initially routes to **0x16 / Spud chooser**. If the shared completion/
+movie code at `0x00446F38` is non-`-1`, it overrides that route with
+**0x40 / shared movie transition**.
+
 ## Source reconstruction
 
 Current source:
