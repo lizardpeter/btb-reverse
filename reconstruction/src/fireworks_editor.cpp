@@ -1,5 +1,6 @@
 #include "btb/fireworks_editor.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 namespace btb::fireworks {
@@ -28,6 +29,75 @@ namespace {
 
 [[nodiscard]] constexpr std::int32_t action_id(EditorAction action) noexcept {
     return static_cast<std::int32_t>(action);
+}
+
+[[nodiscard]] const std::array<ActorFollowPoint, 4>& actor_follow_path(
+    PlacementActorChannel channel) noexcept {
+    return channel == PlacementActorChannel::Bob
+        ? kBobFollowPath
+        : kWendyFollowPath;
+}
+
+struct ActorPathEvaluation {
+    std::int32_t top_left_y{};
+    std::int32_t vertical_direction_code{};
+};
+
+[[nodiscard]] ActorPathEvaluation evaluate_actor_follow_path(
+    PlacementActorChannel channel,
+    std::int32_t actor_x) noexcept {
+
+    const auto& path = actor_follow_path(channel);
+    const auto center_x = actor_x + kActorSpriteHalfSize;
+
+    // Retail scans the upper X breakpoints using strict center_x < breakpoint.
+    std::size_t upper = 1;
+    while (upper + 1 < path.size() && center_x >= path[upper].x) {
+        ++upper;
+    }
+    const auto lower = upper - 1;
+
+    const auto& p0 = path[lower];
+    const auto& p1 = path[upper];
+    const auto span_x = p1.x - p0.x;
+    const auto retained_numerator = p0.y - p1.y;
+
+    // The original keeps this interpolation on the x87 stack and converts with
+    // truncate-toward-zero. long double preserves that old x87-style precision
+    // closely on the reconstruction host.
+    const long double retained_slope =
+        static_cast<long double>(retained_numerator) /
+        static_cast<long double>(span_x);
+    const long double path_y =
+        static_cast<long double>(p0.y) -
+        static_cast<long double>(center_x - p0.x) * retained_slope;
+
+    ActorPathEvaluation result;
+    result.top_left_y =
+        static_cast<std::int32_t>(path_y) - kActorSpriteSize;
+    result.vertical_direction_code =
+        retained_numerator < 0 ? 1 :
+        retained_numerator > 0 ? -1 : 0;
+    return result;
+}
+
+constexpr void tick_walking_actor_animation(
+    PlacementActorVisual& visual) noexcept {
+
+    ++visual.frame_tick;
+    if (visual.frame_tick <= 5) {
+        return;
+    }
+
+    visual.frame_tick = 0;
+    ++visual.source_row;
+
+    if (visual.source_row >= kDormantMotionRowEndExclusive) {
+        visual.source_row = kDormantMotionFirstRow;
+    }
+    if (visual.source_row <= kDormantMotionFirstRow) {
+        visual.source_row = kDormantMotionFirstRow;
+    }
 }
 
 [[nodiscard]] std::int32_t retail_actor_angle_degrees(
@@ -62,6 +132,78 @@ namespace {
 }
 
 } // namespace
+
+ActorMouseTrackingStep update_actor_mouse_tracking(
+    EditorRuntimeState& state,
+    std::int32_t mouse_x,
+    std::int32_t mouse_y) noexcept {
+
+    ActorMouseTrackingStep result;
+
+    const bool palette_latched =
+        state.actor_states[0] == PlacementActorState::PaletteLatched ||
+        state.actor_states[1] == PlacementActorState::PaletteLatched;
+
+    result.split_y = palette_latched
+        ? kActorMouseSplitYWhenPaletteLatched
+        : kActorMouseSplitY;
+
+    // Retail chooses the idle actor first. Mouse below the split means Wendy
+    // idles and Bob tracks; mouse above the split means Bob idles and Wendy
+    // tracks.
+    if (mouse_y > result.split_y) {
+        result.idle_actor = PlacementActorChannel::Wendy;
+        result.tracking_actor = PlacementActorChannel::Bob;
+    } else {
+        result.idle_actor = PlacementActorChannel::Bob;
+        result.tracking_actor = PlacementActorChannel::Wendy;
+    }
+
+    tick_idle_actor_animation(
+        state.actor_visuals[placement_actor_index(result.idle_actor)]);
+
+    result.clamped_mouse_x =
+        std::clamp(mouse_x, kActorMouseMinX, kActorMouseMaxX);
+
+    auto& tracking =
+        state.actor_visuals[placement_actor_index(result.tracking_actor)];
+
+    const auto path =
+        evaluate_actor_follow_path(result.tracking_actor, tracking.x);
+    tracking.y = path.top_left_y;
+    result.interpolated_path_y = tracking.y;
+    result.vertical_direction_code = path.vertical_direction_code;
+
+    const auto center_delta =
+        tracking.x - result.clamped_mouse_x + kActorSpriteHalfSize;
+    const auto absolute_delta = std::abs(center_delta);
+    const auto stop_threshold =
+        kActorFollowBaseThreshold - state.actor_follow_threshold_bias;
+
+    if (absolute_delta < stop_threshold) {
+        state.actor_follow_threshold_bias = 0;
+        tick_idle_actor_animation(tracking);
+        result.standing = true;
+        return result;
+    }
+
+    state.actor_follow_threshold_bias = kActorFollowTightThresholdBias;
+    const auto target_x =
+        result.clamped_mouse_x - kActorSpriteHalfSize;
+
+    if (tracking.x < target_x) {
+        ++tracking.x;
+        tracking.source_column = path.vertical_direction_code + 2;
+        result.moved_right = true;
+    } else if (tracking.x > target_x) {
+        --tracking.x;
+        tracking.source_column = path.vertical_direction_code + 6;
+        result.moved_left = true;
+    }
+
+    tick_walking_actor_animation(tracking);
+    return result;
+}
 
 DormantMotionStep tick_dormant_legacy_motion(
     EditorRuntimeState& state,
