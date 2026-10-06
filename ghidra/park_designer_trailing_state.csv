@@ -1,0 +1,29 @@
+index,global,name,retail_semantics,runtime_status
+0,0x00507A28,PondSelectedPrimary,"selected/linked primary Pond record index; -1 when absent",live
+1,0x00507E38,PondShapeVariant,"segmented Pond shape/profile index used by strip counts, dimensions, surface and hit geometry",live
+2,0x005079FC,PondSpecialRecord,"special linked Pond record index",live
+3,0x00507E3C,BandstandSelectedRecord,"active 200-series Bandstand record; -1 when none; excluded from collision checks while selected/placing",live
+4,0x00507A40,PondLinkedCount,"count of linked Pond records",live
+5,0x00507C54,SelectedObjectRecord,"generic selected object record index",live
+6,0x00507A2C,PondLinkedRecord0,"linked Pond record slot 0",live
+7,0x00507A30,PondLinkedRecord1,"linked Pond record slot 1",live
+8,0x00507A34,PondLinkedRecord2,"linked Pond record slot 2",live
+9,0x00507A38,PondLinkedRecord3,"linked Pond record slot 3",live
+10,0x00507B5C,ActiveEditorMode,"EditorMode: 0 Pond, 1 Bandstand, 2 Decorate, 3 View",live
+11,0x00507A3C,PondLinkedRecord4,"linked Pond record slot 4",live
+12,0x00507AE4,PondPalettePage,"current page/index for Pond mode",live
+13,0x00507AE8,BandstandPalettePage,"current page/index for Bandstand mode",live
+14,0x00507AEC,DecoratePalettePage,"current page/index for Decorate mode",live
+15,0x00507AF0,ViewPage,"mode-3 page slot reached through indexed editor-mode reads; initialized to 0",live_indexed
+16,0x00507AF4,LegacyPage4,"fifth persisted page slot; no selector value 4 is written in this executable",legacy_persisted
+17,0x00508BF4,PondPaletteMaxPage,"maximum/last page for Pond mode",live
+18,0x00508BF8,BandstandPaletteMaxPage,"maximum/last page for Bandstand mode",live
+19,0x00508BFC,DecoratePaletteMaxPage,"maximum/last page for Decorate mode; initialized to 3",live
+20,0x00508C00,ViewMaxPage,"mode-3 maximum page slot reached through indexed editor-mode reads; zero-initialized",live_indexed
+21,0x00508C04,LegacyMaxPage4,"fifth persisted max-page slot; no selector value 4 is written in this executable",legacy_persisted
+22,0x00509340,NextPondPrimaryRecord,"next record index in 0-series Pond-primary family",live
+23,0x00441DC8,NextDecorateRecord,"next Decorate record index; initialized to 300",live
+24,0x00441DCC,NextBandstandRecord,"next Bandstand record index; initialized to 200",live
+25,0x00441DD0,PondDragAnchorMouseX,"mouse X captured when segmented Pond placement begins",live
+26,0x00441DD4,PondDragAnchorMouseY,"mouse Y captured when segmented Pond placement begins",live
+27,0x00509344,Season,"0 Summer, 1 Winter",live
