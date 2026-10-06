@@ -1,0 +1,18 @@
+address_or_range,name,retail_role
+0x005123B8..0x00512597,composition_grid,"5 pitch rows x 24 one-second steps; int32 cells -1 empty, 0..9 machine start, 10 continuation"
+0x00512188,activity_state,"Bob's Band internal state 0..10; 8 prepare playback, 9 playing, 10 exit to Play Again"
+0x00512178,playback_start_counter_low,"Captured performance-counter start value used by playback timing"
+0x0051218C,previous_elapsed_centiseconds,"State 8 initializes to 999999 so second 0 triggers immediately; state 9 stores latest elapsed centiseconds"
+0x00512174,conductor_animation_tick,"Increments every playback update; frame advances when tick >3 then tick resets to zero"
+0x00513F14,conductor_animation_frame,"Playback conductor sprite frame; retail ranges all begin at 50"
+0x0051C284,current_conductor,"0 Bob, 1 Wendy, 2 Farmer Pickles"
+0x00446F38,shared_completion_code,"State 8 writes 6; quit/leave later uses non--1 value to route through shared movie state 0x40"
+0x0051B5A0 + player*400 + conductor*4,conductor_progress,"Writes 1 when state 8 prepares playback; player progress slots 52..54"
+0x00444BE8..0x00444C0F,machine_span_table,"Ten int32 values 1,2,1,2,1,2,1,2,1,2 for machine types 0..9"
+playback_frame_range_bob,50..89,Bob conductor playback animation frames
+playback_frame_range_wendy,50..84,Wendy conductor playback animation frames
+playback_frame_range_farmer_pickles,50..104,Farmer Pickles conductor playback animation frames
+state10_outer_state,0x3C,"Play Again Yes/No after PreparePlayAgainTransition and save/unload"
+leave_outer_state,0x2A,"Music chooser when leave request is accepted and shared completion code is -1"
+shared_movie_outer_state,0x40,"Overrides leave/quit route whenever shared completion code is active"
+state10_play_again_context,0x2E,"Retail navigation/context value written during state-10 Play Again exit"
