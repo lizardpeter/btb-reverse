@@ -66,8 +66,8 @@ END
     assert(west1.allows(Direction::Down));
     assert(!west1.allows(Direction::Left));
 
-    assert((data.reference_nodes[0][0].position == Vec2i{87, 67}));
-    assert(data.reference_nodes[0][0].node_id == 2);
+    assert((data.box_locations[0][0].position == Vec2i{87, 67}));
+    assert(data.box_locations[0][0].node_id == 2);
 
     assert(data.player_speed == 2.0f);
     assert((data.spud_speed_regular == std::array<std::int32_t,3>{1,1,2}));
