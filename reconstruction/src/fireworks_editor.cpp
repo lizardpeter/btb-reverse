@@ -31,6 +31,17 @@ namespace {
     return static_cast<std::int32_t>(action);
 }
 
+void set_control_surface(
+    EditorControlOutput& output,
+    EditorAction action,
+    EditorControlSurface surface) noexcept {
+
+    const auto rect = control_rect(action);
+    output.surface = surface;
+    output.surface_x = rect.left;
+    output.surface_y = rect.top;
+}
+
 [[nodiscard]] const std::array<ActorFollowPoint, 4>& actor_follow_path(
     PlacementActorChannel channel) noexcept {
     return channel == PlacementActorChannel::Bob
@@ -536,11 +547,15 @@ EditorControlOutput update_editor_controls(
         if (input.pressed_visual) {
             state.previous_control_action = action_id(*hit);
             output.visual = EditorControlVisual::Pressed;
+            set_control_surface(
+                output, *hit, EditorControlSurface::PlayPressed);
             return output;
         }
 
         state.previous_control_action = action_id(*hit);
         output.visual = EditorControlVisual::Hover;
+        set_control_surface(
+            output, *hit, EditorControlSurface::PlayHover);
         if (previous != action_id(*hit)) {
             output.sound_id = kPlayHoverSoundId;
         }
@@ -583,11 +598,15 @@ EditorControlOutput update_editor_controls(
         if (input.pressed_visual) {
             state.previous_control_action = action_id(*hit);
             output.visual = EditorControlVisual::Pressed;
+            set_control_surface(
+                output, *hit, EditorControlSurface::DeletePressed);
             return output;
         }
 
         state.previous_control_action = action_id(*hit);
         output.visual = EditorControlVisual::Hover;
+        set_control_surface(
+            output, *hit, EditorControlSurface::DeleteHover);
         if (previous != action_id(*hit)) {
             output.sound_id = kDeleteHoverSoundId;
         }
@@ -608,11 +627,15 @@ EditorControlOutput update_editor_controls(
     if (input.pressed_visual) {
         state.previous_control_action = action_id(*hit);
         output.visual = EditorControlVisual::Pressed;
+        set_control_surface(
+            output, *hit, EditorControlSurface::DeleteAllPressed);
         return output;
     }
 
     state.previous_control_action = action_id(*hit);
     output.visual = EditorControlVisual::Hover;
+    set_control_surface(
+        output, *hit, EditorControlSurface::DeleteAllHover);
     if (previous != action_id(*hit)) {
         output.sound_id = kDeleteAllHoverSoundId;
     }
