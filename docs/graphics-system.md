@@ -14,7 +14,7 @@ Recovered layout:
 | `+0x04` | `IDirectDraw7 *` | DirectDraw 7 interface |
 | `+0x08` | `IDirectDrawSurface7 *` | primary/front surface |
 | `+0x0C` | `IDirectDrawSurface7 *` | fullscreen backbuffer or windowed offscreen render surface |
-| `+0x10` | `IDirectDrawSurface7 *` | optional/legacy auxiliary surface; initialized/released but no creation path identified yet |
+| `+0x10` | `IDirectDrawSurface7 *` | **dormant legacy surface slot**; constructor zeros it and teardown defensively unregisters/releases it, but no retail path ever populates or reads it |
 | `+0x14` | `HWND` | game window |
 | `+0x18` | `RECT` | destination/client rectangle in screen coordinates |
 | `+0x28` | `BOOL` | 1 = windowed, 0 = exclusive fullscreen |
@@ -312,3 +312,25 @@ an unresolved field. A whole-executable reference audit shows:
 
 The reconstruction therefore names it `unused_retail_2c` and deliberately
 leaves it semantically inert.
+
+
+### DisplayManager +0x10 legacy surface closure
+
+The surface pointer at `+0x10` is also closed. It is not a live auxiliary
+render surface in this build.
+
+Evidence from the retail executable:
+
+- constructor `0x00402FC0` writes null to `+0x10`;
+- fullscreen and windowed initialization create only `+0x08` primary and
+  `+0x0C` render/backbuffer surfaces;
+- no DisplayManager method assigns a non-null value to `+0x10`;
+- teardown still calls `UnregisterBitmapSurface(&member)`, releases the member
+  if non-null, and zeros it;
+- all 102 references to global DisplayManager pointer `0x0044DE08` were
+  audited. External member dereferences resolve to `+0x04` and `+0x0C`;
+  none reaches `+0x10`.
+
+The source model therefore names this member
+`unused_legacy_surface_ptr32`. The defensive teardown remains because it is
+part of shipped retail behavior.
