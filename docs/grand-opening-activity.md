@@ -254,6 +254,73 @@ loaded_sound_slot =
     40 - row*10 + machine_id
 ```
 
+The exact playback trigger is now source-level. Retail stores the previous
+elapsed centisecond count and only walks the five pitch rows when the derived
+one-second timeline index changes. State 8 seeds the previous elapsed value
+with **999999**, deliberately forcing second 0 to trigger on the first playback
+update.
+
+For every event-start cell 0..9 encountered on that new second, retail:
+
+1. computes `40 - row*10 + machine_type`;
+2. stops/resets that WAV if necessary and starts it again;
+3. maps the machine type to Roley/Muck/Lofty/Dizzy/Scoop using `type/2`;
+4. if that machine's animation state is zero, writes **1 for short** or
+   **2 for long** from the type parity.
+
+Continuation value 10 never triggers a WAV.
+
+### Exact conductor playback animation
+
+The playback conductor has a separate four-update animation clock.
+
+Global `0x00512174` increments each playback update. When it becomes greater
+than 3, retail resets it to zero, increments the conductor frame at
+`0x00513F14`, and clamps/wraps that frame to the active conductor's exact
+playback range:
+
+| Conductor | Playback frames |
+|---|---|
+| Bob | **50..89** |
+| Wendy | **50..84** |
+| Farmer Pickles | **50..104** |
+
+All three ranges therefore begin at frame **50**, and one animation frame lasts
+four playback updates.
+
+### State 8 playback preparation
+
+State 8 is now represented exactly. It:
+
+- advances the internal activity state to **9 / Playing**;
+- writes shared completion/movie code **6** to `0x00446F38`;
+- writes the selected conductor's progress flag for the current player;
+- captures the performance-counter start value;
+- starts the selected conductor backing track;
+- writes previous elapsed centiseconds **999999**.
+
+### Stop, backing-track end, and outer flow
+
+During state 9, Stop immediately returns the activity to state 0 and stops the
+backing track. If the backing track stops naturally, retail also returns to
+state 0.
+
+State **10 / ExitToPlayAgain**:
+
+1. calls the shared `PreparePlayAgainTransition`;
+2. sets outer state **0x3C / Play Again Yes/No**;
+3. writes Play Again context **0x2E**;
+4. saves/unloads the current Bob's Band composition;
+5. clears the shared transition flag and returns from the activity.
+
+Quit/leave always saves/unloads the current composition. An accepted leave
+request normally returns to **0x2A / Music chooser** and clears the leave flag.
+If the shared completion/movie code is active, retail overrides that route with
+**0x40 / shared movie transition**.
+
+The exact playback/outer-flow globals are machine-readable in
+`ghidra/bobs_band_runtime_globals.csv`.
+
 ## Saved compositions
 
 There are 15 retail composition filenames:
@@ -349,11 +416,14 @@ Buildable source:
 - `reconstruction/src/grand_opening_data.cpp`
 - `reconstruction/include/btb/grand_opening_sequence.hpp`
 - `reconstruction/src/grand_opening_sequence.cpp`
+- `reconstruction/include/btb/grand_opening_runtime.hpp`
+- `reconstruction/src/grand_opening_runtime.cpp`
 
 Tests:
 
 - `reconstruction/tests/grand_opening_data_test.cpp`
 - `reconstruction/tests/grand_opening_sequence_test.cpp`
+- `reconstruction/tests/grand_opening_runtime_test.cpp`
 
 Current source-level coverage includes:
 
@@ -367,4 +437,11 @@ Current source-level coverage includes:
 - 24-second playback timeline
 - Play/Stop/Clear/Delete toolbar IDs
 - backing-track mapping
-- conductor progress indexing.
+- conductor progress indexing
+- exact once-per-second five-row WAV trigger runtime
+- exact short/long machine-animation kick states
+- conductor playback frame ranges and four-update clock
+- exact state-8 playback preparation
+- Stop/backing-track completion return behavior
+- state-10 Play Again transition and save/unload
+- quit/leave Music-chooser vs shared-movie routing.
