@@ -84,8 +84,8 @@ struct RetailObjectRecord32 {
     std::int32_t right{};               // +0x08
     std::int32_t bottom{};              // +0x0C
     std::uint32_t surface_ptr32{};      // +0x10
-    std::int32_t unknown_14{};          // +0x14
-    std::int32_t unknown_18{};          // +0x18
+    std::int32_t unused_persisted_14{}; // +0x14 (no runtime reader/writer; raw save/copy only)
+    std::int32_t unused_persisted_18{}; // +0x18 (no runtime reader/writer; raw save/copy only)
     std::int32_t object_code{};         // +0x1C
     std::int32_t object_subcode{};      // +0x20
     std::int32_t enabled_or_active{};   // +0x24
@@ -95,9 +95,9 @@ struct RetailObjectRecord32 {
     std::int32_t record_index{};        // +0x34
     std::int32_t bound_category{};      // +0x38
     std::int32_t bound_variant{};       // +0x3C
-    std::int32_t unknown_40{};          // +0x40
-    std::int32_t unknown_44{};          // +0x44
-    std::int32_t unknown_48{};          // +0x48
+    std::int32_t visual_frame_or_segment{}; // +0x40 (fountain frame / Pond segment index)
+    std::int32_t fountain_phase{};           // +0x44 (object-code-7 phase 0/1)
+    std::int32_t fountain_frame_countdown{}; // +0x48 (initialized/reset to 9)
 };
 
 static_assert(sizeof(RetailObjectRecord32) == 0x4C);
@@ -105,6 +105,11 @@ static_assert(offsetof(RetailObjectRecord32, object_code) == 0x1C);
 static_assert(offsetof(RetailObjectRecord32, record_index) == 0x34);
 static_assert(offsetof(RetailObjectRecord32, bound_category) == 0x38);
 static_assert(offsetof(RetailObjectRecord32, bound_variant) == 0x3C);
+static_assert(offsetof(RetailObjectRecord32, unused_persisted_14) == 0x14);
+static_assert(offsetof(RetailObjectRecord32, unused_persisted_18) == 0x18);
+static_assert(offsetof(RetailObjectRecord32, visual_frame_or_segment) == 0x40);
+static_assert(offsetof(RetailObjectRecord32, fountain_phase) == 0x44);
+static_assert(offsetof(RetailObjectRecord32, fountain_frame_countdown) == 0x48);
 
 enum class RecordFamily : std::int32_t {
     PondPrimary,
