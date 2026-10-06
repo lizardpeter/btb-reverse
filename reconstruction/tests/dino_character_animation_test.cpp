@@ -51,10 +51,12 @@ int main() {
     assert(wrong.channel(Character::Ellis).mode() == CharacterAnimationMode::WrongDropA);
     assert(wrong_drop_sound_id(1) == 171);
 
-    assert(intro_sound_id(0) == 185);
-    assert(intro_sound_id(2) == 187);
-    assert(completion_sound_id(0) == 188);
-    assert(completion_sound_id(2) == 190);
+    // Retail initializer stores species at 0x004FC43C. Startup uses
+    // 188+species; completed-puzzle presentation uses 185+species.
+    assert(intro_sound_id(0) == 188);
+    assert(intro_sound_id(2) == 190);
+    assert(completion_sound_id(0) == 185);
+    assert(completion_sound_id(2) == 187);
 
     static_assert(kBobSheet.frame_width == 113);
     static_assert(kBobSheet.frame_height == 97);
