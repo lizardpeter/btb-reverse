@@ -99,6 +99,19 @@ data//ui//editplay//Fireworkeditdep.bmp -1 0 NULL
     assert(selected_hover_sound_id(pets,1) == 39);
     assert(selected_hover_sound_id(pets,2) == -1);
 
+    assert(choose_hover_sound_index(pets,0) == 0);
+    assert(choose_hover_sound_index(pets,1) == 1);
+    assert(choose_hover_sound_index(pets,2) == 0);
+
+    // Exact retail quirk: count non--1 entries, but directly index the first
+    // count slots instead of compacting holes. Shipped tables put -1 at the
+    // tail, so this malformed synthetic record proves the preserved behavior.
+    ReplacementRecord holey;
+    holey.hover_sound_ids = {10,-1,30};
+    assert(available_hover_sound_count(holey) == 2);
+    assert(choose_hover_sound_index(holey,1) == 1);
+    assert(selected_hover_sound_id(holey,1) == -1);
+
     const auto& back = replacement_screens[0].records[1];
     assert(back.target_state_or_action == -1);
     assert(back.hover_frame_count == 1);
