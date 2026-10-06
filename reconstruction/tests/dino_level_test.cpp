@@ -39,6 +39,10 @@ int main() {
     assert((level.target_positions.front() == Vec2i{149, 147}));
     assert((level.start_positions.front() == Vec2i{362, 396}));
     assert((*level.runtime_animation_anchor() == Vec2i{456, 248}));
+    assert((*level.special_render_anchor() == Vec2i{456, 248}));
+    assert(level.legacy_unused_tail().size() == 2);
+    assert((level.legacy_unused_tail()[0] == Vec2i{80, 300}));
+    assert((level.legacy_unused_tail()[1] == Vec2i{100, 120}));
     assert((level.piece_permutation == std::vector<std::int32_t>{6, 3, 0, 1, 4, 2, 5}));
 
     assert(level_index(Species::Raptor, Difficulty::Easy) == 0);
