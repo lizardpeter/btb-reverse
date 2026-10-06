@@ -273,10 +273,8 @@ ToolbarStep update_toolbar(
             result.visual = ToolbarVisual::Hover;
             if (state.previous_toolbar_hover !=
                 static_cast<std::int32_t>(index)) {
-                result.managed_sound_id =
+                result.hover_sound_id =
                     base + static_cast<std::int32_t>(index) + 6;
-                result.managed_sound_priority = 50;
-                result.managed_sound_flag = 2;
             }
         }
     }
@@ -294,9 +292,7 @@ ToolbarStep update_toolbar(
             state.play_pending = true;
             result.action = ToolbarActionKind::PlayVoicePending;
             result.stop_all_managed_sounds = true;
-            result.managed_sound_id = base + 1;
-            result.managed_sound_priority = 50;
-            result.managed_sound_flag = 1;
+            result.action_sound_id = base + 1;
         }
         break;
 
@@ -306,10 +302,8 @@ ToolbarStep update_toolbar(
             state.activity_state = ActivityState::Edit;
             result.action = ToolbarActionKind::StopPlayback;
             result.stop_backing_track = true;
-            result.managed_sound_id =
+            result.action_sound_id =
                 base + 3 + random_bit(input.random_mod_2);
-            result.managed_sound_priority = 50;
-            result.managed_sound_flag = 1;
         }
         break;
 
@@ -333,10 +327,8 @@ ToolbarStep update_toolbar(
             state.delete_mode = true;
             state.cursor = {EditorCursorKind::Delete, std::nullopt};
             result.action = ToolbarActionKind::EnterDeleteMode;
-            result.managed_sound_id =
+            result.action_sound_id =
                 base + 9 + random_bit(input.random_mod_2);
-            result.managed_sound_priority = 50;
-            result.managed_sound_flag = 1;
         } else {
             state.delete_mode = false;
             state.cursor = {};
