@@ -88,7 +88,7 @@ int main() {
     assert(constructed.direct_draw7_ptr32 == 0);
     assert(constructed.primary_surface_ptr32 == 0);
     assert(constructed.render_surface_ptr32 == 0);
-    assert(constructed.auxiliary_surface_ptr32 == 0);
+    assert(constructed.unused_legacy_surface_ptr32 == 0);
     // The original constructor only initializes vtable + four COM pointers.
     assert(constructed.hwnd32 == 0x1234);
     assert(constructed.destination_rect.left == 1);
@@ -98,7 +98,7 @@ int main() {
     destroy_state.direct_draw7_ptr32 = 1;
     destroy_state.primary_surface_ptr32 = 2;
     destroy_state.render_surface_ptr32 = 3;
-    destroy_state.auxiliary_surface_ptr32 = 4;
+    destroy_state.unused_legacy_surface_ptr32 = 4;
     constexpr auto empty_destroy =
         destroy_plan(RetailDisplayManager32{});
     static_assert(!empty_destroy.unregister_auxiliary);
