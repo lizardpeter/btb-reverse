@@ -286,6 +286,19 @@ target_compile_features(btb_dsutil_tests PRIVATE cxx_std_26)
 add_test(NAME dsutil_layout COMMAND btb_dsutil_tests)
 
 
+add_library(btb_printing_system
+    src/printing_system.cpp
+)
+target_include_directories(btb_printing_system PUBLIC include)
+target_compile_features(btb_printing_system PUBLIC cxx_std_26)
+
+add_executable(btb_printing_system_tests
+    tests/printing_system_test.cpp
+)
+target_link_libraries(btb_printing_system_tests PRIVATE btb_printing_system)
+add_test(NAME printing_system COMMAND btb_printing_system_tests)
+
+
 add_library(btb_bink_system
     src/bink_system.cpp
 )
