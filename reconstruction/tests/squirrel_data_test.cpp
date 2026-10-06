@@ -30,23 +30,50 @@ int main() {
 
     const auto data = parse_retail_data(in);
 
-    assert((data.phase_header ==
+    static_assert(kMotionSubstepCount == 7);
+    static_assert(kVerticalMotionProfileCount == 8);
+
+    assert((data.horizontal_motion_deltas ==
         std::array<std::int32_t,7>{0,3,10,27,8,-4,-4}));
-    assert((data.phase_table[0] ==
+    assert((data.vertical_motion_deltas[0] ==
         std::array<std::int32_t,7>{0,0,1,-1,0,0,0}));
-    assert((data.phase_table[2] ==
+    assert((data.vertical_motion_deltas[2] ==
         std::array<std::int32_t,7>{0,0,1,-17,0,0,0}));
-    assert((data.phase_table[5] ==
+    assert((data.vertical_motion_deltas[5] ==
         std::array<std::int32_t,7>{0,0,19,13,0,0,0}));
-    assert((data.phase_table[7] ==
+    assert((data.vertical_motion_deltas[7] ==
         std::array<std::int32_t,7>{0,0,0,32,0,0,0}));
+
+    assert((motion_delta(
+        data, VerticalMotionProfile::Up16Arc, 2) == Vec2i{10,1}));
+    assert((motion_delta(
+        data, VerticalMotionProfile::Up16Arc, 3) == Vec2i{27,-17}));
+
+    // Every profile shares the same net +40 horizontal movement. The eight
+    // rows encode two neutral choices plus +/-16 and +/-32 vertical outcomes.
+    assert((motion_profile_net_delta(
+        data, VerticalMotionProfile::NeutralArc) == Vec2i{40,0}));
+    assert((motion_profile_net_delta(
+        data, VerticalMotionProfile::NeutralFlat) == Vec2i{40,0}));
+    assert((motion_profile_net_delta(
+        data, VerticalMotionProfile::Up16Arc) == Vec2i{40,-16}));
+    assert((motion_profile_net_delta(
+        data, VerticalMotionProfile::Up32Arc) == Vec2i{40,-32}));
+    assert((motion_profile_net_delta(
+        data, VerticalMotionProfile::Down16Arc) == Vec2i{40,16}));
+    assert((motion_profile_net_delta(
+        data, VerticalMotionProfile::Down32Arc) == Vec2i{40,32}));
+    assert((motion_profile_net_delta(
+        data, VerticalMotionProfile::Up32Direct) == Vec2i{40,-32}));
+    assert((motion_profile_net_delta(
+        data, VerticalMotionProfile::Down32Direct) == Vec2i{40,32}));
 
     assert(data.animation_step_delay == 7);
     assert((data.discarded_scalars ==
         std::array<std::int32_t,2>{105,79}));
-    assert((data.tuning_tuple ==
+    assert((data.loaded_unused_scalars ==
         std::array<std::int32_t,4>{1,2,2,3}));
-    assert(data.alignment_offset == 70);
+    assert(data.initial_horizontal_alignment_offset == 70);
 
     // Prove the retail parser stopped at exactly the original executable's
     // boundary rather than accidentally consuming the legacy coordinate tail.
