@@ -68,6 +68,31 @@ int main() {
     static_assert(kRetailMaximumScore == 45);
     static_assert(kMaximumScore == 45);
 
+    static_assert(kMovieScreenX == 20);
+    static_assert(kMovieScreenY == 20);
+    static_assert(kMovieWidth == 600);
+    static_assert(kMovieHeight == 380);
+    static_assert(kQualityOverlayX == 267);
+    static_assert(kQualityOverlayY == 415);
+
+    constexpr auto score0 = score_render_plan(0);
+    static_assert(score0.count == 1);
+    static_assert(score0.digits[0].digit == 0);
+    static_assert(score0.digits[0].x == 475);
+    static_assert(score0.digits[0].source_left == 0);
+    static_assert(score0.digits[0].source_right == 24);
+
+    constexpr auto score45 = score_render_plan(45);
+    static_assert(score45.count == 2);
+    static_assert(score45.digits[0].digit == 4);
+    static_assert(score45.digits[0].x == 450);
+    static_assert(score45.digits[0].source_left == 96);
+    static_assert(score45.digits[0].source_right == 120);
+    static_assert(score45.digits[1].digit == 5);
+    static_assert(score45.digits[1].x == 475);
+    static_assert(score45.digits[1].source_left == 120);
+    static_assert(score45.digits[1].source_right == 144);
+
     static_assert(
         sound_trigger_stunt_at_frame(
             TimingData{
@@ -159,6 +184,13 @@ int main() {
     assert(!step.start_end_movie);
     assert(perfect.phase == PlaybackPhase::SynchronizedRun);
 
+    // Reaching the actual end of the synchronized quality Binks rewinds all
+    // four streams to exact timing-file frame 44.
+    step = update_synchronized_run(
+        perfect, timing, sounds, {700, false, true});
+    assert(step.resync_quality_streams);
+    assert(step.resync_frame == 44);
+
     // Playback continues beyond 660 on pass one; frame 679 clears stunt 7
     // before the Binks eventually wrap back to frame 44.
     step = update_synchronized_run(
@@ -211,4 +243,36 @@ int main() {
     static_assert(high.sound_pool_count == 1);
     static_assert(high.sound_pools[0].first_id == 778);
     static_assert(high.sound_pools[0].count == 2);
+
+    // Phase 1 runs the result/progress branch exactly once, then keeps end.bik
+    // active until both the movie is finished and managed audio is idle.
+    RuntimeState result_state;
+    result_state.phase = PlaybackPhase::EndMovie;
+    result_state.score = 45;
+
+    auto end_step = update_end_movie_phase(
+        result_state, {false, true, true});
+    assert(end_step.result_one_shot);
+    assert(end_step.result);
+    assert(end_step.result->tier == ResultTier::High);
+    assert(end_step.stop_all_managed_sounds);
+    assert(end_step.mark_spud_skate_progress_complete);
+    assert(end_step.set_shared_completion_code_2);
+    assert(end_step.draw_or_decode_end_movie);
+    assert(!end_step.complete_activity);
+    assert(result_state.result_voice_started);
+    assert(result_state.phase == PlaybackPhase::EndMovie);
+
+    end_step = update_end_movie_phase(
+        result_state, {true, true, true});
+    assert(!end_step.result_one_shot);
+    assert(end_step.draw_or_decode_end_movie);
+    assert(!end_step.complete_activity);
+    assert(result_state.phase == PlaybackPhase::EndMovie);
+
+    end_step = update_end_movie_phase(
+        result_state, {true, false, true});
+    assert(!end_step.result_one_shot);
+    assert(end_step.complete_activity);
+    assert(result_state.phase == PlaybackPhase::Complete);
 }
