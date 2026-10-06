@@ -122,6 +122,21 @@ inline constexpr std::uint32_t kDefaultBitmapSurfaceCaps = 0x40;
 inline constexpr std::uint32_t kLargeBitmapSurfaceCaps = 0x800;
 inline constexpr std::int32_t kLargeBitmapWidthThreshold = 2000;
 
+struct BitmapFileOpenPlan {
+    std::string direct_path{};
+    std::optional<std::string> fallback_path{};
+    std::int32_t requested_width{};
+    std::int32_t requested_height{};
+    std::uint32_t load_image_flags{kLoadImageFlags};
+    bool abort_for_removed_cd_if_both_fail{true};
+};
+
+[[nodiscard]] BitmapFileOpenPlan bitmap_file_open_plan(
+    std::string_view filename,
+    std::int32_t requested_width,
+    std::int32_t requested_height,
+    std::int32_t drive_index);
+
 struct BitmapLoadSurfacePlan {
     std::uint32_t initial_caps{};
     std::uint32_t retry_caps{kLargeBitmapSurfaceCaps};
@@ -138,5 +153,17 @@ struct BitmapLoadSurfacePlan {
         true,
     };
 }
+
+struct BitmapLoadLifecycle {
+    bool get_bitmap_object_info{true};
+    std::int32_t bitmap_object_info_bytes{24};
+    std::uint32_t surface_descriptor_size{0x7C};
+    std::uint32_t surface_descriptor_flags{0x07};
+    bool copy_bitmap_to_surface_after_create{true};
+    bool delete_hbitmap_after_success{true};
+    bool retail_leaks_hbitmap_if_both_surface_creates_fail{true};
+};
+
+inline constexpr BitmapLoadLifecycle kBitmapLoadLifecycle{};
 
 } // namespace btb::bitmap_registry
