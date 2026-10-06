@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <istream>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -25,8 +26,25 @@ struct LevelData {
         return piece_permutation.size();
     }
 
-    [[nodiscard]] const Vec2i* runtime_animation_anchor() const noexcept {
+    // Dino initialization consumes only the first coordinate pair after the
+    // two N-sized target/start blocks. It becomes the dormant special-render
+    // anchor at globals 0x004FC400/0x004FC404.
+    [[nodiscard]] const Vec2i* special_render_anchor() const noexcept {
         return extra_positions.empty() ? nullptr : &extra_positions.front();
+    }
+
+    // Kept as a compatibility alias for the earlier reconstruction name.
+    [[nodiscard]] const Vec2i* runtime_animation_anchor() const noexcept {
+        return special_render_anchor();
+    }
+
+    // Exhaustive Dino-module xrefs show no reader for any later extra pair.
+    [[nodiscard]] std::span<const Vec2i> legacy_unused_tail() const noexcept {
+        return extra_positions.size() <= 1
+            ? std::span<const Vec2i>{}
+            : std::span<const Vec2i>{
+                  extra_positions.data() + 1,
+                  extra_positions.size() - 1};
     }
 };
 
