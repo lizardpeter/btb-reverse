@@ -219,6 +219,13 @@ inline constexpr std::int32_t kDeleteWallMaxYExclusive = 401;
     return true;
 }
 
+struct ToolbarRect {
+    std::int32_t left{};
+    std::int32_t top{};
+    std::int32_t right{};
+    std::int32_t bottom{};
+};
+
 struct EditorHitRegion {
     ToolbarRect rect{};
     std::int32_t action{-1};
@@ -341,13 +348,6 @@ struct WallDrawPosition {
             static_cast<std::int32_t>(pitch_row) * kWallRowHeight,
     };
 }
-
-struct ToolbarRect {
-    std::int32_t left{};
-    std::int32_t top{};
-    std::int32_t right{};
-    std::int32_t bottom{};
-};
 
 inline constexpr std::array<ToolbarRect,4> kToolbarRects{{
     {324,416,378,472}, // Play
