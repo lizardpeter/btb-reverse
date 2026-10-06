@@ -38,10 +38,10 @@ The following offsets are directly supported by access patterns in the executabl
 | `+0x140` | `int32_t[80]` | sound ID assigned to each active slot |
 | `+0x280` | byte table | reverse map: sound ID -> active slot; `0xFF` means unloaded |
 | `+0x6CC` | byte table | per-sound enable/availability flags |
-| `+0xB18` | `int32_t[80]` | priority/age value used for eviction |
+| `+0xB18` | `int32_t[80]` | managed-sound priority; lower values are evicted first when finished |
 | `+0xC58` | `int32_t[80]` | slot lifecycle/playback state |
-| `+0xD98` | `int32_t[80]` | special lifetime/control flag; participates in frame-state stop policy |
-| `+0xED8` | `int32_t[80]` | additional per-slot mode/flag |
+| `+0xD98` | `int32_t[80]` | input-interruptible flag; value 1 allows shared input pulses to stop/rewind the sound |
+| `+0xED8` | `int32_t[80]` | cross-sound arbitration class |
 | `+0x1018` | fixed string records | sound filename catalog; record stride `0x14` |
 | `+0x6608` | dword table | numeric catalog metadata / sound IDs |
 
@@ -71,9 +71,29 @@ Marks a slot stopped, calls the group-wide DirectSound stop helper, and rewinds 
 
 ### `0x00402CF0 PlayManagedSoundById`
 
-High-level managed playback entry. It handles existing/reused slots and falls through to the acquire/load path when the sound is not resident.
+High-level managed playback entry. Its retail signature is semantically:
 
-The exact argument semantics are still being refined; the first argument is the sound ID, while the remaining arguments include priority/playback policy.
+```text
+PlayManagedSoundById(sound_id, priority, arbitration_class)
+```
+
+The three arguments are now closed.
+
+- **sound_id** indexes the 1100-entry WAV catalog.
+- **priority** is stored at slot offset `+0xB18`. When all 80 slots are occupied, finished slots with the numerically lowest priority below 101 are selected for eviction first.
+- **arbitration_class** is stored at `+0xED8` and controls cross-sound admission/preemption before the requested sound starts.
+
+The exact arbitration classes used by retail are:
+
+| Value | Meaning |
+|---:|---|
+| 0 | no cross-sound arbitration scan |
+| 1 | exclusive blocker once playing |
+| 2 | preemptible managed voice/effect |
+
+For an incoming class greater than zero, retail scans all currently playing managed slots. If it encounters an existing class-1 sound, the **incoming request is rejected immediately**. If it encounters an existing class-2 sound, incoming class 1 or 2 stops/rewinds that existing slot before the scan continues. Incoming values above 2 do not preempt a class-2 slot.
+
+If the requested sound is already mapped and actively playing, retail returns status 2 without restarting it. Otherwise it acquires/loads or restarts the mapped slot and returns status 1.
 
 ### `0x00402E10 AcquireAndPlaySound`
 
@@ -91,9 +111,22 @@ This explains why the game can refer to voice/effect assets by compact integer I
 
 ### `0x00402F60 ReapFinishedSounds`
 
-Scans slots in lifecycle state 2. When a slot should be retired from active
-playback, retail calls `StopSoundSlot`, which stops/rewinds its buffer group and
-moves the slot to lifecycle state 3.
+Scans slots in lifecycle state 2. The field at `+0xD98` is now proven to be
+an **input-interruptible flag**, not a persistence flag.
+
+For every active slot retail applies this exact rule:
+
+```text
+if input_interruptible &&
+   (shared_input_pulse_A || shared_input_pulse_B):
+    StopSoundSlot(slot)
+else if DirectSound group is no longer playing:
+    StopSoundSlot(slot)
+```
+
+So a flagged spoken/UI sound still stops normally when its WAV ends; the flag
+only adds the ability for shared user input to interrupt it immediately.
+`StopSoundSlot` stops and rewinds the group and moves lifecycle state 2 -> 3.
 
 It does **not** free the slot or destroy the buffer group at this point.
 Actual release occurs later through explicit release, cache eviction, or
@@ -110,7 +143,7 @@ The lower-level helpers line up directly with the `IDirectSoundBuffer` vtable.
 | `0x00404470` | `RewindAllBuffersInGroup` | calls vtable `+0x34` = `SetCurrentPosition(0)` |
 | `0x004044B0` | `IsAnyBufferPlaying` | calls vtable `+0x24` = `GetStatus` and tests `DSBSTATUS_PLAYING` |
 
-The remaining high-value function here is `0x00403D20`, which constructs/loads the actual DirectSound buffer group from a WAV path. That is the next boundary to type in detail.
+`0x00403D20` is now closed as the DirectSound/WAV buffer-group constructor described below.
 
 
 ## WAV / DirectSound utility layer
@@ -199,10 +232,10 @@ Therefore the exact retail object is:
 | `0x140` | 80 x int32 sound IDs |
 | `0x280` | 1100 x int8 sound-ID -> slot reverse map |
 | `0x6CC` | 1100 x uint8 sound-enabled/availability flags |
-| `0xB18` | 80 x int32 priority/age values |
+| `0xB18` | 80 x int32 priority values |
 | `0xC58` | 80 x int32 slot lifecycle states |
-| `0xD98` | 80 x int32 persistence flags |
-| `0xED8` | 80 x int32 playback-policy values |
+| `0xD98` | 80 x int32 input-interruptible flags |
+| `0xED8` | 80 x int32 arbitration classes |
 | `0x1018` | 1100 x 20-byte filename records |
 | `0x6608` | 1100 x int32 catalog metadata |
 | `0x7738` | exact end of object |
@@ -236,7 +269,7 @@ algorithm:
 5. ask whether each slot's currently assigned sound ID is still playing;
 6. ignore playing slots;
 7. among non-playing slots, choose the one with the numerically lowest
-   `priority_or_age` value below the current threshold;
+   `priority` value below the current threshold;
 8. if a candidate was found, release that slot and reuse it;
 9. if no candidate was found, return `-1`.
 
@@ -249,7 +282,7 @@ After a slot is selected, retail installs:
 - `slot_by_sound_id[sound_id] = slot`
 - `priority_or_age[slot] = priority_argument`
 - `special_lifetime_flag[slot] = 0`
-- `playback_policy[slot] = policy_argument`
+- `playback_policy[slot] = arbitration_class_argument`
 
 It then resolves the 20-byte catalog filename at:
 
