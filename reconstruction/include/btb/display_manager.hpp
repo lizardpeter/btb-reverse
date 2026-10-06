@@ -27,7 +27,7 @@ struct RetailDisplayManager32 {
     std::uint32_t hwnd32{};                    // +0x14
     RetailRect32 destination_rect{};           // +0x18
     std::int32_t windowed{};                   // +0x28
-    std::int32_t reserved_2c{};                // +0x2C
+    std::int32_t unused_retail_2c{};           // +0x2C; allocated but never read/written by retail
 
     [[nodiscard]] constexpr bool is_windowed() const noexcept {
         return windowed != 0;
@@ -50,7 +50,7 @@ static_assert(offsetof(RetailDisplayManager32, auxiliary_surface_ptr32) == 0x10)
 static_assert(offsetof(RetailDisplayManager32, hwnd32) == 0x14);
 static_assert(offsetof(RetailDisplayManager32, destination_rect) == 0x18);
 static_assert(offsetof(RetailDisplayManager32, windowed) == 0x28);
-static_assert(offsetof(RetailDisplayManager32, reserved_2c) == 0x2C);
+static_assert(offsetof(RetailDisplayManager32, unused_retail_2c) == 0x2C);
 static_assert(sizeof(RetailDisplayManager32) == 0x30);
 
 inline constexpr std::int32_t kRetailWidth = 640;
