@@ -275,4 +275,62 @@ int main() {
     assert(!end_step.result_one_shot);
     assert(end_step.complete_activity);
     assert(result_state.phase == PlaybackPhase::Complete);
+
+    static_assert(kSpudSkateMusicIndex == 8);
+    static_assert(kSpudSkateStartupSoundId == 758);
+    static_assert(kSpudChooserOuterState == 0x16);
+    static_assert(kPlayAgainOuterState == 0x3C);
+    static_assert(kSharedMovieTransitionOuterState == 0x40);
+
+    RuntimeState active_runtime;
+    auto outer = update_outer_activity(
+        active_runtime, {false, false, false, true, 401});
+    assert(!outer.return_abort);
+    assert(outer.block_shared_frontend_input);
+    assert(outer.call_playback);
+    assert(outer.clear_startup_audio_pending);
+    assert(outer.play_startup_music);
+    assert(outer.startup_music_index == 8);
+    assert(outer.startup_sound_id && *outer.startup_sound_id == 758);
+    assert(outer.unload_path == SpudSkateUnloadPath::None);
+
+    // Retail leave path uses the Maze unloader, clears the shared leave flag,
+    // and routes to the Spud chooser.
+    outer = update_outer_activity(
+        active_runtime, {false, true, false, false, 0});
+    assert(outer.return_abort);
+    assert(outer.clear_leave_activity_request);
+    assert(
+        outer.unload_path ==
+        SpudSkateUnloadPath::RetailMazeResourcesBug);
+    assert(outer.outer_state && *outer.outer_state == 0x16);
+
+    // A shared completion/movie code overrides the chooser route to state 0x40.
+    outer = update_outer_activity(
+        active_runtime, {false, true, true, false, 0});
+    assert(outer.outer_state && *outer.outer_state == 0x40);
+
+    // Application quit uses the same incorrect Maze cleanup but does not set a
+    // new outer state unless the shared completion/movie code is present.
+    outer = update_outer_activity(
+        active_runtime, {true, false, false, false, 0});
+    assert(outer.return_abort);
+    assert(
+        outer.unload_path ==
+        SpudSkateUnloadPath::RetailMazeResourcesBug);
+    assert(!outer.outer_state);
+
+    RuntimeState complete_runtime;
+    complete_runtime.phase = PlaybackPhase::Complete;
+    outer = update_outer_activity(
+        complete_runtime, {false, false, false, false, 0});
+    assert(!outer.return_abort);
+    assert(outer.run_play_again_transition);
+    assert(
+        outer.unload_path ==
+        SpudSkateUnloadPath::SpudSkateResources);
+    assert(outer.outer_state && *outer.outer_state == 0x3C);
+    assert(outer.saved_frontend_state && *outer.saved_frontend_state == 0x16);
+    assert(outer.next_ui_context && *outer.next_ui_context == 0x1A);
+    assert(outer.clear_shared_transition_flag);
 }
