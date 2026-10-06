@@ -139,6 +139,34 @@ int main() {
     static_assert(kLoadImageFlags == 0x2010);
     static_assert(kLargeBitmapWidthThreshold == 2000);
 
+    const auto file_plan = bitmap_file_open_plan(
+        "Data\\SubGameOpen\\music_01.bmp", 0, 0, 4);
+    assert(file_plan.direct_path ==
+           "Data\\SubGameOpen\\music_01.bmp");
+    assert(file_plan.fallback_path);
+    assert(*file_plan.fallback_path ==
+           "e:\\Data\\SubGameOpen\\music_01.bmp");
+    assert(file_plan.requested_width == 0);
+    assert(file_plan.requested_height == 0);
+    assert(file_plan.load_image_flags == 0x2010);
+    assert(file_plan.abort_for_removed_cd_if_both_fail);
+
+    const auto no_cd = bitmap_file_open_plan(
+        "Data\\x.bmp", 32, 64, -1);
+    assert(!no_cd.fallback_path);
+    assert(no_cd.requested_width == 32);
+    assert(no_cd.requested_height == 64);
+
+    static_assert(kBitmapLoadLifecycle.get_bitmap_object_info);
+    static_assert(kBitmapLoadLifecycle.bitmap_object_info_bytes == 24);
+    static_assert(kBitmapLoadLifecycle.surface_descriptor_size == 0x7C);
+    static_assert(kBitmapLoadLifecycle.surface_descriptor_flags == 0x07);
+    static_assert(
+        kBitmapLoadLifecycle.copy_bitmap_to_surface_after_create);
+    static_assert(kBitmapLoadLifecycle.delete_hbitmap_after_success);
+    static_assert(
+        kBitmapLoadLifecycle.retail_leaks_hbitmap_if_both_surface_creates_fail);
+
     constexpr auto normal_surface =
         bitmap_surface_plan(640);
     static_assert(normal_surface.initial_caps == 0x40);
