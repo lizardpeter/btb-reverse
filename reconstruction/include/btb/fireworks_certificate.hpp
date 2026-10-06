@@ -22,8 +22,8 @@ inline constexpr std::int32_t kCertificatePrintHoverSoundId = 143; // CT_BOB_02
 inline constexpr std::int32_t kCertificateRandomVoiceFirst = 144; // CT_BOB_03
 inline constexpr std::int32_t kCertificateRandomVoiceCount = 8;
 inline constexpr std::int32_t kCertificateVoicePriority = 50;
-inline constexpr std::int32_t kCertificateHoverPlaybackFlag = 2;
-inline constexpr std::int32_t kCertificateRandomPlaybackFlag = 0;
+inline constexpr std::int32_t kCertificateHoverArbitrationClass = 2;
+inline constexpr std::int32_t kCertificateRandomArbitrationClass = 0;
 
 [[nodiscard]] constexpr std::int32_t certificate_random_voice_sound_id(
     std::int32_t random_mod_8) noexcept {
@@ -71,7 +71,7 @@ struct CertificateInteractionOutput {
     bool stop_all_managed_sounds{};
     std::optional<std::int32_t> sound_id{};
     std::int32_t sound_priority{};
-    std::int32_t sound_playback_flag{};
+    std::int32_t sound_arbitration_class{};
 };
 
 // Exact control-flow model of 0x004138A0 after the certificate/name/badge draw.
@@ -105,7 +105,7 @@ update_certificate_interaction(
             output.action = CertificateActionKind::PlayHoverVoice;
             output.sound_id = kCertificatePrintHoverSoundId;
             output.sound_priority = kCertificateVoicePriority;
-            output.sound_playback_flag = kCertificateHoverPlaybackFlag;
+            output.sound_arbitration_class = kCertificateHoverArbitrationClass;
         }
         return output;
     }
@@ -136,7 +136,7 @@ update_certificate_interaction(
     output.action = CertificateActionKind::PlayRandomVoice;
     output.sound_id = played;
     output.sound_priority = kCertificateVoicePriority;
-    output.sound_playback_flag = kCertificateRandomPlaybackFlag;
+    output.sound_arbitration_class = kCertificateRandomArbitrationClass;
     return output;
 }
 
