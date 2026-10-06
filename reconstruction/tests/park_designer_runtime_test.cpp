@@ -5,6 +5,62 @@
 using namespace btb::park_designer;
 
 int main() {
+    static_assert(kFountainFrameWidth == 152);
+    static_assert(kFountainFramesPerVariant == 13);
+    static_assert(kFountainLoopFirstFrame == 8);
+    static_assert(kFountainLoopEndExclusive == 13);
+    static_assert(kFountainCountdownReset == 9);
+
+    RetailObjectRecord32 fountain{};
+    fountain.object_code = 7;
+    fountain.bound_variant = 2;
+    fountain.visual_frame_or_segment = 4;
+    fountain.fountain_phase = 0;
+    fountain.fountain_frame_countdown = 1;
+    std::int32_t linked_primary_frame = 0;
+
+    auto fountain_step =
+        update_fountain_animation(fountain, linked_primary_frame);
+    assert(fountain_step.frame_advanced);
+    assert(!fountain_step.entered_loop_phase);
+    assert(fountain.visual_frame_or_segment == 5);
+    assert(fountain.fountain_frame_countdown == 9);
+    assert(linked_primary_frame == 1);
+
+    fountain.visual_frame_or_segment = 7;
+    fountain.fountain_phase = 0;
+    fountain.fountain_frame_countdown = 1;
+    linked_primary_frame = 2;
+    fountain_step =
+        update_fountain_animation(fountain, linked_primary_frame);
+    assert(fountain_step.frame_advanced);
+    assert(fountain_step.entered_loop_phase);
+    assert(fountain.fountain_phase == 1);
+    assert(fountain.visual_frame_or_segment == 8);
+    // Phase-0 frame >=5 advances once, then the retail phase-transition branch
+    // raises a linked primary value below 4 once more.
+    assert(linked_primary_frame == 4);
+
+    fountain.visual_frame_or_segment = 12;
+    fountain.fountain_phase = 1;
+    fountain.fountain_frame_countdown = 1;
+    fountain_step =
+        update_fountain_animation(fountain, linked_primary_frame);
+    assert(fountain_step.frame_advanced);
+    assert(fountain.visual_frame_or_segment == 8);
+    assert(fountain.fountain_phase == 1);
+    assert(fountain.fountain_frame_countdown == 9);
+
+    fountain.bound_variant = 2;
+    fountain.visual_frame_or_segment = 8;
+    constexpr auto expected_left =
+        (2 * kFountainFramesPerVariant + 8) * kFountainFrameWidth;
+    const auto source = fountain_source_rect(fountain);
+    assert(source.left == expected_left);
+    assert(source.top == 0);
+    assert(source.right == expected_left + 152);
+    assert(source.bottom == 152);
+
     auto step = completion_step(0, false, 0);
     assert(step.stage == 1);
     assert(step.action == CompletionAction::PlayClosingLine);
