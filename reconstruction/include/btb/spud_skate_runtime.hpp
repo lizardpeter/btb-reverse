@@ -108,26 +108,46 @@ struct PlaybackFrameStep {
     return std::nullopt;
 }
 
+struct ResultSoundPool {
+    std::int32_t first_id{};
+    std::int32_t count{};
+};
+
 struct ResultPresentation {
     ResultTier tier{ResultTier::Low};
-    std::int32_t random_sound_first{};
-    std::int32_t random_sound_count{};
+    std::array<ResultSoundPool, 2> sound_pools{};
+    std::size_t sound_pool_count{};
     bool mark_spud_skate_complete{true};
 };
 
-// The one-shot result branch uses score <10 / <20 / >=20 and the exact
-// SS2_SPU_16..22 pools already exposed by result_sound_id().
+// Exact one-shot result branch. The score<10 branch has no jump after playing
+// SS2_SPU_16/17, so it deliberately falls through and also plays one of
+// SS2_SPU_18..20 before recording completion. Medium scores play only that
+// second pool; high scores play SS2_SPU_21/22.
 [[nodiscard]] constexpr ResultPresentation result_presentation(
     std::int32_t score) noexcept {
-    switch (result_tier(score)) {
-        case ResultTier::Low:
-            return {ResultTier::Low, 773, 2, true};
-        case ResultTier::Medium:
-            return {ResultTier::Medium, 775, 3, true};
-        case ResultTier::High:
-            return {ResultTier::High, 778, 2, true};
+    if (score < 10) {
+        return {
+            ResultTier::Low,
+            {{{773, 2}, {775, 3}}},
+            2,
+            true,
+        };
     }
-    return {};
+    if (score < 20) {
+        return {
+            ResultTier::Medium,
+            {{{775, 3}, {0, 0}}},
+            1,
+            true,
+        };
+    }
+    return {
+        ResultTier::High,
+        {{{778, 2}, {0, 0}}},
+        1,
+        true,
+    };
 }
 
 } // namespace btb::spud_skate
