@@ -5,6 +5,54 @@
 using namespace btb::squirrel;
 
 int main() {
+    static_assert(kMotionKeyCount == 14);
+    static_assert(kFirstMotionPhaseSubsteps == 3);
+    static_assert(kSecondMotionPhaseFirstSubstep == 3);
+    static_assert(kVerticalProfileByMotionKey[0] == 0);
+    static_assert(kVerticalProfileByMotionKey[2] == 3);
+    static_assert(kVerticalProfileByMotionKey[4] == 5);
+    static_assert(kVerticalProfileByMotionKey[6] == 4);
+    static_assert(kVerticalProfileByMotionKey[8] == 2);
+    static_assert(kVerticalProfileByMotionKey[12] == 1);
+
+    static_assert(
+        vertical_profile_for_motion_key(0) ==
+        VerticalMotionProfile::NeutralArc);
+    static_assert(
+        vertical_profile_for_motion_key(2) ==
+        VerticalMotionProfile::Up32Arc);
+    static_assert(
+        vertical_profile_for_motion_key(4) ==
+        VerticalMotionProfile::Down32Arc);
+    static_assert(
+        vertical_profile_for_motion_key(6) ==
+        VerticalMotionProfile::Down16Arc);
+    static_assert(
+        vertical_profile_for_motion_key(8) ==
+        VerticalMotionProfile::Up16Arc);
+    static_assert(
+        vertical_profile_for_motion_key(12) ==
+        VerticalMotionProfile::NeutralFlat);
+    static_assert(!vertical_profile_for_motion_key(-1).has_value());
+    static_assert(!vertical_profile_for_motion_key(14).has_value());
+
+    static_assert(
+        loaded_profile_is_live(VerticalMotionProfile::NeutralArc));
+    static_assert(
+        loaded_profile_is_live(VerticalMotionProfile::NeutralFlat));
+    static_assert(
+        loaded_profile_is_live(VerticalMotionProfile::Up16Arc));
+    static_assert(
+        loaded_profile_is_live(VerticalMotionProfile::Up32Arc));
+    static_assert(
+        loaded_profile_is_live(VerticalMotionProfile::Down16Arc));
+    static_assert(
+        loaded_profile_is_live(VerticalMotionProfile::Down32Arc));
+    static_assert(
+        !loaded_profile_is_live(VerticalMotionProfile::Up32Direct));
+    static_assert(
+        !loaded_profile_is_live(VerticalMotionProfile::Down32Direct));
+
     static_assert(static_cast<int>(PlacementState::IdleSelect) == 0);
     static_assert(static_cast<int>(PlacementState::ReturnDecoyToConveyor) == 8);
 
