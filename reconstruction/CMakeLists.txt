@@ -212,6 +212,7 @@ add_test(NAME squirrel_runtime COMMAND btb_squirrel_runtime_tests)
 add_library(btb_grand_opening
     src/grand_opening_data.cpp
     src/grand_opening_sequence.cpp
+    src/grand_opening_runtime.cpp
 )
 target_include_directories(btb_grand_opening PUBLIC include)
 target_compile_features(btb_grand_opening PUBLIC cxx_std_26)
@@ -227,6 +228,12 @@ add_executable(btb_grand_opening_sequence_tests
 )
 target_link_libraries(btb_grand_opening_sequence_tests PRIVATE btb_grand_opening)
 add_test(NAME grand_opening_sequence COMMAND btb_grand_opening_sequence_tests)
+
+add_executable(btb_grand_opening_runtime_tests
+    tests/grand_opening_runtime_test.cpp
+)
+target_link_libraries(btb_grand_opening_runtime_tests PRIVATE btb_grand_opening)
+add_test(NAME grand_opening_runtime COMMAND btb_grand_opening_runtime_tests)
 
 
 add_library(btb_player_progress
