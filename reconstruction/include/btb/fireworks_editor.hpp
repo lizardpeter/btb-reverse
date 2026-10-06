@@ -389,6 +389,62 @@ struct PlacementActorTickResult {
 inline constexpr std::int32_t kPreviewX = 199;
 inline constexpr std::int32_t kPreviewY = 39;
 
+enum class EditorRenderKind {
+    Background,
+    Firework,
+    Actor,
+    MiddleOverlay,
+    BottomOverlay,
+};
+
+struct EditorDrawCommand {
+    EditorRenderKind kind{EditorRenderKind::Background};
+    std::int32_t x{};
+    std::int32_t y{};
+    bool color_keyed{};
+    std::optional<FireworkType> firework_type{};
+    std::optional<PlacementActorChannel> actor{};
+    std::optional<ActorSourceRect> source_rect{};
+};
+
+inline constexpr std::int32_t kEditorMiddleX = 205;
+inline constexpr std::int32_t kEditorMiddleY = 104;
+inline constexpr std::int32_t kEditorBottomX = 37;
+inline constexpr std::int32_t kEditorBottomY = 284;
+inline constexpr std::int32_t kGridBitmapYOffset = -30;
+inline constexpr std::int32_t kBottomRowBitmapXOffset = 4;
+inline constexpr std::int32_t kBottomRowBitmapYOffset = 7;
+
+struct EditorFrameResult {
+    ActorMouseTrackingStep actor_tracking{};
+    std::array<PlacementActorTickResult, 2> placement_ticks{};
+    std::array<DormantMotionStep, 2> dormant_motion{};
+    std::vector<EditorDrawCommand> draw_commands{};
+};
+
+// Full source-level ordering of 0x00412E50 DrawFireworksEditor.
+//
+// Retail composition order is:
+//   1. Bk_01e.bmp background
+//   2. grid row 0, then grid row 2
+//   3. update Bob/Wendy mouse-follow animation
+//   4. Wendy sprite
+//   5. middle.bmp at (205,104)
+//   6. Bob sprite
+//   7. bottom.bmp at (37,284)
+//   8. post-draw actor states 10/11/12
+//   9. grid row 1
+//
+// Because state-11 commits happen at step 8, a center-row placement may become
+// visible in step 9 of the same frame, while row-0/2 placements wait until the
+// next frame.
+[[nodiscard]] EditorFrameResult run_retail_editor_frame(
+    EditorRuntimeState& state,
+    Sequence& sequence,
+    const LayoutData& layout,
+    std::int32_t mouse_x,
+    std::int32_t mouse_y);
+
 struct PreviewRuntime {
     FireworkType type{FireworkType::RedAirbomb};
     std::int32_t playback_state0{};
