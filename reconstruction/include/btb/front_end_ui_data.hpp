@@ -75,21 +75,37 @@ struct ReplacementScreen {
     const ReplacementRecord& record,
     std::int32_t selected_index) noexcept {
 
-    if (selected_index < 0) {
+    const auto count = available_hover_sound_count(record);
+    if (selected_index < 0 || selected_index >= count ||
+        selected_index >= static_cast<std::int32_t>(
+            record.hover_sound_ids.size())) {
         return -1;
     }
 
-    std::int32_t current = 0;
-    for (const auto id : record.hover_sound_ids) {
-        if (id == -1) {
-            continue;
-        }
-        if (current == selected_index) {
-            return id;
-        }
-        ++current;
+    // Retail counts non--1 slots at load time but does not compact them. The
+    // chosen rand()%count value is later used as a direct array index. Shipped
+    // data therefore relies on all -1 sentinels being trailing entries.
+    return record.hover_sound_ids[
+        static_cast<std::size_t>(selected_index)];
+}
+
+[[nodiscard]] constexpr std::int32_t choose_hover_sound_index(
+    const ReplacementRecord& record,
+    std::int32_t random_value) noexcept {
+
+    const auto count = available_hover_sound_count(record);
+    if (count <= 0) {
+        return -1;
     }
-    return -1;
+    if (count == 1) {
+        return 0;
+    }
+
+    auto value = random_value % count;
+    if (value < 0) {
+        value += count;
+    }
+    return value;
 }
 
 } // namespace btb::front_end
