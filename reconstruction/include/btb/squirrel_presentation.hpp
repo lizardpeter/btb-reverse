@@ -183,15 +183,31 @@ inline constexpr std::int32_t kArmSwingFrameHeight = 192;
     };
 }
 
-inline constexpr std::int32_t kRunPieceFrameWidth = 90;
-inline constexpr std::int32_t kRunPieceFrameHeight = 134;
+inline constexpr std::int32_t kRunPieceFrameWidth = 89;
+inline constexpr std::int32_t kRunPieceFrameHeight = 133;
 
-[[nodiscard]] constexpr SourceRect run_piece_source_rect(
+// Exact 0x00425980 source-cell layout. Both all.bmp and allconveyor.bmp store
+// the 36 pieces connector-pair-major, so retail first transposes the normal
+// outer-major piece ID and then uses 89-pixel horizontal cells.
+[[nodiscard]] constexpr std::int32_t run_piece_sheet_index(
     std::int32_t piece_id) noexcept {
-    return {
-        piece_id * kRunPieceFrameWidth,
+    if (piece_id < 0 || piece_id >= 36) {
+        return -1;
+    }
+    return piece_id / 9 + 4 * (piece_id % 9);
+}
+
+[[nodiscard]] constexpr std::optional<SourceRect> run_piece_source_rect(
+    std::int32_t piece_id) noexcept {
+    const auto index = run_piece_sheet_index(piece_id);
+    if (index < 0) {
+        return std::nullopt;
+    }
+    const auto left = index * kRunPieceFrameWidth;
+    return SourceRect{
+        left,
         0,
-        (piece_id + 1) * kRunPieceFrameWidth,
+        left + kRunPieceFrameWidth,
         kRunPieceFrameHeight,
     };
 }
