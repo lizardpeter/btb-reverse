@@ -66,6 +66,85 @@ int main() {
     assert(idle_anim.source_row == 0);
     assert(idle_anim.frame_tick == 0);
 
+    static_assert(kBobFollowPath[0].x == 0);
+    static_assert(kBobFollowPath[1].x == 240);
+    static_assert(kBobFollowPath[1].y == 296);
+    static_assert(kBobFollowPath[3].x == 640);
+    static_assert(kWendyFollowPath[1].x == 300);
+    static_assert(kWendyFollowPath[2].x == 500);
+    static_assert(kWendyFollowPath[0].y == 128);
+
+    // With no palette latch, mouse Y >160 makes Bob track and Wendy idle.
+    // At mouse X 324 Bob's 128-pixel sprite is exactly centered, so both
+    // actors remain standing and advance their idle frame timers.
+    EditorRuntimeState mouse_follow;
+    auto follow = update_actor_mouse_tracking(
+        mouse_follow, 324, 200);
+    assert(follow.idle_actor == PlacementActorChannel::Wendy);
+    assert(follow.tracking_actor == PlacementActorChannel::Bob);
+    assert(follow.split_y == 160);
+    assert(follow.clamped_mouse_x == 324);
+    assert(follow.interpolated_path_y == 168);
+    assert(follow.standing);
+    assert(!follow.moved_left && !follow.moved_right);
+    assert(mouse_follow.actor_visuals[0].x == 260);
+    assert(mouse_follow.actor_visuals[0].y == 168);
+    assert(mouse_follow.actor_visuals[0].frame_tick == 1);
+    assert(mouse_follow.actor_visuals[1].frame_tick == 1);
+
+    // Bob's left path rises from center Y 177 to 296. At X=100 his center is
+    // 164, which truncates to top-left Y=130. Moving right uses direction
+    // column 1+2=3 and advances by exactly one pixel.
+    EditorRuntimeState bob_curve;
+    bob_curve.actor_visuals[0].x = 100;
+    follow = update_actor_mouse_tracking(bob_curve, 575, 200);
+    assert(follow.tracking_actor == PlacementActorChannel::Bob);
+    assert(follow.interpolated_path_y == 130);
+    assert(follow.vertical_direction_code == 1);
+    assert(follow.moved_right);
+    assert(bob_curve.actor_visuals[0].x == 101);
+    assert(bob_curve.actor_visuals[0].source_column == 3);
+    assert(bob_curve.actor_follow_threshold_bias == 25);
+
+    // Once tracking starts, the 25 bias tightens the standing threshold from
+    // 30 pixels to 5. A 20-pixel center error therefore keeps Bob moving.
+    EditorRuntimeState hysteresis;
+    hysteresis.actor_follow_threshold_bias = 25;
+    follow = update_actor_mouse_tracking(hysteresis, 304, 200);
+    assert(!follow.standing);
+    assert(follow.moved_left);
+    assert(hysteresis.actor_visuals[0].x == 259);
+    assert(hysteresis.actor_visuals[0].source_column == 6);
+
+    // Wendy's path is flat at center Y=128, so her sprite top remains Y=0.
+    EditorRuntimeState wendy_follow;
+    follow = update_actor_mouse_tracking(wendy_follow, 500, 100);
+    assert(follow.idle_actor == PlacementActorChannel::Bob);
+    assert(follow.tracking_actor == PlacementActorChannel::Wendy);
+    assert(follow.interpolated_path_y == 0);
+    assert(follow.vertical_direction_code == 0);
+    assert(follow.moved_right);
+    assert(wendy_follow.actor_visuals[1].x == 261);
+    assert(wendy_follow.actor_visuals[1].source_column == 2);
+
+    // Any state-1 palette latch changes the vertical actor-selection split to
+    // 35, so the same Y=100 now chooses Bob rather than Wendy to track.
+    EditorRuntimeState palette_split;
+    palette_split.actor_states[1] = PlacementActorState::PaletteLatched;
+    follow = update_actor_mouse_tracking(palette_split, 324, 100);
+    assert(follow.split_y == 35);
+    assert(follow.tracking_actor == PlacementActorChannel::Bob);
+
+    // Walking animation jumps from the idle rows into row 13 on its first
+    // six-tick advancement and then cycles through 13..24.
+    EditorRuntimeState walking_rows;
+    walking_rows.actor_visuals[0].x = 100;
+    walking_rows.actor_visuals[0].source_row = 8;
+    walking_rows.actor_visuals[0].frame_tick = 5;
+    follow = update_actor_mouse_tracking(walking_rows, 575, 200);
+    assert(walking_rows.actor_visuals[0].source_row == 13);
+    assert(walking_rows.actor_visuals[0].frame_tick == 0);
+
     // Dormant retail state 12 is fully decoded even though no writer enters it.
     EditorRuntimeState dormant;
     dormant.actor_states[0] = PlacementActorState::DormantLegacyMotion;
