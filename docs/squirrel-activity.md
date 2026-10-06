@@ -106,6 +106,56 @@ profile:  0 0 3 3 5 5 4 4 2 2  0  0  1  1
 Consequently profiles 6 and 7 are genuine authored/loaded legacy rows but have
 no live selector key in this executable build.
 
+### Exact motion-key selector
+
+The previously opaque selector at `0x004259D0` is now source-level too.
+
+Retail constructs **four 36-entry constant tables** on its stack. Piece IDs use
+the already-recovered encoding:
+
+```text
+piece_id = outer_variant*9 + from_connector*3 + to_connector
+```
+
+For most selector branches the function first transposes that ID into
+connector-major order:
+
+```text
+lookup_index =
+    (piece_id / 9)
+  + 4 * (piece_id % 9)
+```
+
+Thus the four outer variants become adjacent for each of the nine connector
+pairs.
+
+Connector values 0, 1, and 2 have special lookup indices:
+
+```text
+connector 0 -> index 0
+connector 1 -> index 16
+connector 2 -> index 33
+```
+
+The current run-section value is transformed by the retail decrement sequence
+into placed-piece slots:
+
+```text
+section:      1 2 3 4 5 6
+piece slot:   0 1 1 1 2 2
+```
+
+Section 0 uses the starting connector directly. Sections 1..6 then mix the
+transposed placed-piece index and one of the run-plan connector indices in the
+exact asymmetric pattern encoded by `select_run_assembly_motion_keys`.
+A retained default branch for section 7+ indexes all four tables by the raw
+piece ID rather than its transposed form.
+
+The resulting four motion keys are written to globals
+`0x514EE0..0x514EEC`. The four 36-entry tables are preserved verbatim in
+`ghidra/squirrel_motion_key_lookups.csv` and in the C++26 constants
+`kMotionKeyLookupA..D`.
+
 The C++ model now names these as `horizontal_motion_deltas`,
 `vertical_motion_deltas`, `VerticalMotionProfile`, and
 `vertical_profile_for_motion_key`. The machine-readable evidence is in
