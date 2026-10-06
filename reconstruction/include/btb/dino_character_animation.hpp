@@ -96,12 +96,12 @@ private:
     return 170 + roll;
 }
 
-[[nodiscard]] constexpr std::int32_t intro_sound_id(std::int32_t difficulty) noexcept {
-    return 185 + difficulty;
+[[nodiscard]] constexpr std::int32_t intro_sound_id(std::int32_t species) noexcept {
+    return 188 + species;
 }
 
-[[nodiscard]] constexpr std::int32_t completion_sound_id(std::int32_t difficulty) noexcept {
-    return 188 + difficulty;
+[[nodiscard]] constexpr std::int32_t completion_sound_id(std::int32_t species) noexcept {
+    return 185 + species;
 }
 
 } // namespace btb::dino
