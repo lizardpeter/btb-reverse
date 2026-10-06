@@ -231,6 +231,93 @@ When the confirmed-clear flag is observed by the outer update, retail fills all 
 
 Delete toggles the delete cursor/tool. Clicking an event removes the entire owning event, including a two-second continuation cell.
 
+### Exact editor action behavior
+
+The editor-side state machine is now source-level too.
+
+Palette actions **0..9** are the ten machine/duration bricks. From state 0,
+selecting a palette brick:
+
+- cancels Delete mode if active;
+- installs that brick cursor;
+- sets activity state **1 / MachineSelected**;
+- previews the brick's direct machine WAV;
+- maps type/2 to Roley/Muck/Lofty/Dizzy/Scoop and, only if that machine's
+  animation state is idle, writes **1 for short** or **2 for long**.
+
+While already in state 1, clicking the same palette type toggles selection off
+and returns to state 0. Clicking a different type changes the held brick and
+previews its WAV but does **not** kick the machine animation again.
+
+Wall action **11** has two distinct retail paths:
+
+- state 0: clicking an occupied cell removes the complete owning event,
+  including continuation cells. With Delete off, the removed brick becomes the
+  newly held cursor/type and state changes to 1. With Delete on, the event is
+  deleted in place and a one-frame delete-interaction latch is raised.
+- state 1: an empty cell attempts to place the held brick and returns to state
+  0 on success. Clicking an occupied event start removes it, tries to put the
+  held brick in that cell, and if successful swaps the removed brick into the
+  cursor. If the replacement cannot fit, retail restores the removed event and
+  keeps the original held brick. A continuation value 10 is **not**
+  owner-resolved on this state-1 path; placement is attempted directly into the
+  occupied continuation cell and therefore fails.
+
+There is also a small original-code oddity around machine type **9 /
+Scoop2Second**: on the replacement-failure restore path retail scans left over
+preceding values >=9 before choosing the restore column. The reconstruction
+preserves that address-level behavior rather than normalizing it away.
+
+### Exact toolbar geometry and voices
+
+The four bottom buttons use strict interior rectangle tests:
+
+| Control | Rectangle |
+|---|---|
+| Play | (324,416)-(378,472) |
+| Stop | (260,416)-(314,472) |
+| Clear All | (103,416)-(157,472) |
+| Delete | (481,416)-(535,472) |
+
+Their conductor-specific managed voice base is:
+
+| Conductor | Base ID | WAV family |
+|---|---:|---|
+| Bob | 510 | MP_BOB_01..13 |
+| Wendy | 523 | MP_WEN_01..13 |
+| Farmer Pickles | 536 | MP_PIC_01..13 |
+
+First hover over a control after another/no control plays
+`base + control_index + 6` at priority 50, flag 2.
+
+Click behavior is exact:
+
+- **Play**: edit state only, Delete off. Stops all managed sounds, sets a
+  play-pending latch, and plays `base+1` at priority 50, flag 1. Retail does
+  **not** enter state 8 immediately; a later toolbar update waits until managed
+  audio is idle, clears the latch, then enters state **8 / PreparePlayback**.
+- **Stop**: state 9 only, Delete off. Stops the backing track, returns to state
+  0, and plays `base+3+rand()%2`.
+- **Clear All**: edit state only, Delete off. Opens
+  `data\\ui\\Deletebricks.bmp` with shared Yes/No context **2**. A
+  nonzero confirmation result at the top of the activity update fills all 120
+  grid cells with -1.
+- **Delete**: edit state only. Entering installs the delete cursor and plays
+  `base+9+rand()%2`; clicking Delete again restores the normal cursor and
+  clears Delete mode.
+
+Because hover processing runs before click dispatch, the first clicked frame
+over a control can legitimately start **both** its hover voice and its action
+voice. The reconstruction exposes them separately.
+
+Delete mode itself is limited to the wall area. After editor input, if no
+deletion occurred that frame and mouse Y is outside the strict
+**290..400** band, retail clears Delete mode and restores the normal cursor. A
+successful deletion raises a one-frame latch that suppresses this auto-cancel
+once; the latch is then cleared.
+
+Machine-readable details are in `ghidra/bobs_band_editor_actions.csv`.
+
 ## Playback
 
 ### `0x0041FC90 PlayAndDrawGrandOpeningComposition`
