@@ -43,7 +43,7 @@ address,name,confidence,notes
 0x004044B0,CSound_IsSoundPlaying,high,"DSUtil CSound::IsSoundPlaying: GetStatus across all buffers and ORs DSBSTATUS_PLAYING"
 0x004069C0,LoadCreditsSlideshow,high,"Parses loaddata\\credits.txt and loads up to ten timed credit bitmap surfaces"
 0x00406AD0,UpdateCreditsSlideshow,high,"Advances timed credit images and releases them when the slideshow completes"
-0x0042A2C0,RunMainGameFlow,high,"Central 68-state high-level dispatcher keyed by global game-flow state at 0x0044DE14"
+0x0042A2C0,RunMainGameFlow,high,"Exact central controller: shutdown/credits, Options, Progress, Yes/No, Quit, Leave, Play-Again and legacy intercept precedence; global-Bink modes13/14 restore/advance flow; then bounds-checks 0x44DE14 and jumps through 68-state table 0x42CD6C"
 0x00419600,InitializeHerdingActivity,high,"Builds Herding entity table/resources; creates only types 0,1,2,3,7,12..16/17, uses fixed pair #3 as Pickles start, and maps herd.txt groups to navigation polygon, Scruffty patrol, animal exclusion polygon, and recovery target"
 0x004182B0,UpdateHerdingActivity,high,"Main Pets Corner update: group-0 Pickles/navigation validation, Scruffty group-1 patrol, animal AI, free-roam boundary recovery toward group-3 point (92,324), completion and shared controls"
 0x0040A670,InitializeDinoActivity,high,"Dinosaur activity initializer; references Dino asset/difficulty tables"
