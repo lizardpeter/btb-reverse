@@ -346,6 +346,72 @@ int main() {
         }
     }
 
+    // Exact 132-region editor hit table.
+    static_assert(kEditorHitRegionCount == 132);
+    static_assert(kWallHitRegionCount == 120);
+    static_assert(kPaletteHitRegionCount == 10);
+    static_assert(kSpecialHitRegionCount == 2);
+
+    constexpr auto first_wall = kEditorHitRegions[0];
+    static_assert(first_wall.action == kWallAction);
+    static_assert(first_wall.rect.left == 44);
+    static_assert(first_wall.rect.top == 310);
+    static_assert(first_wall.rect.right == 67);
+    static_assert(first_wall.rect.bottom == 329);
+
+    constexpr auto last_wall = kEditorHitRegions[119];
+    static_assert(last_wall.action == kWallAction);
+    static_assert(last_wall.rect.left == 573);
+    static_assert(last_wall.rect.top == 386);
+    static_assert(last_wall.rect.right == 596);
+    static_assert(last_wall.rect.bottom == 405);
+
+    static_assert(kEditorHitRegions[120].action == 0);
+    static_assert(kEditorHitRegions[120].rect.left == 232);
+    static_assert(kEditorHitRegions[129].action == 9);
+    static_assert(kEditorHitRegions[129].rect.left == 447);
+    static_assert(kEditorHitRegions[130].action == 22);
+    static_assert(kEditorHitRegions[130].rect.left == 251);
+    static_assert(kEditorHitRegions[131].action == 23);
+    static_assert(kEditorHitRegions[131].rect.left == 340);
+
+    constexpr auto wall_pos = composition_cell_draw_position(4, 23);
+    static_assert(wall_pos.x == 573);
+    static_assert(wall_pos.y == 386);
+
+    // Normal editor states use +5/+5 for the hit test. Pointer (40,306)
+    // becomes (45,311), strictly inside the first wall cell.
+    constexpr auto hit_wall =
+        hit_test_editor_regions(ActivityState::Edit, 40, 306);
+    static_assert(hit_wall.action == 11);
+    static_assert(hit_wall.region_index == 0);
+    static_assert(hit_wall.adjusted_x == 45);
+    static_assert(hit_wall.adjusted_y == 311);
+
+    // State 1 uses +10/+10 instead. This point resolves palette action 0.
+    constexpr auto hit_palette =
+        hit_test_editor_regions(
+            ActivityState::MachineSelected, 223, 275);
+    static_assert(hit_palette.action == 0);
+    static_assert(hit_palette.region_index == 120);
+    static_assert(hit_palette.adjusted_x == 233);
+    static_assert(hit_palette.adjusted_y == 285);
+
+    // Strict bounds reject exact edges after hotspot adjustment.
+    constexpr auto edge_region =
+        hit_test_editor_regions(ActivityState::Edit, 39, 305);
+    static_assert(edge_region.action == -1);
+
+    constexpr auto secondary_stop =
+        hit_test_editor_regions(ActivityState::Playing, 247, 411);
+    static_assert(secondary_stop.action == 22);
+    static_assert(secondary_stop.region_index == 130);
+
+    constexpr auto legacy_play =
+        hit_test_editor_regions(ActivityState::Edit, 336, 411);
+    static_assert(legacy_play.action == 23);
+    static_assert(legacy_play.region_index == 131);
+
     // Exact conductor-specific toolbar voice bases.
     static_assert(conductor_voice_base(Conductor::Bob) == 510);
     static_assert(conductor_voice_base(Conductor::Wendy) == 523);
