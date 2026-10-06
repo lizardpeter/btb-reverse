@@ -43,203 +43,6 @@ vertical_profile_for_motion_key(std::int32_t key) noexcept {
     return false;
 }
 
-enum class RunAssemblyAnimationState : std::int32_t {
-    Idle = 0,
-    FirstThreeSubsteps = 1,
-    TransitionToSecondPhase = 2,
-    LastFourSubsteps = 3,
-    SecondFirstThreeSubsteps = 4,
-    RetainedTransition = 5,
-    SecondLastFourSubsteps = 6,
-};
-
-struct RunAssemblyAnimationRuntime {
-    RunAssemblyAnimationState state{RunAssemblyAnimationState::Idle};
-    std::int32_t run_section{1};
-    std::int32_t delay_remaining{};
-    std::int32_t substep{};
-    std::int32_t x{};
-    std::int32_t y{};
-    std::int32_t sprite_mode{};
-    std::int32_t sprite_frame{};
-    RunAssemblyMotionKeys motion_keys{};
-};
-
-struct RunAssemblyAnimationTick {
-    bool applied_motion{};
-    Vec2i delta{};
-    std::optional<VerticalMotionProfile> profile{};
-    std::int32_t absolute_motion_substep{-1};
-    bool entered_transient_state_2{};
-    bool cycle_completed{};
-};
-
-constexpr void begin_run_assembly_animation(
-    RunAssemblyAnimationRuntime& runtime,
-    const Data& data,
-    RunAssemblyMotionKeys keys) noexcept {
-
-    runtime.state = RunAssemblyAnimationState::FirstThreeSubsteps;
-    runtime.delay_remaining = data.animation_step_delay;
-    runtime.substep = 0;
-    runtime.sprite_mode = 0;
-    runtime.sprite_frame = 0;
-    runtime.motion_keys = keys;
-}
-
-// Exact positional state machine inside 0x00425F40. Motion is applied once,
-// when delay_remaining equals the loaded delay. Each substep is then held while
-// the delay counts down. Phase boundaries deliberately fall through and apply
-// the next phase's first motion delta on the same update that ends the previous
-// phase.
-[[nodiscard]] constexpr RunAssemblyAnimationTick
-tick_run_assembly_animation(
-    RunAssemblyAnimationRuntime& runtime,
-    const Data& data) noexcept {
-
-    RunAssemblyAnimationTick result;
-
-    auto apply = [&](std::int32_t key, std::int32_t absolute_substep)
-        constexpr {
-        const auto profile = vertical_profile_for_motion_key(key);
-        if (!profile ||
-            absolute_substep < 0 ||
-            absolute_substep >=
-                static_cast<std::int32_t>(kMotionSubstepCount)) {
-            return;
-        }
-
-        const auto delta = motion_delta(
-            data,
-            *profile,
-            static_cast<std::size_t>(absolute_substep));
-        runtime.x += delta.x;
-        runtime.y += delta.y;
-
-        result.applied_motion = true;
-        result.delta = delta;
-        result.profile = profile;
-        result.absolute_motion_substep = absolute_substep;
-    };
-
-    // Retail state 2 exists only as an in-function transition. If entered
-    // externally, it normalizes to state 3 and immediately starts substep 3.
-    if (runtime.state ==
-        RunAssemblyAnimationState::TransitionToSecondPhase) {
-        result.entered_transient_state_2 = true;
-        runtime.state = RunAssemblyAnimationState::LastFourSubsteps;
-        runtime.delay_remaining = data.animation_step_delay;
-        runtime.substep = 0;
-        runtime.sprite_frame = 3;
-    }
-
-    // State 5 is similarly a retained bridge into state 6.
-    if (runtime.state ==
-        RunAssemblyAnimationState::RetainedTransition) {
-        runtime.state =
-            RunAssemblyAnimationState::SecondLastFourSubsteps;
-        runtime.delay_remaining = data.animation_step_delay;
-        runtime.substep = 0;
-        runtime.sprite_frame = 3;
-    }
-
-    while (true) {
-        std::int32_t key = -1;
-        std::int32_t absolute_substep = -1;
-        std::int32_t phase_length = 0;
-
-        switch (runtime.state) {
-        case RunAssemblyAnimationState::FirstThreeSubsteps:
-            key = runtime.motion_keys.a;
-            absolute_substep = runtime.substep;
-            phase_length = 3;
-            break;
-
-        case RunAssemblyAnimationState::LastFourSubsteps:
-            key = runtime.motion_keys.b;
-            absolute_substep = runtime.substep + 3;
-            phase_length = 4;
-            runtime.sprite_mode = 1;
-            break;
-
-        case RunAssemblyAnimationState::SecondFirstThreeSubsteps:
-            key = runtime.motion_keys.c;
-            absolute_substep = runtime.substep;
-            phase_length = 3;
-            break;
-
-        case RunAssemblyAnimationState::SecondLastFourSubsteps:
-            key = runtime.motion_keys.d;
-            absolute_substep = runtime.substep + 3;
-            phase_length = 4;
-            runtime.sprite_mode = 3;
-            break;
-
-        case RunAssemblyAnimationState::Idle:
-        case RunAssemblyAnimationState::TransitionToSecondPhase:
-        case RunAssemblyAnimationState::RetainedTransition:
-            return result;
-        }
-
-        if (runtime.delay_remaining == data.animation_step_delay) {
-            apply(key, absolute_substep);
-        }
-
-        --runtime.delay_remaining;
-        if (runtime.delay_remaining > 0) {
-            return result;
-        }
-
-        runtime.delay_remaining = data.animation_step_delay;
-        ++runtime.substep;
-
-        if (runtime.substep < phase_length) {
-            return result;
-        }
-
-        switch (runtime.state) {
-        case RunAssemblyAnimationState::FirstThreeSubsteps:
-            // Retail briefly writes state 2, immediately calls its transition
-            // helper, then continues as state 3 in this same update.
-            result.entered_transient_state_2 = true;
-            runtime.state =
-                RunAssemblyAnimationState::LastFourSubsteps;
-            runtime.substep = 0;
-            runtime.sprite_frame = 3;
-            continue;
-
-        case RunAssemblyAnimationState::LastFourSubsteps:
-            runtime.state =
-                RunAssemblyAnimationState::SecondFirstThreeSubsteps;
-            runtime.substep = 0;
-            runtime.sprite_mode = 2;
-            runtime.sprite_frame = 0;
-            continue;
-
-        case RunAssemblyAnimationState::SecondFirstThreeSubsteps:
-            runtime.state =
-                RunAssemblyAnimationState::SecondLastFourSubsteps;
-            runtime.substep = 0;
-            runtime.sprite_frame = 3;
-            continue;
-
-        case RunAssemblyAnimationState::SecondLastFourSubsteps:
-            // The binary increments to substep 4, then decrements it back to 3
-            // while returning to state 0 and advancing the run section.
-            runtime.substep = 3;
-            runtime.state = RunAssemblyAnimationState::Idle;
-            ++runtime.run_section;
-            result.cycle_completed = true;
-            return result;
-
-        case RunAssemblyAnimationState::Idle:
-        case RunAssemblyAnimationState::TransitionToSecondPhase:
-        case RunAssemblyAnimationState::RetainedTransition:
-            return result;
-        }
-    }
-}
-
 enum class PlacementState : std::int32_t {
     IdleSelect = 0,
     MoveToSelectedCorrect = 1,
@@ -475,6 +278,203 @@ select_run_assembly_motion_keys(
         other_index,
         placed_slot,
     };
+}
+
+enum class RunAssemblyAnimationState : std::int32_t {
+    Idle = 0,
+    FirstThreeSubsteps = 1,
+    TransitionToSecondPhase = 2,
+    LastFourSubsteps = 3,
+    SecondFirstThreeSubsteps = 4,
+    RetainedTransition = 5,
+    SecondLastFourSubsteps = 6,
+};
+
+struct RunAssemblyAnimationRuntime {
+    RunAssemblyAnimationState state{RunAssemblyAnimationState::Idle};
+    std::int32_t run_section{1};
+    std::int32_t delay_remaining{};
+    std::int32_t substep{};
+    std::int32_t x{};
+    std::int32_t y{};
+    std::int32_t sprite_mode{};
+    std::int32_t sprite_frame{};
+    RunAssemblyMotionKeys motion_keys{};
+};
+
+struct RunAssemblyAnimationTick {
+    bool applied_motion{};
+    Vec2i delta{};
+    std::optional<VerticalMotionProfile> profile{};
+    std::int32_t absolute_motion_substep{-1};
+    bool entered_transient_state_2{};
+    bool cycle_completed{};
+};
+
+constexpr void begin_run_assembly_animation(
+    RunAssemblyAnimationRuntime& runtime,
+    const Data& data,
+    RunAssemblyMotionKeys keys) noexcept {
+
+    runtime.state = RunAssemblyAnimationState::FirstThreeSubsteps;
+    runtime.delay_remaining = data.animation_step_delay;
+    runtime.substep = 0;
+    runtime.sprite_mode = 0;
+    runtime.sprite_frame = 0;
+    runtime.motion_keys = keys;
+}
+
+// Exact positional state machine inside 0x00425F40. Motion is applied once,
+// when delay_remaining equals the loaded delay. Each substep is then held while
+// the delay counts down. Phase boundaries deliberately fall through and apply
+// the next phase's first motion delta on the same update that ends the previous
+// phase.
+[[nodiscard]] constexpr RunAssemblyAnimationTick
+tick_run_assembly_animation(
+    RunAssemblyAnimationRuntime& runtime,
+    const Data& data) noexcept {
+
+    RunAssemblyAnimationTick result;
+
+    auto apply = [&](std::int32_t key, std::int32_t absolute_substep)
+        constexpr {
+        const auto profile = vertical_profile_for_motion_key(key);
+        if (!profile ||
+            absolute_substep < 0 ||
+            absolute_substep >=
+                static_cast<std::int32_t>(kMotionSubstepCount)) {
+            return;
+        }
+
+        const auto delta = motion_delta(
+            data,
+            *profile,
+            static_cast<std::size_t>(absolute_substep));
+        runtime.x += delta.x;
+        runtime.y += delta.y;
+
+        result.applied_motion = true;
+        result.delta = delta;
+        result.profile = profile;
+        result.absolute_motion_substep = absolute_substep;
+    };
+
+    // Retail state 2 exists only as an in-function transition. If entered
+    // externally, it normalizes to state 3 and immediately starts substep 3.
+    if (runtime.state ==
+        RunAssemblyAnimationState::TransitionToSecondPhase) {
+        result.entered_transient_state_2 = true;
+        runtime.state = RunAssemblyAnimationState::LastFourSubsteps;
+        runtime.delay_remaining = data.animation_step_delay;
+        runtime.substep = 0;
+        runtime.sprite_frame = 3;
+    }
+
+    // State 5 is similarly a retained bridge into state 6.
+    if (runtime.state ==
+        RunAssemblyAnimationState::RetainedTransition) {
+        runtime.state =
+            RunAssemblyAnimationState::SecondLastFourSubsteps;
+        runtime.delay_remaining = data.animation_step_delay;
+        runtime.substep = 0;
+        runtime.sprite_frame = 3;
+    }
+
+    while (true) {
+        std::int32_t key = -1;
+        std::int32_t absolute_substep = -1;
+        std::int32_t phase_length = 0;
+
+        switch (runtime.state) {
+        case RunAssemblyAnimationState::FirstThreeSubsteps:
+            key = runtime.motion_keys.a;
+            absolute_substep = runtime.substep;
+            phase_length = 3;
+            break;
+
+        case RunAssemblyAnimationState::LastFourSubsteps:
+            key = runtime.motion_keys.b;
+            absolute_substep = runtime.substep + 3;
+            phase_length = 4;
+            runtime.sprite_mode = 1;
+            break;
+
+        case RunAssemblyAnimationState::SecondFirstThreeSubsteps:
+            key = runtime.motion_keys.c;
+            absolute_substep = runtime.substep;
+            phase_length = 3;
+            break;
+
+        case RunAssemblyAnimationState::SecondLastFourSubsteps:
+            key = runtime.motion_keys.d;
+            absolute_substep = runtime.substep + 3;
+            phase_length = 4;
+            runtime.sprite_mode = 3;
+            break;
+
+        case RunAssemblyAnimationState::Idle:
+        case RunAssemblyAnimationState::TransitionToSecondPhase:
+        case RunAssemblyAnimationState::RetainedTransition:
+            return result;
+        }
+
+        if (runtime.delay_remaining == data.animation_step_delay) {
+            apply(key, absolute_substep);
+        }
+
+        --runtime.delay_remaining;
+        if (runtime.delay_remaining > 0) {
+            return result;
+        }
+
+        runtime.delay_remaining = data.animation_step_delay;
+        ++runtime.substep;
+
+        if (runtime.substep < phase_length) {
+            return result;
+        }
+
+        switch (runtime.state) {
+        case RunAssemblyAnimationState::FirstThreeSubsteps:
+            // Retail briefly writes state 2, immediately calls its transition
+            // helper, then continues as state 3 in this same update.
+            result.entered_transient_state_2 = true;
+            runtime.state =
+                RunAssemblyAnimationState::LastFourSubsteps;
+            runtime.substep = 0;
+            runtime.sprite_frame = 3;
+            continue;
+
+        case RunAssemblyAnimationState::LastFourSubsteps:
+            runtime.state =
+                RunAssemblyAnimationState::SecondFirstThreeSubsteps;
+            runtime.substep = 0;
+            runtime.sprite_mode = 2;
+            runtime.sprite_frame = 0;
+            continue;
+
+        case RunAssemblyAnimationState::SecondFirstThreeSubsteps:
+            runtime.state =
+                RunAssemblyAnimationState::SecondLastFourSubsteps;
+            runtime.substep = 0;
+            runtime.sprite_frame = 3;
+            continue;
+
+        case RunAssemblyAnimationState::SecondLastFourSubsteps:
+            // The binary increments to substep 4, then decrements it back to 3
+            // while returning to state 0 and advancing the run section.
+            runtime.substep = 3;
+            runtime.state = RunAssemblyAnimationState::Idle;
+            ++runtime.run_section;
+            result.cycle_completed = true;
+            return result;
+
+        case RunAssemblyAnimationState::Idle:
+        case RunAssemblyAnimationState::TransitionToSecondPhase:
+        case RunAssemblyAnimationState::RetainedTransition:
+            return result;
+        }
+    }
 }
 
 [[nodiscard]] constexpr RunPlan chain_run_plan(
