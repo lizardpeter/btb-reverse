@@ -46,14 +46,14 @@ main_ui_screen---start_game
     assert(screens[0].raw_header == "main_ui_screen---start_game");
     assert(screens[0].areas.size() == 2);
     assert(screens[0].areas[0].polygon.size() == 4);
-    assert(screens[0].areas[0].polygon[0] == Point{295,416});
-    assert(screens[0].areas[0].polygon[3] == Point{295,466});
+    assert((screens[0].areas[0].polygon[0] == Point{295,416}));
+    assert((screens[0].areas[0].polygon[3] == Point{295,466}));
     assert(screens[0].areas[0].separator_label == "start_game");
     assert(screens[0].areas[1].separator_label == "quit_game");
 
     assert(screens[1].raw_header == "game_select_screen---pets_corner");
     assert(screens[1].areas.size() == 1);
-    assert(screens[1].areas[0].polygon[0] == Point{385,170});
+    assert((screens[1].areas[0].polygon[0] == Point{385,170}));
     // Retail source omits the optional action token on the final -1 row.
     assert(screens[1].areas[0].separator_label.empty());
 
