@@ -311,6 +311,28 @@ int main() {
            static_cast<int>(MachineType::Scoop2Second));
     assert(continuation_grid.cells[4][3] == kContinuationCell);
 
+    // Delete mode is scoped to the wall's strict Y band 290..400.
+    EditorRuntimeState delete_lifetime;
+    delete_lifetime.delete_mode = true;
+    delete_lifetime.cursor = {EditorCursorKind::Delete, std::nullopt};
+    assert(!maintain_delete_mode_after_input(delete_lifetime, 300));
+    assert(delete_lifetime.delete_mode);
+
+    assert(maintain_delete_mode_after_input(delete_lifetime, 401));
+    assert(!delete_lifetime.delete_mode);
+    assert(delete_lifetime.cursor.kind == EditorCursorKind::Normal);
+
+    // A successful deletion sets a one-frame latch that suppresses the
+    // outside-wall auto-cancel once, then is consumed.
+    delete_lifetime.delete_mode = true;
+    delete_lifetime.delete_interaction_latch = true;
+    delete_lifetime.cursor = {EditorCursorKind::Delete, std::nullopt};
+    assert(!maintain_delete_mode_after_input(delete_lifetime, 417));
+    assert(delete_lifetime.delete_mode);
+    assert(!delete_lifetime.delete_interaction_latch);
+    assert(maintain_delete_mode_after_input(delete_lifetime, 417));
+    assert(!delete_lifetime.delete_mode);
+
     // Clear-All confirmation is the top-of-update 120-cell reset.
     Composition clear_grid;
     assert(place_event(
