@@ -40,7 +40,7 @@ namespace {
 
     std::string tail;
     std::getline(row, tail);
-    const auto first = tail.find_first_not_of(" 	");
+    const auto first = tail.find_first_not_of(" \t\r");
     if (first == std::string::npos) {
         return {};
     }
@@ -69,7 +69,7 @@ std::vector<HotAreaScreen> parse_hot_areas(std::istream& in) {
 
     std::string line;
     while (std::getline(in, line)) {
-        if (!line.empty() && line.back() == '') {
+        if (!line.empty() && line.back() == '\r') {
             line.pop_back();
         }
         if (!line.empty()) {
@@ -85,7 +85,7 @@ std::vector<HotAreaScreen> parse_hot_areas(std::istream& in) {
     HotArea current_area;
 
     while (std::getline(in, line)) {
-        if (!line.empty() && line.back() == '') {
+        if (!line.empty() && line.back() == '\r') {
             line.pop_back();
         }
         if (line.empty()) {
@@ -121,7 +121,7 @@ std::vector<HotAreaScreen> parse_hot_areas(std::istream& in) {
                 // line-oriented reconstruction accepts the canonical source
                 // representation directly.
                 while (std::getline(in, header)) {
-                    if (!header.empty() && header.back() == '') {
+                    if (!header.empty() && header.back() == '\r') {
                         header.pop_back();
                     }
                     if (!header.empty()) {
