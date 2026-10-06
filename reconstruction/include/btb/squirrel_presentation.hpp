@@ -1,7 +1,5 @@
 #pragma once
 
-#include "btb/dino_runtime.hpp"
-
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -9,7 +7,13 @@
 
 namespace btb::squirrel {
 
-using Recti = btb::dino::Recti;
+struct SourceRect {
+    std::int32_t left{};
+    std::int32_t top{};
+    std::int32_t right{};
+    std::int32_t bottom{};
+    friend bool operator==(const SourceRect&, const SourceRect&) = default;
+};
 
 enum class SceneSurface {
     LevelBackground,
@@ -87,7 +91,7 @@ inline constexpr std::int32_t kConveyorFrameHeight = 44;
 inline constexpr std::int32_t kConveyorDestX = 0;
 inline constexpr std::int32_t kConveyorDestY = 417;
 
-[[nodiscard]] constexpr Recti conveyor_source_rect(
+[[nodiscard]] constexpr SourceRect conveyor_source_rect(
     std::int32_t frame) noexcept {
     return {
         frame * kConveyorFrameWidth,
@@ -104,7 +108,7 @@ inline constexpr std::int32_t kLoftyMovesDestY = 0;
 
 // LOFTYmoves8bit.bmp is three vertical 321-pixel bands. Retail animation
 // frames 0..20 use band 0, 21..40 use band 1, and 41..59 use band 2.
-[[nodiscard]] constexpr std::optional<Recti> lofty_moves_source_rect(
+[[nodiscard]] constexpr std::optional<SourceRect> lofty_moves_source_rect(
     std::int32_t frame) noexcept {
 
     if (frame < 0 || frame >= 60) {
@@ -125,7 +129,7 @@ inline constexpr std::int32_t kLoftyMovesDestY = 0;
         band = 2;
     }
 
-    return Recti{
+    return SourceRect{
         local_frame * kLoftyMovesFrameWidth,
         band * kLoftyMovesBandHeight,
         (local_frame + 1) * kLoftyMovesFrameWidth,
@@ -149,7 +153,7 @@ inline constexpr std::int32_t kMouthFrameHeight = 47;
 inline constexpr std::int32_t kArmSwingFrameWidth = 219;
 inline constexpr std::int32_t kArmSwingFrameHeight = 192;
 
-[[nodiscard]] constexpr Recti eyes_source_rect(
+[[nodiscard]] constexpr SourceRect eyes_source_rect(
     std::int32_t frame) noexcept {
     return {
         frame * kEyesFrameWidth,
@@ -159,7 +163,7 @@ inline constexpr std::int32_t kArmSwingFrameHeight = 192;
     };
 }
 
-[[nodiscard]] constexpr Recti mouth_source_rect(
+[[nodiscard]] constexpr SourceRect mouth_source_rect(
     std::int32_t frame) noexcept {
     return {
         frame * kMouthFrameWidth,
@@ -169,7 +173,7 @@ inline constexpr std::int32_t kArmSwingFrameHeight = 192;
     };
 }
 
-[[nodiscard]] constexpr Recti arm_swing_source_rect(
+[[nodiscard]] constexpr SourceRect arm_swing_source_rect(
     std::int32_t frame) noexcept {
     return {
         frame * kArmSwingFrameWidth,
@@ -182,7 +186,7 @@ inline constexpr std::int32_t kArmSwingFrameHeight = 192;
 inline constexpr std::int32_t kRunPieceFrameWidth = 90;
 inline constexpr std::int32_t kRunPieceFrameHeight = 134;
 
-[[nodiscard]] constexpr Recti run_piece_source_rect(
+[[nodiscard]] constexpr SourceRect run_piece_source_rect(
     std::int32_t piece_id) noexcept {
     return {
         piece_id * kRunPieceFrameWidth,
