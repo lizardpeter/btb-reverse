@@ -315,6 +315,40 @@ During Bob's Band playback, the conductor uses the separate verified ranges
 The exact renderer constants are also retained in
 `ghidra/bobs_band_visual_geometry.csv`.
 
+
+### Source-level frame compositor
+
+The reconstruction now models the complete retail frame ordering rather than
+only the individual geometry helpers:
+
+1. opaque `music_01.bmp` at (0,0);
+2. all event-start brick surfaces, row-major across the 5x24 wall;
+3. machine sprites in the exact reverse machine overlap order:
+   **Scoop -> Dizzy -> Lofty -> Muck -> Roley**;
+4. the selected conductor sheet;
+5. color-keyed `toolbar.bmp` at (0,0).
+
+The reverse machine order comes directly from the retail loop walking machine
+state globals backward. It is therefore visually significant: later machines
+in the list above can cover earlier ones where their destination rectangles
+overlap.
+
+The initializer proves the surface ownership:
+
+- `0x00513F1C` = `Data\\SubGameOpen\\music_01.bmp`, with no source color key;
+- `0x00513F20` = `Data\\SubGameOpen\\toolbar.bmp`, with magenta
+  `0x00FF00FF` source color key;
+- `0x005125A8` = the selected conductor sheet:
+  `BOBINSTAND.bmp`, `wendyINSTAND.bmp`, or `picklesINSTAND.bmp`.
+
+The machine sheets and event-brick surfaces are also source-color-keyed.
+Animation state is advanced before the corresponding machine/conductor blit,
+matching the instruction ordering in `0x0041F090`.
+
+The typed implementation is `compose_editor_frame` in
+`grand_opening_runtime.cpp`. The machine-readable layer map is
+`ghidra/bobs_band_surface_layers.csv`.
+
 ## Toolbar
 
 ### `0x0041F820 UpdateGrandOpeningToolbar`
