@@ -321,3 +321,11 @@ add_executable(btb_front_end_ui_data_tests
 )
 target_link_libraries(btb_front_end_ui_data_tests PRIVATE btb_front_end_ui_data)
 add_test(NAME front_end_ui_data COMMAND btb_front_end_ui_data_tests)
+
+
+add_executable(btb_front_end_ui_runtime_tests
+    tests/front_end_ui_runtime_test.cpp
+)
+target_include_directories(btb_front_end_ui_runtime_tests PRIVATE include)
+target_compile_features(btb_front_end_ui_runtime_tests PRIVATE cxx_std_26)
+add_test(NAME front_end_ui_runtime COMMAND btb_front_end_ui_runtime_tests)
