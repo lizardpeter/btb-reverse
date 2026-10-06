@@ -328,6 +328,21 @@ The four bottom controls are:
 | 2 | Clear All |
 | 3 | Delete |
 
+Their retail hover/pressed overlays are:
+
+| Control | Hover | Pressed | Blit origin |
+|---|---|---|---:|
+| Play | `mpplayred.bmp` | `mpplaydep.bmp` | (324,416) |
+| Stop | `mpstopred.bmp` | `mpstopdep.bmp` | (260,416) |
+| Clear All | `mpclearallred.bmp` | `mpclearalldep.bmp` | (103,416) |
+| Delete | `mpdeletered.bmp` | `mpdeletedep.bmp` | (481,416) |
+
+All are color-keyed overlays. State 9 also performs the separate action-22
+hit test and, whenever that region is active, draws the same Stop-hover
+`mpstopred.bmp` surface at **(260,416)**. A click through this secondary path
+stops/resets the backing track and returns to editor state 0. Action 23 is
+present in the hit table but is ignored by this state-9 secondary path.
+
 ### Play
 
 Play leaves edit mode and enters activity state 8, then state 9.
