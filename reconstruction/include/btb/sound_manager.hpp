@@ -201,4 +201,95 @@ constexpr void install_acquired_slot_metadata(
     manager.arbitration_class[slot] = arbitration_class;
 }
 
+struct ConstructorPlan {
+    std::int32_t initial_priority{101};
+    std::int32_t initial_sound_id{-1};
+    std::int32_t initial_slot_state{0};
+    std::int32_t initial_arbitration_class{-1};
+    std::int8_t initial_reverse_map{-1};
+    std::uint8_t initial_sound_enabled{1};
+};
+
+inline constexpr ConstructorPlan kConstructorPlan{};
+
+constexpr void initialize_retail_metadata(
+    RetailSoundManager32& manager) noexcept {
+
+    for (std::size_t i = 0; i < kManagedSlotCount; ++i) {
+        manager.buffer_group_ptr32[i] = 0;
+        manager.sound_id_by_slot[i] = -1;
+        manager.priority[i] = 101;
+        manager.slot_state[i] = 0;
+        manager.arbitration_class[i] = -1;
+    }
+
+    for (std::size_t i = 0; i < kSoundCatalogCount; ++i) {
+        manager.slot_by_sound_id[i] = -1;
+        manager.sound_enabled[i] = 1;
+    }
+}
+
+struct StopSlotResult {
+    bool stop_group{};
+    bool rewind_group{};
+};
+
+[[nodiscard]] constexpr StopSlotResult stop_slot_metadata(
+    RetailSoundManager32& manager,
+    std::size_t slot) noexcept {
+    manager.slot_state[slot] =
+        static_cast<std::int32_t>(SlotState::Stopped);
+    return {true,true};
+}
+
+struct ReapResult {
+    std::array<std::int32_t,kManagedSlotCount> stopped_slots{};
+    std::size_t stopped_count{};
+};
+
+[[nodiscard]] ReapResult reap_finished_slots(
+    RetailSoundManager32& manager,
+    const std::array<bool,kManagedSlotCount>& slot_group_is_playing,
+    bool primary_input_pulse,
+    bool secondary_input_pulse) noexcept;
+
+struct ManagedPlayEnvironment {
+    std::array<bool,kManagedSlotCount> group_exists{};
+    std::array<bool,kManagedSlotCount> group_is_playing{};
+    bool acquired_group_load_succeeds{true};
+};
+
+struct ManagedPlayResult {
+    // Exact public return values from PlayManagedSoundById:
+    // 0 = rejected/disabled, 1 = accepted path, 2 = already state-2 active.
+    std::int32_t status{};
+    bool disabled{};
+    bool rejected_by_exclusive_blocker{};
+    bool already_active{};
+    std::int32_t slot{-1};
+    std::optional<std::int32_t> released_slot{};
+    std::array<std::int32_t,kManagedSlotCount> preempted_slots{};
+    std::size_t preempted_count{};
+    bool load_attempted{};
+    bool load_succeeded{};
+    std::int32_t low_level_play_calls{};
+    bool would_index_negative_slot{};
+    bool accepted_even_though_load_failed{};
+};
+
+// Source-level policy for 0x00402CF0 PlayManagedSoundById plus
+// 0x00402E10 AcquireAndPlaySound. COM/WAV creation is supplied through the
+// environment, while the retail metadata/arbitration/lifecycle transitions are
+// performed exactly.
+//
+// For host safety this validates the sound ID and the -1 acquisition result;
+// the shipped x86 routine has no such bounds guard and would index invalid
+// memory in those impossible/error states.
+[[nodiscard]] ManagedPlayResult play_managed_sound(
+    RetailSoundManager32& manager,
+    ManagedPlayEnvironment& environment,
+    std::int32_t sound_id,
+    std::int32_t priority,
+    std::int32_t arbitration_class) noexcept;
+
 } // namespace btb::sound
