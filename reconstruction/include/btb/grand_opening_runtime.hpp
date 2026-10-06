@@ -181,6 +181,34 @@ struct GridActionStep {
     std::size_t row,
     std::size_t second) noexcept;
 
+inline constexpr std::int32_t kDeleteWallMinYExclusive = 289;
+inline constexpr std::int32_t kDeleteWallMaxYExclusive = 401;
+
+// Exact state-0 post-input cleanup. Delete mode survives only while the pointer
+// is strictly inside Y 289..401, unless a deletion raised the one-frame latch.
+// The latch is cleared unconditionally at the end of the check.
+[[nodiscard]] inline bool maintain_delete_mode_after_input(
+    EditorRuntimeState& state,
+    std::int32_t mouse_y) noexcept {
+
+    if (!state.delete_mode) {
+        state.delete_interaction_latch = false;
+        return false;
+    }
+
+    bool cancelled = false;
+    if (!state.delete_interaction_latch &&
+        (mouse_y <= kDeleteWallMinYExclusive ||
+         mouse_y >= kDeleteWallMaxYExclusive)) {
+        state.delete_mode = false;
+        state.cursor = {};
+        cancelled = true;
+    }
+
+    state.delete_interaction_latch = false;
+    return cancelled;
+}
+
 [[nodiscard]] inline bool apply_clear_all_confirmation(
     Composition& composition,
     bool confirmed_yes) noexcept {
