@@ -193,6 +193,128 @@ It then:
 
 The source reconstruction implements this as `remove_event_at`.
 
+## Exact editor hit table
+
+`0x0041FB90 HitTestBobsBandRegions` scans exactly **132** strict-interior
+regions stored as 20-byte records.
+
+The table is built by the initializer in this order:
+
+1. **120 composition-wall cells** — 5 rows x 24 seconds, action **11**;
+2. **10 irregular machine-palette regions** — actions **0..9**;
+3. **secondary Stop region** — action **22**;
+4. **legacy Play-region record** — action **23**.
+
+The 120 wall rectangles are generated from one exact formula:
+
+```text
+left   = 44 + second * 23
+top    = 310 + pitch_row * 19
+right  = left + 23
+bottom = top + 19
+action = 11
+```
+
+This is also the exact draw origin for event-start bitmaps in
+`DrawGrandOpeningCompositionAndMachines`.
+
+The ten machine-palette rectangles are:
+
+| Type | Rect |
+|---:|---|
+| 0 | (232,284)-(274,306) |
+| 1 | (191,262)-(231,288) |
+| 2 | (286,249)-(325,273) |
+| 3 | (248,233)-(285,260) |
+| 4 | (353,221)-(387,245) |
+| 5 | (316,205)-(351,232) |
+| 6 | (411,210)-(446,231) |
+| 7 | (372,195)-(408,219) |
+| 8 | (481,194)-(512,222) |
+| 9 | (447,193)-(479,220) |
+
+The special records are:
+
+- action **22**: **(251,415)-(301,463)** — secondary Stop region, used by
+  state-9 playback and by the delete-cursor normalization path;
+- action **23**: **(340,415)-(395,463)** — present in the retail table but has
+  no state-0/state-1 editor dispatch behavior in this build.
+
+The hit test also applies a retail cursor-hotspot adjustment before checking
+rectangles:
+
+- state **1 / MachineSelected**: **+10,+10**;
+- all other states: **+5,+5**.
+
+All rectangle comparisons are strict: `x > left && x < right`,
+`y > top && y < bottom`.
+
+The complete 132-row table is retained in
+`ghidra/bobs_band_editor_regions.csv`.
+
+## Exact machine/conductor rendering
+
+### Composition wall
+
+Event-start cells 0..9 are color-key blitted at:
+
+```text
+x = 44 + 23 * second
+y = 310 + 19 * pitch_row
+```
+
+Continuation value 10 and empty value -1 are not drawn as event bitmaps.
+
+### Machine animation sheets
+
+Each of the five machines has a short and long sprite sheet. State **0** draws
+frame 0 of the short sheet. State **1** animates the short sheet; state **2**
+animates the long sheet.
+
+| Machine | Short dest | Short frame | Long dest | Long frame |
+|---|---:|---:|---:|---:|
+| Roley | (0,130) | 189x168 | (3,130) | 246x177 |
+| Muck | (86,93) | 200x162 | (86,93) | 222x177 |
+| Lofty | (225,2) | 165x238 | (225,2) | 177x242 |
+| Dizzy | (342,105) | 84x102 | (342,105) | 85x103 |
+| Scoop | (393,75) | 132x143 | (393,75) | 138x167 |
+
+Short animations contain **15 frames**. Long animations contain **30**.
+
+The machine animation tick increments by the shared retail animation delta.
+Once the accumulated tick becomes greater than **3**, the source frame
+advances and the tick resets. On reaching the end frame, retail rewinds the
+animation to frame 0, **draws animated-sheet frame 0 once more on that update**,
+then clears the machine animation state to static for the following frame.
+
+### Conductor geometry and idle animation
+
+The conductor sheet geometry is:
+
+| Conductor | Dest | Frame size |
+|---|---:|---:|
+| Bob | (499,133) | 85x78 |
+| Wendy | (504,132) | 68x80 |
+| Farmer Pickles | (493,136) | 78x85 |
+
+Outside playback, all three conductors use the same idle-frame policy:
+
+- frame tick advances until **>5**, then advances one sprite frame;
+- frames **0..19** are the ordinary idle cycle;
+- when frame 20 is first reached, retail calls `rand()%3`;
+- result **0** enters the special idle sequence **20..49**;
+- results **1 or 2** immediately reset the conductor to frame 0;
+- reaching frame 50 also resets to frame 0.
+
+So there is a **1/3 chance** after each normal idle cycle to play the longer
+special idle sequence.
+
+During Bob's Band playback, the conductor uses the separate verified ranges
+50..89 / 50..84 / 50..104 documented below.
+
+The exact renderer constants are also retained in
+`ghidra/bobs_band_visual_geometry.csv`.
+
 ## Toolbar
 
 ### `0x0041F820 UpdateGrandOpeningToolbar`
@@ -531,4 +653,8 @@ Current source-level coverage includes:
 - exact state-8 playback preparation
 - Stop/backing-track completion return behavior
 - state-10 Play Again transition and save/unload
-- quit/leave Music-chooser vs shared-movie routing.
+- quit/leave Music-chooser vs shared-movie routing
+- exact 132-region editor hit table with state-dependent +5/+10 hotspot shift
+- exact wall-cell render geometry and all ten palette rectangles
+- exact short/long machine sprite-sheet geometry and 15/30-frame lifetimes
+- exact conductor sheet geometry and randomized editor idle/special-idle clock.
