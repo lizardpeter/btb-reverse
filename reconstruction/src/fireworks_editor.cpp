@@ -131,6 +131,47 @@ constexpr void tick_walking_actor_animation(
     return static_cast<std::int32_t>(angle);
 }
 
+void append_grid_row_commands(
+    std::vector<EditorDrawCommand>& commands,
+    const Sequence& sequence,
+    const LayoutData& layout,
+    std::size_t row) {
+
+    for (std::size_t column = 0; column < kTimelineColumns; ++column) {
+        const auto type = sequence.at(row, column);
+        if (!type) {
+            continue;
+        }
+
+        const auto slot = Sequence::index(row, column);
+        const auto& placement = layout.placement_runtime[slot];
+
+        EditorDrawCommand command;
+        command.kind = EditorRenderKind::Firework;
+        command.x = placement.left +
+            (row == 2 ? kBottomRowBitmapXOffset : 0);
+        command.y = placement.top + kGridBitmapYOffset +
+            (row == 2 ? kBottomRowBitmapYOffset : 0);
+        command.color_keyed = true;
+        command.firework_type = *type;
+        commands.push_back(command);
+    }
+}
+
+[[nodiscard]] EditorDrawCommand actor_draw_command(
+    PlacementActorChannel channel,
+    const PlacementActorVisual& visual) {
+
+    EditorDrawCommand command;
+    command.kind = EditorRenderKind::Actor;
+    command.x = visual.x;
+    command.y = visual.y;
+    command.color_keyed = true;
+    command.actor = channel;
+    command.source_rect = placement_actor_source_rect(visual);
+    return command;
+}
+
 } // namespace
 
 ActorMouseTrackingStep update_actor_mouse_tracking(
@@ -350,6 +391,90 @@ PlacementActorTickResult tick_placement_actor(
     if (result.grid_full) {
         result.sound_id = full_grid_voice_sound_id(channel);
     }
+
+    return result;
+}
+
+EditorFrameResult run_retail_editor_frame(
+    EditorRuntimeState& state,
+    Sequence& sequence,
+    const LayoutData& layout,
+    std::int32_t mouse_x,
+    std::int32_t mouse_y) {
+
+    EditorFrameResult result;
+    result.draw_commands.reserve(23);
+
+    // 0x00412E53..0x00412E73: opaque full-screen Bk_01e.bmp.
+    result.draw_commands.push_back({
+        EditorRenderKind::Background,
+        0,
+        0,
+        false,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+    });
+
+    // Retail draws the outer authored rows before actor animation/state work.
+    append_grid_row_commands(result.draw_commands, sequence, layout, 0);
+    append_grid_row_commands(result.draw_commands, sequence, layout, 2);
+
+    result.actor_tracking =
+        update_actor_mouse_tracking(state, mouse_x, mouse_y);
+
+    // Exact foreground composition:
+    // Wendy -> middle.bmp -> Bob -> bottom.bmp.
+    result.draw_commands.push_back(actor_draw_command(
+        PlacementActorChannel::Wendy,
+        state.actor_visuals[placement_actor_index(
+            PlacementActorChannel::Wendy)]));
+
+    result.draw_commands.push_back({
+        EditorRenderKind::MiddleOverlay,
+        kEditorMiddleX,
+        kEditorMiddleY,
+        true,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+    });
+
+    result.draw_commands.push_back(actor_draw_command(
+        PlacementActorChannel::Bob,
+        state.actor_visuals[placement_actor_index(
+            PlacementActorChannel::Bob)]));
+
+    result.draw_commands.push_back({
+        EditorRenderKind::BottomOverlay,
+        kEditorBottomX,
+        kEditorBottomY,
+        true,
+        std::nullopt,
+        std::nullopt,
+        std::nullopt,
+    });
+
+    // State 10/11/12 processing occurs only after both actor sprites and the
+    // bottom foreground have already been drawn for this frame.
+    constexpr std::array channels{
+        PlacementActorChannel::Bob,
+        PlacementActorChannel::Wendy,
+    };
+    for (const auto channel : channels) {
+        const auto index = placement_actor_index(channel);
+        if (state.actor_states[index] ==
+            PlacementActorState::DormantLegacyMotion) {
+            result.dormant_motion[index] =
+                tick_dormant_legacy_motion(state, channel);
+        } else {
+            result.placement_ticks[index] =
+                tick_placement_actor(state, sequence, channel);
+        }
+    }
+
+    // The center authored row is intentionally composited last.
+    append_grid_row_commands(result.draw_commands, sequence, layout, 1);
 
     return result;
 }
