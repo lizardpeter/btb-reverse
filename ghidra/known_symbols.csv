@@ -92,7 +92,7 @@ address,name,confidence,notes
 0x004092A0,ResumeGlobalBinkMovie,high,"Calls BinkPause(0), reapplies volume, and resumes shared playback"
 0x00401FA0,CreateOrResetDisplayManager,high,"Allocates the 0x30-byte DirectDraw7 wrapper and selects 640x480 windowed or 640x480x16 exclusive fullscreen initialization"
 0x004020A0,DestroyDisplayManager,high,"Destroys and frees the global DirectDraw7 display wrapper"
-0x00402FC0,DisplayManagerConstructor,high,"Installs display-manager vtable and zeros DirectDraw/surface fields"
+0x00402FC0,DisplayManagerConstructor,high,"Installs display-manager vtable and zeros DirectDraw/surface fields through +0x10; 0x30-byte object's final +0x2C dword is never initialized/read/written anywhere in retail"
 0x00402FF0,ReleaseDisplayResources,high,"Unregisters/releases managed surfaces, restores cooperative/display state, and releases IDirectDraw7"
 0x00403080,InitializeFullscreenDisplay,high,"DirectDrawCreateEx(IID_IDirectDraw7), DDSCL_FULLSCREEN|DDSCL_EXCLUSIVE, SetDisplayMode, flipping primary/backbuffer chain"
 0x004031E0,InitializeWindowedDisplay,high,"DirectDrawCreateEx(IID_IDirectDraw7), DDSCL_NORMAL, primary plus offscreen surface, window clipper, cached client rect"
