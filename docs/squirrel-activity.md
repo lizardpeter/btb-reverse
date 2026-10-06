@@ -156,6 +156,43 @@ The resulting four motion keys are written to globals
 `ghidra/squirrel_motion_key_lookups.csv` and in the C++26 constants
 `kMotionKeyLookupA..D`.
 
+### Exact run-assembly motion state machine
+
+The positional portion of `UpdateAndDrawSquirrelRunAssembly` is now
+source-level too.
+
+The stable motion phases use the four selected keys in this order:
+
+| Retail state | Key | sqdata substeps |
+|---:|---|---|
+| 1 | A | 0..2 |
+| 3 | B | 3..6 |
+| 4 | C | 0..2 |
+| 6 | D | 3..6 |
+
+Each substep is held for the loaded **7-update delay**. The X/Y delta is
+applied once when that substep begins, then the delay counts down.
+
+States **2** and **5** are retained transition IDs rather than normal
+frame-stable motion phases. At a phase boundary the function falls through
+immediately into the next phase and applies that phase's first delta on the
+same update. Thus a complete four-phase motion cycle contains 14 authored
+substeps but takes **95 update calls**, not 98:
+
+```text
+14 substeps * 7 updates - 3 overlapped phase boundaries = 95
+```
+
+After state 6 finishes, retail:
+
+- leaves `substep = 3`;
+- returns animation state to 0;
+- increments the run-section counter;
+- leaves the delay reloaded to 7.
+
+The C++26 model is
+`RunAssemblyAnimationRuntime` / `tick_run_assembly_animation`.
+
 The C++ model now names these as `horizontal_motion_deltas`,
 `vertical_motion_deltas`, `VerticalMotionProfile`, and
 `vertical_profile_for_motion_key`. The machine-readable evidence is in
