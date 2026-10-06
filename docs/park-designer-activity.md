@@ -107,7 +107,14 @@ High-confidence fields:
 | `+0x38` | bound-area category 0..3 |
 | `+0x3C` | bound-area variant 0..4 |
 
-Fields whose exact semantic role is not yet closed remain named `unknown_*` in source.
+The formerly unresolved record dwords are now closed as far as this executable uses them:
+
+- `+0x14` and `+0x18` are **opaque persisted dwords with no Park Designer runtime reader/writer**. They survive raw save/load and whole-record compaction copies, but no gameplay/render path consumes them.
+- `+0x40` is a **visual frame / Pond segment index**. Pond auxiliary drawing uses it as a source-strip index; object-code-7 fountain animation uses it as the current animation frame.
+- `+0x44` is the **fountain animation phase**.
+- `+0x48` is the **fountain frame countdown**, initialized and reset to 9.
+
+The source structure names these roles explicitly while preserving the two truly opaque persisted dwords byte-for-byte.
 
 ### Record-index families
 
@@ -441,6 +448,32 @@ The helper:
 - chooses the active Summer/Winter fountain sheet;
 - loops or changes the fountain animation substate using the retail counters;
 - blits the resulting frame at the object's placed position.
+
+
+The three record fields used here are now exact:
+
+- `visual_frame_or_segment (+0x40)`
+- `fountain_phase (+0x44)`
+- `fountain_frame_countdown (+0x48)`
+
+Retail initializes frame/phase to 0 and countdown to **9**. In phase 0, each
+countdown expiry resets to 9 and advances the fountain frame. Frames >=5 also
+advance the linked primary Pond record's visual-frame field. At frame >=8,
+retail enters phase 1. Phase 1 advances on the same 9-update countdown and loops
+frames **8..12**.
+
+Each fountain variant occupies exactly **13 source frames**, each **152×152**.
+The horizontal source rectangle is therefore:
+
+```text
+left  = (bound_variant * 13 + visual_frame) * 152
+right = left + 152
+top   = 0
+bottom= 152
+```
+
+This clock and source-rectangle calculation are now implemented and tested in
+`park_designer_runtime.hpp`.
 
 ### Sorted object renderer
 
