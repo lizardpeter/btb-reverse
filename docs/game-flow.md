@@ -74,19 +74,76 @@ Do not confuse the primary activity state at `0x0044DE14` with `0x0044DDB0`.
 
 It is therefore a secondary/shared phase variable rather than the main 68-state activity selector.
 
-## Next state-machine work
+## Exact pre-dispatch interception
 
-The next useful pass is to name the shared transition states rather than only the activity pairs. Their repeated call patterns already indicate common responsibilities:
+The source-level reconstruction now includes the control flow *before* the
+68-entry jump table. `RunMainGameFlow` does not immediately dispatch
+`0x0044DE14`; it checks these conditions in strict precedence order:
 
-- help/walkthrough movie launch
-- activity intro movie
-- completion movie
-- loading bitmap / transition surface setup
-- activity-select return
-- sound reset
-- generic play-again / quit flow
+1. shutdown/credits phase `0x0044DDB0 != 0`;
+2. Options overlay `0x0051C2BC`;
+3. Progress screen `0x0051C324`;
+4. generic Yes/No confirmation `0x0051C2D0`;
+5. whole-game Quit confirmation `0x0051C2C0`;
+6. leave-current-activity confirmation `0x0051C2C8`;
+7. Play Again overlay `0x0051C2CC`;
+8. positive legacy intercept `0x0051C2D8`;
+9. global-Bink screen modes 13/14 at `0x0051C27C`;
+10. only then the 68-state table.
 
-Once those are named, nearly every branch in `RunMainGameFlow` should read semantically.
+Options, generic Yes/No, whole-game Quit, leave-current-activity, and the
+Play Again overlay pause the shared global Bink before updating their modal.
+The Progress screen is the notable exception and is serviced without that
+pause call.
+
+The positive `0x0051C2D8` path is retained legacy behavior. Values 1..9 call
+the one-instruction `NoOpLegacyHook(0)`; values >=10 call
+`NoOpLegacyHook(1)`. Either case consumes the frame without entering the
+state table.
+
+### Global-Bink modes 13 and 14
+
+Screen mode **13** updates the shared global Bink. While it is playing, the
+dispatcher returns immediately. On completion retail:
+
+- restores `0x0044DE14` from saved state `0x0051B418`;
+- changes screen mode to **2**;
+- clears shared input pulse `0x004FBE54`;
+- immediately continues into the restored state-table handler on the same
+  frame.
+
+Screen mode **14** similarly waits for the global Bink, then:
+
+- increments the current outer state;
+- sets screen mode **7** if the new state is `0x23`, otherwise **2**;
+- clears the same input pulse;
+- immediately dispatches the incremented state on that frame.
+
+Finally, the executable performs an unsigned `state <= 0x43` check. Values
+outside the 68-entry range fall through the common no-op return instead of
+indexing the jump table.
+
+The exact pre-dispatch sequence is machine-readable in
+`ghidra/gameflow_dispatch_precedence.csv`.
+
+## Source reconstruction
+
+The main flow is now represented directly in:
+
+- `reconstruction/include/btb/game_flow.hpp`
+- `reconstruction/tests/game_flow_test.cpp`
+
+That source contains:
+
+- the full 68-value state enum;
+- the original handler address for every state;
+- semantic state kind/module/role metadata;
+- exact modal/intercept precedence;
+- mode-13/mode-14 Bink restoration behavior;
+- invalid-state/no-op behavior.
+
+The generic 12-screen front-end catalog is separately represented in
+`reconstruction/include/btb/front_end_ui.hpp`.
 
 
 ## Bob's Band -> Spud Maze boundary
