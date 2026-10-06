@@ -43,6 +43,165 @@ vertical_profile_for_motion_key(std::int32_t key) noexcept {
     return false;
 }
 
+inline constexpr std::array<std::int32_t,3>
+kConnectorMotionLookupIndices{{0,16,33}};
+
+inline constexpr std::array<std::int32_t,36>
+kMotionKeyLookupA{{
+    0,0,0,0,12,9,3,3,12,3,3,3,
+    0,12,7,0,0,0,12,0,12,3,3,3,
+    12,5,5,5,0,0,0,12,12,0,0,0,
+}};
+
+inline constexpr std::array<std::int32_t,36>
+kMotionKeyLookupB{{
+    1,1,1,13,13,8,1,1,13,2,2,2,
+    4,13,6,4,1,1,13,1,13,1,1,1,
+    13,4,4,4,4,4,4,13,13,1,1,1,
+}};
+
+inline constexpr std::array<std::int32_t,36>
+kMotionKeyLookupC{{
+    0,0,0,12,12,9,0,0,12,3,3,3,
+    5,12,7,5,0,0,12,0,12,0,0,0,
+    12,5,5,5,5,5,5,12,12,0,0,0,
+}};
+
+inline constexpr std::array<std::int32_t,36>
+kMotionKeyLookupD{{
+    1,1,1,13,13,8,2,2,13,2,2,2,
+    1,13,6,1,1,1,13,1,13,2,2,2,
+    13,4,4,4,1,1,1,13,13,1,1,1,
+}};
+
+[[nodiscard]] constexpr std::int32_t transpose_piece_id_for_motion_lookup(
+    std::int32_t piece_id) noexcept {
+    if (piece_id < 0 || piece_id >= 36) {
+        return -1;
+    }
+    return piece_id / 9 + 4 * (piece_id % 9);
+}
+
+// This is the peculiar decrement sequence at 0x00425DD0. For the normal
+// retail run sections 1..6 it yields placed-piece slots 0,1,1,1,2,2.
+// Section 0 produces -1, but its selector branch never uses the read value.
+[[nodiscard]] constexpr std::int32_t motion_piece_slot_for_run_section(
+    std::int32_t run_section) noexcept {
+    auto value = run_section;
+    if (value >= 0) --value;
+    if (value >= 2) --value;
+    if (value >= 2) --value;
+    if (value >= 3) --value;
+    return value;
+}
+
+struct RunAssemblyMotionKeys {
+    std::int32_t a{};
+    std::int32_t b{};
+    std::int32_t c{};
+    std::int32_t d{};
+    std::int32_t first_lookup_index{};
+    std::int32_t other_lookup_index{};
+    std::int32_t placed_piece_slot{-1};
+};
+
+using PlacedRunPieces = std::array<std::int32_t,12>;
+
+[[nodiscard]] constexpr std::optional<RunAssemblyMotionKeys>
+select_run_assembly_motion_keys(
+    std::int32_t run_section,
+    std::size_t level,
+    const RunPlan& connectors,
+    const PlacedRunPieces& placed_piece_ids) noexcept {
+
+    if (level >= kMaximumLevelCount || run_section < 0) {
+        return std::nullopt;
+    }
+
+    auto connector_lookup = [&](std::size_t connector_index)
+        constexpr -> std::int32_t {
+        const auto connector = connectors[level][connector_index];
+        if (connector < 0 || connector >= 3) {
+            return -1;
+        }
+        return kConnectorMotionLookupIndices[
+            static_cast<std::size_t>(connector)];
+    };
+
+    std::int32_t first_index{};
+    std::int32_t other_index{};
+    std::int32_t placed_slot = -1;
+
+    if (run_section == 0) {
+        const auto index = connector_lookup(0);
+        if (index < 0) {
+            return std::nullopt;
+        }
+        first_index = index;
+        other_index = index;
+    } else {
+        placed_slot =
+            motion_piece_slot_for_run_section(run_section);
+        if (placed_slot < 0 || placed_slot >= 4) {
+            return std::nullopt;
+        }
+
+        const auto storage_index =
+            level * 4 + static_cast<std::size_t>(placed_slot);
+        const auto piece_id = placed_piece_ids[storage_index];
+        const auto transposed =
+            transpose_piece_id_for_motion_lookup(piece_id);
+        if (transposed < 0) {
+            return std::nullopt;
+        }
+
+        switch (run_section) {
+        case 1:
+            first_index = transposed;
+            other_index = connector_lookup(1);
+            break;
+        case 2:
+            first_index = connector_lookup(0);
+            other_index = transposed;
+            break;
+        case 3:
+        case 5:
+            first_index = connector_lookup(2);
+            other_index = transposed;
+            break;
+        case 4:
+            first_index = transposed;
+            other_index = connector_lookup(2);
+            break;
+        case 6:
+            first_index = connector_lookup(3);
+            other_index = transposed;
+            break;
+        default:
+            // The retained default branch indexes all four lookup tables by
+            // the raw piece ID rather than the transposed piece index.
+            first_index = piece_id;
+            other_index = piece_id;
+            break;
+        }
+
+        if (first_index < 0 || other_index < 0 ||
+            first_index >= 36 || other_index >= 36) {
+            return std::nullopt;
+        }
+    }
+
+    return RunAssemblyMotionKeys{
+        kMotionKeyLookupA[static_cast<std::size_t>(first_index)],
+        kMotionKeyLookupB[static_cast<std::size_t>(other_index)],
+        kMotionKeyLookupC[static_cast<std::size_t>(other_index)],
+        kMotionKeyLookupD[static_cast<std::size_t>(other_index)],
+        first_index,
+        other_index,
+        placed_slot,
+    };
+}
+
 enum class PlacementState : std::int32_t {
     IdleSelect = 0,
     MoveToSelectedCorrect = 1,
