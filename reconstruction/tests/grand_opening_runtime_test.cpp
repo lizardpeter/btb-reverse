@@ -110,6 +110,90 @@ int main() {
     assert(idle_step.special_idle_completed);
     assert(special_idle.frame == 0);
 
+    static_assert(kEditorBackgroundBitmap == "music_01.bmp");
+    static_assert(kEditorToolbarBitmap == "toolbar.bmp");
+    static_assert(
+        conductor_bitmap_filename(Conductor::Bob) == "BOBINSTAND.bmp");
+    static_assert(
+        conductor_bitmap_filename(Conductor::Wendy) == "wendyINSTAND.bmp");
+    static_assert(
+        conductor_bitmap_filename(Conductor::FarmerPickles) ==
+        "picklesINSTAND.bmp");
+    static_assert(
+        machine_short_bitmap_filename(Machine::Roley) == "ROLEY1SEC.bmp");
+    static_assert(
+        machine_long_bitmap_filename(Machine::Scoop) == "SCOOP2SEC.bmp");
+
+    // Full 0x0041F090 frame composition: opaque background, row-major event
+    // bricks, reverse machine overlap order, conductor, then keyed toolbar.
+    Composition frame_composition;
+    assert(place_event(
+        frame_composition, 0, 0, MachineType::Roley1Second));
+    assert(place_event(
+        frame_composition, 4, 23, MachineType::Scoop1Second));
+
+    EditorVisualRuntimeState frame_visuals;
+    frame_visuals.machines[static_cast<std::size_t>(Machine::Lofty)] =
+        {1, 4, 3};
+    frame_visuals.conductor = {19, 5};
+
+    auto frame = compose_editor_frame(
+        frame_composition,
+        Conductor::Bob,
+        frame_visuals,
+        1);
+    assert(frame.commands.size() == 10);
+
+    assert(frame.commands[0].layer == EditorRenderLayer::Background);
+    assert(frame.commands[0].x == 0 && frame.commands[0].y == 0);
+    assert(!frame.commands[0].color_keyed);
+
+    assert(frame.commands[1].layer == EditorRenderLayer::EventBrick);
+    assert(frame.commands[1].machine_type == MachineType::Roley1Second);
+    assert(frame.commands[1].x == 44 && frame.commands[1].y == 310);
+    assert(frame.commands[1].color_keyed);
+
+    assert(frame.commands[2].layer == EditorRenderLayer::EventBrick);
+    assert(frame.commands[2].machine_type == MachineType::Scoop1Second);
+    assert(frame.commands[2].x == 573 && frame.commands[2].y == 386);
+
+    constexpr std::array expected_machine_order{
+        Machine::Scoop,
+        Machine::Dizzy,
+        Machine::Lofty,
+        Machine::Muck,
+        Machine::Roley,
+    };
+    for (std::size_t i = 0; i < expected_machine_order.size(); ++i) {
+        const auto& command = frame.commands[3 + i];
+        assert(command.machine == expected_machine_order[i]);
+        assert(command.color_keyed);
+    }
+
+    const auto& lofty_command = frame.commands[5];
+    assert(lofty_command.layer == EditorRenderLayer::MachineShort);
+    assert(lofty_command.machine == Machine::Lofty);
+    assert(lofty_command.source_rect);
+    assert(lofty_command.source_rect->left == 5 * 165);
+    assert(lofty_command.source_rect->right == 6 * 165);
+    assert(frame_visuals.machines[
+        static_cast<std::size_t>(Machine::Lofty)].frame == 5);
+
+    const auto& conductor_command = frame.commands[8];
+    assert(conductor_command.layer == EditorRenderLayer::Conductor);
+    assert(conductor_command.conductor == Conductor::Bob);
+    assert(conductor_command.x == 499);
+    assert(conductor_command.y == 133);
+    assert(conductor_command.source_rect);
+    assert(conductor_command.source_rect->left == 0);
+    assert(conductor_command.source_rect->right == 85);
+    assert(frame.conductor_animation.normal_idle_restarted);
+    assert(frame_visuals.conductor.frame == 0);
+
+    assert(frame.commands[9].layer == EditorRenderLayer::Toolbar);
+    assert(frame.commands[9].x == 0 && frame.commands[9].y == 0);
+    assert(frame.commands[9].color_keyed);
+
     static_assert(kConductorPlaybackStartFrame == 50);
     static_assert(kConductorPlaybackEndExclusive[0] == 90);
     static_assert(kConductorPlaybackEndExclusive[1] == 85);
