@@ -1,0 +1,24 @@
+kind,index,name,values,net_x,net_y,live_in_retail
+horizontal,0,shared_horizontal_substeps,"0 3 10 27 8 -4 -4",40,,yes
+vertical_profile,0,neutral_arc,"0 0 1 -1 0 0 0",,0,yes
+vertical_profile,1,neutral_flat,"0 0 0 0 0 0 0",,0,yes
+vertical_profile,2,up16_arc,"0 0 1 -17 0 0 0",,-16,yes
+vertical_profile,3,up32_arc,"0 0 1 -33 0 0 0",,-32,yes
+vertical_profile,4,down16_arc,"0 0 -1 17 0 0 0",,16,yes
+vertical_profile,5,down32_arc,"0 0 19 13 0 0 0",,32,yes
+vertical_profile,6,up32_direct,"0 0 0 -32 0 0 0",,-32,no
+vertical_profile,7,down32_direct,"0 0 0 32 0 0 0",,32,no
+motion_key_map,0,key_0,profile_0,,,yes
+motion_key_map,1,key_1,profile_0,,,yes
+motion_key_map,2,key_2,profile_3,,,yes
+motion_key_map,3,key_3,profile_3,,,yes
+motion_key_map,4,key_4,profile_5,,,yes
+motion_key_map,5,key_5,profile_5,,,yes
+motion_key_map,6,key_6,profile_4,,,yes
+motion_key_map,7,key_7,profile_4,,,yes
+motion_key_map,8,key_8,profile_2,,,yes
+motion_key_map,9,key_9,profile_2,,,yes
+motion_key_map,10,key_10,profile_0,,,yes
+motion_key_map,11,key_11,profile_0,,,yes
+motion_key_map,12,key_12,profile_1,,,yes
+motion_key_map,13,key_13,profile_1,,,yes
