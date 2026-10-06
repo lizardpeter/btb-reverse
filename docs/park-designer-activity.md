@@ -279,7 +279,19 @@ Items 0 and 1 write the new season to `0x00509344`, play DYP View-family feedbac
 
 Item 2 calls the shared printing function at `0x00409730`. The original retail support documentation confirms that using an in-game print control first writes `Printme.bmp`, even if the subsequent printer dialog is cancelled.
 
-The item-3 hover path is confirmed; its exact click semantics are being kept separate until the downstream branch is fully closed.
+Item 3 is now closed as **hover-only**. The retail click switch has cases only for items 0, 1, and 2; clicking item 3 performs no action.
+
+The exact View-toolbar audio/action map is:
+
+| Item | Hover sound | Click |
+|---:|---|---|
+| 0 Summer | 997 `dyp_summer.wav` | set Summer, play 294/295 = `DYP_V_BOB_05/06`, then apply season |
+| 1 Winter | 998 `dyp_winter.wav` | set Winter, play 297/298 = `DYP_V_BOB_08/09`, then apply season |
+| 2 Print | 293 `DYP_V_BOB_04.wav` | call the shared print path |
+| 3 Info | 299 `DYP_V_BOB_10.wav` | **no retail click action** |
+
+This is reproduced by `view_toolbar_hover_sound_id` and
+`view_toolbar_click` in the C++26 runtime.
 
 
 ## Draw ordering
