@@ -70,6 +70,62 @@ int main() {
         surface_binding(SceneSurface::NutPile);
     static_assert(nut && nut->global_address == 0x005150C8);
 
+    static_assert(kBackgroundPanelStride == 480);
+    static_assert(kBackgroundViewportWidth == 620);
+    static_assert(kBackgroundViewportHeight == 480);
+
+    static_assert(
+        level_background_source_rect(0) ==
+        SourceRect{0,0,620,480});
+    static_assert(
+        level_background_source_rect(1) ==
+        SourceRect{480,0,1100,480});
+    static_assert(
+        level_background_source_rect(2) ==
+        SourceRect{960,0,1580,480});
+
+    static_assert(scene_scroll_offset(false, 999) == 0);
+    static_assert(scene_scroll_offset(true, 0) == 0);
+    static_assert(scene_scroll_offset(true, 4) == 0);
+    static_assert(scene_scroll_offset(true, 5) == 1);
+    static_assert(scene_scroll_offset(true, 24) == 4);
+    static_assert(scene_scroll_offset(true, -24) == -4);
+
+    static_assert(
+        kCompletedRunPieceDestinations[0] == Vec2i{116,194});
+    static_assert(
+        kCompletedRunPieceDestinations[1] == Vec2i{276,194});
+    static_assert(
+        kCompletedRunPieceDestinations[2] == Vec2i{436,194});
+
+    static_assert(
+        kConnectorDestinations[0] == Vec2i{36,194});
+    static_assert(
+        kConnectorDestinations[1] == Vec2i{196,194});
+    static_assert(
+        kConnectorDestinations[2] == Vec2i{356,194});
+    static_assert(
+        kConnectorDestinations[3] == Vec2i{516,194});
+
+    static_assert(kConnectorPieceIds[0] == 18);
+    static_assert(kConnectorPieceIds[1] == 4);
+    static_assert(kConnectorPieceIds[2] == 17);
+
+    constexpr auto nut0 = nut_pile_destination(0);
+    static_assert(nut0);
+    static_assert(*nut0 == Vec2i{516,212});
+
+    constexpr auto nut1 = nut_pile_destination(1);
+    static_assert(nut1);
+    static_assert(*nut1 == Vec2i{516,198});
+
+    constexpr auto nut2 = nut_pile_destination(2);
+    static_assert(nut2);
+    static_assert(*nut2 == Vec2i{516,211});
+
+    static_assert(!nut_pile_destination(-1));
+    static_assert(!nut_pile_destination(3));
+
     static_assert(kConveyorFrameWidth == 640);
     static_assert(kConveyorFrameHeight == 44);
     static_assert(kConveyorDestX == 0);
