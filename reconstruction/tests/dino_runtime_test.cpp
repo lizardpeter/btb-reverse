@@ -58,4 +58,21 @@ int main() {
     assert(Runtime::snap_tolerance(2) == 9);
     assert(Runtime::snap_tolerance(0) == 20);
     assert(Runtime::snap_tolerance(8) == 20);
+
+    static_assert(kInitialSpecialRenderOffsetIndex == 4);
+    static_assert(kSpecialRenderOffsets[0] == Vec2i{0, -40});
+    static_assert(kSpecialRenderOffsets[4] == Vec2i{0, 40});
+    static_assert(kSpecialRenderOffsets[6] == Vec2i{-20, 0});
+
+    constexpr auto special0 =
+        special_render_position({456, 248}, 0);
+    static_assert(special0.has_value());
+    static_assert(*special0 == Vec2i{456, 208});
+
+    constexpr auto special4 =
+        special_render_position({456, 248}, 4);
+    static_assert(special4.has_value());
+    static_assert(*special4 == Vec2i{456, 288});
+
+    static_assert(!special_render_position({80, 300}, 8).has_value());
 }
