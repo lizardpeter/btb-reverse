@@ -1,0 +1,10 @@
+draw_order,role,global_or_table,asset_or_rule,color_keyed,notes
+0,background,0x00513F1C,Data\SubGameOpen\music_01.bmp,no,"Opaque full-screen background blit at (0,0)"
+1,event_bricks,0x00512390..0x005123B7,"type-indexed sound*.bmp table",yes,"Only composition values 0..9 draw; row-major 5x24 traversal at x=44+23*second y=310+19*row"
+2,machine_scoop,0x00512388/0x00512718+,"SCOOP1SEC.bmp or SCOOP2SEC.bmp",yes,"First machine layer; static/short uses short sheet, long state uses long sheet"
+3,machine_dizzy,0x00512384/0x00512718+,"dizzy1sec.BMP or dizzy2sec.BMP",yes,"Second machine layer"
+4,machine_lofty,0x00512380/0x00512718+,"lofty1sec.bmp or lofty2sec.bmp",yes,"Third machine layer"
+5,machine_muck,0x0051237C/0x00512718+,"MUCK1SEC.bmp or MUCK2SEC.bmp",yes,"Fourth machine layer"
+6,machine_roley,0x00512378/0x00512718+,"ROLEY1SEC.bmp or ROLEY2SEC.bmp",yes,"Last machine layer and therefore topmost machine overlap"
+7,conductor,0x005125A8,"BOBINSTAND.bmp / wendyINSTAND.bmp / picklesINSTAND.bmp",yes,"Selected by conductor 0/1/2; idle animation advances before editor blit"
+8,toolbar,0x00513F20,Data\SubGameOpen\toolbar.bmp,yes,"Final frame layer at (0,0); initializer sets source color key 0x00FF00FF"
