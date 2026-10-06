@@ -23,30 +23,30 @@ int main() {
     static_assert(static_cast<std::size_t>(
         TrailingStateIndex::BandstandSelectedRecord) == 3);
     static_assert(static_cast<std::size_t>(
-        TrailingStateIndex::ActivePaletteFamily) == 10);
+        TrailingStateIndex::ActiveEditorMode) == 10);
 
-    static_assert(kPaletteCurrentPageStateByFamily[0] ==
+    static_assert(kCurrentPageStateByEditorMode[0] ==
         TrailingStateIndex::PondPalettePage);
-    static_assert(kPaletteCurrentPageStateByFamily[1] ==
+    static_assert(kCurrentPageStateByEditorMode[1] ==
         TrailingStateIndex::BandstandPalettePage);
-    static_assert(kPaletteCurrentPageStateByFamily[2] ==
+    static_assert(kCurrentPageStateByEditorMode[2] ==
         TrailingStateIndex::DecoratePalettePage);
 
-    static_assert(kPaletteMaxPageStateByFamily[0] ==
+    static_assert(kMaxPageStateByEditorMode[0] ==
         TrailingStateIndex::PondPaletteMaxPage);
-    static_assert(kPaletteMaxPageStateByFamily[1] ==
+    static_assert(kMaxPageStateByEditorMode[1] ==
         TrailingStateIndex::BandstandPaletteMaxPage);
-    static_assert(kPaletteMaxPageStateByFamily[2] ==
+    static_assert(kMaxPageStateByEditorMode[2] ==
         TrailingStateIndex::DecoratePaletteMaxPage);
 
     static_assert(static_cast<std::size_t>(
-        TrailingStateIndex::LegacyPalettePage3) == 15);
+        TrailingStateIndex::ViewPage) == 15);
     static_assert(static_cast<std::size_t>(
-        TrailingStateIndex::LegacyPalettePage4) == 16);
+        TrailingStateIndex::LegacyPage4) == 16);
     static_assert(static_cast<std::size_t>(
-        TrailingStateIndex::LegacyPaletteMaxPage3) == 20);
+        TrailingStateIndex::ViewMaxPage) == 20);
     static_assert(static_cast<std::size_t>(
-        TrailingStateIndex::LegacyPaletteMaxPage4) == 21);
+        TrailingStateIndex::LegacyMaxPage4) == 21);
 
     static_assert(static_cast<std::size_t>(
         TrailingStateIndex::NextPondPrimaryRecord) == 22);
