@@ -53,6 +53,134 @@ int main() {
     static_assert(
         !loaded_profile_is_live(VerticalMotionProfile::Down32Direct));
 
+    static_assert(kConnectorMotionLookupIndices[0] == 0);
+    static_assert(kConnectorMotionLookupIndices[1] == 16);
+    static_assert(kConnectorMotionLookupIndices[2] == 33);
+
+    static_assert(transpose_piece_id_for_motion_lookup(0) == 0);
+    static_assert(transpose_piece_id_for_motion_lookup(1) == 4);
+    static_assert(transpose_piece_id_for_motion_lookup(8) == 32);
+    static_assert(transpose_piece_id_for_motion_lookup(9) == 1);
+    static_assert(transpose_piece_id_for_motion_lookup(34) == 31);
+    static_assert(transpose_piece_id_for_motion_lookup(35) == 35);
+    static_assert(transpose_piece_id_for_motion_lookup(-1) == -1);
+    static_assert(transpose_piece_id_for_motion_lookup(36) == -1);
+
+    static_assert(motion_piece_slot_for_run_section(0) == -1);
+    static_assert(motion_piece_slot_for_run_section(1) == 0);
+    static_assert(motion_piece_slot_for_run_section(2) == 1);
+    static_assert(motion_piece_slot_for_run_section(3) == 1);
+    static_assert(motion_piece_slot_for_run_section(4) == 1);
+    static_assert(motion_piece_slot_for_run_section(5) == 2);
+    static_assert(motion_piece_slot_for_run_section(6) == 2);
+    static_assert(motion_piece_slot_for_run_section(7) == 3);
+
+    constexpr RunPlan selector_connectors{{
+        {{0,1,2,0}},
+        {{2,1,0,2}},
+        {{1,2,0,1}},
+    }};
+    constexpr PlacedRunPieces selector_pieces{{
+        34,1,15,20,
+        0,9,18,27,
+        5,14,23,32,
+    }};
+
+    constexpr auto selector0 =
+        select_run_assembly_motion_keys(
+            0, 0, selector_connectors, selector_pieces);
+    static_assert(selector0.has_value());
+    static_assert(selector0->a == 0);
+    static_assert(selector0->b == 1);
+    static_assert(selector0->c == 0);
+    static_assert(selector0->d == 1);
+    static_assert(selector0->first_lookup_index == 0);
+    static_assert(selector0->other_lookup_index == 0);
+    static_assert(selector0->placed_piece_slot == -1);
+
+    constexpr auto selector1 =
+        select_run_assembly_motion_keys(
+            1, 0, selector_connectors, selector_pieces);
+    static_assert(selector1.has_value());
+    static_assert(selector1->a == 12);
+    static_assert(selector1->b == 1);
+    static_assert(selector1->c == 0);
+    static_assert(selector1->d == 1);
+    static_assert(selector1->first_lookup_index == 31);
+    static_assert(selector1->other_lookup_index == 16);
+    static_assert(selector1->placed_piece_slot == 0);
+
+    constexpr auto selector2 =
+        select_run_assembly_motion_keys(
+            2, 0, selector_connectors, selector_pieces);
+    static_assert(selector2.has_value());
+    static_assert(selector2->a == 0);
+    static_assert(selector2->b == 13);
+    static_assert(selector2->c == 12);
+    static_assert(selector2->d == 13);
+    static_assert(selector2->first_lookup_index == 0);
+    static_assert(selector2->other_lookup_index == 4);
+    static_assert(selector2->placed_piece_slot == 1);
+
+    constexpr auto selector3 =
+        select_run_assembly_motion_keys(
+            3, 0, selector_connectors, selector_pieces);
+    static_assert(selector3.has_value());
+    static_assert(selector3->a == 0);
+    static_assert(selector3->b == 13);
+    static_assert(selector3->c == 12);
+    static_assert(selector3->d == 13);
+    static_assert(selector3->first_lookup_index == 33);
+    static_assert(selector3->other_lookup_index == 4);
+
+    constexpr auto selector4 =
+        select_run_assembly_motion_keys(
+            4, 0, selector_connectors, selector_pieces);
+    static_assert(selector4.has_value());
+    static_assert(selector4->a == 12);
+    static_assert(selector4->b == 1);
+    static_assert(selector4->c == 0);
+    static_assert(selector4->d == 1);
+    static_assert(selector4->first_lookup_index == 4);
+    static_assert(selector4->other_lookup_index == 33);
+
+    constexpr auto selector5 =
+        select_run_assembly_motion_keys(
+            5, 0, selector_connectors, selector_pieces);
+    static_assert(selector5.has_value());
+    static_assert(selector5->a == 0);
+    static_assert(selector5->b == 4);
+    static_assert(selector5->c == 5);
+    static_assert(selector5->d == 4);
+
+    constexpr auto selector6 =
+        select_run_assembly_motion_keys(
+            6, 0, selector_connectors, selector_pieces);
+    static_assert(selector6.has_value());
+    static_assert(selector6->a == 0);
+    static_assert(selector6->b == 4);
+    static_assert(selector6->c == 5);
+    static_assert(selector6->d == 4);
+
+    // Retained default branch uses raw piece ID rather than the transposed
+    // connector-major index.
+    constexpr auto selector7 =
+        select_run_assembly_motion_keys(
+            7, 0, selector_connectors, selector_pieces);
+    static_assert(selector7.has_value());
+    static_assert(selector7->first_lookup_index == 20);
+    static_assert(selector7->other_lookup_index == 20);
+    static_assert(selector7->a == 12);
+    static_assert(selector7->b == 13);
+    static_assert(selector7->c == 12);
+    static_assert(selector7->d == 13);
+
+    constexpr PlacedRunPieces invalid_pieces{{
+        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    }};
+    static_assert(!select_run_assembly_motion_keys(
+        1, 0, selector_connectors, invalid_pieces).has_value());
+
     static_assert(static_cast<int>(PlacementState::IdleSelect) == 0);
     static_assert(static_cast<int>(PlacementState::ReturnDecoyToConveyor) == 8);
 
