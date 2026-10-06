@@ -131,10 +131,30 @@ int main() {
     static_assert(arm_swing_source_rect(3) ==
         SourceRect{657,0,876,192});
 
-    static_assert(run_piece_source_rect(0) ==
-        SourceRect{0,0,90,134});
-    static_assert(run_piece_source_rect(35) ==
-        SourceRect{3150,0,3240,134});
+    static_assert(kRunPieceFrameWidth == 89);
+    static_assert(kRunPieceFrameHeight == 133);
+    static_assert(run_piece_sheet_index(0) == 0);
+    static_assert(run_piece_sheet_index(1) == 4);
+    static_assert(run_piece_sheet_index(8) == 32);
+    static_assert(run_piece_sheet_index(9) == 1);
+    static_assert(run_piece_sheet_index(34) == 31);
+    static_assert(run_piece_sheet_index(35) == 35);
+    static_assert(run_piece_sheet_index(-1) == -1);
+    static_assert(run_piece_sheet_index(36) == -1);
+
+    constexpr auto piece0 = run_piece_source_rect(0);
+    static_assert(piece0);
+    static_assert(*piece0 == SourceRect{0,0,89,133});
+
+    constexpr auto piece1 = run_piece_source_rect(1);
+    static_assert(piece1);
+    static_assert(*piece1 == SourceRect{356,0,445,133});
+
+    constexpr auto piece35 = run_piece_source_rect(35);
+    static_assert(piece35);
+    static_assert(*piece35 == SourceRect{3115,0,3204,133});
+    static_assert(!run_piece_source_rect(-1));
+    static_assert(!run_piece_source_rect(36));
 
     static_assert(kFinalBorderDraws[0].surface ==
         SceneSurface::BorderTop);
