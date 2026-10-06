@@ -124,32 +124,128 @@ struct DeferredTransitionStep {
     return step;
 }
 
-struct HoverEnterStep {
-    bool selected{};
-    std::int32_t selected_area_one_based{};
-    std::int32_t hover_animation_delay{8};
+inline constexpr std::int32_t kLockedFireworksHoverSoundId = 65; // ASH_WEN_09
+inline constexpr std::int32_t kGenericUiHoverSoundPriority = 50;
+inline constexpr std::int32_t kGenericUiHoverSoundArbitrationClass = 2;
+inline constexpr std::int32_t kGenericUiHoverAnimationDelay = 8;
+
+struct ReplacementRuntimeState {
+    // LoadGenericUIScreenResources seeds this from rand()%sound_count when
+    // there are multiple available hover sounds, otherwise zero.
+    std::int32_t hover_sound_index{};
+    std::int32_t hover_animation_delay{kGenericUiHoverAnimationDelay};
     std::int32_t hover_animation_frame{};
-    std::optional<std::int32_t> hover_sound_id{};
+    std::int32_t secondary_animation_frame{};
 };
 
-// Retail stores selected area as index+1, resets its replacement animation
-// timer to 8/frame 0, and plays the load-time-selected hover sound if present.
+[[nodiscard]] constexpr ReplacementRuntimeState
+initialize_replacement_runtime(
+    const ReplacementRecord& record,
+    std::int32_t random_value) noexcept {
+
+    ReplacementRuntimeState state;
+    const auto count = available_hover_sound_count(record);
+    if (count > 1) {
+        auto selected = random_value % count;
+        if (selected < 0) {
+            selected += count;
+        }
+        state.hover_sound_index = selected;
+    }
+    return state;
+}
+
+struct HoverEnterStep {
+    bool selected{};
+    bool locked_fireworks_special{};
+    std::int32_t selected_area_one_based{};
+    std::int32_t hover_animation_delay{kGenericUiHoverAnimationDelay};
+    std::int32_t hover_animation_frame{};
+    std::optional<std::int32_t> hover_sound_id{};
+    std::int32_t hover_sound_priority{kGenericUiHoverSoundPriority};
+    std::int32_t hover_sound_arbitration_class{
+        kGenericUiHoverSoundArbitrationClass};
+};
+
+// Exact new-hover branch in UpdateGenericUIScreenInteraction.
+//
+// Retail increments/wraps the per-record hover-sound index *before* playing it;
+// the loader's random value is therefore only a seed. Activity Select area 2
+// (the third tile, Fireworks) has a separate locked-finalé hover path: sound 65
+// is played and the normal record hover sound is skipped.
 [[nodiscard]] constexpr HoverEnterStep enter_generic_ui_area(
     GenericUiRuntimeState& state,
     const ReplacementRecord& record,
+    ReplacementRuntimeState& record_runtime,
     std::int32_t zero_based_area_index,
-    std::int32_t load_time_hover_sound_index) noexcept {
+    bool activity_select_screen = false) noexcept {
 
     HoverEnterStep step;
     state.selected_area_one_based = zero_based_area_index + 1;
 
+    record_runtime.hover_animation_delay = kGenericUiHoverAnimationDelay;
+    record_runtime.hover_animation_frame = 0;
+
     step.selected = true;
     step.selected_area_one_based = state.selected_area_one_based;
-    step.hover_sound_id =
-        selected_hover_sound_id(record, load_time_hover_sound_index);
-    if (step.hover_sound_id && *step.hover_sound_id == -1) {
-        step.hover_sound_id.reset();
+
+    if (activity_select_screen &&
+        zero_based_area_index == 2 &&
+        state.fireworks_finale_locked) {
+        step.locked_fireworks_special = true;
+        step.hover_sound_id = kLockedFireworksHoverSoundId;
+        return step;
     }
+
+    const auto count = available_hover_sound_count(record);
+    if (count <= 0) {
+        return step;
+    }
+
+    ++record_runtime.hover_sound_index;
+    if (record_runtime.hover_sound_index >= count ||
+        record_runtime.hover_sound_index < 0) {
+        record_runtime.hover_sound_index = 0;
+    }
+
+    const auto sound_id = selected_hover_sound_id(
+        record, record_runtime.hover_sound_index);
+    if (sound_id != -1) {
+        step.hover_sound_id = sound_id;
+    }
+    return step;
+}
+
+struct HoverAnimationStep {
+    bool frame_advanced{};
+    std::int32_t frame{};
+    std::int32_t delay{};
+};
+
+// While an area remains selected, its hover animation countdown decrements.
+// At zero/negative, retail restores delay 8, increments the frame and wraps by
+// the record's loaded hover_frame_count.
+[[nodiscard]] constexpr HoverAnimationStep update_hover_animation(
+    const ReplacementRecord& record,
+    ReplacementRuntimeState& runtime) noexcept {
+
+    HoverAnimationStep step;
+    --runtime.hover_animation_delay;
+
+    if (runtime.hover_animation_delay <= 0) {
+        runtime.hover_animation_delay = kGenericUiHoverAnimationDelay;
+        if (record.hover_frame_count > 0) {
+            ++runtime.hover_animation_frame;
+            if (runtime.hover_animation_frame >=
+                record.hover_frame_count) {
+                runtime.hover_animation_frame = 0;
+            }
+            step.frame_advanced = true;
+        }
+    }
+
+    step.frame = runtime.hover_animation_frame;
+    step.delay = runtime.hover_animation_delay;
     return step;
 }
 
