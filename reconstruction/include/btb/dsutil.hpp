@@ -313,6 +313,203 @@ inline constexpr GroupOperationPlan kRewindGroupPlan{
     return playing != 0;
 }
 
+inline constexpr std::uint32_t kFourCcRiff = 0x46464952U;
+inline constexpr std::uint32_t kFourCcWave = 0x45564157U;
+inline constexpr std::uint32_t kFourCcFmt  = 0x20746D66U;
+inline constexpr std::uint32_t kFourCcData = 0x61746164U;
+inline constexpr std::uint32_t kFourCcFact = 0x74636166U;
+
+inline constexpr std::uint32_t kMmioReadOpenFlags = 0x00010000U;
+inline constexpr std::uint32_t kMmioWriteOpenFlags = 0x00011002U;
+inline constexpr std::uint32_t kWaveMemoryMmioFlag = 0x204D454DU; // "MEM "
+
+enum class WaveOpenMode : std::uint32_t {
+    Read = 1,
+    Write = 2,
+};
+
+struct WaveConstructorState {
+    std::uint32_t format_ptr32{};
+    std::uint32_t mmio_handle32{};
+    std::uint32_t data_size{};
+    std::int32_t reading_from_memory{};
+};
+
+inline constexpr WaveConstructorState kWaveConstructorState{};
+
+struct WaveFormatReadPlan {
+    bool valid_riff{};
+    bool valid_wave{};
+    bool valid_fmt_chunk{};
+    bool pcm{};
+    std::uint32_t allocation_bytes{};
+    bool read_extra_size_word{};
+    std::uint16_t extra_size{};
+};
+
+[[nodiscard]] constexpr WaveFormatReadPlan wave_format_read_plan(
+    std::uint32_t riff_id,
+    std::uint32_t riff_type,
+    std::uint32_t fmt_chunk_size,
+    std::uint16_t format_tag,
+    std::uint16_t extra_size = 0) noexcept {
+
+    const bool valid_riff = riff_id == kFourCcRiff;
+    const bool valid_wave = riff_type == kFourCcWave;
+    const bool valid_fmt = fmt_chunk_size >= 16;
+
+    if (!valid_riff || !valid_wave || !valid_fmt) {
+        return {valid_riff,valid_wave,valid_fmt,false,0,false,0};
+    }
+
+    if (format_tag == kWaveFormatPcm) {
+        return {
+            true,true,true,true,
+            18,
+            false,
+            0,
+        };
+    }
+
+    return {
+        true,true,true,false,
+        static_cast<std::uint32_t>(18U + extra_size),
+        true,
+        extra_size,
+    };
+}
+
+struct WaveOpenPlan {
+    WaveOpenMode mode{WaveOpenMode::Read};
+    bool clear_memory_read_flag{true};
+    bool require_filename{};
+    std::uint32_t mmio_open_flags{};
+    bool free_existing_owned_format{};
+    bool read_riff_format{};
+    bool write_riff_format{};
+    bool reset_after_open{true};
+    bool cache_data_chunk_size_after_reset{};
+};
+
+[[nodiscard]] constexpr WaveOpenPlan wave_open_plan(
+    WaveOpenMode mode) noexcept {
+
+    if (mode == WaveOpenMode::Read) {
+        return {
+            mode,
+            true,
+            true,
+            kMmioReadOpenFlags,
+            true,
+            true,
+            false,
+            true,
+            true,
+        };
+    }
+
+    return {
+        mode,
+        true,
+        true,
+        kMmioWriteOpenFlags,
+        false,
+        false,
+        true,
+        true,
+        false,
+    };
+}
+
+struct WaveResetPlan {
+    bool reset_memory_cursor{};
+    bool require_mmio_handle{};
+    bool seek_to_riff_data_area{};
+    bool descend_data_chunk{};
+    bool create_data_chunk{};
+    bool get_mmio_info{};
+    bool zero_remaining_chunk_bytes{};
+};
+
+[[nodiscard]] constexpr WaveResetPlan wave_reset_plan(
+    bool reading_from_memory,
+    WaveOpenMode mode) noexcept {
+
+    if (reading_from_memory) {
+        return {true,false,false,false,false,false,false};
+    }
+
+    if (mode == WaveOpenMode::Read) {
+        return {false,true,true,true,false,false,false};
+    }
+
+    return {false,true,false,false,true,true,true};
+}
+
+struct MemoryWaveReadStep {
+    bool initialized{};
+    std::uint32_t bytes_to_copy{};
+    std::uint32_t next_cursor_offset{};
+};
+
+[[nodiscard]] constexpr MemoryWaveReadStep memory_wave_read_step(
+    std::uint32_t data_size,
+    std::uint32_t cursor_offset,
+    std::uint32_t requested_bytes,
+    bool has_current_pointer) noexcept {
+
+    if (!has_current_pointer || cursor_offset > data_size) {
+        return {};
+    }
+
+    const auto remaining = data_size - cursor_offset;
+    const auto count = requested_bytes < remaining
+        ? requested_bytes
+        : remaining;
+
+    return {
+        true,
+        count,
+        cursor_offset + count,
+    };
+}
+
+struct FileWaveReadPlan {
+    bool require_mmio_handle{true};
+    bool require_destination{true};
+    bool require_bytes_read_output{true};
+    bool zero_bytes_read_first{true};
+    bool get_mmio_info{true};
+    bool clamp_to_remaining_data_chunk{true};
+    bool advance_mmio_when_buffer_exhausted{true};
+    bool set_mmio_info_after_copy{true};
+};
+
+inline constexpr FileWaveReadPlan kFileWaveReadPlan{};
+
+struct WaveClosePlan {
+    bool close_mmio{};
+    bool ascend_data_chunk_before_close{};
+    bool patch_riff_size_for_write{};
+    bool clear_mmio_handle{true};
+};
+
+[[nodiscard]] constexpr WaveClosePlan wave_close_plan(
+    bool reading_from_memory,
+    WaveOpenMode mode,
+    bool has_mmio_handle) noexcept {
+
+    if (reading_from_memory || !has_mmio_handle) {
+        return {};
+    }
+
+    if (mode == WaveOpenMode::Write) {
+        return {true,true,true,true};
+    }
+
+    return {true,false,false,true};
+}
+
 // This retail build is a smaller/customized DSUtil variant:
 // - CSound has no m_dwCreationFlags member.
 // - CSound::Play takes only priority + flags; volume is applied from the
