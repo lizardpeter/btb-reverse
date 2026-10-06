@@ -512,6 +512,15 @@ enum class EditorControlVisual {
     Pressed,
 };
 
+enum class EditorControlSurface {
+    DeleteAllHover,   // fireworkdeleteallred.bmp
+    DeleteAllPressed, // fireworkdeletealldep.bmp
+    DeleteHover,      // fireworkdeletered.bmp
+    DeletePressed,    // fireworkdeletedep.bmp
+    PlayHover,        // fireworkplayred.bmp
+    PlayPressed,      // fireworkplaydep.bmp
+};
+
 enum class EditorControlActionKind {
     None,
     EnterPreShow,
@@ -533,6 +542,9 @@ struct EditorControlOutput {
     EditorControlActionKind action{EditorControlActionKind::None};
     std::optional<EditorAction> control{};
     EditorControlVisual visual{EditorControlVisual::None};
+    std::optional<EditorControlSurface> surface{};
+    std::int32_t surface_x{};
+    std::int32_t surface_y{};
     std::optional<std::int32_t> sound_id{};
 
     bool open_yes_no_confirmation{};
