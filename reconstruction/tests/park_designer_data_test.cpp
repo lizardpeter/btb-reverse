@@ -13,6 +13,12 @@ int main() {
     static_assert(kTrailingStateValueCount == 28);
     static_assert(kRetailSaveBytes == 30512);
 
+    static_assert(offsetof(RetailObjectRecord32, unused_persisted_14) == 0x14);
+    static_assert(offsetof(RetailObjectRecord32, unused_persisted_18) == 0x18);
+    static_assert(offsetof(RetailObjectRecord32, visual_frame_or_segment) == 0x40);
+    static_assert(offsetof(RetailObjectRecord32, fountain_phase) == 0x44);
+    static_assert(offsetof(RetailObjectRecord32, fountain_frame_countdown) == 0x48);
+
     static_assert(static_cast<int>(Season::Summer) == 0);
     static_assert(static_cast<int>(Season::Winter) == 1);
     static_assert(editor_mode_for_control(EditorControl::Pond) == EditorMode::Pond);
