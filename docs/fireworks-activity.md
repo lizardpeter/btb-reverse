@@ -312,6 +312,80 @@ advances every six editor draws through rows 0..8.
 These visual fields and the exact source-rectangle/idle-tick helpers are now in
 `fireworks_editor.hpp`.
 
+### Exact Bob/Wendy mouse-follow controller
+
+`DrawFireworksEditor` chooses one actor to idle and one actor to track the
+shared mouse X coordinate every frame.
+
+The normal vertical split is **Y=160**:
+
+- mouse Y >160: Wendy idles, Bob tracks;
+- mouse Y <=160: Bob idles, Wendy tracks.
+
+If either placement actor channel is in palette-latched state **1**, that split
+changes to **Y=35**.
+
+Mouse X is clamped to **61..575**. The tracking actor follows the cursor by
+exactly **one pixel per update**, using its sprite center `x+64`.
+
+Bob's center path is the four-point polyline:
+
+```text
+(0,177) -> (240,296) -> (400,296) -> (640,177)
+```
+
+Wendy's center path is:
+
+```text
+(0,128) -> (300,128) -> (500,128) -> (640,128)
+```
+
+Retail linearly interpolates the current path Y, then subtracts the 128-pixel
+sprite height to obtain the actor's top-left Y.
+
+Standing uses source column **4** and animation rows **0..8**. Walking uses the
+path slope plus left/right motion to select one of the other seven directional
+columns and advances rows **13..24**.
+
+Global `0x0050AB7C` is a small hysteresis value, not a timer. It starts at 0,
+so an actor stops when its center is within **30 pixels** of mouse X. Once it
+starts moving, retail writes 25, narrowing the stop threshold to **5 pixels**.
+When the actor stops, the value returns to 0.
+
+### Exact editor frame composition
+
+The DirectDraw composition order in `0x00412E50 DrawFireworksEditor` is now
+reconstructed end-to-end:
+
+1. opaque **`Bk_01e.bmp`** at (0,0);
+2. authored grid row 0 firework bitmaps;
+3. authored grid row 2 firework bitmaps;
+4. update Bob/Wendy mouse-follow animation;
+5. **Wendy** sprite sheet;
+6. color-keyed **`middle.bmp`** at **(205,104)**;
+7. **Bob** sprite sheet;
+8. color-keyed **`bottom.bmp`** at **(37,284)**;
+9. process actor channel states 10/11/12;
+10. authored grid row 1 firework bitmaps.
+
+The grid bitmap position is derived from the runtime placement rectangle:
+
+```text
+row 0: x = left,     y = top - 30
+row 1: x = left,     y = top - 30
+row 2: x = left + 4, y = top - 23
+```
+
+That ordering has a visible retail asymmetry. State-11 placement commits occur
+**after rows 0 and 2 have already been drawn but before row 1 is drawn**. A new
+center-row firework can therefore appear during the same frame as its commit,
+while a newly committed top/bottom-row firework first appears on the next
+frame.
+
+The exact surface/global map is in
+`ghidra/firework_editor_surfaces.csv`, and the typed frame model is
+`run_retail_editor_frame` in the C++26 reconstruction.
+
 ## Show playback
 
 `0x00413450 UpdateFireworksShowPlayback` advances through the six authored columns. For each column it can activate up to three events, one for each row.
