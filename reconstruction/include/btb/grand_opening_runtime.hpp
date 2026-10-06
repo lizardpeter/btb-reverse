@@ -386,7 +386,14 @@ struct ConductorIdleStep {
     return result;
 }
 
-[[nodiscard]] constexpr ToolbarRect conductor_source_rect(
+struct VisualSourceRect {
+    std::int32_t left{};
+    std::int32_t top{};
+    std::int32_t right{};
+    std::int32_t bottom{};
+};
+
+[[nodiscard]] constexpr VisualSourceRect conductor_source_rect(
     Conductor conductor,
     std::int32_t frame) noexcept {
     const auto& spec =
