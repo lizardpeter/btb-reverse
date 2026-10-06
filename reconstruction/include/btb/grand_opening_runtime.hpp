@@ -219,6 +219,129 @@ inline constexpr std::int32_t kDeleteWallMaxYExclusive = 401;
     return true;
 }
 
+struct EditorHitRegion {
+    ToolbarRect rect{};
+    std::int32_t action{-1};
+};
+
+inline constexpr std::size_t kWallHitRegionCount =
+    kPitchRowCount * kTimelineStepCount;
+inline constexpr std::size_t kPaletteHitRegionCount = 10;
+inline constexpr std::size_t kSpecialHitRegionCount = 2;
+inline constexpr std::size_t kEditorHitRegionCount =
+    kWallHitRegionCount + kPaletteHitRegionCount + kSpecialHitRegionCount;
+
+inline constexpr std::int32_t kWallAction = 11;
+inline constexpr std::int32_t kSecondaryStopAction = 22;
+inline constexpr std::int32_t kLegacyPlayRegionAction = 23;
+
+inline constexpr std::int32_t kWallOriginX = 44;
+inline constexpr std::int32_t kWallOriginY = 310;
+inline constexpr std::int32_t kWallStepWidth = 23;
+inline constexpr std::int32_t kWallRowHeight = 19;
+
+inline constexpr std::array<ToolbarRect, kPaletteHitRegionCount>
+kPaletteHitRects{{
+    {232,284,274,306},
+    {191,262,231,288},
+    {286,249,325,273},
+    {248,233,285,260},
+    {353,221,387,245},
+    {316,205,351,232},
+    {411,210,446,231},
+    {372,195,408,219},
+    {481,194,512,222},
+    {447,193,479,220},
+}};
+
+inline constexpr ToolbarRect kSecondaryStopHitRect{251,415,301,463};
+inline constexpr ToolbarRect kLegacyPlayHitRect{340,415,395,463};
+
+[[nodiscard]] constexpr std::array<EditorHitRegion,kEditorHitRegionCount>
+make_editor_hit_regions() noexcept {
+    std::array<EditorHitRegion,kEditorHitRegionCount> out{};
+    std::size_t index = 0;
+
+    for (std::size_t row = 0; row < kPitchRowCount; ++row) {
+        for (std::size_t second = 0; second < kTimelineStepCount; ++second) {
+            const auto left =
+                kWallOriginX +
+                static_cast<std::int32_t>(second) * kWallStepWidth;
+            const auto top =
+                kWallOriginY +
+                static_cast<std::int32_t>(row) * kWallRowHeight;
+            out[index++] = {
+                {left, top, left + kWallStepWidth, top + kWallRowHeight},
+                kWallAction,
+            };
+        }
+    }
+
+    for (std::size_t i = 0; i < kPaletteHitRects.size(); ++i) {
+        out[index++] = {
+            kPaletteHitRects[i],
+            static_cast<std::int32_t>(i),
+        };
+    }
+
+    out[index++] = {kSecondaryStopHitRect, kSecondaryStopAction};
+    out[index++] = {kLegacyPlayHitRect, kLegacyPlayRegionAction};
+    return out;
+}
+
+inline constexpr auto kEditorHitRegions = make_editor_hit_regions();
+
+struct EditorHitTestResult {
+    std::int32_t action{-1};
+    std::int32_t region_index{-1};
+    std::int32_t adjusted_x{};
+    std::int32_t adjusted_y{};
+};
+
+// Exact 0x0041FB90 behavior. State 1 tests with a +10/+10 pointer hotspot;
+// all other states use +5/+5. Every rectangle uses strict interior bounds.
+[[nodiscard]] constexpr EditorHitTestResult hit_test_editor_regions(
+    ActivityState activity_state,
+    std::int32_t mouse_x,
+    std::int32_t mouse_y) noexcept {
+
+    const auto offset =
+        activity_state == ActivityState::MachineSelected ? 10 : 5;
+    const auto x = mouse_x + offset;
+    const auto y = mouse_y + offset;
+
+    for (std::size_t i = 0; i < kEditorHitRegions.size(); ++i) {
+        const auto& region = kEditorHitRegions[i];
+        if (region.action != -1 &&
+            x > region.rect.left && x < region.rect.right &&
+            y > region.rect.top && y < region.rect.bottom) {
+            return {
+                region.action,
+                static_cast<std::int32_t>(i),
+                x,
+                y,
+            };
+        }
+    }
+    return {-1,-1,x,y};
+}
+
+struct WallDrawPosition {
+    std::int32_t x{};
+    std::int32_t y{};
+};
+
+[[nodiscard]] constexpr WallDrawPosition composition_cell_draw_position(
+    std::size_t pitch_row,
+    std::size_t second) noexcept {
+    return {
+        kWallOriginX +
+            static_cast<std::int32_t>(second) * kWallStepWidth,
+        kWallOriginY +
+            static_cast<std::int32_t>(pitch_row) * kWallRowHeight,
+    };
+}
+
 struct ToolbarRect {
     std::int32_t left{};
     std::int32_t top{};
