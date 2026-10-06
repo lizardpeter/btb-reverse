@@ -71,7 +71,8 @@ int main() {
     assert(sound_id_for_random_slot(
         sounds, 0, StuntQuality::Good, 4) == 1019);
 
-    static_assert(kMaximumScore == 24);
+    static_assert(kScoringOpportunityCount == 15);
+    static_assert(kMaximumScore == 45);
     static_assert(score_for_quality(StuntQuality::Bad) == 0);
     static_assert(score_for_quality(StuntQuality::Normal) == 1);
     static_assert(score_for_quality(StuntQuality::Okay) == 2);
@@ -83,6 +84,7 @@ int main() {
     static_assert(result_tier(19) == ResultTier::Medium);
     static_assert(result_tier(20) == ResultTier::High);
     static_assert(result_tier(24) == ResultTier::High);
+    static_assert(result_tier(45) == ResultTier::High);
 
     static_assert(result_sound_id(5, 0) == 773);
     static_assert(result_sound_id(5, 1) == 774);
