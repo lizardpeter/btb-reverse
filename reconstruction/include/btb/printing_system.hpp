@@ -139,6 +139,112 @@ struct ClipMapStep {
     const display::RetailRect32& requested_destination,
     const display::RetailRect32& source_rect) noexcept;
 
+inline constexpr std::int32_t kDocInfoSize = 20;
+inline constexpr std::int32_t kRasterCapsRejectedPaletteBit = 0x100;
+inline constexpr std::int32_t kEscapeQuerySupport = 8;
+inline constexpr std::int32_t kEscapeNextBand = 3;
+inline constexpr std::int32_t kStretchMode = 3;
+inline constexpr std::uint32_t kStretchRopSrcCopy = 0x00CC0020;
+inline constexpr std::uint32_t kDibRgbColors = 0;
+
+enum class PrintValidationError {
+    None,
+    NoBitmapDefined,
+    InvalidPrinterDc,
+    InvalidTargetRectangle,
+    UnsupportedPalettePrinter,
+    MissingDibInfo,
+    StretchDibFailed,
+};
+
+struct DocumentPrintPlan {
+    PrintValidationError error{PrintValidationError::None};
+    bool call_start_doc{};
+    bool call_start_page{};
+    bool call_render_to_dc{};
+    bool call_end_page{};
+    bool call_end_doc{};
+};
+
+[[nodiscard]] constexpr DocumentPrintPlan document_print_plan(
+    bool has_bitmap,
+    bool valid_printer_dc,
+    std::int32_t start_doc_result,
+    std::int32_t start_page_result) noexcept {
+
+    if (!has_bitmap) {
+        return {PrintValidationError::NoBitmapDefined};
+    }
+    if (!valid_printer_dc) {
+        return {PrintValidationError::InvalidPrinterDc};
+    }
+
+    DocumentPrintPlan out;
+    out.call_start_doc = true;
+
+    if (start_doc_result <= 0) {
+        return out;
+    }
+
+    out.call_start_page = true;
+    out.call_end_doc = true;
+
+    if (start_page_result <= 0) {
+        return out;
+    }
+
+    out.call_render_to_dc = true;
+    out.call_end_page = true;
+    return out;
+}
+
+struct StretchDibPlan {
+    PrintValidationError error{PrintValidationError::None};
+    bool call_escape_query_support{};
+    std::int32_t escape_query_code{kEscapeQuerySupport};
+    std::int32_t escape_requested_operation{kEscapeNextBand};
+    bool call_get_version_ex{};
+    bool call_set_stretch_mode{};
+    std::int32_t stretch_mode{kStretchMode};
+    bool call_stretch_dibits{};
+    std::uint32_t dib_usage{kDibRgbColors};
+    std::uint32_t raster_op{kStretchRopSrcCopy};
+};
+
+[[nodiscard]] constexpr StretchDibPlan stretch_dib_plan(
+    const display::RetailRect32& target_rect,
+    std::int32_t raster_caps,
+    bool has_dib_allocation,
+    bool has_dib_bits) noexcept {
+
+    if (target_rect.right <= target_rect.left ||
+        target_rect.bottom <= target_rect.top) {
+        return {PrintValidationError::InvalidTargetRectangle};
+    }
+
+    if ((raster_caps & kRasterCapsRejectedPaletteBit) != 0) {
+        return {PrintValidationError::UnsupportedPalettePrinter};
+    }
+
+    if (!has_dib_allocation || !has_dib_bits) {
+        return {PrintValidationError::MissingDibInfo};
+    }
+
+    StretchDibPlan out;
+    out.call_escape_query_support = true;
+    out.call_get_version_ex = true;
+    out.call_set_stretch_mode = true;
+    out.call_stretch_dibits = true;
+    return out;
+}
+
+[[nodiscard]] constexpr PrintValidationError stretch_result_error(
+    std::int32_t stretch_dibits_result) noexcept {
+    return stretch_dibits_result == -1
+        ? PrintValidationError::StretchDibFailed
+        : PrintValidationError::None;
+}
+
 struct ChannelMaskInfo {
     std::uint32_t mask{};
     std::int32_t trailing_zero_bits{};
