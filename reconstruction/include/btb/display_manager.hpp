@@ -23,7 +23,7 @@ struct RetailDisplayManager32 {
     std::uint32_t direct_draw7_ptr32{};        // +0x04
     std::uint32_t primary_surface_ptr32{};     // +0x08
     std::uint32_t render_surface_ptr32{};      // +0x0C
-    std::uint32_t auxiliary_surface_ptr32{};   // +0x10
+    std::uint32_t unused_legacy_surface_ptr32{};   // +0x10; ctor/teardown only, never populated by retail
     std::uint32_t hwnd32{};                    // +0x14
     RetailRect32 destination_rect{};           // +0x18
     std::int32_t windowed{};                   // +0x28
@@ -46,7 +46,7 @@ static_assert(offsetof(RetailDisplayManager32, vtable_ptr32) == 0x00);
 static_assert(offsetof(RetailDisplayManager32, direct_draw7_ptr32) == 0x04);
 static_assert(offsetof(RetailDisplayManager32, primary_surface_ptr32) == 0x08);
 static_assert(offsetof(RetailDisplayManager32, render_surface_ptr32) == 0x0C);
-static_assert(offsetof(RetailDisplayManager32, auxiliary_surface_ptr32) == 0x10);
+static_assert(offsetof(RetailDisplayManager32, unused_legacy_surface_ptr32) == 0x10);
 static_assert(offsetof(RetailDisplayManager32, hwnd32) == 0x14);
 static_assert(offsetof(RetailDisplayManager32, destination_rect) == 0x18);
 static_assert(offsetof(RetailDisplayManager32, windowed) == 0x28);
@@ -162,7 +162,7 @@ constexpr void initialize_retail_object(
     display.direct_draw7_ptr32 = 0;
     display.primary_surface_ptr32 = 0;
     display.render_surface_ptr32 = 0;
-    display.auxiliary_surface_ptr32 = 0;
+    display.unused_legacy_surface_ptr32 = 0;
 }
 
 struct DestroyPlan {
@@ -179,8 +179,8 @@ struct DestroyPlan {
 [[nodiscard]] constexpr DestroyPlan destroy_plan(
     const RetailDisplayManager32& display) noexcept {
     return {
-        display.auxiliary_surface_ptr32 != 0,
-        display.auxiliary_surface_ptr32 != 0,
+        display.unused_legacy_surface_ptr32 != 0,
+        display.unused_legacy_surface_ptr32 != 0,
         display.render_surface_ptr32 != 0,
         display.render_surface_ptr32 != 0,
         display.primary_surface_ptr32 != 0,
