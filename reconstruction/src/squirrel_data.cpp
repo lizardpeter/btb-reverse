@@ -19,13 +19,13 @@ std::int32_t read_int(std::istream& in, const char* what) {
 Data parse_retail_data(std::istream& in) {
     Data out;
 
-    for (auto& value : out.phase_header) {
-        value = read_int(in, "7-int phase header");
+    for (auto& value : out.horizontal_motion_deltas) {
+        value = read_int(in, "7 horizontal motion deltas");
     }
 
-    for (auto& row : out.phase_table) {
+    for (auto& row : out.vertical_motion_deltas) {
         for (auto& value : row) {
-            value = read_int(in, "8x7 phase table");
+            value = read_int(in, "8x7 vertical motion profiles");
         }
     }
 
@@ -36,11 +36,12 @@ Data parse_retail_data(std::istream& in) {
     out.discarded_scalars[0] = read_int(in, "discarded scalar 0");
     out.discarded_scalars[1] = read_int(in, "discarded scalar 1");
 
-    for (auto& value : out.tuning_tuple) {
-        value = read_int(in, "four-value tuning tuple");
+    for (auto& value : out.loaded_unused_scalars) {
+        value = read_int(in, "four loaded-but-unused scalars");
     }
 
-    out.alignment_offset = read_int(in, "alignment offset");
+    out.initial_horizontal_alignment_offset =
+        read_int(in, "initial horizontal alignment offset");
     return out;
 }
 
