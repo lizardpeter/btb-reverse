@@ -163,6 +163,279 @@ int main() {
         update_playing_state(false, true);
     static_assert(still_playing.next_state == ActivityState::Playing);
 
+    // Exact editor palette behavior.
+    EditorRuntimeState editor;
+    editor.delete_mode = true;
+    auto palette_step = select_palette_from_edit(
+        editor, MachineType::Muck2Second);
+    assert(editor.activity_state == ActivityState::MachineSelected);
+    assert(editor.selected_machine == MachineType::Muck2Second);
+    assert(!editor.delete_mode);
+    assert(editor.cursor.kind == EditorCursorKind::Machine);
+    assert(editor.cursor.machine == MachineType::Muck2Second);
+    assert(palette_step.preview_machine_sound);
+    assert(palette_step.machine_animation_state_written == 2);
+    assert(editor.machine_animation_states[1] == 2);
+
+    palette_step = select_palette_while_selected(
+        editor, MachineType::Muck2Second);
+    assert(palette_step.toggled_off);
+    assert(!palette_step.preview_machine_sound);
+    assert(editor.activity_state == ActivityState::Edit);
+    assert(editor.cursor.kind == EditorCursorKind::Normal);
+
+    editor.activity_state = ActivityState::MachineSelected;
+    editor.selected_machine = MachineType::Roley1Second;
+    editor.machine_animation_states[2] = 0;
+    palette_step = select_palette_while_selected(
+        editor, MachineType::Lofty1Second);
+    assert(!palette_step.toggled_off);
+    assert(palette_step.preview_machine_sound);
+    assert(palette_step.machine_animation_state_written == 0);
+    assert(editor.selected_machine == MachineType::Lofty1Second);
+    assert(editor.machine_animation_states[2] == 0);
+
+    // Edit-state grid click owner-resolves a continuation and picks up the
+    // owning brick when delete mode is off.
+    Composition editor_grid;
+    assert(place_event(
+        editor_grid, 0, 5, MachineType::Muck2Second));
+    EditorRuntimeState pickup;
+    auto grid_step = handle_grid_action(
+        pickup, editor_grid, 0, 6);
+    assert(grid_step.removed_existing);
+    assert(grid_step.picked_up_existing);
+    assert(grid_step.removed_type == MachineType::Muck2Second);
+    assert(editor_grid.cells[0][5] == kEmptyCell);
+    assert(editor_grid.cells[0][6] == kEmptyCell);
+    assert(pickup.activity_state == ActivityState::MachineSelected);
+    assert(pickup.selected_machine == MachineType::Muck2Second);
+
+    // Delete mode removes the whole event but keeps edit mode and raises the
+    // per-frame delete interaction latch.
+    Composition delete_grid;
+    assert(place_event(
+        delete_grid, 1, 3, MachineType::Roley2Second));
+    EditorRuntimeState delete_editor;
+    delete_editor.delete_mode = true;
+    delete_editor.cursor = {EditorCursorKind::Delete, std::nullopt};
+    grid_step = handle_grid_action(
+        delete_editor, delete_grid, 1, 4);
+    assert(grid_step.removed_existing);
+    assert(!grid_step.picked_up_existing);
+    assert(delete_editor.delete_interaction_latch);
+    assert(delete_editor.activity_state == ActivityState::Edit);
+    assert(delete_grid.cells[1][3] == kEmptyCell);
+    assert(delete_grid.cells[1][4] == kEmptyCell);
+
+    // A selected brick placed into an empty cell returns to edit mode.
+    Composition place_grid;
+    EditorRuntimeState placer;
+    placer.activity_state = ActivityState::MachineSelected;
+    placer.selected_machine = MachineType::Dizzy1Second;
+    placer.cursor = {
+        EditorCursorKind::Machine,
+        MachineType::Dizzy1Second,
+    };
+    grid_step = handle_grid_action(
+        placer, place_grid, 2, 7);
+    assert(grid_step.placement_attempted);
+    assert(grid_step.placed);
+    assert(place_grid.cells[2][7] ==
+           static_cast<int>(MachineType::Dizzy1Second));
+    assert(placer.activity_state == ActivityState::Edit);
+    assert(placer.cursor.kind == EditorCursorKind::Normal);
+
+    // Clicking an occupied start while holding another brick swaps them.
+    Composition swap_grid;
+    assert(place_event(
+        swap_grid, 3, 9, MachineType::Muck1Second));
+    EditorRuntimeState swapper;
+    swapper.activity_state = ActivityState::MachineSelected;
+    swapper.selected_machine = MachineType::Roley1Second;
+    swapper.cursor = {
+        EditorCursorKind::Machine,
+        MachineType::Roley1Second,
+    };
+    grid_step = handle_grid_action(
+        swapper, swap_grid, 3, 9);
+    assert(grid_step.removed_existing);
+    assert(grid_step.placed);
+    assert(grid_step.swapped_existing);
+    assert(grid_step.removed_type == MachineType::Muck1Second);
+    assert(swap_grid.cells[3][9] ==
+           static_cast<int>(MachineType::Roley1Second));
+    assert(swapper.selected_machine == MachineType::Muck1Second);
+    assert(swapper.activity_state == ActivityState::MachineSelected);
+
+    // If the replacement cannot fit, retail restores the removed event and
+    // keeps the originally held brick/cursor.
+    Composition failed_swap_grid;
+    assert(place_event(
+        failed_swap_grid, 0, 23, MachineType::Scoop1Second));
+    EditorRuntimeState failed_swap;
+    failed_swap.activity_state = ActivityState::MachineSelected;
+    failed_swap.selected_machine = MachineType::Roley2Second;
+    failed_swap.cursor = {
+        EditorCursorKind::Machine,
+        MachineType::Roley2Second,
+    };
+    grid_step = handle_grid_action(
+        failed_swap, failed_swap_grid, 0, 23);
+    assert(grid_step.removed_existing);
+    assert(!grid_step.placed);
+    assert(grid_step.restored_existing_after_failed_swap);
+    assert(failed_swap_grid.cells[0][23] ==
+           static_cast<int>(MachineType::Scoop1Second));
+    assert(failed_swap.selected_machine == MachineType::Roley2Second);
+    assert(failed_swap.cursor.machine == MachineType::Roley2Second);
+
+    // State 1 does not owner-resolve continuation cells; direct placement into
+    // that occupied cell simply fails.
+    Composition continuation_grid;
+    assert(place_event(
+        continuation_grid, 4, 2, MachineType::Scoop2Second));
+    EditorRuntimeState continuation_editor;
+    continuation_editor.activity_state = ActivityState::MachineSelected;
+    continuation_editor.selected_machine = MachineType::Roley1Second;
+    continuation_editor.cursor = {
+        EditorCursorKind::Machine,
+        MachineType::Roley1Second,
+    };
+    grid_step = handle_grid_action(
+        continuation_editor, continuation_grid, 4, 3);
+    assert(grid_step.placement_attempted);
+    assert(!grid_step.placed);
+    assert(!grid_step.removed_existing);
+    assert(continuation_grid.cells[4][2] ==
+           static_cast<int>(MachineType::Scoop2Second));
+    assert(continuation_grid.cells[4][3] == kContinuationCell);
+
+    // Clear-All confirmation is the top-of-update 120-cell reset.
+    Composition clear_grid;
+    assert(place_event(
+        clear_grid, 0, 0, MachineType::Roley1Second));
+    assert(!apply_clear_all_confirmation(clear_grid, false));
+    assert(clear_grid.cells[0][0] == 0);
+    assert(apply_clear_all_confirmation(clear_grid, true));
+    for (const auto& row : clear_grid.cells) {
+        for (const auto cell : row) {
+            assert(cell == kEmptyCell);
+        }
+    }
+
+    // Exact conductor-specific toolbar voice bases.
+    static_assert(conductor_voice_base(Conductor::Bob) == 510);
+    static_assert(conductor_voice_base(Conductor::Wendy) == 523);
+    static_assert(conductor_voice_base(Conductor::FarmerPickles) == 536);
+    static_assert(kClearAllConfirmationContext == 2);
+    static_assert(kToolbarRects[0].left == 324);
+    static_assert(kToolbarRects[1].left == 260);
+    static_assert(kToolbarRects[2].left == 103);
+    static_assert(kToolbarRects[3].left == 481);
+
+    EditorRuntimeState toolbar;
+    auto toolbar_step = update_toolbar(
+        toolbar,
+        Conductor::Bob,
+        {325, 417, true, false, false, 0});
+    assert(toolbar_step.control == ToolbarControl::Play);
+    assert(toolbar_step.visual == ToolbarVisual::Hover);
+    assert(toolbar_step.hover_sound_id &&
+           *toolbar_step.hover_sound_id == 516); // MP_BOB_07
+    assert(toolbar_step.action_sound_id &&
+           *toolbar_step.action_sound_id == 511); // MP_BOB_02
+    assert(toolbar_step.stop_all_managed_sounds);
+    assert(toolbar_step.action == ToolbarActionKind::PlayVoicePending);
+    assert(toolbar.play_pending);
+    assert(toolbar.activity_state == ActivityState::Edit);
+
+    // While the Play voice is still active, state 8 is not entered.
+    toolbar_step = update_toolbar(
+        toolbar,
+        Conductor::Bob,
+        {0, 0, false, false, true, 0});
+    assert(toolbar.play_pending);
+    assert(toolbar.activity_state == ActivityState::Edit);
+    assert(toolbar_step.action == ToolbarActionKind::None);
+
+    // The first update after managed audio becomes idle consumes the latch and
+    // enters state 8 before normal toolbar hit processing.
+    toolbar_step = update_toolbar(
+        toolbar,
+        Conductor::Bob,
+        {325, 417, false, false, false, 0});
+    assert(!toolbar.play_pending);
+    assert(toolbar.activity_state == ActivityState::PreparePlayback);
+    assert(toolbar_step.action ==
+           ToolbarActionKind::EnterPreparePlayback);
+    assert(!toolbar_step.control);
+
+    // Stop is state-9-only and chooses MP_*_04/_05 using rand()%2.
+    EditorRuntimeState stop_toolbar;
+    stop_toolbar.activity_state = ActivityState::Playing;
+    toolbar_step = update_toolbar(
+        stop_toolbar,
+        Conductor::Wendy,
+        {261, 417, true, false, false, 1});
+    assert(toolbar_step.control == ToolbarControl::Stop);
+    assert(toolbar_step.hover_sound_id &&
+           *toolbar_step.hover_sound_id == 530); // MP_WEN_08
+    assert(toolbar_step.action_sound_id &&
+           *toolbar_step.action_sound_id == 527); // MP_WEN_05
+    assert(toolbar_step.stop_backing_track);
+    assert(stop_toolbar.activity_state == ActivityState::Edit);
+
+    // Clear All opens Deletebricks.bmp through confirmation context 2.
+    EditorRuntimeState clear_toolbar;
+    toolbar_step = update_toolbar(
+        clear_toolbar,
+        Conductor::FarmerPickles,
+        {104, 417, true, false, false, 0});
+    assert(toolbar_step.control == ToolbarControl::ClearAll);
+    assert(toolbar_step.action ==
+           ToolbarActionKind::OpenClearAllConfirmation);
+    assert(toolbar_step.open_confirmation);
+    assert(toolbar_step.confirmation_context == 2);
+    assert(toolbar_step.hover_sound_id &&
+           *toolbar_step.hover_sound_id == 544); // MP_PIC_09
+    assert(!toolbar_step.action_sound_id);
+
+    // Delete toggles its cursor. Entering may emit both first-hover MP_*_10
+    // and click MP_*_10/_11; while delete mode is active hover rendering is
+    // suppressed, but a second click still toggles it off.
+    EditorRuntimeState delete_toolbar;
+    toolbar_step = update_toolbar(
+        delete_toolbar,
+        Conductor::Bob,
+        {482, 417, true, false, false, 1});
+    assert(toolbar_step.action == ToolbarActionKind::EnterDeleteMode);
+    assert(delete_toolbar.delete_mode);
+    assert(delete_toolbar.cursor.kind == EditorCursorKind::Delete);
+    assert(toolbar_step.hover_sound_id &&
+           *toolbar_step.hover_sound_id == 519); // MP_BOB_10
+    assert(toolbar_step.action_sound_id &&
+           *toolbar_step.action_sound_id == 520); // MP_BOB_11
+
+    toolbar_step = update_toolbar(
+        delete_toolbar,
+        Conductor::Bob,
+        {482, 417, true, false, false, 0});
+    assert(toolbar_step.action == ToolbarActionKind::LeaveDeleteMode);
+    assert(!delete_toolbar.delete_mode);
+    assert(delete_toolbar.cursor.kind == EditorCursorKind::Normal);
+    assert(toolbar_step.visual == ToolbarVisual::None);
+    assert(!toolbar_step.hover_sound_id);
+    assert(!toolbar_step.action_sound_id);
+
+    // Strict hit testing excludes rectangle edges.
+    EditorRuntimeState edge_toolbar;
+    toolbar_step = update_toolbar(
+        edge_toolbar,
+        Conductor::Bob,
+        {324, 417, false, false, false, 0});
+    assert(!toolbar_step.control);
+
     static_assert(kMusicChooserOuterState == 0x2A);
     static_assert(kPlayAgainOuterState == 0x3C);
     static_assert(kSharedMovieOuterState == 0x40);
