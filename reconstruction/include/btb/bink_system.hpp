@@ -28,6 +28,24 @@ struct PlaybackSurfaceSpec {
 
 inline constexpr PlaybackSurfaceSpec kSharedPlaybackSurface{};
 
+struct InitializePlan {
+    PlaybackSurfaceSpec shared_surface{};
+    bool create_offscreen_surface{true};
+    bool bind_bink_sound_system{true};
+    bool use_bink_open_direct_sound{true};
+    std::int32_t bink_sound_system_user_value{};
+    bool paused_after_initialize{};
+};
+
+inline constexpr InitializePlan kInitializePlan{};
+
+struct RestartPlan {
+    std::int32_t target_frame{1};
+    std::int32_t flags{};
+};
+
+inline constexpr RestartPlan kRestartPlan{};
+
 enum class FrameMode : std::int32_t {
     // Return complete at end-of-stream or on any of the three shared input
     // pulses. This is the ordinary skippable one-shot path.
@@ -133,6 +151,30 @@ struct GenericFrameStep {
     return step;
 }
 
+struct NoAdvanceFrameInput {
+    bool surface_lock_failed{};
+};
+
+struct NoAdvanceFrameStep {
+    bool decode_frame{true};
+    bool lock_surface{true};
+    bool copy_to_surface{};
+    bool unlock_surface{};
+    bool failed{};
+};
+
+// 0x00409070 DecodeAndBlitBinkFrameNoAdvance decodes/copies into the supplied
+// DirectDraw surface and unlocks it, but performs no BinkNextFrame, BinkWait,
+// or backbuffer blit.
+[[nodiscard]] constexpr NoAdvanceFrameStep no_advance_frame_step(
+    const NoAdvanceFrameInput& input) noexcept {
+
+    if (input.surface_lock_failed) {
+        return {true,true,false,false,true};
+    }
+    return {true,true,true,true,false};
+}
+
 struct GlobalFrameInput {
     std::int32_t frame_number{};
     std::int32_t frame_count{};
@@ -212,6 +254,46 @@ struct GlobalPlaybackState {
     bool paused{};
     bool input_processing_enabled{true};
 };
+
+struct GlobalOpenSuccessStep {
+    bool apply_volume{};
+    std::int32_t volume{};
+    bool disable_input_processing{};
+};
+
+[[nodiscard]] constexpr GlobalOpenSuccessStep on_global_open_success(
+    GlobalPlaybackState& state,
+    std::int32_t game_volume) noexcept {
+
+    state.has_movie = true;
+    state.paused = false;
+    state.input_processing_enabled = false;
+    return {
+        true,
+        bink_volume_from_game_volume(game_volume),
+        true,
+    };
+}
+
+struct GlobalCloseStep {
+    bool call_bink_close{};
+    bool clear_global_handle{};
+    bool enable_input_processing{};
+};
+
+[[nodiscard]] constexpr GlobalCloseStep close_global_movie(
+    GlobalPlaybackState& state) noexcept {
+
+    const bool had_movie = state.has_movie;
+    state.has_movie = false;
+    state.paused = false;
+    state.input_processing_enabled = true;
+    return {
+        had_movie,
+        true,
+        true,
+    };
+}
 
 struct PauseResumeStep {
     bool call_bink_pause{};
