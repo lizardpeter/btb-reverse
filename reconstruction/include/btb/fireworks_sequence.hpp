@@ -85,10 +85,10 @@ enum class InternalState : std::int32_t {
 
 // When fireworkcomplete.bik finishes in state 15, retail re-enables input,
 // returns to state 8, stops all managed sounds, plays ID 142 at priority 90
-// with playback flag 1, and marks that managed slot persistent.
+// with arbitration class 1, and marks that managed slot input-interruptible.
 inline constexpr std::int32_t kPreShowMovieFollowupSoundId = 142; // CT_BOB_01
 inline constexpr std::int32_t kPreShowMovieFollowupPriority = 90;
-inline constexpr std::int32_t kPreShowMovieFollowupPlaybackFlag = 1;
+inline constexpr std::int32_t kPreShowMovieFollowupArbitrationClass = 1;
 
 struct PreShowMovieCompletionAction {
     InternalState next_state{InternalState::ShowSetup};
@@ -96,8 +96,8 @@ struct PreShowMovieCompletionAction {
     bool stop_all_managed_sounds{true};
     std::int32_t sound_id{kPreShowMovieFollowupSoundId};
     std::int32_t sound_priority{kPreShowMovieFollowupPriority};
-    std::int32_t playback_flag{kPreShowMovieFollowupPlaybackFlag};
-    bool mark_sound_slot_persistent{true};
+    std::int32_t arbitration_class{kPreShowMovieFollowupArbitrationClass};
+    bool mark_sound_slot_input_interruptible{true};
 };
 
 [[nodiscard]] constexpr PreShowMovieCompletionAction
@@ -118,11 +118,11 @@ inline constexpr std::int32_t kCertificateEarliestColumn = 2;
 inline constexpr std::int32_t kRandomCrowdSoundFirst = 323; // FD_ALL_01
 inline constexpr std::int32_t kRandomCrowdSoundCount = 25;
 inline constexpr std::int32_t kRandomCrowdSoundPriority = 50;
-inline constexpr std::int32_t kRandomCrowdSoundPlaybackFlag = 2;
+inline constexpr std::int32_t kRandomCrowdSoundArbitrationClass = 2;
 
 inline constexpr std::int32_t kCrowdEndSoundId = 349; // FD_WEN_02
 inline constexpr std::int32_t kCrowdEndSoundPriority = 50;
-inline constexpr std::int32_t kCrowdEndSoundPlaybackFlag = 1;
+inline constexpr std::int32_t kCrowdEndSoundArbitrationClass = 1;
 
 [[nodiscard]] constexpr bool crowd_loop_branch(
     std::int32_t phase) noexcept {
@@ -419,7 +419,7 @@ struct ShowFrameOutput {
     bool stop_all_before_sound{};
     std::optional<std::int32_t> sound_id{};
     std::int32_t sound_priority{};
-    std::int32_t sound_playback_flag{};
+    std::int32_t sound_arbitration_class{};
     bool stop_all_for_certificate{};
 
     bool restart_top_middle_movie{};
