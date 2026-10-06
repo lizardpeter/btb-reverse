@@ -61,10 +61,12 @@ The first six source pairs are:
 (100,120)
 ```
 
-One fixed pair is now exact: pair **#3 = (478,471)** is read directly by
+One fixed pair is exact: pair **#3 = (478,471)** is read directly by
 `InitializeHerdingActivity` into the first entity's floating X/Y fields, so
-it is **Farmer Pickles' retail start position**. The remaining fixed pairs are
-kept unnamed until a direct Herding consumer is proven.
+it is **Farmer Pickles' retail start position**. Exhaustive Herding-module
+references show **no retail consumer for the other five fixed setup pairs** in
+this executable build; the reconstruction preserves them as unused source data
+rather than assigning speculative meanings.
 
 ## First coordinate group transform
 
@@ -177,8 +179,8 @@ The runtime array begins at `0x0050B3A8`, with a stride of **0x64 bytes**.
 | `+0x1C` | direction in degrees as float; initialized from integer direction × 45.0 |
 | `+0x20` | floating X |
 | `+0x24` | floating Y |
-| `+0x28` | unknown |
-| `+0x2C` | animation/timing counter |
+| `+0x28` | resolved Pickles movement-direction mask; bits 1/2/4/8 = Up/Right/Down/Left |
+| `+0x2C` | animation-frame countdown; decremented during animation and reset to retail delays such as 50/100/150 |
 | `+0x30` | entity type |
 | `+0x34..+0x40` | source rectangle |
 | `+0x44` | 32-bit DirectDraw surface pointer |
@@ -190,9 +192,23 @@ The runtime array begins at `0x0050B3A8`, with a stride of **0x64 bytes**.
 | `+0x5C` | temporary target X |
 | `+0x60` | temporary target Y |
 
-The source reconstruction intentionally leaves unresolved record fields as
-`unknown_*` instead of inventing semantics. The previously unknown entity
-type IDs 4..6, however, are now closed as dormant/no-constructor retail IDs.
+The remaining record semantics are now substantially closed. In particular,
+`+0x28` is not raw DirectInput state: `UpdateHerdingActivity` resolves input
+into this direction mask and later maps that mask to the eight facing indices:
+
+```text
+0 Up        1 UpRight   2 Right     3 DownRight
+4 Down      5 DownLeft  6 Left      7 UpLeft
+```
+
+`+0x2C` is the per-entity animation-frame countdown. Pickles' update subtracts
+10 or a movement-derived amount from it and resets it when animation frames
+advance; gate/home-route code also seeds it to values such as 50. Offset
+`+0x54` remains intentionally named unused because there are no retail
+references to that dword anywhere in this executable.
+
+The previously unknown entity type IDs 4..6 are also closed as
+dormant/no-constructor retail IDs.
 
 ## Entity types
 
