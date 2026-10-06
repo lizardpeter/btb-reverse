@@ -152,7 +152,7 @@ address,name,confidence,notes
 0x00412B80,DeleteFireworkAtSelectedRegion,high,"In Fireworks delete mode, removes an occupied authored cell when action 12 placement region is clicked"
 0x00412BD0,BeginFireworksEditorAction,high,"Exact editor begin action: palette cursor + Bob/Wendy state-1 one-shot voice latch, occupied-cell replacement pre-step, Delete-All confirmation context 3, and Play state-14 activation"
 0x00412D50,CompleteFireworksEditorAction,high,"Exact release path: palette assignment or row-split Bob/Wendy pending placement, states 10 then validation commit=false, with voice pools 867..870 or 904..907"
-0x00412E50,DrawFireworksEditor,high,"Draws editor/grid and actor sprites; advances 10->11->commit, full-grid feedback 860/897, and exact dormant state-12 8-direction motion at speed 5 toward static Bob/Wendy targets with <10 arrival reset"
+0x00412E50,DrawFireworksEditor,high,"Exact editor compositor: Bk_01e -> rows0/2 -> Bob/Wendy one-pixel mouse-follow paths -> Wendy -> middle -> Bob -> bottom -> actor states10/11/12 -> row1; includes 30-to-5 tracking hysteresis and same-frame center-row commit visibility"
 0x00413B60,UpdateFireworksEditorControls,high,"Exact Play/Delete/Delete-All hit/hover/pressed/click controller: (+40,+20) hit shift while actor active, 10-frame conflict cooldown, sounds 880/881/882/883/885/890, Delete mode 13"
 0x00413450,UpdateFireworksShowPlayback,high,"Exact state-9 frame runtime: 4s columns with +0/+1/+2s row gates, first-free 40-record event pool, topmiddle index 20, three crowd-loop completions on index 21, crowd-end index 22 with sound 349, then certificate when phase 7 and column>=2"
 0x004110E0,UnloadFireworksEditorResources,high,"Releases Fireworks editor/button DirectDraw surfaces"
