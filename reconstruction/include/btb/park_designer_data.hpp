@@ -134,34 +134,61 @@ inline constexpr std::size_t kRetailSaveBytes =
 
 enum class TrailingStateIndex : std::size_t {
     PondSelectedPrimary = 0,       // global 0x00507A28
-    Unknown507E38 = 1,
-    PondSpecialRecord = 2,        // global 0x005079FC
-    Unknown507E3C = 3,
-    PondLinkedCount = 4,          // global 0x00507A40
-    SelectedObjectRecord = 5,     // global 0x00507C54
-    PondLinkedRecord0 = 6,        // 0x00507A2C
+    PondShapeVariant = 1,          // global 0x00507E38; live segmented-pond profile 0..4
+    PondSpecialRecord = 2,         // global 0x005079FC
+    BandstandSelectedRecord = 3,   // global 0x00507E3C; -1 or active 200-series record
+    PondLinkedCount = 4,           // global 0x00507A40
+    SelectedObjectRecord = 5,      // global 0x00507C54
+    PondLinkedRecord0 = 6,         // 0x00507A2C
     PondLinkedRecord1 = 7,
     PondLinkedRecord2 = 8,
     PondLinkedRecord3 = 9,
-    Unknown507B5C = 10,
+
+    // 0=Pond, 1=Bandstand, 2=Decorate. Retail uses this directly as the
+    // index into the live current/max palette-page arrays below.
+    ActivePaletteFamily = 10,      // global 0x00507B5C
     PondLinkedRecord4 = 11,
-    ModePage0 = 12,               // 0x00507AE4
-    ModePage1 = 13,
-    ModePage2 = 14,
-    Unknown507AF0 = 15,
-    Unknown507AF4 = 16,
-    Unknown508BF4 = 17,
-    Unknown508BF8 = 18,
-    Unknown508BFC = 19,
-    Unknown508C00 = 20,
-    Unknown508C04 = 21,
-    NextPondPrimaryRecord = 22,   // global 0x00509340
-    NextDecorateRecord = 23,      // global 0x00441DC8
-    NextBandstandRecord = 24,     // global 0x00441DCC
-    Unknown441DD0 = 25,
-    Unknown441DD4 = 26,
-    Season = 27,                  // global 0x00509344
+
+    // Five persisted current-page slots form one contiguous array.
+    // Only the first three have gameplay readers in this executable.
+    PondPalettePage = 12,          // 0x00507AE4
+    BandstandPalettePage = 13,     // 0x00507AE8
+    DecoratePalettePage = 14,      // 0x00507AEC
+    LegacyPalettePage3 = 15,       // 0x00507AF0; save/load/init only
+    LegacyPalettePage4 = 16,       // 0x00507AF4; save/load/init only
+
+    // Matching five-entry maximum/last-page array at 0x00508BF4.
+    PondPaletteMaxPage = 17,       // 0x00508BF4
+    BandstandPaletteMaxPage = 18,  // 0x00508BF8
+    DecoratePaletteMaxPage = 19,   // 0x00508BFC
+    LegacyPaletteMaxPage3 = 20,    // 0x00508C00; save/load only
+    LegacyPaletteMaxPage4 = 21,    // 0x00508C04; save/load only
+
+    NextPondPrimaryRecord = 22,    // global 0x00509340
+    NextDecorateRecord = 23,       // global 0x00441DC8; initialized 300
+    NextBandstandRecord = 24,      // global 0x00441DCC; initialized 200
+
+    // Captured from the pointer when a new segmented Pond placement begins;
+    // later added to the authored per-variant hit/segment offsets.
+    PondDragAnchorMouseX = 25,     // global 0x00441DD0
+    PondDragAnchorMouseY = 26,     // global 0x00441DD4
+
+    Season = 27,                   // global 0x00509344
 };
+
+inline constexpr std::array<TrailingStateIndex,3>
+kPaletteCurrentPageStateByFamily{{
+    TrailingStateIndex::PondPalettePage,
+    TrailingStateIndex::BandstandPalettePage,
+    TrailingStateIndex::DecoratePalettePage,
+}};
+
+inline constexpr std::array<TrailingStateIndex,3>
+kPaletteMaxPageStateByFamily{{
+    TrailingStateIndex::PondPaletteMaxPage,
+    TrailingStateIndex::BandstandPaletteMaxPage,
+    TrailingStateIndex::DecoratePaletteMaxPage,
+}};
 
 struct SaveData {
     std::array<RetailObjectRecord32, kObjectRecordCount> objects{};
