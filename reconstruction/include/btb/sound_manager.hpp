@@ -18,6 +18,65 @@ enum class SlotState : std::int32_t {
     Stopped = 3,
 };
 
+// Exact +0xED8 arbitration classes used by PlayManagedSoundById.
+// Class 0 bypasses the cross-sound admission scan. An already-playing class-1
+// sound rejects any incoming request whose class is >0. An already-playing
+// class-2 sound is preempted by incoming class 1 or 2.
+enum class ArbitrationClass : std::int32_t {
+    None = 0,
+    ExclusiveBlocker = 1,
+    Preemptible = 2,
+};
+
+enum class ArbitrationAction : std::int32_t {
+    ContinueScan,
+    RejectIncoming,
+    StopExisting,
+};
+
+[[nodiscard]] constexpr ArbitrationAction arbitration_action(
+    std::int32_t existing_class,
+    std::int32_t incoming_class,
+    bool existing_is_playing = true) noexcept {
+
+    if (!existing_is_playing || incoming_class <= 0) {
+        return ArbitrationAction::ContinueScan;
+    }
+
+    if (existing_class ==
+        static_cast<std::int32_t>(ArbitrationClass::ExclusiveBlocker)) {
+        return ArbitrationAction::RejectIncoming;
+    }
+
+    if (existing_class ==
+            static_cast<std::int32_t>(ArbitrationClass::Preemptible) &&
+        (incoming_class ==
+             static_cast<std::int32_t>(ArbitrationClass::ExclusiveBlocker) ||
+         incoming_class ==
+             static_cast<std::int32_t>(ArbitrationClass::Preemptible))) {
+        return ArbitrationAction::StopExisting;
+    }
+
+    return ArbitrationAction::ContinueScan;
+}
+
+// Exact state-2 reap rule. +0xD98 does not make a sound persistent: value 1
+// makes the active slot additionally stop on either shared user-input pulse.
+// All active slots are stopped/rewound once their DirectSound group finishes.
+[[nodiscard]] constexpr bool should_stop_active_slot(
+    bool input_interruptible,
+    bool primary_input_pulse,
+    bool secondary_input_pulse,
+    bool buffer_group_is_playing) noexcept {
+
+    if (input_interruptible &&
+        (primary_input_pulse || secondary_input_pulse)) {
+        return true;
+    }
+
+    return !buffer_group_is_playing;
+}
+
 struct FilenameRecord {
     std::array<char, kFilenameRecordBytes> bytes{};
 };
@@ -34,10 +93,10 @@ struct RetailSoundManager32 {
     std::array<std::int8_t, kSoundCatalogCount> slot_by_sound_id{};     // +0x280
     std::array<std::uint8_t, kSoundCatalogCount> sound_enabled{};       // +0x6CC
 
-    std::array<std::int32_t, kManagedSlotCount> priority_or_age{};      // +0xB18
-    std::array<std::int32_t, kManagedSlotCount> slot_state{};           // +0xC58
-    std::array<std::int32_t, kManagedSlotCount> special_lifetime_flag{};// +0xD98
-    std::array<std::int32_t, kManagedSlotCount> playback_policy{};      // +0xED8
+    std::array<std::int32_t, kManagedSlotCount> priority{};              // +0xB18
+    std::array<std::int32_t, kManagedSlotCount> slot_state{};            // +0xC58
+    std::array<std::int32_t, kManagedSlotCount> input_interruptible{};   // +0xD98
+    std::array<std::int32_t, kManagedSlotCount> arbitration_class{};     // +0xED8
 
     std::array<FilenameRecord, kSoundCatalogCount> filename_by_sound_id{}; // +0x1018
     std::array<std::int32_t, kSoundCatalogCount> catalog_metadata{};       // +0x6608
@@ -67,10 +126,10 @@ static_assert(offsetof(RetailSoundManager32, buffer_group_ptr32) == 0x000);
 static_assert(offsetof(RetailSoundManager32, sound_id_by_slot) == 0x140);
 static_assert(offsetof(RetailSoundManager32, slot_by_sound_id) == 0x280);
 static_assert(offsetof(RetailSoundManager32, sound_enabled) == 0x6CC);
-static_assert(offsetof(RetailSoundManager32, priority_or_age) == 0xB18);
+static_assert(offsetof(RetailSoundManager32, priority) == 0xB18);
 static_assert(offsetof(RetailSoundManager32, slot_state) == 0xC58);
-static_assert(offsetof(RetailSoundManager32, special_lifetime_flag) == 0xD98);
-static_assert(offsetof(RetailSoundManager32, playback_policy) == 0xED8);
+static_assert(offsetof(RetailSoundManager32, input_interruptible) == 0xD98);
+static_assert(offsetof(RetailSoundManager32, arbitration_class) == 0xED8);
 static_assert(offsetof(RetailSoundManager32, filename_by_sound_id) == 0x1018);
 static_assert(offsetof(RetailSoundManager32, catalog_metadata) == 0x6608);
 static_assert(sizeof(RetailSoundManager32) == kRetailSoundManagerBytes);
@@ -98,7 +157,7 @@ struct AcquireSlotChoice {
             continue;
         }
 
-        const auto priority = manager.priority_or_age[i];
+        const auto priority = manager.priority[i];
         if (priority < best_priority) {
             best_priority = priority;
             best_slot = static_cast<std::int32_t>(i);
@@ -115,7 +174,7 @@ constexpr void clear_released_slot_metadata(
     const auto old_sound_id = manager.sound_id_by_slot[slot];
 
     manager.buffer_group_ptr32[slot] = 0;
-    manager.priority_or_age[slot] = -1;
+    manager.priority[slot] = -1;
     manager.slot_state[slot] = static_cast<std::int32_t>(SlotState::Free);
 
     if (manager.valid_sound_id(old_sound_id)) {
@@ -132,14 +191,14 @@ constexpr void install_acquired_slot_metadata(
     std::size_t slot,
     std::int32_t sound_id,
     std::int32_t priority,
-    std::int32_t playback_policy) noexcept {
+    std::int32_t arbitration_class) noexcept {
 
     manager.sound_id_by_slot[slot] = sound_id;
     manager.slot_by_sound_id[static_cast<std::size_t>(sound_id)] =
         static_cast<std::int8_t>(slot);
-    manager.priority_or_age[slot] = priority;
-    manager.special_lifetime_flag[slot] = 0;
-    manager.playback_policy[slot] = playback_policy;
+    manager.priority[slot] = priority;
+    manager.input_interruptible[slot] = 0;
+    manager.arbitration_class[slot] = arbitration_class;
 }
 
 } // namespace btb::sound
