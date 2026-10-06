@@ -4,6 +4,29 @@
 
 namespace btb::bitmap_registry {
 
+BitmapFileOpenPlan bitmap_file_open_plan(
+    std::string_view filename,
+    std::int32_t requested_width,
+    std::int32_t requested_height,
+    std::int32_t drive_index) {
+
+    BitmapFileOpenPlan plan;
+    plan.direct_path = std::string(filename);
+    plan.requested_width = requested_width;
+    plan.requested_height = requested_height;
+
+    if (drive_index >= 0) {
+        std::string fallback;
+        fallback.reserve(filename.size() + 3);
+        fallback.push_back(static_cast<char>('a' + drive_index));
+        fallback += ":\\";
+        fallback.append(filename);
+        plan.fallback_path = std::move(fallback);
+    }
+
+    return plan;
+}
+
 void copy_filename(
     FilenameRecord& destination,
     std::string_view filename) noexcept {
