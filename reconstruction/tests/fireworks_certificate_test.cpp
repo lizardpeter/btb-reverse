@@ -25,7 +25,7 @@ int main() {
     static_assert(hover.state.print_hover_voice_latched);
     static_assert(hover.sound_id && *hover.sound_id == 143);
     static_assert(hover.sound_priority == 50);
-    static_assert(hover.sound_playback_flag == 2);
+    static_assert(hover.sound_arbitration_class == 2);
 
     constexpr auto hover_again =
         update_certificate_interaction(hover.state, hover_input);
@@ -49,7 +49,7 @@ int main() {
     static_assert(random_voice.state.last_random_candidate_id == 144);
     static_assert(random_voice.action == CertificateActionKind::PlayRandomVoice);
     static_assert(random_voice.sound_id && *random_voice.sound_id == 151);
-    static_assert(random_voice.sound_playback_flag == 0);
+    static_assert(random_voice.sound_arbitration_class == 0);
 
     // Retail's stored non-repeat candidate and played voice are separate
     // random rolls, so this intentionally stores 144 while playing 151.
