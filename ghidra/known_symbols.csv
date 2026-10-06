@@ -49,7 +49,7 @@ address,name,confidence,notes
 0x0040A670,InitializeDinoActivity,high,"Dinosaur activity initializer; references Dino asset/difficulty tables"
 0x00409E00,UpdateDinoActivity,high,"Dino core loop: piece states 0 loose, 1 dragging, 2 accepted-drop transition, 3 rejected-drop feedback, 4 placed; interaction modes 0 idle, 1 carrying, 2 finalize accepted drop"
 0x00424360,InitializeSpudSkateActivity,high,"Loads four synchronized Bink quality streams, score/UI surfaces, parses soundinfo 8x4x5 sound matrix plus eight trigger frames, and initializes activity state"
-0x00424D10,UpdateSpudSkateActivity,high,"Outer Spud Skate frame state; calls playback, starts shared music/intro audio, records completion, releases resources, and enters Play Again flow"
+0x00424D10,UpdateSpudSkateActivity,high,"Exact outer Spud Skate controller: active playback, startup music 8 + SS2_SPU_01 ID758, phase-2 Play Again state 0x3C with proper Spud Skate unload, and retail quit/leave quirk that calls UnloadMazeActivityResources before routing to 0x16 or shared movie state 0x40"
 0x0041A730,InitializeMazeActivity,high,"Maze activity initializer; loads Data\\SubGameMaze assets and lofty engine.wav"
 0x0041D4D0,UpdateMazeActivity,high,"Maze runtime/update entry paired with state 0x21"
 0x00411C80,InitializeFireworksActivity,high,"Initializes Fireworks editor/runtime, writes selected-player progress slot 63=1 at 0x00411CE0 before gameplay, then loads the player-specific firedata layout and activity assets"
