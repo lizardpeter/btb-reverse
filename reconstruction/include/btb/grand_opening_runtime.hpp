@@ -241,9 +241,10 @@ struct ToolbarStep {
     ToolbarActionKind action{ToolbarActionKind::None};
     std::optional<ToolbarControl> control{};
     ToolbarVisual visual{ToolbarVisual::None};
-    std::optional<std::int32_t> managed_sound_id{};
-    std::int32_t managed_sound_priority{};
-    std::int32_t managed_sound_flag{};
+    // Hover is processed before click dispatch, so the first clicked frame on
+    // a control can produce both requests.
+    std::optional<std::int32_t> hover_sound_id{};
+    std::optional<std::int32_t> action_sound_id{};
     bool stop_all_managed_sounds{};
     bool stop_backing_track{};
     bool open_confirmation{};
