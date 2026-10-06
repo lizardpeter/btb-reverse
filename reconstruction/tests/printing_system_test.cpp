@@ -168,6 +168,53 @@ int main() {
         {0,0,640,480});
     assert(!clip.intersects);
 
+    constexpr auto red565 = analyze_channel_mask(0xF800);
+    static_assert(red565.trailing_zero_bits == 11);
+    static_assert(red565.contiguous_one_bits == 5);
+    static_assert(red565.left_shift_to_u8 == 3);
+
+    constexpr auto green565 = analyze_channel_mask(0x07E0);
+    static_assert(green565.trailing_zero_bits == 5);
+    static_assert(green565.contiguous_one_bits == 6);
+    static_assert(green565.left_shift_to_u8 == 2);
+
+    constexpr auto blue565 = analyze_channel_mask(0x001F);
+    static_assert(blue565.trailing_zero_bits == 0);
+    static_assert(blue565.contiguous_one_bits == 5);
+    static_assert(blue565.left_shift_to_u8 == 3);
+
+    // Retail scales a 5/6-bit channel by shifting into the high bits; it does
+    // not replicate low bits to reach 255.
+    static_assert(extract_channel_u8(0xF800, red565) == 0xF8);
+    static_assert(extract_channel_u8(0x07E0, green565) == 0xFC);
+    static_assert(extract_channel_u8(0x001F, blue565) == 0xF8);
+
+    constexpr auto pure_red =
+        export_pixel_bytes(0xF800, 0xF800, 0x07E0, 0x001F);
+    static_assert(pure_red.byte0 == 0x00); // green
+    static_assert(pure_red.byte1 == 0xF8); // red
+    static_assert(pure_red.byte2 == 0x00); // blue
+
+    constexpr auto pure_green =
+        export_pixel_bytes(0x07E0, 0xF800, 0x07E0, 0x001F);
+    static_assert(pure_green.byte0 == 0xFC);
+    static_assert(pure_green.byte1 == 0x00);
+    static_assert(pure_green.byte2 == 0x00);
+
+    constexpr auto pure_blue =
+        export_pixel_bytes(0x001F, 0xF800, 0x07E0, 0x001F);
+    static_assert(pure_blue.byte0 == 0x00);
+    static_assert(pure_blue.byte1 == 0x00);
+    static_assert(pure_blue.byte2 == 0xF8);
+
+    constexpr auto export_plan =
+        backbuffer_export_plan(640, 480, 1280);
+    static_assert(export_plan.output_pixel_bytes == 640U * 480U * 3U);
+    static_assert(export_plan.starts_from_last_source_row);
+    static_assert(export_plan.walks_source_rows_upward);
+    static_assert(export_plan.source_pixels_are_16_bit);
+    static_assert(export_plan.output_pixels_are_24_bit);
+
     static_assert(kGamePrintScaleMode == 2);
     static_assert(kPrintBitmapFilename == "PrintMe.bmp");
     static_assert(
