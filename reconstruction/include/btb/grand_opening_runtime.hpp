@@ -117,6 +117,147 @@ struct ConductorAnimationStep {
     return result;
 }
 
+enum class EditorCursorKind {
+    Normal,
+    Machine,
+    Delete,
+};
+
+struct EditorCursor {
+    EditorCursorKind kind{EditorCursorKind::Normal};
+    std::optional<MachineType> machine{};
+};
+
+struct EditorRuntimeState {
+    ActivityState activity_state{ActivityState::Edit};
+    MachineType selected_machine{MachineType::Roley1Second};
+    bool delete_mode{};
+    bool delete_interaction_latch{};
+    bool play_pending{};
+    std::int32_t previous_toolbar_hover{-1};
+    EditorCursor cursor{};
+    std::array<std::int32_t,5> machine_animation_states{};
+};
+
+struct PaletteActionStep {
+    bool toggled_off{};
+    bool preview_machine_sound{};
+    std::int32_t machine_animation_state_written{};
+};
+
+// Exact state-0 palette action path in HandleBobsBandEditorAction. Selecting a
+// brick cancels delete mode, installs that brick cursor, previews its direct
+// machine WAV, enters state 1, and kicks the matching machine animation only
+// when that machine is currently idle.
+[[nodiscard]] PaletteActionStep select_palette_from_edit(
+    EditorRuntimeState& state,
+    MachineType type) noexcept;
+
+// Exact state-1 palette path in UpdateBobsBandBrickCursorAndDelete. Clicking the
+// already-selected type toggles the cursor/state off. Selecting a different
+// type changes cursor/type and previews its WAV, but unlike the state-0 path it
+// does not kick a machine animation.
+[[nodiscard]] PaletteActionStep select_palette_while_selected(
+    EditorRuntimeState& state,
+    MachineType type) noexcept;
+
+struct GridActionStep {
+    bool placement_attempted{};
+    bool placed{};
+    bool removed_existing{};
+    bool picked_up_existing{};
+    bool swapped_existing{};
+    bool restored_existing_after_failed_swap{};
+    std::optional<MachineType> removed_type{};
+};
+
+// Exact grid action 11 behavior, including edit/delete pickup and the selected
+// brick replacement path. Continuation cells are owner-aware in edit/delete;
+// in state 1 retail attempts placement directly on continuation cells and the
+// occupied-cell check rejects it.
+[[nodiscard]] GridActionStep handle_grid_action(
+    EditorRuntimeState& state,
+    Composition& composition,
+    std::size_t row,
+    std::size_t second) noexcept;
+
+[[nodiscard]] inline bool apply_clear_all_confirmation(
+    Composition& composition,
+    bool confirmed_yes) noexcept {
+    if (!confirmed_yes) {
+        return false;
+    }
+    composition.clear();
+    return true;
+}
+
+struct ToolbarRect {
+    std::int32_t left{};
+    std::int32_t top{};
+    std::int32_t right{};
+    std::int32_t bottom{};
+};
+
+inline constexpr std::array<ToolbarRect,4> kToolbarRects{{
+    {324,416,378,472}, // Play
+    {260,416,314,472}, // Stop
+    {103,416,157,472}, // Clear All
+    {481,416,535,472}, // Delete
+}};
+
+inline constexpr std::int32_t kClearAllConfirmationContext = 2;
+
+[[nodiscard]] constexpr std::int32_t conductor_voice_base(
+    Conductor conductor) noexcept {
+    return 510 + static_cast<std::int32_t>(conductor) * 13;
+}
+
+enum class ToolbarVisual {
+    None,
+    Hover,
+    Pressed,
+};
+
+enum class ToolbarActionKind {
+    None,
+    PlayVoicePending,
+    EnterPreparePlayback,
+    StopPlayback,
+    OpenClearAllConfirmation,
+    EnterDeleteMode,
+    LeaveDeleteMode,
+};
+
+struct ToolbarInput {
+    std::int32_t mouse_x{};
+    std::int32_t mouse_y{};
+    bool click_active{};
+    bool pressed_visual{};
+    bool any_managed_sound_playing{};
+    std::int32_t random_mod_2{};
+};
+
+struct ToolbarStep {
+    ToolbarActionKind action{ToolbarActionKind::None};
+    std::optional<ToolbarControl> control{};
+    ToolbarVisual visual{ToolbarVisual::None};
+    std::optional<std::int32_t> managed_sound_id{};
+    std::int32_t managed_sound_priority{};
+    std::int32_t managed_sound_flag{};
+    bool stop_all_managed_sounds{};
+    bool stop_backing_track{};
+    bool open_confirmation{};
+    std::int32_t confirmation_context{-1};
+};
+
+// Exact 0x0041F820 toolbar controller. Play is voice-gated: its click starts
+// the conductor-specific Play voice and sets play_pending; state 8 is entered
+// only on a later update after all managed sounds have become idle.
+[[nodiscard]] ToolbarStep update_toolbar(
+    EditorRuntimeState& state,
+    Conductor conductor,
+    const ToolbarInput& input) noexcept;
+
 struct PlayingStateStep {
     ActivityState next_state{ActivityState::Playing};
     bool stop_backing_track{};
