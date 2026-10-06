@@ -230,3 +230,82 @@ retail values without imposing a modern application class:
 
 Modern application architecture belongs in the later rewrite; the source
 reconstruction preserves the original global-state design.
+
+
+## Source-level active-frame control
+
+`0x00402440 RunActiveGameFrame` is now represented by
+`reconstruction/include/btb/application_runtime.hpp`.
+
+The exact early-return ordering is preserved:
+
+1. increment the CD-validation counter;
+2. validate only when the incremented value is **>100**, then reset it to 0;
+3. call `timeGetTime`; if the delta from the previous value is zero, return
+   before any game/sound/input/present work;
+4. if the bitmap-reload flag is set, reload registered surfaces and clear it;
+5. when that reload occurred while contextual-help mode was active, retail also
+   clears help mode and the primary input pulse, stops managed sounds, restores
+   the default cursor, and writes shared delay **50**;
+6. store the new time value;
+7. reap managed sound slots;
+8. clear the shared per-frame flag;
+9. dispatch either contextual-help update or the 68-state main game flow;
+10. if contextual-help activation phase is >=2, run its shared overlay/update
+    helper;
+11. poll DirectInput and update shared cursor/button state;
+12. call `IDirectDraw7::TestCooperativeLevel`;
+13. present the display only when cooperative level allows it.
+
+The exact cooperative-level negative branches are:
+
+- **0x887600E1** or **0x88760245**: `Sleep(10)` and return success without
+  presenting;
+- **0x8876024B**: recreate the display using the current windowed/fullscreen
+  mode and return;
+- any other failure: propagate it.
+
+If `PresentDisplay` returns **0x887601C2 / DDERR_SURFACELOST**, retail calls
+the shared `RestoreAllSurfaces` wrapper and still returns success from the
+active-frame routine.
+
+### DirectInput shared cursor runtime
+
+The common DirectInput/cursor portion is now represented in
+`reconstruction/include/btb/input_runtime.hpp`.
+
+Initialization uses DirectInput version **0x0800**. The pointer device uses
+cooperative flags **5**; the keyboard uses **0x16**. After setup retail applies
+the active/inactive acquire state and enables global input processing.
+
+`UpdateDirectInputAcquireState` has a small exact quirk: when the primary
+device pointer is null it returns **1**. Otherwise frame-active state acquires
+both devices, inactive/minimized state unacquires both, and the function
+returns zero.
+
+The default shared cursor bounds are:
+
+```text
+min X = 2
+min Y = 2
+max X = 637
+max Y = 477
+```
+
+Bounds are applied to **cursor + hotspot**, so clamping stores
+`boundary - hotspot` back into cursor X/Y.
+
+The keyboard direction/action mask is derived directly from the 256-byte DIK
+array:
+
+- DIK_LEFT  0xCB -> bit 0x01
+- DIK_RIGHT 0xCD -> bit 0x02
+- DIK_UP    0xC8 -> bit 0x04
+- DIK_DOWN  0xD0 -> bit 0x08
+- DIK_SPACE 0x39 -> bit 0x10
+
+Keyboard cursor movement is one pixel per frame normally and **four pixels**
+when the shared fast-cursor flag is nonzero.
+
+The machine-readable global map is
+`ghidra/input_runtime_globals.csv`.
