@@ -142,3 +142,157 @@ At this point the generic rendering technology is no longer a major unknown. The
 ## DirectX version context
 
 The renderer is specifically **DirectDraw 7**, even though the executable otherwise uses DirectX 8-era APIs. The same EXE imports `DirectInput8Create` and `DirectSoundCreate8`, so the overall application should be thought of as a **DirectX 8-era title with the final DirectDraw7 rendering interface**.
+
+
+## Source-level display-manager reconstruction
+
+The DirectDraw wrapper is now represented source-level in
+`reconstruction/include/btb/display_manager.hpp`.
+
+The exact initialization contracts are:
+
+### Fullscreen
+
+- `DirectDrawCreateEx(... IID_IDirectDraw7 ...)`
+- cooperative flags **0x11**
+- display mode **640x480x16**
+- primary flip-chain `DDSURFACEDESC2`:
+  - `dwSize = 0x7C`
+  - `dwFlags = 0x21`
+  - raw `ddsCaps.dwCaps = 0x2218`
+  - backbuffer count **1**
+- attached-surface caps **0x04**
+- retail explicitly `AddRef`s the attached backbuffer after retrieval
+- wrapper stores HWND, sets windowed flag 0, and refreshes the destination
+  rectangle.
+
+### Windowed
+
+- cooperative flags **8**
+- primary-surface descriptor:
+  - `dwSize = 0x7C`
+  - `dwFlags = 1`
+  - raw caps **0x200**
+- 640x480 offscreen render-surface descriptor:
+  - `dwSize = 0x7C`
+  - `dwFlags = 7`
+  - raw caps **0x2040**
+- creates a DirectDraw clipper
+- binds it to the HWND
+- attaches it to the primary surface
+- releases the local clipper reference
+- stores HWND, sets windowed flag 1, and computes the screen-space client
+  destination rectangle.
+
+### Present and lost-surface recovery
+
+Windowed presentation is:
+
+```text
+primary->Blt(&destination_rect, render, nullptr, 0x01000000, nullptr)
+```
+
+Fullscreen presentation is:
+
+```text
+primary->Flip(nullptr, 0)
+```
+
+Retail retries the same present operation while HRESULT is
+**0x8876021C / DDERR_WASSTILLDRAWING**.
+
+On **0x887601C2 / DDERR_SURFACELOST**, it:
+
+1. restores the primary surface;
+2. restores the render surface;
+3. calls `IDirectDraw7::RestoreAllSurfaces`;
+4. writes global `0x0051C320 = 1` so the next active frame rebuilds
+   registered bitmap surfaces.
+
+The destructor unregisters and releases auxiliary/render/primary surfaces,
+restores DirectDraw cooperative level to normal, and releases IDirectDraw7.
+
+## Exact bitmap-surface registry
+
+The surface-loss mechanism is now source-level in
+`bitmap_registry.hpp/.cpp`.
+
+Retail maintains three parallel static tables:
+
+| Global | Meaning |
+|---|---|
+| `0x0044EB1C` | **800 addresses of IDirectDrawSurface7* variables** |
+| `0x0044DE9C` | 800 color-key flags |
+| `0x0044F79C` | 800 filename records, each **0x104 / 260 bytes** |
+| `0x0048241C` | high-water entry count |
+| `0x00482420` | reload-in-progress guard |
+
+The registry stores the **address of each surface-pointer variable**, not just
+the surface value. This lets reload release the old surface and write the new
+pointer directly back into the original activity/global variable.
+
+Registration:
+
+- is ignored while reload is in progress;
+- reuses the first zero pointer-reference slot below high-water;
+- otherwise appends at the current high-water index;
+- copies the filename into that slot;
+- clears its color-key flag;
+- recomputes high-water by scanning all 800 entries.
+
+The retail append path has a peculiar count clamp around **0x31E/0x31F**.
+Because a full-table rescan follows each successful registration, slots 798 and
+799 are still usable. If all 800 are occupied, the shipped loop would select
+index **800** and write beyond the static arrays. The reconstruction records
+that would-overflow condition without invoking host-language UB.
+
+Unregister clears the pointer-reference, keyed flag, and first filename byte;
+it does not immediately shrink high-water.
+
+### Reload
+
+`ReloadRegisteredBitmapSurfaces` raises the reload guard and, for every
+registered pointer-reference whose current surface is non-null:
+
+1. releases the old DirectDraw surface;
+2. writes null through the registered pointer variable;
+3. reloads the bitmap using its retained filename;
+4. writes the new DirectDraw surface through that same pointer variable;
+5. reapplies magenta **0x00FF00FF** when that slot's keyed flag is 1.
+
+### Bitmap load fallback
+
+`LoadBitmapToDirectDrawSurface` uses:
+
+```text
+LoadImageA(
+  nullptr,
+  filename,
+  IMAGE_BITMAP,
+  requested_width,
+  requested_height,
+  0x2010 // LR_LOADFROMFILE | LR_CREATEDIBSECTION
+)
+```
+
+If that fails and the retail drive index is nonnegative, it retries using:
+
+```text
+<letter>:\\<filename>
+letter = 'a' + drive_index
+```
+
+If both attempts fail, retail enters the removed-CD fatal path.
+
+The loaded HBITMAP is queried with `GetObjectA(..., 24, ...)`. Surface caps
+are selected from bitmap width:
+
+- width <= **2000**: initial caps **0x40**
+- width > **2000**: initial caps **0x800**
+
+If the first DirectDraw `CreateSurface` fails, retail retries with caps
+**0x800**. On success it copies the HBITMAP into the surface, deletes the
+HBITMAP, and returns the new DirectDraw surface.
+
+A small shipped leak is preserved as evidence: when **both** surface-creation
+attempts fail, the function returns without deleting the HBITMAP.
