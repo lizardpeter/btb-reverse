@@ -145,6 +145,128 @@ int main() {
     assert(walking_rows.actor_visuals[0].source_row == 13);
     assert(walking_rows.actor_visuals[0].frame_tick == 0);
 
+    // Exact DrawFireworksEditor composition and row layering.
+    LayoutData render_layout;
+    render_layout.placement_runtime[Sequence::index(0, 0)] =
+        {10, 100, 0, 0};
+    render_layout.placement_runtime[Sequence::index(1, 0)] =
+        {20, 200, 0, 0};
+    render_layout.placement_runtime[Sequence::index(2, 0)] =
+        {30, 300, 0, 0};
+
+    Sequence render_sequence;
+    assert(render_sequence.commit_placement(
+        0, 0, FireworkType::RedAirbomb));
+    assert(render_sequence.commit_placement(
+        1, 0, FireworkType::SmallGreen));
+    assert(render_sequence.commit_placement(
+        2, 0, FireworkType::RedCandle));
+
+    EditorRuntimeState render_state;
+    auto frame = run_retail_editor_frame(
+        render_state, render_sequence, render_layout, 324, 200);
+    assert(frame.draw_commands.size() == 8);
+
+    assert(frame.draw_commands[0].kind == EditorRenderKind::Background);
+    assert(!frame.draw_commands[0].color_keyed);
+
+    assert(frame.draw_commands[1].kind == EditorRenderKind::Firework);
+    assert(frame.draw_commands[1].firework_type == FireworkType::RedAirbomb);
+    assert(frame.draw_commands[1].x == 10);
+    assert(frame.draw_commands[1].y == 70);
+
+    assert(frame.draw_commands[2].kind == EditorRenderKind::Firework);
+    assert(frame.draw_commands[2].firework_type == FireworkType::RedCandle);
+    assert(frame.draw_commands[2].x == 34);
+    assert(frame.draw_commands[2].y == 277);
+
+    assert(frame.draw_commands[3].kind == EditorRenderKind::Actor);
+    assert(frame.draw_commands[3].actor == PlacementActorChannel::Wendy);
+    assert(frame.draw_commands[3].x == 260);
+    assert(frame.draw_commands[3].y == 0);
+
+    assert(frame.draw_commands[4].kind == EditorRenderKind::MiddleOverlay);
+    assert(frame.draw_commands[4].x == 205);
+    assert(frame.draw_commands[4].y == 104);
+
+    assert(frame.draw_commands[5].kind == EditorRenderKind::Actor);
+    assert(frame.draw_commands[5].actor == PlacementActorChannel::Bob);
+    assert(frame.draw_commands[5].x == 260);
+    assert(frame.draw_commands[5].y == 168);
+
+    assert(frame.draw_commands[6].kind == EditorRenderKind::BottomOverlay);
+    assert(frame.draw_commands[6].x == 37);
+    assert(frame.draw_commands[6].y == 284);
+
+    assert(frame.draw_commands[7].kind == EditorRenderKind::Firework);
+    assert(frame.draw_commands[7].firework_type == FireworkType::SmallGreen);
+    assert(frame.draw_commands[7].x == 20);
+    assert(frame.draw_commands[7].y == 170);
+
+    // State-11 commits occur after row 0/2 were already drawn. A new row-0
+    // placement therefore does not appear until the next frame.
+    LayoutData commit_layout;
+    commit_layout.placement_runtime[Sequence::index(0, 0)] =
+        {100, 100, 0, 0};
+    commit_layout.placement_runtime[Sequence::index(1, 0)] =
+        {200, 200, 0, 0};
+
+    Sequence row0_commit_sequence;
+    EditorRuntimeState row0_commit_state;
+    row0_commit_state.selected_type = FireworkType::LargeRed;
+    row0_commit_state.pending[0] = {0, 0};
+    row0_commit_state.actor_states[0] =
+        PlacementActorState::PlacementCommit;
+
+    auto row0_commit_frame = run_retail_editor_frame(
+        row0_commit_state,
+        row0_commit_sequence,
+        commit_layout,
+        324,
+        200);
+    assert(row0_commit_frame.placement_ticks[0].committed);
+    assert(
+        row0_commit_sequence.at(0, 0) ==
+        FireworkType::LargeRed);
+    bool saw_row0_same_frame = false;
+    for (const auto& command : row0_commit_frame.draw_commands) {
+        if (command.kind == EditorRenderKind::Firework) {
+            saw_row0_same_frame = true;
+        }
+    }
+    assert(!saw_row0_same_frame);
+
+    // Row 1 is drawn after the same commit point, so the identical state-11
+    // commit becomes visible immediately in the center row.
+    Sequence row1_commit_sequence;
+    EditorRuntimeState row1_commit_state;
+    row1_commit_state.selected_type = FireworkType::LargeBlue;
+    row1_commit_state.pending[0] = {1, 0};
+    row1_commit_state.actor_states[0] =
+        PlacementActorState::PlacementCommit;
+
+    auto row1_commit_frame = run_retail_editor_frame(
+        row1_commit_state,
+        row1_commit_sequence,
+        commit_layout,
+        324,
+        200);
+    assert(row1_commit_frame.placement_ticks[0].committed);
+    assert(
+        row1_commit_sequence.at(1, 0) ==
+        FireworkType::LargeBlue);
+
+    bool saw_center_same_frame = false;
+    for (const auto& command : row1_commit_frame.draw_commands) {
+        if (command.kind == EditorRenderKind::Firework &&
+            command.firework_type == FireworkType::LargeBlue &&
+            command.x == 200 &&
+            command.y == 170) {
+            saw_center_same_frame = true;
+        }
+    }
+    assert(saw_center_same_frame);
+
     // Dormant retail state 12 is fully decoded even though no writer enters it.
     EditorRuntimeState dormant;
     dormant.actor_states[0] = PlacementActorState::DormantLegacyMotion;
