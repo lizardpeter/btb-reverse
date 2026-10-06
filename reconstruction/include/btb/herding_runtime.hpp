@@ -229,6 +229,34 @@ struct PicklesKeyboardMotion {
     return result;
 }
 
+// Exact conversion used by UpdateHerdingActivity after Pickles movement.
+// The resolved +0x28 mask maps to the eight retail facing indices:
+//   0 Up, 1 UpRight, 2 Right, 3 DownRight,
+//   4 Down, 5 DownLeft, 6 Left, 7 UpLeft.
+[[nodiscard]] constexpr std::optional<std::int32_t>
+pickles_facing_direction_from_mask(
+    std::int32_t movement_mask) noexcept {
+
+    const bool up = (movement_mask & PicklesMoveUp) != 0;
+    const bool right = (movement_mask & PicklesMoveRight) != 0;
+    const bool down = (movement_mask & PicklesMoveDown) != 0;
+    const bool left = (movement_mask & PicklesMoveLeft) != 0;
+
+    if (right) {
+        if (up) return 1;
+        if (down) return 3;
+        return 2;
+    }
+    if (left) {
+        if (up) return 7;
+        if (down) return 5;
+        return 6;
+    }
+    if (up) return 0;
+    if (down) return 4;
+    return std::nullopt;
+}
+
 struct SoundPair {
     std::int32_t a{};
     std::int32_t b{};
@@ -541,8 +569,8 @@ struct RetailEntityRecord32 {
     float direction_degrees{};         // +0x1C (direction * 45.0)
     float x_float{};                   // +0x20
     float y_float{};                   // +0x24
-    std::int32_t movement_input_mask{};// +0x28 (Pickles direction bits)
-    std::int32_t animation_timer{};    // +0x2C
+    std::int32_t movement_direction_mask{}; // +0x28 (resolved Pickles direction bits)
+    std::int32_t animation_frame_countdown{};// +0x2C
     std::int32_t type{};               // +0x30
     std::int32_t source_left{};        // +0x34
     std::int32_t source_top{};         // +0x38
@@ -570,7 +598,7 @@ static_assert(sizeof(RetailEntityRecord32) == 0x64);
 static_assert(offsetof(RetailEntityRecord32, direction_degrees) == 0x1C);
 static_assert(offsetof(RetailEntityRecord32, x_float) == 0x20);
 static_assert(offsetof(RetailEntityRecord32, y_float) == 0x24);
-static_assert(offsetof(RetailEntityRecord32, movement_input_mask) == 0x28);
+static_assert(offsetof(RetailEntityRecord32, movement_direction_mask) == 0x28);
 static_assert(offsetof(RetailEntityRecord32, type) == 0x30);
 static_assert(offsetof(RetailEntityRecord32, surface_ptr32) == 0x44);
 static_assert(offsetof(RetailEntityRecord32, movement_active) == 0x48);
