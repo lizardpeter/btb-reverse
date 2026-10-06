@@ -5,6 +5,45 @@
 using namespace btb::park_designer;
 
 int main() {
+    static_assert(
+        view_toolbar_hover_sound_id(ViewToolbarItem::Summer) == 997);
+    static_assert(
+        view_toolbar_hover_sound_id(ViewToolbarItem::Winter) == 998);
+    static_assert(
+        view_toolbar_hover_sound_id(ViewToolbarItem::Print) == 293);
+    static_assert(
+        view_toolbar_hover_sound_id(ViewToolbarItem::InfoHoverOnly) == 299);
+
+    constexpr auto summer_click =
+        view_toolbar_click(ViewToolbarItem::Summer, 0);
+    static_assert(summer_click.action == ViewToolbarAction::ApplySummer);
+    static_assert(summer_click.season == Season::Summer);
+    static_assert(summer_click.sound_id && *summer_click.sound_id == 294);
+
+    constexpr auto summer_click_alt =
+        view_toolbar_click(ViewToolbarItem::Summer, 1);
+    static_assert(
+        summer_click_alt.sound_id && *summer_click_alt.sound_id == 295);
+
+    constexpr auto winter_click =
+        view_toolbar_click(ViewToolbarItem::Winter, 1);
+    static_assert(winter_click.action == ViewToolbarAction::ApplyWinter);
+    static_assert(winter_click.season == Season::Winter);
+    static_assert(winter_click.sound_id && *winter_click.sound_id == 298);
+
+    constexpr auto print_click =
+        view_toolbar_click(ViewToolbarItem::Print, 0);
+    static_assert(
+        print_click.action == ViewToolbarAction::PrintCurrentFrame);
+    static_assert(!print_click.season);
+    static_assert(!print_click.sound_id);
+
+    constexpr auto info_click =
+        view_toolbar_click(ViewToolbarItem::InfoHoverOnly, 0);
+    static_assert(info_click.action == ViewToolbarAction::None);
+    static_assert(!info_click.season);
+    static_assert(!info_click.sound_id);
+
     static_assert(kFountainFrameWidth == 152);
     static_assert(kFountainFramesPerVariant == 13);
     static_assert(kFountainLoopFirstFrame == 8);
