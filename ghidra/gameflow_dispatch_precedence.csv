@@ -1,0 +1,14 @@
+precedence,condition_global,condition,retail_action,pause_global_bink,returns_before_state_table
+0,0x0044DDB0,"shutdown/credits phase != 0","Unload generic UI; unregister/release transition surface 0x51C268; call callback 0x519940 if non-null",no,yes
+1,0x0051C2BC,"options flag != 0","Pause global Bink; UpdateOptionsOverlay",yes,yes
+2,0x0051C324,"progress-screen flag != 0","UpdateProgressScreen",no,yes
+3,0x0051C2D0,"generic Yes/No modal state != 0","Pause global Bink; UpdateYesNoConfirmationOverlay",yes,yes
+4,0x0051C2C0,"whole-game quit modal flag != 0","Pause global Bink; UpdateQuitConfirmationOverlay",yes,yes
+5,0x0051C2C8,"leave-current-activity modal flag != 0","Pause global Bink; UpdateLeaveActivityConfirmation",yes,yes
+6,0x0051C2CC,"play-again overlay flag != 0","Pause global Bink; UpdatePlayAgainPrompt",yes,yes
+7,0x0051C2D8,"value 1..9","Call NoOpLegacyHook(0)",no,yes
+8,0x0051C2D8,"value >=10","Call NoOpLegacyHook(1)",no,yes
+9,0x0051C27C,"screen mode == 13","UpdateGlobalBinkMovie; on completion state=0x51B418, screen mode=2, clear input pulse, continue to state table",no,"only while movie unfinished"
+10,0x0051C27C,"screen mode == 14","UpdateGlobalBinkMovie; on completion state++, screen mode=(state==0x23?7:2), clear input pulse, continue to state table",no,"only while movie unfinished"
+11,0x0044DE14,"state > 0x43 unsigned","No-op/default return",no,yes
+12,0x0044DE14,"state 0x00..0x43","Jump through 68-entry table at 0x0042CD6C",no,no
