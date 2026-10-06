@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <optional>
 #include <utility>
+#include <vector>
 
 namespace btb::fireworks {
 
@@ -121,6 +122,36 @@ kDormantPlacementActorTargets{{
     {260, 20},
 }};
 
+struct ActorFollowPoint {
+    std::int32_t x{};
+    std::int32_t y{};
+};
+
+// Exact stack-constructed paths inside DrawFireworksEditor. Coordinates are
+// actor-center path coordinates; the sprite top-left Y is path_y - 128.
+inline constexpr std::array<ActorFollowPoint, 4> kBobFollowPath{{
+    {0, 177},
+    {240, 296},
+    {400, 296},
+    {640, 177},
+}};
+
+inline constexpr std::array<ActorFollowPoint, 4> kWendyFollowPath{{
+    {0, 128},
+    {300, 128},
+    {500, 128},
+    {640, 128},
+}};
+
+inline constexpr std::int32_t kActorSpriteSize = 128;
+inline constexpr std::int32_t kActorSpriteHalfSize = 64;
+inline constexpr std::int32_t kActorMouseMinX = 61;
+inline constexpr std::int32_t kActorMouseMaxX = 575;
+inline constexpr std::int32_t kActorMouseSplitY = 160;
+inline constexpr std::int32_t kActorMouseSplitYWhenPaletteLatched = 35;
+inline constexpr std::int32_t kActorFollowBaseThreshold = 30;
+inline constexpr std::int32_t kActorFollowTightThresholdBias = 25;
+
 inline constexpr std::int32_t kDormantMotionSpeed = 5;
 inline constexpr float kDormantMotionArrivalDistance = 10.0F;
 inline constexpr std::int32_t kDormantMotionFirstRow = 13;
@@ -192,9 +223,34 @@ struct EditorRuntimeState {
 
     EditorCursor cursor{};
 
+    // Retail global 0x0050AB7C. It is either 0 or 25 and narrows the stop
+    // threshold from 30 pixels to 5 after an actor begins tracking.
+    std::int32_t actor_follow_threshold_bias{};
+
     std::int32_t control_cooldown{};
     std::int32_t previous_control_action{-1};
 };
+
+struct ActorMouseTrackingStep {
+    PlacementActorChannel idle_actor{PlacementActorChannel::Bob};
+    PlacementActorChannel tracking_actor{PlacementActorChannel::Wendy};
+    std::int32_t split_y{};
+    std::int32_t clamped_mouse_x{};
+    std::int32_t interpolated_path_y{};
+    std::int32_t vertical_direction_code{};
+    bool standing{};
+    bool moved_left{};
+    bool moved_right{};
+};
+
+// Exact pre-draw Bob/Wendy animation controller in DrawFireworksEditor.
+// One actor idles while the other follows mouse X by one pixel per update.
+// Palette-latched actor state changes the Y split from 160 to 35. Once motion
+// starts, retail stores bias 25 so the stop threshold narrows from 30 to 5.
+[[nodiscard]] ActorMouseTrackingStep update_actor_mouse_tracking(
+    EditorRuntimeState& state,
+    std::int32_t mouse_x,
+    std::int32_t mouse_y) noexcept;
 
 struct DeleteAllConfirmationResult {
     bool applied{};
