@@ -204,7 +204,7 @@ address,name,confidence,notes
 0x0040DD20,PointInsideRectExclusive,high,"Strict integer point-in-rectangle test used by Park Designer interaction helpers"
 0x00410F70,PlayInputInterruptibleParkDesignerVoice,high,"Plays a managed sound at priority 50/arbitration class 1, marks its active slot input-interruptible, and optionally remembers deferred voice state when another sound is active"
 0x00424230,LoadSpudSkateTimingData,high,"Loads difficulty-selected spuddata1/2/3: eight four-threshold stunt windows, eight return-to-Bad frames, and 44/660 loop frame pair"
-0x00424690,UpdateAndDrawSpudSkatePlayback,high,"Exact synchronized-run runtime: quality 0..3 selects bad/normal/ok/good Bink, stunt-trigger score += quality, return-to-Bad latches, first frame-660 special final-stunt score, second frame-660 end.bik transition, score display and result voices"
+0x00424690,UpdateAndDrawSpudSkatePlayback,high,"Exact Spud Skate runtime/presentation: quality0..3 selects synchronized bad/normal/ok/good 600x380 surface at(20,20), overlays1/2/3 at(267,415), draws 24x50 score digits, handles trigger scoring/return-to-Bad, frame44 resync, first/second frame660 branches, then end.bik/result phase"
 0x00420560,LoadSpudMazeData,high,"Parses five-screen spudmaze_nodes graph, applies Y-11 correction, reads 5x4 reference triples, difficulty speeds/timers/spawns, animation delay, and trailing screen point lists"
 0x00421360,UpdateSpudMazeBobMovement,high,"Updates Bob graph traversal/input and handles 0x80/0x400 left-screen and 0x100/0x800 right-screen lane transitions"
 0x00422400,UpdateSpudMazeBobAnimation,high,"Advances Bob animation; repair state 9 runs repair sequence and decrements repairs-remaining when animation completes"
