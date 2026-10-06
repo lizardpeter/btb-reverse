@@ -20,12 +20,56 @@ int main() {
     static_assert(offsetof(RetailSoundManager32, sound_id_by_slot) == 0x140);
     static_assert(offsetof(RetailSoundManager32, slot_by_sound_id) == 0x280);
     static_assert(offsetof(RetailSoundManager32, sound_enabled) == 0x6CC);
-    static_assert(offsetof(RetailSoundManager32, priority_or_age) == 0xB18);
+    static_assert(offsetof(RetailSoundManager32, priority) == 0xB18);
     static_assert(offsetof(RetailSoundManager32, slot_state) == 0xC58);
-    static_assert(offsetof(RetailSoundManager32, special_lifetime_flag) == 0xD98);
-    static_assert(offsetof(RetailSoundManager32, playback_policy) == 0xED8);
+    static_assert(offsetof(RetailSoundManager32, input_interruptible) == 0xD98);
+    static_assert(offsetof(RetailSoundManager32, arbitration_class) == 0xED8);
     static_assert(offsetof(RetailSoundManager32, filename_by_sound_id) == 0x1018);
     static_assert(offsetof(RetailSoundManager32, catalog_metadata) == 0x6608);
+
+    static_assert(
+        arbitration_action(0, 0) ==
+        ArbitrationAction::ContinueScan);
+    static_assert(
+        arbitration_action(1, 0) ==
+        ArbitrationAction::ContinueScan);
+    static_assert(
+        arbitration_action(1, 1) ==
+        ArbitrationAction::RejectIncoming);
+    static_assert(
+        arbitration_action(1, 2) ==
+        ArbitrationAction::RejectIncoming);
+    static_assert(
+        arbitration_action(1, 3) ==
+        ArbitrationAction::RejectIncoming);
+    static_assert(
+        arbitration_action(2, 1) ==
+        ArbitrationAction::StopExisting);
+    static_assert(
+        arbitration_action(2, 2) ==
+        ArbitrationAction::StopExisting);
+    static_assert(
+        arbitration_action(2, 3) ==
+        ArbitrationAction::ContinueScan);
+    static_assert(
+        arbitration_action(0, 1) ==
+        ArbitrationAction::ContinueScan);
+    static_assert(
+        arbitration_action(1, 1, false) ==
+        ArbitrationAction::ContinueScan);
+
+    static_assert(!should_stop_active_slot(
+        false, false, false, true));
+    static_assert(should_stop_active_slot(
+        false, false, false, false));
+    static_assert(should_stop_active_slot(
+        true, true, false, true));
+    static_assert(should_stop_active_slot(
+        true, false, true, true));
+    static_assert(!should_stop_active_slot(
+        true, false, false, true));
+    static_assert(should_stop_active_slot(
+        true, true, false, false));
 
     RetailSoundManager32 manager{};
     manager.slot_by_sound_id.fill(static_cast<std::int8_t>(-1));
@@ -50,21 +94,21 @@ int main() {
 
     for (std::size_t i = 0; i < kManagedSlotCount; ++i) {
         manager.slot_state[i] = static_cast<std::int32_t>(SlotState::Active);
-        manager.priority_or_age[i] = 50;
+        manager.priority[i] = 50;
         playing[i] = true;
     }
 
     playing[7] = false;
-    manager.priority_or_age[7] = 20;
+    manager.priority[7] = 20;
     playing[13] = false;
-    manager.priority_or_age[13] = 10;
+    manager.priority[13] = 10;
 
     choice = select_slot_for_acquire(manager, playing);
     assert(choice.slot == 13);
     assert(choice.requires_release);
 
-    manager.priority_or_age[7] = 101;
-    manager.priority_or_age[13] = 101;
+    manager.priority[7] = 101;
+    manager.priority[13] = 101;
     choice = select_slot_for_acquire(manager, playing);
     assert(choice.slot == -1);
     assert(!choice.requires_release);
@@ -72,13 +116,13 @@ int main() {
     manager.sound_id_by_slot[5] = 700;
     manager.slot_by_sound_id[700] = 5;
     manager.buffer_group_ptr32[5] = 0x12345678;
-    manager.priority_or_age[5] = 44;
+    manager.priority[5] = 44;
     manager.slot_state[5] = static_cast<std::int32_t>(SlotState::Stopped);
 
     clear_released_slot_metadata(manager, 5);
 
     assert(manager.buffer_group_ptr32[5] == 0);
-    assert(manager.priority_or_age[5] == -1);
+    assert(manager.priority[5] == -1);
     assert(manager.slot_state[5] == static_cast<std::int32_t>(SlotState::Free));
     assert(manager.sound_id_by_slot[5] == -1);
     assert(manager.slot_by_sound_id[700] == -1);
@@ -86,7 +130,7 @@ int main() {
     install_acquired_slot_metadata(manager, 9, 711, 50, 2);
     assert(manager.sound_id_by_slot[9] == 711);
     assert(manager.slot_by_sound_id[711] == 9);
-    assert(manager.priority_or_age[9] == 50);
-    assert(manager.special_lifetime_flag[9] == 0);
-    assert(manager.playback_policy[9] == 2);
+    assert(manager.priority[9] == 50);
+    assert(manager.input_interruptible[9] == 0);
+    assert(manager.arbitration_class[9] == 2);
 }
