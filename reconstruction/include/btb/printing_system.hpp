@@ -139,6 +139,116 @@ struct ClipMapStep {
     const display::RetailRect32& requested_destination,
     const display::RetailRect32& source_rect) noexcept;
 
+struct ChannelMaskInfo {
+    std::uint32_t mask{};
+    std::int32_t trailing_zero_bits{};
+    std::int32_t contiguous_one_bits{};
+    std::int32_t left_shift_to_u8{};
+};
+
+[[nodiscard]] constexpr ChannelMaskInfo analyze_channel_mask(
+    std::uint32_t mask) noexcept {
+
+    ChannelMaskInfo out;
+    out.mask = mask;
+
+    if (mask == 0) {
+        out.left_shift_to_u8 = 8;
+        return out;
+    }
+
+    auto shifted = mask;
+    while ((shifted & 1U) == 0U) {
+        shifted >>= 1U;
+        ++out.trailing_zero_bits;
+    }
+
+    while ((shifted & 1U) != 0U) {
+        shifted >>= 1U;
+        ++out.contiguous_one_bits;
+    }
+
+    out.left_shift_to_u8 = 8 - out.contiguous_one_bits;
+    return out;
+}
+
+[[nodiscard]] constexpr std::uint8_t extract_channel_u8(
+    std::uint16_t pixel,
+    const ChannelMaskInfo& channel) noexcept {
+
+    if (channel.contiguous_one_bits <= 0) {
+        return 0;
+    }
+
+    auto value =
+        static_cast<std::uint32_t>(pixel) >>
+        static_cast<std::uint32_t>(channel.trailing_zero_bits);
+
+    if (channel.left_shift_to_u8 >= 0) {
+        value <<= static_cast<std::uint32_t>(
+            channel.left_shift_to_u8);
+    } else {
+        value >>= static_cast<std::uint32_t>(
+            -channel.left_shift_to_u8);
+    }
+
+    return static_cast<std::uint8_t>(value & 0xFFU);
+}
+
+struct ExportedPixelBytes {
+    std::uint8_t byte0{};
+    std::uint8_t byte1{};
+    std::uint8_t byte2{};
+};
+
+// Exact 0x00409460 write order. Despite constructing a 24-bit BMP, retail
+// writes channels in G,R,B order from the DDSURFACEDESC2 RGB masks.
+[[nodiscard]] constexpr ExportedPixelBytes export_pixel_bytes(
+    std::uint16_t pixel,
+    std::uint32_t red_mask,
+    std::uint32_t green_mask,
+    std::uint32_t blue_mask) noexcept {
+
+    const auto red = analyze_channel_mask(red_mask);
+    const auto green = analyze_channel_mask(green_mask);
+    const auto blue = analyze_channel_mask(blue_mask);
+
+    return {
+        extract_channel_u8(pixel, green),
+        extract_channel_u8(pixel, red),
+        extract_channel_u8(pixel, blue),
+    };
+}
+
+struct BackBufferExportPlan {
+    std::int32_t width{};
+    std::int32_t height{};
+    std::int32_t source_pitch{};
+    std::size_t output_pixel_bytes{};
+    bool starts_from_last_source_row{true};
+    bool walks_source_rows_upward{true};
+    bool source_pixels_are_16_bit{true};
+    bool output_pixels_are_24_bit{true};
+};
+
+[[nodiscard]] constexpr BackBufferExportPlan backbuffer_export_plan(
+    std::int32_t width,
+    std::int32_t height,
+    std::int32_t source_pitch) noexcept {
+
+    return {
+        width,
+        height,
+        source_pitch,
+        static_cast<std::size_t>(width) *
+            static_cast<std::size_t>(height) * 3U,
+        true,
+        true,
+        true,
+        true,
+    };
+}
+
 inline constexpr std::int32_t kGamePrintScaleMode =
     static_cast<std::int32_t>(ScaleMode::RetailScreenScaled);
 inline constexpr std::string_view kPrintBitmapFilename = "PrintMe.bmp";
