@@ -281,6 +281,12 @@ ToolbarStep update_toolbar(
 
     state.previous_toolbar_hover = static_cast<std::int32_t>(index);
 
+    if (result.visual != ToolbarVisual::None) {
+        result.surface = toolbar_surface(control, result.visual);
+        result.surface_x = kToolbarRects[index].left;
+        result.surface_y = kToolbarRects[index].top;
+    }
+
     if (!input.click_active) {
         return result;
     }
