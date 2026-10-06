@@ -354,6 +354,14 @@ target_compile_features(btb_input_runtime_tests PRIVATE cxx_std_26)
 add_test(NAME input_runtime COMMAND btb_input_runtime_tests)
 
 
+add_executable(btb_window_runtime_tests
+    tests/window_runtime_test.cpp
+)
+target_include_directories(btb_window_runtime_tests PRIVATE include)
+target_compile_features(btb_window_runtime_tests PRIVATE cxx_std_26)
+add_test(NAME window_runtime COMMAND btb_window_runtime_tests)
+
+
 add_executable(btb_game_flow_tests
     tests/game_flow_test.cpp
 )
