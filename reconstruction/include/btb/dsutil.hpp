@@ -65,6 +65,254 @@ static_assert(offsetof(RetailCWaveFile32, m_pbDataCur) == 0x88);
 static_assert(offsetof(RetailCWaveFile32, m_ulDataSize) == 0x8C);
 static_assert(sizeof(RetailCWaveFile32) == 0x90);
 
+inline constexpr std::int32_t kCoENotInitialized =
+    static_cast<std::int32_t>(0x800401F0U);
+inline constexpr std::int32_t kEFail =
+    static_cast<std::int32_t>(0x80004005U);
+inline constexpr std::int32_t kEOutOfMemory =
+    static_cast<std::int32_t>(0x8007000EU);
+inline constexpr std::int32_t kDsErrBufferLost =
+    static_cast<std::int32_t>(0x88780096U);
+
+inline constexpr std::uint32_t kPrimaryBufferDescriptorSize = 0x24;
+inline constexpr std::uint32_t kPrimaryBufferFlags = 0x81;
+inline constexpr std::uint16_t kWaveFormatPcm = 1;
+
+struct PcmFormatPlan {
+    std::uint16_t format_tag{kWaveFormatPcm};
+    std::uint16_t channels{};
+    std::uint32_t samples_per_sec{};
+    std::uint32_t avg_bytes_per_sec{};
+    std::uint16_t block_align{};
+    std::uint16_t bits_per_sample{};
+    std::uint16_t extra_size{};
+};
+
+[[nodiscard]] constexpr PcmFormatPlan pcm_format_plan(
+    std::uint16_t channels,
+    std::uint32_t sample_rate,
+    std::uint16_t bits_per_sample) noexcept {
+
+    const auto block_align = static_cast<std::uint16_t>(
+        channels * static_cast<std::uint16_t>(bits_per_sample / 8U));
+
+    return {
+        kWaveFormatPcm,
+        channels,
+        sample_rate,
+        static_cast<std::uint32_t>(block_align) * sample_rate,
+        block_align,
+        bits_per_sample,
+        0,
+    };
+}
+
+struct PrimaryBufferFormatPlan {
+    std::uint32_t descriptor_size{kPrimaryBufferDescriptorSize};
+    std::uint32_t descriptor_flags{kPrimaryBufferFlags};
+    bool create_primary_buffer{true};
+    PcmFormatPlan format{};
+    bool set_primary_format{true};
+    bool release_primary_buffer{true};
+};
+
+[[nodiscard]] constexpr PrimaryBufferFormatPlan primary_buffer_format_plan(
+    std::uint16_t channels,
+    std::uint32_t sample_rate,
+    std::uint16_t bits_per_sample) noexcept {
+    return {
+        kPrimaryBufferDescriptorSize,
+        kPrimaryBufferFlags,
+        true,
+        pcm_format_plan(channels, sample_rate, bits_per_sample),
+        true,
+        true,
+    };
+}
+
+struct SoundManagerInitializePlan {
+    bool release_existing_direct_sound{true};
+    bool call_direct_sound_create8{true};
+    bool set_cooperative_level{true};
+    std::uint16_t channels{};
+    std::uint32_t sample_rate{};
+    std::uint16_t bits_per_sample{};
+    bool call_primary_format_setup{true};
+    // Retail calls SetPrimarySoundBufferFormat but returns S_OK regardless of
+    // that helper's HRESULT once creation and cooperative level succeeded.
+    bool ignores_primary_format_hresult{true};
+};
+
+[[nodiscard]] constexpr SoundManagerInitializePlan
+sound_manager_initialize_plan(
+    std::uint16_t channels,
+    std::uint32_t sample_rate,
+    std::uint16_t bits_per_sample) noexcept {
+    return {
+        true,
+        true,
+        true,
+        channels,
+        sample_rate,
+        bits_per_sample,
+        true,
+        true,
+    };
+}
+
+enum class RestoreBufferOutcome {
+    Error,
+    NotLost,
+    Restored,
+};
+
+struct RestoreBufferStep {
+    RestoreBufferOutcome outcome{RestoreBufferOutcome::Error};
+    std::int32_t return_value{};
+    bool query_status{};
+    bool loop_restore_until_success{};
+    bool sleep_10ms_on_buffer_lost{};
+    bool set_restored_flag{};
+};
+
+[[nodiscard]] constexpr RestoreBufferStep restore_buffer_step(
+    bool valid_buffer,
+    std::int32_t get_status_hresult,
+    bool status_buffer_lost) noexcept {
+
+    if (!valid_buffer) {
+        return {
+            RestoreBufferOutcome::Error,
+            kCoENotInitialized,
+            false,false,false,false,
+        };
+    }
+
+    if (get_status_hresult < 0) {
+        return {
+            RestoreBufferOutcome::Error,
+            get_status_hresult,
+            true,false,false,false,
+        };
+    }
+
+    if (!status_buffer_lost) {
+        return {
+            RestoreBufferOutcome::NotLost,
+            1,
+            true,false,false,false,
+        };
+    }
+
+    return {
+        RestoreBufferOutcome::Restored,
+        0,
+        true,true,true,true,
+    };
+}
+
+struct DuplicateBufferStatus {
+    bool pointer_nonnull{};
+    bool playing{};
+};
+
+[[nodiscard]] constexpr std::int32_t select_free_buffer_index(
+    const DuplicateBufferStatus* status,
+    std::size_t count,
+    std::uint32_t random_value) noexcept {
+
+    if (status == nullptr || count == 0) {
+        return -1;
+    }
+
+    for (std::size_t i = 0; i < count; ++i) {
+        if (status[i].pointer_nonnull && !status[i].playing) {
+            return static_cast<std::int32_t>(i);
+        }
+    }
+
+    return static_cast<std::int32_t>(
+        random_value % static_cast<std::uint32_t>(count));
+}
+
+[[nodiscard]] constexpr std::uint8_t silence_byte_for_bits(
+    std::uint16_t bits_per_sample) noexcept {
+    return bits_per_sample == 8 ? 0x80U : 0x00U;
+}
+
+struct FillBufferPlan {
+    bool restore_before_lock{true};
+    bool lock_entire_buffer{true};
+    bool reset_wave_before_read{true};
+    bool repeat_wave_to_fill_tail{};
+    std::uint8_t silence_byte{};
+    bool unlock_after_fill{true};
+};
+
+[[nodiscard]] constexpr FillBufferPlan fill_buffer_plan(
+    std::uint16_t bits_per_sample,
+    bool repeat_wave_to_fill_tail) noexcept {
+    return {
+        true,
+        true,
+        true,
+        repeat_wave_to_fill_tail,
+        silence_byte_for_bits(bits_per_sample),
+        true,
+    };
+}
+
+struct PlayBufferPlan {
+    bool require_buffer_array{true};
+    bool select_free_buffer{true};
+    bool restore_selected_buffer{true};
+    bool refill_when_restored{true};
+    bool rewind_group_when_restored{true};
+    std::uint32_t reserved_play_arg{};
+    std::uint32_t priority{};
+    std::uint32_t flags{};
+    bool set_shared_game_volume_after_play{true};
+};
+
+[[nodiscard]] constexpr PlayBufferPlan play_buffer_plan(
+    std::uint32_t priority,
+    std::uint32_t flags) noexcept {
+    return {
+        true,true,true,true,true,
+        0,
+        priority,
+        flags,
+        true,
+    };
+}
+
+struct GroupOperationPlan {
+    bool requires_buffer_array{};
+    bool iterate_all_buffers{};
+    bool or_hresult_results{};
+};
+
+inline constexpr GroupOperationPlan kSetVolumeGroupPlan{
+    false,true,true};
+inline constexpr GroupOperationPlan kStopGroupPlan{
+    true,true,true};
+inline constexpr GroupOperationPlan kRewindGroupPlan{
+    true,true,true};
+
+[[nodiscard]] constexpr bool any_buffer_playing_from_status_bits(
+    const std::uint32_t* status_bits,
+    std::size_t count) noexcept {
+    if (status_bits == nullptr) {
+        return false;
+    }
+
+    std::uint32_t playing = 0;
+    for (std::size_t i = 0; i < count; ++i) {
+        playing |= status_bits[i] & 1U;
+    }
+    return playing != 0;
+}
+
 // This retail build is a smaller/customized DSUtil variant:
 // - CSound has no m_dwCreationFlags member.
 // - CSound::Play takes only priority + flags; volume is applied from the
