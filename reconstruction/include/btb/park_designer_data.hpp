@@ -144,25 +144,25 @@ enum class TrailingStateIndex : std::size_t {
     PondLinkedRecord2 = 8,
     PondLinkedRecord3 = 9,
 
-    // 0=Pond, 1=Bandstand, 2=Decorate. Retail uses this directly as the
-    // index into the live current/max palette-page arrays below.
-    ActivePaletteFamily = 10,      // global 0x00507B5C
+    // Exact EditorMode value: 0=Pond, 1=Bandstand, 2=Decorate, 3=View.
+    // Retail uses it directly as the index into the current/max page arrays.
+    ActiveEditorMode = 10,         // global 0x00507B5C
     PondLinkedRecord4 = 11,
 
     // Five persisted current-page slots form one contiguous array.
-    // Only the first three have gameplay readers in this executable.
+    // Modes 0..3 are reachable; slot 4 has no runtime selector in this build.
     PondPalettePage = 12,          // 0x00507AE4
     BandstandPalettePage = 13,     // 0x00507AE8
     DecoratePalettePage = 14,      // 0x00507AEC
-    LegacyPalettePage3 = 15,       // 0x00507AF0; save/load/init only
-    LegacyPalettePage4 = 16,       // 0x00507AF4; save/load/init only
+    ViewPage = 15,                 // 0x00507AF0; reached through indexed mode=3 reads
+    LegacyPage4 = 16,              // 0x00507AF4; save/load/init only
 
     // Matching five-entry maximum/last-page array at 0x00508BF4.
     PondPaletteMaxPage = 17,       // 0x00508BF4
     BandstandPaletteMaxPage = 18,  // 0x00508BF8
     DecoratePaletteMaxPage = 19,   // 0x00508BFC
-    LegacyPaletteMaxPage3 = 20,    // 0x00508C00; save/load only
-    LegacyPaletteMaxPage4 = 21,    // 0x00508C04; save/load only
+    ViewMaxPage = 20,              // 0x00508C00; indexed through mode=3
+    LegacyMaxPage4 = 21,           // 0x00508C04; save/load only
 
     NextPondPrimaryRecord = 22,    // global 0x00509340
     NextDecorateRecord = 23,       // global 0x00441DC8; initialized 300
@@ -176,18 +176,20 @@ enum class TrailingStateIndex : std::size_t {
     Season = 27,                   // global 0x00509344
 };
 
-inline constexpr std::array<TrailingStateIndex,3>
-kPaletteCurrentPageStateByFamily{{
+inline constexpr std::array<TrailingStateIndex,4>
+kCurrentPageStateByEditorMode{{
     TrailingStateIndex::PondPalettePage,
     TrailingStateIndex::BandstandPalettePage,
     TrailingStateIndex::DecoratePalettePage,
+    TrailingStateIndex::ViewPage,
 }};
 
-inline constexpr std::array<TrailingStateIndex,3>
-kPaletteMaxPageStateByFamily{{
+inline constexpr std::array<TrailingStateIndex,4>
+kMaxPageStateByEditorMode{{
     TrailingStateIndex::PondPaletteMaxPage,
     TrailingStateIndex::BandstandPaletteMaxPage,
     TrailingStateIndex::DecoratePaletteMaxPage,
+    TrailingStateIndex::ViewMaxPage,
 }};
 
 struct SaveData {
