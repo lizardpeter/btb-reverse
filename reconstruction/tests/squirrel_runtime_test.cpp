@@ -181,6 +181,106 @@ int main() {
     static_assert(!select_run_assembly_motion_keys(
         1, 0, selector_connectors, invalid_pieces).has_value());
 
+    Data animation_data;
+    animation_data.horizontal_motion_deltas =
+        {0,3,10,27,8,-4,-4};
+    animation_data.vertical_motion_deltas = {{
+        {{0,0,1,-1,0,0,0}},
+        {{0,0,0,0,0,0,0}},
+        {{0,0,1,-17,0,0,0}},
+        {{0,0,1,-33,0,0,0}},
+        {{0,0,-1,17,0,0,0}},
+        {{0,0,19,13,0,0,0}},
+        {{0,0,0,-32,0,0,0}},
+        {{0,0,0,32,0,0,0}},
+    }};
+    animation_data.animation_step_delay = 7;
+
+    RunAssemblyAnimationRuntime assembly;
+    assembly.run_section = 1;
+    begin_run_assembly_animation(
+        assembly, animation_data, *selector0);
+
+    assert(
+        assembly.state ==
+        RunAssemblyAnimationState::FirstThreeSubsteps);
+    assert(assembly.delay_remaining == 7);
+    assert(assembly.substep == 0);
+    assert(assembly.sprite_mode == 0);
+    assert(assembly.sprite_frame == 0);
+
+    auto motion_tick =
+        tick_run_assembly_animation(assembly, animation_data);
+    assert(motion_tick.applied_motion);
+    assert(motion_tick.absolute_motion_substep == 0);
+    assert(
+        motion_tick.profile ==
+        VerticalMotionProfile::NeutralArc);
+    assert((motion_tick.delta == Vec2i{0,0}));
+    assert(assembly.delay_remaining == 6);
+
+    // Finish the first two A substeps. A1 begins on update 8 and A2 on 15.
+    for (int i = 0; i < 19; ++i) {
+        motion_tick =
+            tick_run_assembly_animation(assembly, animation_data);
+    }
+
+    // Update 21 ends A2 and immediately falls through transient state 2 into
+    // state 3, applying B's absolute substep 3 on that same update.
+    motion_tick =
+        tick_run_assembly_animation(assembly, animation_data);
+    assert(motion_tick.applied_motion);
+    assert(motion_tick.entered_transient_state_2);
+    assert(motion_tick.absolute_motion_substep == 3);
+    assert(
+        assembly.state ==
+        RunAssemblyAnimationState::LastFourSubsteps);
+    assert(assembly.sprite_mode == 1);
+    assert(assembly.sprite_frame == 3);
+    assert((Vec2i{assembly.x,assembly.y} == Vec2i{40,0}));
+
+    // Restart from a clean state and run the exact full retail cycle.
+    assembly = {};
+    assembly.run_section = 1;
+    begin_run_assembly_animation(
+        assembly, animation_data, *selector0);
+
+    int updates = 0;
+    do {
+        motion_tick =
+            tick_run_assembly_animation(assembly, animation_data);
+        ++updates;
+        assert(updates <= 100);
+    } while (!motion_tick.cycle_completed);
+
+    assert(updates == 95);
+    assert(
+        assembly.state ==
+        RunAssemblyAnimationState::Idle);
+    assert(assembly.run_section == 2);
+    assert(assembly.substep == 3);
+    assert(assembly.delay_remaining == 7);
+    assert(assembly.sprite_mode == 3);
+    assert((Vec2i{assembly.x,assembly.y} == Vec2i{80,0}));
+
+    // The retained state-5 bridge normalizes directly into state 6 and begins
+    // the D second-half profile in the same update.
+    RunAssemblyAnimationRuntime retained;
+    retained.state =
+        RunAssemblyAnimationState::RetainedTransition;
+    retained.delay_remaining = 0;
+    retained.motion_keys = *selector0;
+    motion_tick =
+        tick_run_assembly_animation(retained, animation_data);
+    assert(
+        retained.state ==
+        RunAssemblyAnimationState::SecondLastFourSubsteps);
+    assert(retained.sprite_mode == 3);
+    assert(retained.sprite_frame == 3);
+    assert(motion_tick.applied_motion);
+    assert(motion_tick.absolute_motion_substep == 3);
+    assert((Vec2i{retained.x,retained.y} == Vec2i{27,-1}));
+
     static_assert(static_cast<int>(PlacementState::IdleSelect) == 0);
     static_assert(static_cast<int>(PlacementState::ReturnDecoyToConveyor) == 8);
 
