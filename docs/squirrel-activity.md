@@ -415,6 +415,123 @@ At the moment the final level is recognized, retail stops managed sound and play
 
 The outer completion stage then separately performs its final 665..667 Wendy line before exiting.
 
+## Exact scene geometry and composition
+
+The scene shell is now source-level in
+`reconstruction/include/btb/squirrel_presentation.hpp` and
+`reconstruction/src/squirrel_presentation.cpp`.
+
+The level background is treated as horizontally packed **480-pixel panels**.
+Retail draws a **620x480** viewport from:
+
+```text
+left = level_index * 480
+right = left + 620
+```
+
+During the inter-level transition, the scene scroll offset is the signed
+truncate-toward-zero result of:
+
+```text
+transition_counter / 5
+```
+
+This is distinct from puzzle-placement geometry.
+
+### Completed run vs live placement coordinates
+
+The three live placement targets used while Lofty is carrying a selected
+conveyor piece remain:
+
+```text
+(116,327)
+(276,327)
+(436,327)
+```
+
+Once pieces are part of the retained assembled run, retail draws them at:
+
+```text
+(116,194)
+(276,194)
+(436,194)
+```
+
+The four connector anchors are:
+
+```text
+(36,194)
+(196,194)
+(356,194)
+(516,194)
+```
+
+Connector values 0..2 map to `all.bmp` piece IDs:
+
+```text
+0 -> 18
+1 -> 4
+2 -> 17
+```
+
+The final nut-pile decoration uses the last connector X coordinate and offsets
+its Y coordinate by that same mapped value. Therefore connector 0/1/2 gives
+nut-pile destinations:
+
+```text
+(516,212)
+(516,198)
+(516,211)
+```
+
+The source model preserves that unusual retail reuse directly.
+
+### Exact sheet geometry
+
+Both `all.bmp` and `allconveyor.bmp` use **89x133** horizontal source cells.
+Retail first transposes the normal outer-major piece ID:
+
+```text
+sheet_index = piece_id / 9 + 4 * (piece_id % 9)
+```
+
+then builds:
+
+```text
+left   = sheet_index * 89
+top    = 0
+right  = left + 89
+bottom = 133
+```
+
+This same transpose is independently used by the motion-key selector, so the
+render and motion lookup layouts now agree exactly.
+
+The final scene order is:
+
+1. normal level background when not transitioning;
+2. conveyor strip;
+3. either the large Lofty movement sprite or layered body/eyes/mouth/arm;
+4. retained run pieces and connector geometry;
+5. optional nut pile;
+6. transition connector geometry while scrolling;
+7. live run-assembly/squirrel update;
+8. hook when the large Lofty transition animation is not suppressing it;
+9. conveyor choices;
+10. top/left/right/bottom frame overlays last.
+
+The four border surfaces are drawn at:
+
+```text
+top    (0,0)
+left   (0,20)
+right  (620,20)
+bottom (20,400)
+```
+
+The global-to-asset mapping is preserved in
+`ghidra/squirrel_surface_map.csv`.
+
 ## Placement state machine
 
 Global `0x005150E4` is a nine-state placement/interactor state.
