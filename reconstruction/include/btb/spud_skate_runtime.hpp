@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <array>
 #include <optional>
 
 namespace btb::spud_skate {
@@ -45,6 +46,7 @@ struct RuntimeState {
 struct PlaybackFrameInput {
     std::int32_t frame{};
     bool stunt_press{};
+    bool quality_stream_reached_end{};
 };
 
 struct PlaybackFrameStep {
@@ -64,6 +66,8 @@ struct PlaybackFrameStep {
     bool loop_marker_seen{};
     bool first_pass_final_stunt_scored{};
     bool start_end_movie{};
+    bool resync_quality_streams{};
+    std::int32_t resync_frame{};
 
     // The selected quality is also the index of the synchronized Bink stream:
     // 0 bad.bik, 1 normal.bik, 2 ok.bik, 3 good.bik.
@@ -108,6 +112,64 @@ struct PlaybackFrameStep {
     return std::nullopt;
 }
 
+inline constexpr std::int32_t kMovieScreenX = 20;
+inline constexpr std::int32_t kMovieScreenY = 20;
+inline constexpr std::int32_t kMovieWidth = 600;
+inline constexpr std::int32_t kMovieHeight = 380;
+
+inline constexpr std::int32_t kQualityOverlayX = 267;
+inline constexpr std::int32_t kQualityOverlayY = 415;
+inline constexpr std::int32_t kScoreTensX = 450;
+inline constexpr std::int32_t kScoreOnesX = 475;
+inline constexpr std::int32_t kScoreY = 415;
+inline constexpr std::int32_t kScoreDigitWidth = 24;
+inline constexpr std::int32_t kScoreDigitHeight = 50;
+
+struct ScoreDigitDraw {
+    std::int32_t digit{};
+    std::int32_t x{};
+    std::int32_t y{};
+    std::int32_t source_left{};
+    std::int32_t source_top{};
+    std::int32_t source_right{};
+    std::int32_t source_bottom{};
+};
+
+struct ScoreRenderPlan {
+    std::array<ScoreDigitDraw, 2> digits{};
+    std::size_t count{};
+};
+
+[[nodiscard]] constexpr ScoreDigitDraw score_digit_draw(
+    std::int32_t digit,
+    std::int32_t x) noexcept {
+    const auto left = digit * kScoreDigitWidth;
+    return {
+        digit,
+        x,
+        kScoreY,
+        left,
+        0,
+        left + kScoreDigitWidth,
+        kScoreDigitHeight,
+    };
+}
+
+// Retail always draws ones and suppresses a leading-zero tens digit.
+[[nodiscard]] constexpr ScoreRenderPlan score_render_plan(
+    std::int32_t score) noexcept {
+    ScoreRenderPlan plan;
+    const auto tens = score / 10;
+    const auto ones = score % 10;
+    if (tens > 0) {
+        plan.digits[plan.count++] =
+            score_digit_draw(tens, kScoreTensX);
+    }
+    plan.digits[plan.count++] =
+        score_digit_draw(ones, kScoreOnesX);
+    return plan;
+}
+
 struct ResultSoundPool {
     std::int32_t first_id{};
     std::int32_t count{};
@@ -149,5 +211,28 @@ struct ResultPresentation {
         true,
     };
 }
+
+struct EndMovieFrameInput {
+    bool end_movie_finished{};
+    bool any_managed_sound_playing{};
+    bool spud_maze_progress_complete{};
+};
+
+struct EndMovieFrameStep {
+    bool result_one_shot{};
+    std::optional<ResultPresentation> result{};
+    bool stop_all_managed_sounds{};
+    bool mark_spud_skate_progress_complete{};
+    bool set_shared_completion_code_2{};
+    bool draw_or_decode_end_movie{};
+    bool complete_activity{};
+};
+
+// Exact phase-1 lifecycle. The result voice/progress branch runs once before
+// end.bik processing. When the movie is finished, retail waits for managed
+// audio to become idle before changing phase to 2.
+[[nodiscard]] EndMovieFrameStep update_end_movie_phase(
+    RuntimeState& state,
+    const EndMovieFrameInput& input) noexcept;
 
 } // namespace btb::spud_skate
