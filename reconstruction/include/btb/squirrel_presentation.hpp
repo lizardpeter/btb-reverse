@@ -1,5 +1,8 @@
 #pragma once
 
+#include "btb/squirrel_data.hpp"
+
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <string_view>
