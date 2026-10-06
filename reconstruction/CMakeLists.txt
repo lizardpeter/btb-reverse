@@ -5,6 +5,7 @@ add_library(btb_dino
     src/dino_level.cpp
     src/dino_runtime.cpp
     src/dino_character_animation.cpp
+    src/dino_presentation.cpp
 )
 
 target_include_directories(btb_dino PUBLIC include)
@@ -25,6 +26,12 @@ add_executable(btb_dino_runtime_tests
 target_link_libraries(btb_dino_runtime_tests PRIVATE btb_dino)
 
 add_test(NAME dino_runtime COMMAND btb_dino_runtime_tests)
+
+add_executable(btb_dino_presentation_tests
+    tests/dino_presentation_test.cpp
+)
+target_link_libraries(btb_dino_presentation_tests PRIVATE btb_dino)
+add_test(NAME dino_presentation COMMAND btb_dino_presentation_tests)
 
 add_library(btb_fireworks
     src/fireworks_layout.cpp
