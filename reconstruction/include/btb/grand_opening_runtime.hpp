@@ -219,6 +219,182 @@ inline constexpr std::int32_t kDeleteWallMaxYExclusive = 401;
     return true;
 }
 
+struct MachineVisualSpec {
+    std::int32_t short_x{};
+    std::int32_t short_y{};
+    std::int32_t long_x{};
+    std::int32_t long_y{};
+    std::int32_t short_frame_width{};
+    std::int32_t short_frame_height{};
+    std::int32_t long_frame_width{};
+    std::int32_t long_frame_height{};
+};
+
+inline constexpr std::array<MachineVisualSpec,5> kMachineVisualSpecs{{
+    {0,130,3,130,189,168,246,177},     // Roley
+    {86,93,86,93,200,162,222,177},     // Muck
+    {225,2,225,2,165,238,177,242},     // Lofty
+    {342,105,342,105,84,102,85,103},   // Dizzy
+    {393,75,393,75,132,143,138,167},   // Scoop
+}};
+
+inline constexpr std::int32_t kShortMachineAnimationFrames = 15;
+inline constexpr std::int32_t kLongMachineAnimationFrames = 30;
+inline constexpr std::int32_t kMachineAnimationTickThreshold = 3;
+
+struct MachineVisualState {
+    std::int32_t animation_state{}; // 0 static, 1 short, 2 long
+    std::int32_t frame{};
+    std::int32_t tick{};
+};
+
+struct MachineDrawStep {
+    std::int32_t draw_animation_state{};
+    std::int32_t frame{};
+    std::int32_t source_left{};
+    std::int32_t source_top{};
+    std::int32_t source_right{};
+    std::int32_t source_bottom{};
+    std::int32_t x{};
+    std::int32_t y{};
+    bool returns_to_static_after_draw{};
+};
+
+// Exact machine renderer in 0x0041F090. State 0 draws frame zero from the
+// short sheet. State 1 uses the short sheet, state 2 the long sheet. Active
+// animations advance after tick >3. When the frame reaches 15/30, retail
+// rewinds to frame 0, draws that animated-sheet frame once, then clears the
+// machine state to static for the next update.
+[[nodiscard]] constexpr MachineDrawStep tick_machine_visual(
+    Machine machine,
+    MachineVisualState& state,
+    std::int32_t animation_tick_delta = 1) noexcept {
+
+    const auto index = static_cast<std::size_t>(machine);
+    const auto& spec = kMachineVisualSpecs[index];
+
+    const auto draw_state = state.animation_state;
+    bool complete_after_draw = false;
+
+    if (draw_state != 0) {
+        state.tick += animation_tick_delta;
+        if (state.tick > kMachineAnimationTickThreshold) {
+            state.tick = 0;
+            ++state.frame;
+            const auto frame_count =
+                draw_state == 1
+                    ? kShortMachineAnimationFrames
+                    : kLongMachineAnimationFrames;
+            if (state.frame >= frame_count) {
+                state.frame = 0;
+                complete_after_draw = true;
+            }
+        }
+    }
+
+    const bool long_sheet = draw_state == 2;
+    const auto width =
+        long_sheet ? spec.long_frame_width : spec.short_frame_width;
+    const auto height =
+        long_sheet ? spec.long_frame_height : spec.short_frame_height;
+    const auto x = long_sheet ? spec.long_x : spec.short_x;
+    const auto y = long_sheet ? spec.long_y : spec.short_y;
+    const auto left = state.frame * width;
+
+    MachineDrawStep step{
+        draw_state,
+        state.frame,
+        left,
+        0,
+        left + width,
+        height,
+        x,
+        y,
+        complete_after_draw,
+    };
+
+    if (complete_after_draw) {
+        state.animation_state = 0;
+    }
+
+    return step;
+}
+
+struct ConductorVisualSpec {
+    std::int32_t x{};
+    std::int32_t y{};
+    std::int32_t frame_width{};
+    std::int32_t frame_height{};
+};
+
+inline constexpr std::array<ConductorVisualSpec,kConductorCount>
+kConductorVisualSpecs{{
+    {499,133,85,78},
+    {504,132,68,80},
+    {493,136,78,85},
+}};
+
+inline constexpr std::int32_t kConductorIdleNormalEndExclusive = 20;
+inline constexpr std::int32_t kConductorIdleSpecialEndExclusive = 50;
+inline constexpr std::int32_t kConductorIdleTickThreshold = 5;
+
+struct ConductorIdleStep {
+    bool frame_advanced{};
+    bool entered_special_idle{};
+    bool normal_idle_restarted{};
+    bool special_idle_completed{};
+    std::int32_t frame{};
+    std::int32_t tick{};
+};
+
+// Exact editor conductor clock inside DrawGrandOpeningCompositionAndMachines.
+// Frames 0..19 are the normal idle. On first reaching frame 20, rand()%3 == 0
+// enters the longer special idle 20..49; the other 2/3 of outcomes restart at
+// frame 0. Frame 50 always wraps to frame 0.
+[[nodiscard]] constexpr ConductorIdleStep tick_idle_conductor_animation(
+    Conductor conductor,
+    ConductorAnimationState& state,
+    std::int32_t random_mod_3,
+    std::int32_t animation_tick_delta = 1) noexcept {
+
+    (void)conductor; // all three use the same 0..19 / 20..49 idle ranges
+    ConductorIdleStep result;
+
+    state.tick += animation_tick_delta;
+    if (state.tick > kConductorIdleTickThreshold) {
+        state.tick = 0;
+        ++state.frame;
+        result.frame_advanced = true;
+
+        if (state.frame == kConductorIdleNormalEndExclusive) {
+            if (random_mod_3 == 0) {
+                result.entered_special_idle = true;
+            } else {
+                state.frame = 0;
+                result.normal_idle_restarted = true;
+            }
+        }
+
+        if (state.frame >= kConductorIdleSpecialEndExclusive) {
+            state.frame = 0;
+            result.special_idle_completed = true;
+        }
+    }
+
+    result.frame = state.frame;
+    result.tick = state.tick;
+    return result;
+}
+
+[[nodiscard]] constexpr ToolbarRect conductor_source_rect(
+    Conductor conductor,
+    std::int32_t frame) noexcept {
+    const auto& spec =
+        kConductorVisualSpecs[static_cast<std::size_t>(conductor)];
+    const auto left = frame * spec.frame_width;
+    return {left,0,left + spec.frame_width,spec.frame_height};
+}
+
 struct ToolbarRect {
     std::int32_t left{};
     std::int32_t top{};
