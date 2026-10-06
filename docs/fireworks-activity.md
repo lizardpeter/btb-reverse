@@ -114,6 +114,19 @@ The three button meanings are proven from the loaded surfaces and control code:
 - **26 Delete Selected** -> toggles internal state 13 and changes the cursor; clicking a placement slot in state 13 removes that item
 - **25 Delete All** -> opens `data\\ui\\DeleteFireworks.bmp` through the shared Yes/No confirmation modal; a Yes result clears all 18 slots to `-1`
 
+Their exact retail overlay surfaces are also closed:
+
+| Control | Hover/red surface | Pressed/depressed surface | Blit origin |
+|---|---|---|---|
+| Delete All | `fireworkdeleteallred.bmp` | `fireworkdeletealldep.bmp` | (102,416) |
+| Delete Selected | `fireworkdeletered.bmp` | `fireworkdeletedep.bmp` | (483,416) |
+| Play | `fireworkplayred.bmp` | `fireworkplaydep.bmp` | (292,416) |
+
+All six overlays are source-color-keyed. Hover uses the red surface; the shared
+pressed-input flag uses the depressed surface. Click actions themselves perform
+their state/modal transition instead of drawing an additional click-only
+surface.
+
 ## Placement path
 
 `0x004126F0 HitTestFireworksEditorRegions` resolves the region under the pointer.
