@@ -522,6 +522,10 @@ int main() {
         {325, 417, true, false, false, 0});
     assert(toolbar_step.control == ToolbarControl::Play);
     assert(toolbar_step.visual == ToolbarVisual::Hover);
+    assert(toolbar_step.surface &&
+           *toolbar_step.surface == ToolbarSurface::PlayHover);
+    assert(toolbar_step.surface_x == 324);
+    assert(toolbar_step.surface_y == 416);
     assert(toolbar_step.hover_sound_id &&
            *toolbar_step.hover_sound_id == 516); // MP_BOB_07
     assert(toolbar_step.action_sound_id &&
@@ -560,6 +564,10 @@ int main() {
         Conductor::Wendy,
         {261, 417, true, false, false, 1});
     assert(toolbar_step.control == ToolbarControl::Stop);
+    assert(toolbar_step.surface &&
+           *toolbar_step.surface == ToolbarSurface::StopHover);
+    assert(toolbar_step.surface_x == 260);
+    assert(toolbar_step.surface_y == 416);
     assert(toolbar_step.hover_sound_id &&
            *toolbar_step.hover_sound_id == 530); // MP_WEN_08
     assert(toolbar_step.action_sound_id &&
@@ -574,6 +582,10 @@ int main() {
         Conductor::FarmerPickles,
         {104, 417, true, false, false, 0});
     assert(toolbar_step.control == ToolbarControl::ClearAll);
+    assert(toolbar_step.surface &&
+           *toolbar_step.surface == ToolbarSurface::ClearAllHover);
+    assert(toolbar_step.surface_x == 103);
+    assert(toolbar_step.surface_y == 416);
     assert(toolbar_step.action ==
            ToolbarActionKind::OpenClearAllConfirmation);
     assert(toolbar_step.open_confirmation);
@@ -591,6 +603,10 @@ int main() {
         Conductor::Bob,
         {482, 417, true, false, false, 1});
     assert(toolbar_step.action == ToolbarActionKind::EnterDeleteMode);
+    assert(toolbar_step.surface &&
+           *toolbar_step.surface == ToolbarSurface::DeleteHover);
+    assert(toolbar_step.surface_x == 481);
+    assert(toolbar_step.surface_y == 416);
     assert(delete_toolbar.delete_mode);
     assert(delete_toolbar.cursor.kind == EditorCursorKind::Delete);
     assert(toolbar_step.hover_sound_id &&
@@ -608,6 +624,43 @@ int main() {
     assert(toolbar_step.visual == ToolbarVisual::None);
     assert(!toolbar_step.hover_sound_id);
     assert(!toolbar_step.action_sound_id);
+
+    // Pressed rendering selects the matching depressed surface.
+    EditorRuntimeState pressed_toolbar;
+    toolbar_step = update_toolbar(
+        pressed_toolbar,
+        Conductor::Bob,
+        {325, 417, false, true, false, 0});
+    assert(toolbar_step.visual == ToolbarVisual::Pressed);
+    assert(toolbar_step.surface &&
+           *toolbar_step.surface == ToolbarSurface::PlayPressed);
+    assert(toolbar_step.surface_x == 324);
+    assert(toolbar_step.surface_y == 416);
+
+    // State-9's secondary action-22 region always draws the Stop-red surface
+    // at the same retail origin and a click independently stops playback.
+    constexpr auto secondary_hover =
+        update_secondary_stop_region(22, false);
+    static_assert(secondary_hover.draw_stop_hover_surface);
+    static_assert(secondary_hover.surface_x == 260);
+    static_assert(secondary_hover.surface_y == 416);
+    static_assert(!secondary_hover.stop_backing_track);
+    static_assert(
+        secondary_hover.next_state == ActivityState::Playing);
+
+    constexpr auto secondary_click =
+        update_secondary_stop_region(22, true);
+    static_assert(secondary_click.draw_stop_hover_surface);
+    static_assert(secondary_click.stop_backing_track);
+    static_assert(
+        secondary_click.next_state == ActivityState::Edit);
+
+    constexpr auto legacy_secondary =
+        update_secondary_stop_region(23, true);
+    static_assert(!legacy_secondary.draw_stop_hover_surface);
+    static_assert(!legacy_secondary.stop_backing_track);
+    static_assert(
+        legacy_secondary.next_state == ActivityState::Playing);
 
     // Strict hit testing excludes rectangle edges.
     EditorRuntimeState edge_toolbar;
