@@ -86,6 +86,62 @@ surface_binding(SceneSurface surface) noexcept {
     return nullptr;
 }
 
+inline constexpr std::int32_t kBackgroundPanelStride = 480;
+inline constexpr std::int32_t kBackgroundViewportWidth = 620;
+inline constexpr std::int32_t kBackgroundViewportHeight = 480;
+
+[[nodiscard]] constexpr SourceRect level_background_source_rect(
+    std::int32_t level_index) noexcept {
+    const auto left = level_index * kBackgroundPanelStride;
+    return {
+        left,
+        0,
+        left + kBackgroundViewportWidth,
+        kBackgroundViewportHeight,
+    };
+}
+
+// When level-transition state is nonzero, 0x004267B0 computes this with the
+// signed divide-by-5 magic-multiply sequence. C++ integer division has the same
+// truncate-toward-zero semantics for int32_t.
+[[nodiscard]] constexpr std::int32_t scene_scroll_offset(
+    bool transition_active,
+    std::int32_t transition_counter) noexcept {
+    return transition_active ? transition_counter / 5 : 0;
+}
+
+inline constexpr std::array<Vec2i,3> kCompletedRunPieceDestinations{{
+    {116,194},
+    {276,194},
+    {436,194},
+}};
+
+inline constexpr std::array<Vec2i,4> kConnectorDestinations{{
+    {36,194},
+    {196,194},
+    {356,194},
+    {516,194},
+}};
+
+// Local stack table in 0x004267B0 used to turn connector values 0..2 into
+// all.bmp sprite IDs. The final-target nut-pile Y offset reuses the same three
+// integer values directly.
+inline constexpr std::array<std::int32_t,3> kConnectorPieceIds{{
+    18,4,17,
+}};
+
+[[nodiscard]] constexpr std::optional<Vec2i> nut_pile_destination(
+    std::int32_t connector) noexcept {
+    if (connector < 0 || connector >= 3) {
+        return std::nullopt;
+    }
+    return Vec2i{
+        kConnectorDestinations.back().x,
+        kConnectorDestinations.back().y +
+            kConnectorPieceIds[static_cast<std::size_t>(connector)],
+    };
+}
+
 inline constexpr std::int32_t kConveyorFrameWidth = 640;
 inline constexpr std::int32_t kConveyorFrameHeight = 44;
 inline constexpr std::int32_t kConveyorDestX = 0;
