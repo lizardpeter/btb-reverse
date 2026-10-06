@@ -91,6 +91,74 @@ struct FountainSourceRect {
     return {left, 0, left + kFountainFrameWidth, kFountainFrameWidth};
 }
 
+enum class ViewToolbarItem : std::int32_t {
+    Summer = 0,
+    Winter = 1,
+    Print = 2,
+    InfoHoverOnly = 3,
+};
+
+enum class ViewToolbarAction {
+    None,
+    ApplySummer,
+    ApplyWinter,
+    PrintCurrentFrame,
+};
+
+[[nodiscard]] constexpr std::int32_t view_toolbar_hover_sound_id(
+    ViewToolbarItem item) noexcept {
+    switch (item) {
+        case ViewToolbarItem::Summer: return 997;       // dyp_summer.wav
+        case ViewToolbarItem::Winter: return 998;       // dyp_winter.wav
+        case ViewToolbarItem::Print: return 293;        // DYP_V_BOB_04
+        case ViewToolbarItem::InfoHoverOnly: return 299;// DYP_V_BOB_10
+    }
+    return -1;
+}
+
+struct ViewToolbarClickStep {
+    ViewToolbarAction action{ViewToolbarAction::None};
+    std::optional<Season> season{};
+    std::optional<std::int32_t> sound_id{};
+};
+
+// Exact View-mode click switch inside 0x0040E440. Retail has click cases only
+// for items 0, 1, and 2. Item 3 deliberately falls through with no click
+// effect even though it has its own hover voice.
+[[nodiscard]] constexpr ViewToolbarClickStep view_toolbar_click(
+    ViewToolbarItem item,
+    std::int32_t random_mod_2) noexcept {
+
+    switch (item) {
+        case ViewToolbarItem::Summer:
+            if (random_mod_2 < 0 || random_mod_2 > 1) return {};
+            return {
+                ViewToolbarAction::ApplySummer,
+                Season::Summer,
+                294 + random_mod_2, // DYP_V_BOB_05/06
+            };
+
+        case ViewToolbarItem::Winter:
+            if (random_mod_2 < 0 || random_mod_2 > 1) return {};
+            return {
+                ViewToolbarAction::ApplyWinter,
+                Season::Winter,
+                297 + random_mod_2, // DYP_V_BOB_08/09
+            };
+
+        case ViewToolbarItem::Print:
+            return {
+                ViewToolbarAction::PrintCurrentFrame,
+                std::nullopt,
+                std::nullopt,
+            };
+
+        case ViewToolbarItem::InfoHoverOnly:
+            return {};
+    }
+    return {};
+}
+
 enum class CompletionAction : std::int32_t {
     None,
     PlayClosingLine,
