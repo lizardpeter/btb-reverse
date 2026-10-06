@@ -17,6 +17,99 @@ int main() {
         kPlaybackPreviousStepSentinel);
     static_assert(prepared.shared_completion_code == 6);
 
+    static_assert(kMachineVisualSpecs[0].short_x == 0);
+    static_assert(kMachineVisualSpecs[0].short_y == 130);
+    static_assert(kMachineVisualSpecs[0].short_frame_width == 189);
+    static_assert(kMachineVisualSpecs[0].long_frame_width == 246);
+    static_assert(kMachineVisualSpecs[4].short_x == 393);
+    static_assert(kMachineVisualSpecs[4].short_frame_height == 143);
+    static_assert(kMachineVisualSpecs[4].long_frame_height == 167);
+    static_assert(kShortMachineAnimationFrames == 15);
+    static_assert(kLongMachineAnimationFrames == 30);
+
+    MachineVisualState static_roley;
+    auto machine_draw =
+        tick_machine_visual(Machine::Roley, static_roley);
+    assert(machine_draw.draw_animation_state == 0);
+    assert(machine_draw.frame == 0);
+    assert(machine_draw.x == 0 && machine_draw.y == 130);
+    assert(machine_draw.source_left == 0);
+    assert(machine_draw.source_right == 189);
+    assert(machine_draw.source_bottom == 168);
+    assert(!machine_draw.returns_to_static_after_draw);
+
+    MachineVisualState short_roley{1, 14, 3};
+    machine_draw =
+        tick_machine_visual(Machine::Roley, short_roley);
+    assert(machine_draw.draw_animation_state == 1);
+    assert(machine_draw.frame == 0);
+    assert(machine_draw.returns_to_static_after_draw);
+    assert(short_roley.animation_state == 0);
+    assert(short_roley.frame == 0);
+    assert(short_roley.tick == 0);
+
+    MachineVisualState long_muck{2, 29, 3};
+    machine_draw =
+        tick_machine_visual(Machine::Muck, long_muck);
+    assert(machine_draw.draw_animation_state == 2);
+    assert(machine_draw.frame == 0);
+    assert(machine_draw.x == 86 && machine_draw.y == 93);
+    assert(machine_draw.source_right == 222);
+    assert(machine_draw.source_bottom == 177);
+    assert(machine_draw.returns_to_static_after_draw);
+    assert(long_muck.animation_state == 0);
+
+    MachineVisualState moving_lofty{1, 4, 2};
+    machine_draw =
+        tick_machine_visual(Machine::Lofty, moving_lofty);
+    assert(machine_draw.frame == 4);
+    assert(moving_lofty.tick == 3);
+    machine_draw =
+        tick_machine_visual(Machine::Lofty, moving_lofty);
+    assert(machine_draw.frame == 5);
+    assert(moving_lofty.tick == 0);
+    assert(machine_draw.source_left == 5 * 165);
+
+    static_assert(kConductorVisualSpecs[0].x == 499);
+    static_assert(kConductorVisualSpecs[0].y == 133);
+    static_assert(kConductorVisualSpecs[0].frame_width == 85);
+    static_assert(kConductorVisualSpecs[1].x == 504);
+    static_assert(kConductorVisualSpecs[1].frame_height == 80);
+    static_assert(kConductorVisualSpecs[2].x == 493);
+    static_assert(kConductorVisualSpecs[2].frame_width == 78);
+
+    constexpr auto bob_source = conductor_source_rect(Conductor::Bob, 3);
+    static_assert(bob_source.left == 255);
+    static_assert(bob_source.top == 0);
+    static_assert(bob_source.right == 340);
+    static_assert(bob_source.bottom == 78);
+
+    ConductorAnimationState idle_bob{19,5};
+    auto idle_step =
+        tick_idle_conductor_animation(Conductor::Bob, idle_bob, 1);
+    assert(idle_step.frame_advanced);
+    assert(idle_step.normal_idle_restarted);
+    assert(!idle_step.entered_special_idle);
+    assert(idle_bob.frame == 0);
+    assert(idle_bob.tick == 0);
+
+    ConductorAnimationState special_idle{19,5};
+    idle_step =
+        tick_idle_conductor_animation(
+            Conductor::FarmerPickles, special_idle, 0);
+    assert(idle_step.frame_advanced);
+    assert(idle_step.entered_special_idle);
+    assert(!idle_step.normal_idle_restarted);
+    assert(special_idle.frame == 20);
+
+    special_idle.frame = 49;
+    special_idle.tick = 5;
+    idle_step =
+        tick_idle_conductor_animation(
+            Conductor::FarmerPickles, special_idle, 0);
+    assert(idle_step.special_idle_completed);
+    assert(special_idle.frame == 0);
+
     static_assert(kConductorPlaybackStartFrame == 50);
     static_assert(kConductorPlaybackEndExclusive[0] == 90);
     static_assert(kConductorPlaybackEndExclusive[1] == 85);
