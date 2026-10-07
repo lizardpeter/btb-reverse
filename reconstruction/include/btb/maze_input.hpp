@@ -37,10 +37,10 @@ struct PlayerInputStep {
     bool mouse_dead_zone{};
     bool debounce_applied{};
 
-    // Retail writes shared input phase 0x00443D64 = 4 on every keyboard call
-    // and on mouse calls that get as far as directional/debounce processing.
-    // The <=6-pixel mouse dead-zone exits before this write.
-    bool reset_shared_input_phase{};
+    // Retail rewrites the shared node-capture radius 0x00443D64 = 4 on every
+    // keyboard call and on mouse calls that reach directional/debounce
+    // processing. The <=6-pixel mouse dead-zone exits before this write.
+    bool writes_node_capture_radius_four{};
 };
 
 // Exact semantic reconstruction of 0x00415D70.
