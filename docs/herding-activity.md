@@ -484,6 +484,45 @@ drawing.
 | Left gate | horizontal 120x70 frames, forced position (717,162) |
 | Right gate | horizontal 120x70 frames, forced position (859,101) |
 
+#### In-render animation timers
+
+Several entity animation counters are advanced directly inside the renderer.
+
+For free-roam animals (behavior state 0), the renderer subtracts the
+truncate-toward-zero result of:
+
+```text
+movement_speed * 10
+```
+
+from the animation countdown. When the countdown expires it resets to **100**
+and advances the frame:
+
+- sheep cycle **6..9**;
+- rabbits cycle **3..6**;
+- ducks cycle **0..5**.
+
+Nonzero behavior states do not use this free-roam renderer animation update.
+
+The Travis cab uses a separate draw-count timer:
+
+- decrement every draw;
+- when it expires, reset to **10**;
+- advance one frame;
+- wrap **12 -> 0**.
+
+Both gates use their own timer:
+
+- countdown **-1** disables animation;
+- otherwise decrement;
+- on exactly zero, advance one frame;
+- frames below 3 reload countdown **50**;
+- reaching frame **3** leaves countdown at zero, so the gate remains at its
+  terminal frame.
+
+These policies are represented by the typed render-animation helpers in
+`herding_presentation.hpp`.
+
 #### Post-entity composition
 
 After the depth-sorted entity pass, retail draws three conditional keyed world
