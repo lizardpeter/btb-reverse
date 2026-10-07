@@ -128,25 +128,101 @@ The remaining values are explicitly documented by the source file:
 
 The dramatic hard-mode spawn interval confirms that difficulty is not merely cosmetic in this activity.
 
+## Directional input debounce
+
+`0x0041AEB0 DebounceMazeDirectionalInput` is now exact at source level.
+
+Retail retains two three-sample `int32` histories at `0x00512130..0x00512147`, one for X and one for Y. On every call it:
+
+1. shifts sample 1 to sample 0
+2. shifts sample 2 to sample 1
+3. writes the newest axis intent to sample 2
+4. requires all three X samples to match
+5. requires all three Y samples to match
+
+The important quirk is that the axes are **not** emitted independently. If either three-sample history is unstable, retail writes zero to **both** output intents. A newly pressed or changed direction therefore needs three consecutive matching samples before movement is emitted.
+
+The C++26 reconstruction is `DirectionalDebounce` in `maze_runtime.hpp/.cpp`, with regression coverage for press, diagonal change, and release behavior.
+
+## Exact surface map
+
+`0x0041A730 InitializeMazeActivity` loads the following surfaces:
+
+| Global | Surface | Retail file | Size | Color key |
+|---:|---|---|---:|---:|
+| `0x00512100` | West background | `Data\\SubGameMaze\\LEFT_MAZE.bmp` | 640x480 | none |
+| `0x00512104` | Middle background | `Data\\SubGameMaze\\MID_MAZE.bmp` | 640x480 | none |
+| `0x00512108` | East background | `Data\\SubGameMaze\\RIGHT_MAZE.bmp` | 640x480 | none |
+| `0x0051210C` | Player | `Data\\SubGameMaze\\player.bmp` | 1024x512 | `0x00FF00FF` |
+| `0x00512110` | Spud | `Data\\SubGameMaze\\spud.bmp` | 1792x512 | `0x00FF00FF` |
+| `0x00512114` | Package box | `Data\\SubGameMaze\\box.bmp` | 26x29 | `0x00FF00FF` |
+| `0x00512118` | Package ghost | `Data\\SubGameMaze\\boxghost.bmp` | 16x19 | `0x00FF00FF` |
+| `0x0051211C` | Completed-package marker | `Data\\SubGameMaze\\smallbox.bmp` | 16x19 | `0x00FF00FF` |
+| `0x00512120` | Numerals | `Data\\SubGameMaze\\numerals.bmp` | 200x40 | `0x00000000` |
+| `0x005144D0` | Timer strip | `Data\\SubGameSpudMaze\\timer.bmp` | 103x25 | `0x00FF00FF` |
+
+Two retail oddities are worth preserving:
+
+- Maze has its own `Data\\SubGameMaze\\timer.bmp` on disk, but the executable does **not** load it here. It deliberately references the identically sized Spud Maze timer path.
+- `numerals.bmp` is loaded and color-keyed, but there is no Maze runtime read of its `0x00512120` surface global after initialization. It is a loaded-but-unused legacy surface in this build.
+
+The machine-readable map is `ghidra/maze_surface_map.csv`.
+
+## Actor sprite geometry
+
+`0x0041C110 DrawMazeActivity` uses 128x128 source cells for both the player and Spud.
+
+For both actors, source column 4 is remapped to column 3 before the rectangle is formed; all other columns pass through unchanged. The destination origins are asymmetric:
+
+- player: `(trunc(x - 65), trunc(y - 64))`
+- Spud: `(trunc(x + horizontal_screen_offset - 64), trunc(y - 64))`
+
+The float-to-integer helper at `0x004304D0` explicitly changes the x87 control word to truncate toward zero, so the reconstruction uses truncating conversions rather than rounding.
+
+## Timer and package HUD
+
+`0x0041BF80 DrawMazeTimer` updates the countdown from the high-resolution counter and draws two HUD components.
+
+The timer strip is placed at **(422,430)**. Its source rectangle is:
+
+`[0, 0, trunc((remaining / initial) * 102), 25]`
+
+Although the bitmap is 103 pixels wide, retail scales the visible fill against exactly **102.0** pixels.
+
+Package completion is shown with `smallbox.bmp` for completed entries and `boxghost.bmp` for the rest. Difficulty selects exact totals **4 / 8 / 12**. Markers are spaced 20 pixels apart, centered from:
+
+`start_x = 244 - (total / 2) * 20`
+
+at Y=430.
+
+The routine also contains a dormant row-wrap branch: when the accumulated X offset exceeds 250, it resets X offset to zero and moves the marker row to Y=450. Normal totals never reach that branch, but the C++26 presentation helper preserves it.
+
+## Outer activity controller
+
+The retail `0x0041D4D0 UpdateMazeActivity` controller is now separated from the graph logic conceptually:
+
+- remaining time equal to **15** triggers managed sound ID **83** at priority 90/class 1
+- success is `packages_remaining <= 0`
+- timeout is `remaining_time < 0` while no screen transition is active
+- outcome phase 0 stops managed feedback and selects sound ID **84**, **85**, or **86** according to completion/time state
+- phase 1 continues drawing the activity while managed feedback is active
+- successful completion writes player progress before entering the shared Play Again path
+- the Play Again outer state is **0x3C**
+- normal leaving unloads Maze resources and routes either to state **0x1C** or the shared movie state **0x40** depending on the shared transition code
+
 ## Source reconstruction
 
-The typed graph parser is in:
+The typed C++26 reconstruction now spans:
 
 - `reconstruction/include/btb/maze_data.hpp`
 - `reconstruction/src/maze_data.cpp`
+- `reconstruction/include/btb/maze_runtime.hpp`
+- `reconstruction/src/maze_runtime.cpp`
+- `reconstruction/include/btb/maze_presentation.hpp`
 - `reconstruction/tests/maze_data_test.cpp`
+- `reconstruction/tests/maze_runtime_test.cpp`
+- `reconstruction/tests/maze_presentation_test.cpp`
 
-It reproduces:
+It currently reproduces the complete graph/data parse, portal semantics, retail-bounded shortest-path search, three-sample all-or-nothing directional debounce, exact surface bindings, actor sheet geometry/origins, and timer/package HUD composition.
 
-- three screen sections
-- node IDs and positions
-- retail Y offset
-- direction mask
-- four directional links
-- node type
-- 3x4 reference-node table
-- player speed
-- all difficulty tuning tables
-- animation delay
-
-Next Maze work is runtime traversal: player interpolation between linked nodes, screen portal transitions, Spud spawning/path selection, package behavior, timer/completion, and collision with the player.
+The main remaining Maze source closures are the full player interpolation state machine, Spud's eight-state package/path controller, the animated two-screen transition composition, and promotion of the outer completion/controller branches into typed C++26 state.
