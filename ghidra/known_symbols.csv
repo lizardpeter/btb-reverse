@@ -51,7 +51,7 @@ address,name,confidence,notes
 0x00424360,InitializeSpudSkateActivity,high,"Loads four synchronized Bink quality streams, score/UI surfaces, parses soundinfo 8x4x5 sound matrix plus eight trigger frames, and initializes activity state"
 0x00424D10,UpdateSpudSkateActivity,high,"Exact outer Spud Skate controller: active playback, startup music 8 + SS2_SPU_01 ID758, phase-2 Play Again state 0x3C with proper Spud Skate unload, and retail quit/leave quirk that calls UnloadMazeActivityResources before routing to 0x16 or shared movie state 0x40"
 0x0041A730,InitializeMazeActivity,high,"Maze initializer; loads exact 3 backgrounds + player/Spud/package/numerals surfaces, intentionally sources timer from Data\\SubGameSpudMaze\\timer.bmp, applies color keys, seeds difficulty/package/timing state, and loads lofty engine.wav"
-0x0041D4D0,UpdateMazeActivity,high,"Maze runtime/update entry paired with state 0x21"
+0x0041D4D0,UpdateMazeActivity,high,"Exact outer Maze controller: 15-second sound 83 warning, success/timeout gate held during screen slides, outcome sounds 84/85/86, startup IDs 73..75, progress write, Play Again 0x3C/context 0x20, and 0x1C/0x40 leave routing"
 0x00411C80,InitializeFireworksActivity,high,"Initializes Fireworks editor/runtime, writes selected-player progress slot 63=1 at 0x00411CE0 before gameplay, then loads the player-specific firedata layout and activity assets"
 0x00413F10,UpdateFireworksActivity,high,"Top-level Fireworks runtime: handles shared quit/leave before internal-state dispatch, exact editor/pre-show/show/certificate states, and routes accepted leave back to outer state 0x04 after save/unload"
 0x00425160,InitializeSquirrelActivity,high,"Squirrel activity initializer; loads Data\\SubGameSquirrel assets and sqdata.txt"
