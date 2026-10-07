@@ -66,6 +66,37 @@ int main() {
     assert(compare_entities_by_depth(lower, left_gate) == 1);
     assert(compare_entities_by_depth(higher, right_gate) == 1);
 
+    static_assert(kPicklesCellSize == 128);
+    static_assert(kPicklesOddDirectionFrameBankOffset == 39);
+
+    constexpr auto pickles_up =
+        pickles_source_rect(0,3);
+    static_assert(pickles_up);
+    static_assert(*pickles_up ==
+        RenderRect{384,0,512,128});
+
+    constexpr auto pickles_up_right =
+        pickles_source_rect(1,3);
+    static_assert(pickles_up_right);
+    static_assert(*pickles_up_right ==
+        RenderRect{5376,0,5504,128});
+
+    constexpr auto pickles_right =
+        pickles_source_rect(2,3);
+    static_assert(pickles_right);
+    static_assert(*pickles_right ==
+        RenderRect{384,128,512,256});
+
+    constexpr auto pickles_up_left =
+        pickles_source_rect(7,0);
+    static_assert(pickles_up_left);
+    static_assert(*pickles_up_left ==
+        RenderRect{4992,384,5120,512});
+
+    static_assert(!pickles_source_rect(-1,0));
+    static_assert(!pickles_source_rect(8,0));
+    static_assert(!pickles_source_rect(0,-1));
+
     static_assert(kSheepGeometry.frame_width == 98);
     static_assert(kSheepGeometry.frame_height == 103);
     static_assert(kSheepGeometry.frames_per_direction == 10);
@@ -154,6 +185,25 @@ int main() {
         HerdingRenderStage::UiSurround);
     static_assert(kHerdingRenderStages[4] ==
         HerdingRenderStage::SelectedFoodBag);
+
+    static_assert(kWorldFoodBagPositions[0] == Vec2i{272,332});
+    static_assert(kWorldFoodBagPositions[1] == Vec2i{365,354});
+    static_assert(kWorldFoodBagPositions[2] == Vec2i{269,394});
+
+    constexpr auto no_food =
+        post_entity_overlay_plan(FoodType::None);
+    static_assert(no_food.draw_world_food_bags);
+    static_assert(no_food.draw_ui_surround);
+    static_assert(!no_food.selected_food_toolbar_index);
+    static_assert(no_food.selected_food_toolbar_position ==
+        Vec2i{284,417});
+
+    constexpr auto rabbit_food =
+        post_entity_overlay_plan(FoodType::RabbitFood);
+    static_assert(rabbit_food.selected_food_toolbar_index);
+    static_assert(*rabbit_food.selected_food_toolbar_index == 1);
+    static_assert(rabbit_food.selected_food_toolbar_position ==
+        Vec2i{284,417});
 
     static_assert(kSelectedFoodBagScreenPosition == Vec2i{284,417});
 }
