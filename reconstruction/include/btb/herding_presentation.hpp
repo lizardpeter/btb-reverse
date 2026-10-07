@@ -153,6 +153,91 @@ inline constexpr SpriteSheetGeometry kRabbitGeometry{73,69,10};
 inline constexpr SpriteSheetGeometry kDuckGeometry{53,50,6};
 inline constexpr SpriteSheetGeometry kScrufftyGeometry{86,87,7};
 
+struct RenderAnimationStep {
+    std::int32_t frame{};
+    std::int32_t countdown{};
+    bool frame_advanced{};
+};
+
+[[nodiscard]] constexpr RenderAnimationStep
+advance_free_roam_animal_render_animation(
+    EntityType type,
+    std::int32_t frame,
+    std::int32_t countdown,
+    float movement_speed,
+    std::int32_t behavior_state) noexcept {
+
+    if (behavior_state != 0) {
+        return {frame,countdown,false};
+    }
+
+    const auto decrement =
+        static_cast<std::int32_t>(movement_speed * -10.0F);
+    countdown += decrement;
+
+    if (countdown > 0) {
+        return {frame,countdown,false};
+    }
+
+    countdown = 100;
+    ++frame;
+
+    switch (type) {
+    case EntityType::Sheep:
+        if (frame >= 10) frame = 6;
+        break;
+    case EntityType::Rabbit:
+        if (frame >= 7) frame = 3;
+        break;
+    case EntityType::Duck:
+        if (frame >= 6) frame = 0;
+        break;
+    default:
+        return {frame,countdown,true};
+    }
+
+    return {frame,countdown,true};
+}
+
+[[nodiscard]] constexpr RenderAnimationStep
+advance_travis_cab_render_animation(
+    std::int32_t frame,
+    std::int32_t countdown) noexcept {
+
+    --countdown;
+    if (countdown > 0) {
+        return {frame,countdown,false};
+    }
+
+    countdown = 10;
+    ++frame;
+    if (frame >= 12) {
+        frame = 0;
+    }
+    return {frame,countdown,true};
+}
+
+[[nodiscard]] constexpr RenderAnimationStep
+advance_gate_render_animation(
+    std::int32_t frame,
+    std::int32_t countdown) noexcept {
+
+    if (countdown == -1) {
+        return {frame,countdown,false};
+    }
+
+    --countdown;
+    if (countdown != 0) {
+        return {frame,countdown,false};
+    }
+
+    ++frame;
+    if (frame < 3) {
+        countdown = 50;
+    }
+    return {frame,countdown,true};
+}
+
 [[nodiscard]] constexpr std::optional<SpriteSheetGeometry>
 directional_geometry(EntityType type) noexcept {
     switch (type) {
