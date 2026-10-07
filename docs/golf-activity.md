@@ -233,7 +233,11 @@ The Golf reconstruction now tests:
 - 15-pixel target detection
 - retail fixed initial attempt count
 
-The next Golf work is detailed scoring/feedback naming in states 4-6 and identifying the semantic purpose, if any, of the unused `(105,247)` pair.
+States 4-6 are now closed source-level, including exact target point values,
+final-score grading, miss-direction logic, and the complete CG2 voice branch
+table. The trailing `(105,247)` pair is also closed as parsed-but-unused:
+the loader writes it to `0x0050AEC8/0x0050AECC`, and an exhaustive executable
+xref sweep finds no reader of either global.
 
 
 ## Golf runtime state machine
@@ -318,17 +322,93 @@ When the resulting speed falls below **20**, it is forced to zero and the state 
 
 ### State 4 — Landing resolution
 
-The stopped ball is compared against the three parsed course-object target centers. One verified proximity constant is **15.0 pixels**. A matched object index is stored for the score/result state; otherwise the target index remains `-1`.
+State 4 first clears the matched-target index to `-1` and resets the ball
+animation frame. It then scans the three parsed course-object target centers in
+retail data order: Flag, Windmill, Clown.
 
-### State 5 — Score and feedback
+Before every distance calculation, the floating ball X/Y values are converted
+to integers through the shared x87 truncate-toward-zero helper. The hit test is
+strict:
 
-This state interprets the landing result and accumulated score/attempt state, then selects one of several voice-feedback groups from the global sound catalog. The exact semantic labels for every voice branch are still being assigned from the sound table.
+```text
+distance(integer_ball, target_center) < 15.0
+```
+
+Every match stores that target index and snaps the floating ball position to
+the exact integer target center. The loop does **not** break after a match.
+
+### State 5 — Exact score and feedback
+
+A matched target is worth:
+
+| Target index | Object | Points |
+|---:|---|---:|
+| 0 | Flag | **1** |
+| 1 | Windmill | **3** |
+| 2 | Clown | **5** |
+
+Retail performs:
+
+```text
+score += target_index * 2 + 1
+```
+
+for a valid target.
+
+If this is the **final remaining attempt** (`attempts_remaining == 1`), retail
+grades the **updated cumulative score** immediately:
+
+- score > 4: random ID **133..134** =
+  `CG2_WEN_09.wav` / `CG2_WEN_10.wav`;
+- score <= 4: fixed ID **135** = `CG2_WEN_11.wav`.
+
+That final-attempt branch replaces all ordinary hit/miss feedback.
+
+On a non-final successful target hit, retail chooses `rand()%12 + 102`, giving
+IDs **102..113**:
+
+`CG2_BOB_10`, `CG2_BOB_11`, `CG2_BOB_12`, `CG2_BOB_13`,
+two catalog entries for `CG2_BOB_15`, `CG2_SPU_01..03`, and
+`CG2_WEN_02..04`.
+
+#### Exact miss classifier
+
+If no target matched, retail derives the target the shot was apparently aimed
+toward from the aim angle:
+
+| Aim | Expected target | Ideal aim | Allowed deviation |
+|---|---|---:|---:|
+| <24 | Flag | 0 | +/-10 |
+| 24..49 | Clown | 34 | +/-6 |
+| >=50 | Windmill | 60 | +/-10 |
+
+If the aim lies outside that target-specific tolerance, retail randomly plays
+either:
+
+- **117** = `CG2_BOB_16.wav`, or
+- **114** = `CG2_BOB_02.wav`.
+
+If the aim is within tolerance, retail computes integer-truncated ball distance
+to that expected target.
+
+For distance **<50.0**, it chooses IDs **119..122** =
+`CG2_BOB_06..09.wav`.
+
+For distance **>=50.0**, it compares floating ball X to expected target X:
+
+- ball X > target X: IDs **131..132** =
+  `CG2_WEN_07..08.wav`;
+- ball X <= target X: IDs **129..130** =
+  `CG2_WEN_05..06.wav`.
+
+The exact branch map is also preserved in
+`ghidra/golf_feedback_branches.csv`.
 
 ### State 6 — Reset next attempt
 
 The retail code:
 
-1. restores ball X/Y from the initial integer ball position
+1. restores floating ball X/Y from the initial integer ball position
 2. clears the power value
 3. decrements attempts remaining
 4. resets power direction to positive
@@ -350,7 +430,9 @@ The outer `UpdateGolfActivity` handles the eventual completion / Play Again tran
 - retail speed decay constants
 - 15-pixel target hit radius
 
-The remaining Golf pass is mostly the detailed score/voice branch table and the exact special-target scoring semantics.
+The Golf game-owned runtime is now substantially source-level through states
+0,1,2,99,3,4,5,6. The previous scoring/voice gap and special-target point
+semantics are closed.
 
 
 ## Exact module boundary
@@ -360,3 +442,18 @@ The Golf loader returns at `0x00415CA6`. The next function begins at `0x00415CB0
 `Data\\SubGame1\\herd.txt`
 
 That is the Herding data loader. Therefore the Golf-specific block ends at `0x00415CA6`, although shared math helpers used by Golf are physically located just after that boundary.
+
+
+## Parsed-but-unused golfdata tail
+
+The undocumented pair `(105,247)` is read successfully into globals
+`0x0050AEC8/0x0050AECC`.
+
+The immediately following retail `%d %d` scan targets
+`0x0050AE48/0x0050AE4C`, but fails because the shipped file has already
+reached its comment section.
+
+A whole-executable xref audit finds no reader for **any** of these four
+destination globals. The source reconstruction therefore preserves
+`(105,247)` losslessly as parsed-but-unused legacy metadata and does not
+invent gameplay semantics for it.
