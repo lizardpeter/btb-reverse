@@ -118,6 +118,12 @@ add_executable(btb_maze_presentation_tests
 target_link_libraries(btb_maze_presentation_tests PRIVATE btb_maze)
 add_test(NAME maze_presentation COMMAND btb_maze_presentation_tests)
 
+add_executable(btb_maze_controller_tests
+    tests/maze_controller_test.cpp
+)
+target_link_libraries(btb_maze_controller_tests PRIVATE btb_maze)
+add_test(NAME maze_controller COMMAND btb_maze_controller_tests)
+
 
 add_library(btb_herding
     src/herding_data.cpp
