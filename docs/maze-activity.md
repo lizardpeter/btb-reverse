@@ -257,6 +257,48 @@ at Y=430.
 
 The routine also contains a dormant row-wrap branch: when the accumulated X offset exceeds 250, it resets X offset to zero and moves the marker row to Y=450. Normal totals never reach that branch, but the C++26 presentation helper preserves it.
 
+## Animated screen transition compositor
+
+`0x0041C710 DrawMazeScreenTransition` is now represented as typed source geometry/state.
+
+The routine first draws the current full background and timer, then animates only the **interior maze viewport**:
+
+- left = **20**
+- top = **20**
+- right = **620**
+- bottom = **400**
+- visible transition area = **600x380**
+
+Legal screen changes are adjacent `West <-> Middle <-> East`. The transition direction is therefore equivalent to whether the destination screen index is greater or less than the previous one.
+
+On initialization retail changes transition phase **1 -> 2**, sets the signed direction to **+1 / -1**, and seeds the acceleration numerator at **10**. Each rendered frame uses:
+
+`pixel_step = speed_numerator / 5`
+
+with integer truncation. The numerator increments by one up to **200**, is clamped against the remaining horizontal travel, and is finally forced back to a minimum of **10**. This gives the slide its accelerating motion while still closing the final gap.
+
+For travel toward the east, the previous screen is the left blit and its source-left edge advances rightward; the destination screen is revealed as an increasing strip from the right. The first active frame is exactly:
+
+- previous source: `[23,20,620,400]` at destination `(20,20)`
+- destination source: `[20,20,23,400]` at destination `(617,20)`
+- actor offsets: **597 / -3**
+- next speed numerator: **11**
+
+For travel toward the west, the ownership swaps: the destination screen is the narrow left strip while the previous screen is shifted right. The first active frame is:
+
+- destination source: `[617,20,620,400]` at destination `(20,20)`
+- previous source: `[20,20,618,400]` at destination `(23,20)`
+- actor offsets: **-597 / 3**
+- next speed numerator: **11**
+
+Completion clears the transition phase and signed direction after the moving crop reaches/passes the 20/620 boundary. The C++26 reconstruction intentionally preserves the executable's final-frame integer overshoot behavior rather than clamping the source rectangle to aesthetically cleaner bounds.
+
+The implementation/regression is:
+
+- `reconstruction/include/btb/maze_transition.hpp`
+- `reconstruction/src/maze_transition.cpp`
+- `reconstruction/tests/maze_transition_test.cpp`
+
 ## Outer activity controller
 
 The retail `0x0041D4D0 UpdateMazeActivity` controller is now separated from the graph logic conceptually:
@@ -282,15 +324,21 @@ The typed C++26 reconstruction now spans:
 - `reconstruction/src/maze_input.cpp`
 - `reconstruction/include/btb/maze_motion.hpp`
 - `reconstruction/src/maze_motion.cpp`
+- `reconstruction/include/btb/maze_player_navigation.hpp`
+- `reconstruction/src/maze_player_navigation.cpp`
+- `reconstruction/include/btb/maze_transition.hpp`
+- `reconstruction/src/maze_transition.cpp`
 - `reconstruction/include/btb/maze_presentation.hpp`
 - `reconstruction/include/btb/maze_controller.hpp`
 - `reconstruction/tests/maze_data_test.cpp`
 - `reconstruction/tests/maze_runtime_test.cpp`
 - `reconstruction/tests/maze_input_test.cpp`
 - `reconstruction/tests/maze_motion_test.cpp`
+- `reconstruction/tests/maze_player_navigation_test.cpp`
+- `reconstruction/tests/maze_transition_test.cpp`
 - `reconstruction/tests/maze_presentation_test.cpp`
 - `reconstruction/tests/maze_controller_test.cpp`
 
-It currently reproduces the complete graph/data parse, portal semantics, retail-bounded shortest-path search, one-call-late mouse/keyboard arbitration, exact shared integer-angle and node-seeking motion, three-sample all-or-nothing mouse debounce, exact surface bindings, actor sheet geometry/origins, timer/package HUD composition, and the typed outer completion/startup/leave controller.
+It currently reproduces the complete graph/data parse, portal semantics, retail-bounded shortest-path search, one-call-late mouse/keyboard arbitration, exact shared integer-angle and node-seeking motion, player 4px/30px node-candidate scanning, three-sample all-or-nothing mouse debounce, the complete two-screen slide compositor, exact surface bindings, actor sheet geometry/origins, timer/package HUD composition, and the typed outer completion/startup/leave controller.
 
-The main remaining Maze source closures are the full player interpolation state machine, Spud's eight-state package/path controller, and promotion of the animated two-screen transition composition into typed C++26 state.
+The main remaining Maze source closures are the rest of the player interpolation/animation state machine and Spud's eight-state package/path controller.
