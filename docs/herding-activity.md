@@ -540,6 +540,36 @@ The typed model is in
 `reconstruction/tests/herding_presentation_test.cpp`. The recovered constants
 are also preserved in `ghidra/herding_render_geometry.csv`.
 
+#### Exact surface globals
+
+The initializer-to-renderer surface bindings are now fully named:
+
+| Global | Retail asset |
+|---|---|
+| `0x00510724` | `bk)1_revised_01.bmp` background |
+| `0x00510728` | `Pickles_1_8bit.bmp` |
+| `0x0051072C` | `DUCK_01.bmp` |
+| `0x00510730` | `bunny.bmp` |
+| `0x00510734` | `sheep_shadow.bmp` |
+| `0x00510738` | `scrufty_sprite_8bit.bmp` |
+| `0x0051073C` | `duckbag.bmp` |
+| `0x00510740` | `rabbitbag.bmp` |
+| `0x00510744` | `sheepbag.bmp` |
+| `0x00510748` | `uisurround.bmp` |
+| `0x0051074C` | `traviscab.bmp` |
+| `0x00510750` | `trailer1.bmp` |
+| `0x00510754` | `trailer2.bmp` |
+| `0x00510758` | `gateleft.bmp` |
+| `0x0051075C` | `gateright.bmp` |
+| `0x005105A0` | `ducktoolbar.bmp` |
+| `0x005105A4` | `rabbittoolbar.bmp` |
+| `0x005105A8` | `sheeptoolbar.bmp` |
+
+The three bag surfaces are copied into the renderer's compact array
+`0x0050AF64..0x0050AF6C` in duck/rabbit/sheep order. The toolbar array uses
+the same food-ID ordering. The map is machine-readable in
+`ghidra/herding_surface_map.csv`.
+
 ## Navigation polygons
 
 `herd.txt` group 0 is transformed by `(-64,-100)` and is the main
