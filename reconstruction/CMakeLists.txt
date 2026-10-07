@@ -96,6 +96,7 @@ add_library(btb_maze
     src/maze_data.cpp
     src/maze_runtime.cpp
     src/maze_input.cpp
+    src/maze_motion.cpp
 )
 target_include_directories(btb_maze PUBLIC include)
 target_compile_features(btb_maze PUBLIC cxx_std_26)
@@ -130,6 +131,12 @@ add_executable(btb_maze_input_tests
 )
 target_link_libraries(btb_maze_input_tests PRIVATE btb_maze)
 add_test(NAME maze_input COMMAND btb_maze_input_tests)
+
+add_executable(btb_maze_motion_tests
+    tests/maze_motion_test.cpp
+)
+target_link_libraries(btb_maze_motion_tests PRIVATE btb_maze)
+add_test(NAME maze_motion COMMAND btb_maze_motion_tests)
 
 
 add_library(btb_herding
