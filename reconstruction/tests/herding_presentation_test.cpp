@@ -97,6 +97,69 @@ int main() {
     static_assert(!pickles_source_rect(8,0));
     static_assert(!pickles_source_rect(0,-1));
 
+    constexpr auto sheep_hold =
+        advance_free_roam_animal_render_animation(
+            EntityType::Sheep, 6, 50, 1.5F, 0);
+    static_assert(sheep_hold.frame == 6);
+    static_assert(sheep_hold.countdown == 35);
+    static_assert(!sheep_hold.frame_advanced);
+
+    constexpr auto sheep_advance =
+        advance_free_roam_animal_render_animation(
+            EntityType::Sheep, 9, 5, 1.0F, 0);
+    static_assert(sheep_advance.frame == 6);
+    static_assert(sheep_advance.countdown == 100);
+    static_assert(sheep_advance.frame_advanced);
+
+    constexpr auto rabbit_advance =
+        advance_free_roam_animal_render_animation(
+            EntityType::Rabbit, 6, 0, 0.0F, 0);
+    static_assert(rabbit_advance.frame == 3);
+    static_assert(rabbit_advance.countdown == 100);
+
+    constexpr auto duck_advance =
+        advance_free_roam_animal_render_animation(
+            EntityType::Duck, 5, 1, 0.2F, 0);
+    static_assert(duck_advance.frame == 0);
+    static_assert(duck_advance.countdown == 100);
+
+    constexpr auto home_route_no_animation =
+        advance_free_roam_animal_render_animation(
+            EntityType::Sheep, 9, 1, 2.0F, 10);
+    static_assert(home_route_no_animation.frame == 9);
+    static_assert(home_route_no_animation.countdown == 1);
+    static_assert(!home_route_no_animation.frame_advanced);
+
+    constexpr auto cab_hold =
+        advance_travis_cab_render_animation(3, 2);
+    static_assert(cab_hold.frame == 3);
+    static_assert(cab_hold.countdown == 1);
+    static_assert(!cab_hold.frame_advanced);
+
+    constexpr auto cab_wrap =
+        advance_travis_cab_render_animation(11, 1);
+    static_assert(cab_wrap.frame == 0);
+    static_assert(cab_wrap.countdown == 10);
+    static_assert(cab_wrap.frame_advanced);
+
+    constexpr auto gate_disabled =
+        advance_gate_render_animation(1, -1);
+    static_assert(gate_disabled.frame == 1);
+    static_assert(gate_disabled.countdown == -1);
+    static_assert(!gate_disabled.frame_advanced);
+
+    constexpr auto gate_next =
+        advance_gate_render_animation(1, 1);
+    static_assert(gate_next.frame == 2);
+    static_assert(gate_next.countdown == 50);
+    static_assert(gate_next.frame_advanced);
+
+    constexpr auto gate_finish =
+        advance_gate_render_animation(2, 1);
+    static_assert(gate_finish.frame == 3);
+    static_assert(gate_finish.countdown == 0);
+    static_assert(gate_finish.frame_advanced);
+
     static_assert(kSheepGeometry.frame_width == 98);
     static_assert(kSheepGeometry.frame_height == 103);
     static_assert(kSheepGeometry.frames_per_direction == 10);
