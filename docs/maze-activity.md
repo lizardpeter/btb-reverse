@@ -219,10 +219,12 @@ The typed C++26 reconstruction now spans:
 - `reconstruction/include/btb/maze_runtime.hpp`
 - `reconstruction/src/maze_runtime.cpp`
 - `reconstruction/include/btb/maze_presentation.hpp`
+- `reconstruction/include/btb/maze_controller.hpp`
 - `reconstruction/tests/maze_data_test.cpp`
 - `reconstruction/tests/maze_runtime_test.cpp`
 - `reconstruction/tests/maze_presentation_test.cpp`
+- `reconstruction/tests/maze_controller_test.cpp`
 
-It currently reproduces the complete graph/data parse, portal semantics, retail-bounded shortest-path search, three-sample all-or-nothing directional debounce, exact surface bindings, actor sheet geometry/origins, and timer/package HUD composition.
+It currently reproduces the complete graph/data parse, portal semantics, retail-bounded shortest-path search, three-sample all-or-nothing directional debounce, exact surface bindings, actor sheet geometry/origins, timer/package HUD composition, and the typed outer completion/startup/leave controller.
 
-The main remaining Maze source closures are the full player interpolation state machine, Spud's eight-state package/path controller, the animated two-screen transition composition, and promotion of the outer completion/controller branches into typed C++26 state.
+The main remaining Maze source closures are the full player interpolation state machine, Spud's eight-state package/path controller, and promotion of the animated two-screen transition composition into typed C++26 state.
