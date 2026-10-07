@@ -2,6 +2,7 @@
 
 #include "btb/maze_data.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -19,6 +20,35 @@ struct NavigatorState {
 struct PortalTransition {
     NavigatorState destination;
     bool changed_screen{};
+};
+
+struct DirectionalIntent {
+    std::int32_t x{};
+    std::int32_t y{};
+
+    friend bool operator==(const DirectionalIntent&, const DirectionalIntent&) = default;
+};
+
+// Exact state retained by 0x0041AEB0 DebounceMazeDirectionalInput.
+//
+// Retail keeps three int32 samples for each axis. A new sample is shifted into
+// slot 2 every call. Movement is emitted only when all three X samples match
+// AND all three Y samples match. If either axis is unstable, retail zeros both
+// output axes.
+class DirectionalDebounce {
+public:
+    [[nodiscard]] DirectionalIntent update(DirectionalIntent intent) noexcept;
+
+    [[nodiscard]] const std::array<std::int32_t,3>& x_history() const noexcept {
+        return x_history_;
+    }
+    [[nodiscard]] const std::array<std::int32_t,3>& y_history() const noexcept {
+        return y_history_;
+    }
+
+private:
+    std::array<std::int32_t,3> x_history_{};
+    std::array<std::int32_t,3> y_history_{};
 };
 
 class Navigator {
