@@ -133,6 +133,12 @@ add_executable(btb_herding_runtime_tests
 target_link_libraries(btb_herding_runtime_tests PRIVATE btb_herding)
 add_test(NAME herding_runtime COMMAND btb_herding_runtime_tests)
 
+add_executable(btb_herding_presentation_tests
+    tests/herding_presentation_test.cpp
+)
+target_link_libraries(btb_herding_presentation_tests PRIVATE btb_herding)
+add_test(NAME herding_presentation COMMAND btb_herding_presentation_tests)
+
 
 add_library(btb_park_designer
     src/park_designer_data.cpp
