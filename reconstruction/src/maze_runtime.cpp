@@ -19,7 +19,38 @@ const Node& node_by_id(const ScreenGraph& graph, std::int32_t id) {
     throw std::runtime_error("Maze graph references unknown node");
 }
 
+bool history_is_stable(
+    const std::array<std::int32_t,3>& history) noexcept {
+    return history[0] == history[1] &&
+           history[0] == history[2];
+}
+
+void shift_history(
+    std::array<std::int32_t,3>& history,
+    std::int32_t newest) noexcept {
+    history[0] = history[1];
+    history[1] = history[2];
+    history[2] = newest;
+}
+
 } // namespace
+
+DirectionalIntent DirectionalDebounce::update(
+    DirectionalIntent intent) noexcept {
+
+    shift_history(x_history_, intent.x);
+    shift_history(y_history_, intent.y);
+
+    // 0x0041AEB0 does not debounce the axes independently at its output.
+    // Any instability suppresses the complete direction pair.
+    if (!history_is_stable(x_history_) ||
+        !history_is_stable(y_history_)) {
+        intent.x = 0;
+        intent.y = 0;
+    }
+
+    return intent;
+}
 
 Navigator::Navigator(const Data& data, NavigatorState initial)
     : data_(&data), state_(initial) {
