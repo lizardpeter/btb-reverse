@@ -128,6 +128,66 @@ The remaining values are explicitly documented by the source file:
 
 The dramatic hard-mode spawn interval confirms that difficulty is not merely cosmetic in this activity.
 
+## Mouse/keyboard input arbitration
+
+`0x0041AF60 ComputeMazePlayerInputDirection` has now been promoted to typed C++26 rather than being represented only as a named binary helper.
+
+The persistent input-mode global at `0x00512124` has an intentional **one-call delay in both directions**:
+
+- if the call begins in mouse mode and any keyboard direction bit is active, retail writes keyboard mode immediately but still executes the **mouse path for the current call**
+- if the call begins in keyboard mode and the cursor differs from the remembered coordinates at `0x0050AFC8/0x0050AFCC`, retail writes mouse mode immediately but still executes the **keyboard path for the current call**
+
+The next call sees the new mode.
+
+Keyboard direction bits bypass the three-sample debounce entirely. Their exact precedence is:
+
+| Bit | Axis result | Precedence |
+|---:|---|---|
+| `0x02` | X = +1 | wins over `0x01` |
+| `0x01` | X = -1 | only if `0x02` is clear |
+| `0x08` | Y = -1 | wins over `0x04` |
+| `0x04` | Y = +1 | only if `0x08` is clear |
+
+The mouse path first truncates the player's float coordinates to integers. A cursor distance **<= 6.0 pixels** returns immediately, before debounce and before the shared input-phase write. Outside that dead zone, retail derives an integer direction angle, stores sine/cosine to 32-bit float temporaries, and emits an axis only when the absolute component is **strictly greater than 0.25**. Only that mouse-derived pair is fed through `DebounceMazeDirectionalInput`.
+
+The reconstruction is in:
+
+- `reconstruction/include/btb/maze_input.hpp`
+- `reconstruction/src/maze_input.cpp`
+- `reconstruction/tests/maze_input_test.cpp`
+
+## Shared integer-angle and node-seeking movement
+
+The shared helper `0x00415D70 AngleBetweenIntegerPointsDegrees` is intentionally **not** replaced with `atan2`.
+
+Retail computes:
+
+1. `abs(dx)` and `abs(dy)`
+2. `ratio = abs(dy) / abs(dx)`
+3. if `abs(dx) == 0`, substitutes **9999.0** directly for the ratio
+4. `atan(ratio) * 57.2949981689453125`
+5. manual 90/180/270-degree quadrant correction
+6. truncation toward zero through `0x004304D0`
+
+That creates several real quantization artifacts:
+
+- exact right = 90°
+- exact down = 180°
+- exact left = 270°
+- exact up = **359°**, not 0°
+- down-right 45° diagonal = **134°**, not 135°
+- up-left 45° diagonal = **314°**, not 315°
+
+`0x0041CC20 MoveMazeActorTowardNode` reuses that helper. It truncates the actor's float position before choosing the angle, converts the integer speed to floating point, then performs:
+
+`y -= cos(angle) * speed`
+
+`x += sin(angle) * speed`
+
+and stores Y before X. The routine also calls the integer-point distance helper and immediately discards its result; there is **no distance stop inside this helper**.
+
+A consequence of the 359° vertical-up angle is that a nominally straight upward node-seeking movement has a tiny leftward drift. That behavior is preserved in `maze_motion.hpp/.cpp` and its regression rather than normalized away.
+
 ## Directional input debounce
 
 `0x0041AEB0 DebounceMazeDirectionalInput` is now exact at source level.
@@ -218,13 +278,19 @@ The typed C++26 reconstruction now spans:
 - `reconstruction/src/maze_data.cpp`
 - `reconstruction/include/btb/maze_runtime.hpp`
 - `reconstruction/src/maze_runtime.cpp`
+- `reconstruction/include/btb/maze_input.hpp`
+- `reconstruction/src/maze_input.cpp`
+- `reconstruction/include/btb/maze_motion.hpp`
+- `reconstruction/src/maze_motion.cpp`
 - `reconstruction/include/btb/maze_presentation.hpp`
 - `reconstruction/include/btb/maze_controller.hpp`
 - `reconstruction/tests/maze_data_test.cpp`
 - `reconstruction/tests/maze_runtime_test.cpp`
+- `reconstruction/tests/maze_input_test.cpp`
+- `reconstruction/tests/maze_motion_test.cpp`
 - `reconstruction/tests/maze_presentation_test.cpp`
 - `reconstruction/tests/maze_controller_test.cpp`
 
-It currently reproduces the complete graph/data parse, portal semantics, retail-bounded shortest-path search, three-sample all-or-nothing directional debounce, exact surface bindings, actor sheet geometry/origins, timer/package HUD composition, and the typed outer completion/startup/leave controller.
+It currently reproduces the complete graph/data parse, portal semantics, retail-bounded shortest-path search, one-call-late mouse/keyboard arbitration, exact shared integer-angle and node-seeking motion, three-sample all-or-nothing mouse debounce, exact surface bindings, actor sheet geometry/origins, timer/package HUD composition, and the typed outer completion/startup/leave controller.
 
 The main remaining Maze source closures are the full player interpolation state machine, Spud's eight-state package/path controller, and promotion of the animated two-screen transition composition into typed C++26 state.
