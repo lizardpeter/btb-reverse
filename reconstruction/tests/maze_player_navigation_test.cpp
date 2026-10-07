@@ -57,17 +57,24 @@ int main() {
     assert(result.captured_node == 0);
     assert(result.repeated_current_capture);
 
-    // A linked node at exactly 4 is NOT captured; it can still become the
-    // keyboard attraction target.
+    // Isolate one link to prove the boundary asymmetry directly. A linked
+    // node at exactly 4 is NOT captured, but can still be the keyboard
+    // attraction target.
+    ScreenGraph single_link;
+    single_link.nodes = {
+        node(0,100,100,{1,-1,-1,-1}),
+        node(1,120,100),
+    };
+
     result = scan_player_navigation_nodes(
-        graph,{116,100},false,{0,-1});
+        single_link,{116,100},false,{0,-1});
     assert(result.captured_node == -1);
     assert(result.attraction_node == 1);
 
     // Move one pixel closer and the neighbor is captured, becomes current,
     // clears the attraction candidate, and seeds the capture latch.
     result = scan_player_navigation_nodes(
-        graph,{117,100},false,{0,-1});
+        single_link,{117,100},false,{0,-1});
     assert(result.captured_node == 1);
     assert(result.attraction_node == -1);
     assert(result.state.current_node == 1);
