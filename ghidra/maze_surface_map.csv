@@ -1,0 +1,11 @@
+surface,global,filename,width,height,color_key
+WestBackground,0x00512100,"Data\SubGameMaze\LEFT_MAZE.bmp",640,480,none
+MiddleBackground,0x00512104,"Data\SubGameMaze\MID_MAZE.bmp",640,480,none
+EastBackground,0x00512108,"Data\SubGameMaze\RIGHT_MAZE.bmp",640,480,none
+Player,0x0051210C,"Data\SubGameMaze\player.bmp",1024,512,0x00FF00FF
+Spud,0x00512110,"Data\SubGameMaze\spud.bmp",1792,512,0x00FF00FF
+Box,0x00512114,"Data\SubGameMaze\box.bmp",26,29,0x00FF00FF
+BoxGhost,0x00512118,"Data\SubGameMaze\boxghost.bmp",16,19,0x00FF00FF
+SmallBox,0x0051211C,"Data\SubGameMaze\smallbox.bmp",16,19,0x00FF00FF
+Numerals,0x00512120,"Data\SubGameMaze\numerals.bmp",200,40,0x00000000
+Timer,0x005144D0,"Data\SubGameSpudMaze\timer.bmp",103,25,0x00FF00FF
