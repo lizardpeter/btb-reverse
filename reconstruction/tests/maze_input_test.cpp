@@ -48,7 +48,7 @@ int main() {
     assert(mode.remembered_mouse_x == 11);
     assert(mode.remembered_mouse_y == 20);
     assert(!step.debounce_applied);
-    assert(step.reset_shared_input_phase);
+    assert(step.writes_node_capture_radius_four);
 
     // Keyboard input while in mouse mode similarly requests keyboard mode for
     // next time but does not change the path chosen for the current call.
@@ -76,7 +76,7 @@ int main() {
     assert(step.intent == (DirectionalIntent{1,0}));
 
     // The distance comparison is <= 6.0, and the dead-zone returns before
-    // debounce or shared phase reset.
+    // debounce or the shared node-capture-radius write.
     DirectionalDebounce untouched;
     mode.mouse_mode = true;
     step = compute_player_input_direction(
@@ -86,7 +86,7 @@ int main() {
     assert(step.path == InputPath::Mouse);
     assert(step.mouse_dead_zone);
     assert(!step.debounce_applied);
-    assert(!step.reset_shared_input_phase);
+    assert(!step.writes_node_capture_radius_four);
     assert(step.intent == (DirectionalIntent{0,0}));
     assert((untouched.x_history() == std::array<std::int32_t,3>{0,0,0}));
     assert((untouched.y_history() == std::array<std::int32_t,3>{0,0,0}));
@@ -98,7 +98,7 @@ int main() {
         {100.0f,100.0f,107,100,0});
     assert(!step.mouse_dead_zone);
     assert(step.debounce_applied);
-    assert(step.reset_shared_input_phase);
+    assert(step.writes_node_capture_radius_four);
 
     // Pure vertical-up follows the shared 359-degree angle; after debounce it
     // resolves to Y=+1 with no X component.
