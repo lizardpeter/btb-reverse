@@ -99,4 +99,38 @@ int main() {
     assert(same.has_value());
     assert((same->nodes == std::vector<std::int32_t>{1}));
     assert(same->cost == 0);
+
+    // 0x0041AEB0 keeps three samples per axis and suppresses both axes
+    // until both three-sample histories are stable.
+    DirectionalDebounce debounce;
+
+    auto intent = debounce.update({1, 0});
+    assert(intent.x == 0 && intent.y == 0);
+    assert((debounce.x_history() == std::array<std::int32_t,3>{0,0,1}));
+
+    intent = debounce.update({1, 0});
+    assert(intent.x == 0 && intent.y == 0);
+    assert((debounce.x_history() == std::array<std::int32_t,3>{0,1,1}));
+
+    intent = debounce.update({1, 0});
+    assert(intent.x == 1 && intent.y == 0);
+    assert((debounce.x_history() == std::array<std::int32_t,3>{1,1,1}));
+
+    // Changing only Y still suppresses X because retail zeros the pair when
+    // either axis history is unstable.
+    intent = debounce.update({1, -1});
+    assert(intent.x == 0 && intent.y == 0);
+    intent = debounce.update({1, -1});
+    assert(intent.x == 0 && intent.y == 0);
+    intent = debounce.update({1, -1});
+    assert(intent.x == 1 && intent.y == -1);
+
+    // Releasing X likewise suppresses the otherwise-stable Y intent for two
+    // frames, then emits the new stable pair on the third sample.
+    intent = debounce.update({0, -1});
+    assert(intent.x == 0 && intent.y == 0);
+    intent = debounce.update({0, -1});
+    assert(intent.x == 0 && intent.y == 0);
+    intent = debounce.update({0, -1});
+    assert(intent.x == 0 && intent.y == -1);
 }
