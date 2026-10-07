@@ -148,7 +148,7 @@ Keyboard direction bits bypass the three-sample debounce entirely. Their exact p
 | `0x08` | Y = -1 | wins over `0x04` |
 | `0x04` | Y = +1 | only if `0x08` is clear |
 
-The mouse path first truncates the player's float coordinates to integers. A cursor distance **<= 6.0 pixels** returns immediately, before debounce and before the shared input-phase write. Outside that dead zone, retail derives an integer direction angle, stores sine/cosine to 32-bit float temporaries, and emits an axis only when the absolute component is **strictly greater than 0.25**. Only that mouse-derived pair is fed through `DebounceMazeDirectionalInput`.
+The mouse path first truncates the player's float coordinates to integers. A cursor distance **<= 6.0 pixels** returns immediately, before debounce and before retail rewrites the shared node-capture radius at `0x00443D64` to **4**. Outside that dead zone, retail derives an integer direction angle, stores sine/cosine to 32-bit float temporaries, and emits an axis only when the absolute component is **strictly greater than 0.25**. Only that mouse-derived pair is fed through `DebounceMazeDirectionalInput`.
 
 The reconstruction is in:
 
