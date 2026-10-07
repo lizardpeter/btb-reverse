@@ -33,14 +33,14 @@ int main() {
 
     // Keyboard mode scans every link and keeps the last qualifying node.
     auto result = scan_player_navigation_nodes(
-        graph,{110,110},false,{0,-1});
+        graph,{110,100},false,{0,-1});
     assert(result.captured_node == -1);
     assert(result.attraction_node == 4);
     assert(result.state.current_node == 0);
 
     // Mouse mode suppresses attraction but retains inner capture semantics.
     result = scan_player_navigation_nodes(
-        graph,{110,110},true,{0,-1});
+        graph,{110,100},true,{0,-1});
     assert(result.captured_node == -1);
     assert(result.attraction_node == -1);
 
