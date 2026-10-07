@@ -117,6 +117,37 @@ struct SpriteSheetGeometry {
     std::int32_t frames_per_direction{};
 };
 
+inline constexpr std::int32_t kPicklesCellSize = 128;
+inline constexpr std::int32_t kPicklesOddDirectionFrameBankOffset = 39;
+
+[[nodiscard]] constexpr std::optional<RenderRect>
+pickles_source_rect(
+    std::int32_t direction,
+    std::int32_t frame) noexcept {
+
+    if (direction < 0 || direction >= 8 || frame < 0) {
+        return std::nullopt;
+    }
+
+    const auto horizontal_bank =
+        (direction & 1) != 0
+            ? kPicklesOddDirectionFrameBankOffset
+            : 0;
+    const auto vertical_bank = direction / 2;
+
+    const auto left =
+        (frame + horizontal_bank) * kPicklesCellSize;
+    const auto top =
+        vertical_bank * kPicklesCellSize;
+
+    return RenderRect{
+        left,
+        top,
+        left + kPicklesCellSize,
+        top + kPicklesCellSize,
+    };
+}
+
 inline constexpr SpriteSheetGeometry kSheepGeometry{98,103,10};
 inline constexpr SpriteSheetGeometry kRabbitGeometry{73,69,10};
 inline constexpr SpriteSheetGeometry kDuckGeometry{53,50,6};
@@ -234,6 +265,29 @@ kHerdingRenderStages{{
     HerdingRenderStage::UiSurround,
     HerdingRenderStage::SelectedFoodBag,
 }};
+
+inline constexpr std::array<Vec2i,3> kWorldFoodBagPositions{{
+    {272,332},
+    {365,354},
+    {269,394},
+}};
+
+struct PostEntityOverlayPlan {
+    bool draw_world_food_bags{true};
+    bool draw_ui_surround{true};
+    std::optional<std::int32_t> selected_food_toolbar_index{};
+    Vec2i selected_food_toolbar_position{284,417};
+};
+
+[[nodiscard]] constexpr PostEntityOverlayPlan post_entity_overlay_plan(
+    FoodType selected_food) noexcept {
+    PostEntityOverlayPlan result;
+    if (selected_food != FoodType::None) {
+        result.selected_food_toolbar_index =
+            static_cast<std::int32_t>(selected_food);
+    }
+    return result;
+}
 
 inline constexpr Vec2i kSelectedFoodBagScreenPosition{284,417};
 
