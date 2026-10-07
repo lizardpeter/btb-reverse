@@ -5,7 +5,7 @@ The Herding activity lives in the `Data/SubGame1` asset cluster and is entered t
 - `0x00419600 InitializeHerdingActivity`
 - `0x004182B0 UpdateHerdingActivity`
 
-The current pass is converting its data and runtime structures into source-level form.
+The activity is now substantially source-level. The current pass closes the exact retail renderer/presentation layer on top of the already reconstructed AI, follower, food, home-route, completion, and entity-record behavior.
 
 ## Source assets
 
@@ -128,7 +128,7 @@ The initializer creates at least 17 records and fills fields that include:
 - sprite dimensions / animation dimensions
 - additional state/animation fields
 
-The exact record layout is being recovered from `UpdateHerdingActivity` before committing a final C++ structure.
+The exact 0x64-byte record layout is now committed in `herding_runtime.hpp` with offset assertions for every live field.
 
 ## Source reconstruction
 
@@ -430,13 +430,76 @@ The renderer builds an array of entity pointers and `qsort`s them. Gates (types 
 
 ### `0x00416370 DrawHerdingActivity`
 
-This routine:
+The renderer is now source-level at the camera/sort/sprite-composition layer.
 
-- scrolls the large `bk)1_revised_01.bmp` world around Farmer Pickles;
-- computes camera X/Y globals;
-- depth-sorts the active 0x64-byte entities;
-- draws Pickles, animals, Scruffty, trailers/gates, and UI;
-- uses the shared clipped DirectDraw blitter at `0x00415E50`.
+#### Exact camera
+
+Retail draws a **600x380** source viewport from the large
+`bk)1_revised_01.bmp` world at screen destination **(20,20)**.
+
+Horizontal camera:
+
+```text
+PicklesX < 300   -> cameraX = 0
+PicklesX > 972   -> cameraX = 672
+otherwise        -> cameraX = PicklesX - 300
+```
+
+Vertical camera:
+
+```text
+PicklesY < 110   -> cameraY = 0
+PicklesY > 612   -> cameraY = 502
+otherwise        -> cameraY = PicklesY - 110
+```
+
+The shared clipped blitter at `0x00415E50` subtracts these camera globals
+from entity world coordinates internally, so the renderer passes entity X/Y
+directly rather than pre-transforming them.
+
+#### Exact depth sort
+
+`0x00416310 CompareHerdingEntitiesByDepth` sorts the pointer list before
+drawing.
+
+- left/right gates (types 15/16) always sort before ordinary entities;
+- ordinary entities compare by:
+  `world_y + (source_bottom - source_top)`;
+- if the first ordinary entity is deeper, comparator returns +1;
+- otherwise it returns **-1**, including equal depth. Retail never returns 0
+  for equal ordinary bottoms.
+
+#### Sprite geometry
+
+| Entity | Retail cell/source geometry |
+|---|---|
+| Farmer Pickles | 128x128; vertical band = `direction/2`; odd directions use a frame bank 39 columns to the right |
+| Sheep | 98x103, `direction*10 + frame` |
+| Rabbit | 73x69, `direction*10 + frame` |
+| Duck | 53x50, `direction*6 + frame` |
+| Scruffty | 86x87, `direction*7 + frame` |
+| Trailer 1 | fixed 151x240 |
+| Travis cab | horizontal 230x240 frames |
+| Trailer 2 | fixed 43x76 and forced world position (380,364) |
+| Left gate | horizontal 120x70 frames, forced position (717,162) |
+| Right gate | horizontal 120x70 frames, forced position (859,101) |
+
+#### Post-entity composition
+
+After the depth-sorted entity pass, retail draws three conditional keyed world
+overlays at authored positions:
+
+- duck-food overlay: **(272,332)**
+- rabbit-food overlay: **(365,354)**
+- sheep-food overlay: **(269,394)**
+
+It then draws the UI surround and, when a food type is selected, the selected
+food toolbar at **(284,417)**.
+
+The typed model is in
+`reconstruction/include/btb/herding_presentation.hpp` with regression tests in
+`reconstruction/tests/herding_presentation_test.cpp`. The recovered constants
+are also preserved in `ghidra/herding_render_geometry.csv`.
 
 ## Navigation polygons
 
@@ -493,3 +556,16 @@ The completion gate is reproduced in source as `herding_completion_step`.
 A one-time path near the end of `UpdateHerdingActivity` starts shared activity music index **6**, which is the previously recovered `data\\music\\petscorner.wav` entry.
 
 It also starts managed sound ID **581**, `PC_PIC_01.wav`, as the initial Pets Corner voice line and marks that sound persistent for the startup phase.
+
+
+## Renderer reconstruction status
+
+The remaining Herding work is no longer basic camera/entity geometry. Camera
+clamping, depth ordering, directional source-cell layouts, Pickles' unusual
+39-column alternate facing bank, trailer/cab/gate geometry, gate world
+positions, and the post-entity food/UI composition are all represented directly
+in C++26.
+
+Further fidelity work can now focus on the small per-entity animation-timer
+updates and any remaining conditional overlay state, rather than an unknown
+rendering architecture.
