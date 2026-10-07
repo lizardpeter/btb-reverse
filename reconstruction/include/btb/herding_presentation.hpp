@@ -5,8 +5,120 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 
 namespace btb::herding {
+
+enum class HerdingSurface {
+    Background,
+    Pickles,
+    Duck,
+    Rabbit,
+    Sheep,
+    Scruffty,
+    DuckBag,
+    RabbitBag,
+    SheepBag,
+    UiSurround,
+    TravisCab,
+    Trailer1,
+    Trailer2,
+    GateLeft,
+    GateRight,
+    DuckToolbar,
+    RabbitToolbar,
+    SheepToolbar,
+};
+
+struct HerdingSurfaceBinding {
+    HerdingSurface surface{};
+    std::uint32_t global_address{};
+    std::string_view filename{};
+    bool color_keyed{};
+};
+
+inline constexpr std::array<HerdingSurfaceBinding,18>
+kHerdingSurfaceBindings{{
+    {HerdingSurface::Background, 0x00510724,
+     "Data\\SubGame1\\bk)1_revised_01.bmp", false},
+    {HerdingSurface::Pickles, 0x00510728,
+     "Data\\SubGame1\\Pickles_1_8bit.bmp", true},
+    {HerdingSurface::Duck, 0x0051072C,
+     "Data\\SubGame1\\DUCK_01.bmp", true},
+    {HerdingSurface::Rabbit, 0x00510730,
+     "Data\\SubGame1\\bunny.bmp", true},
+    {HerdingSurface::Sheep, 0x00510734,
+     "Data\\SubGame1\\sheep_shadow.bmp", true},
+    {HerdingSurface::Scruffty, 0x00510738,
+     "Data\\SubGame1\\scrufty_sprite_8bit.bmp", true},
+    {HerdingSurface::DuckBag, 0x0051073C,
+     "Data\\SubGame1\\duckbag.bmp", true},
+    {HerdingSurface::RabbitBag, 0x00510740,
+     "Data\\SubGame1\\rabbitbag.bmp", true},
+    {HerdingSurface::SheepBag, 0x00510744,
+     "Data\\SubGame1\\sheepbag.bmp", true},
+    {HerdingSurface::UiSurround, 0x00510748,
+     "Data\\SubGame1\\uisurround.bmp", true},
+    {HerdingSurface::TravisCab, 0x0051074C,
+     "Data\\SubGame1\\traviscab.bmp", false},
+    {HerdingSurface::Trailer1, 0x00510750,
+     "Data\\SubGame1\\trailer1.bmp", false},
+    {HerdingSurface::Trailer2, 0x00510754,
+     "Data\\SubGame1\\trailer2.bmp", false},
+    {HerdingSurface::GateLeft, 0x00510758,
+     "Data\\SubGame1\\gateleft.bmp", true},
+    {HerdingSurface::GateRight, 0x0051075C,
+     "Data\\SubGame1\\gateright.bmp", true},
+    {HerdingSurface::DuckToolbar, 0x005105A0,
+     "Data\\SubGame1\\ducktoolbar.bmp", true},
+    {HerdingSurface::RabbitToolbar, 0x005105A4,
+     "Data\\SubGame1\\rabbittoolbar.bmp", true},
+    {HerdingSurface::SheepToolbar, 0x005105A8,
+     "Data\\SubGame1\\sheeptoolbar.bmp", true},
+}};
+
+[[nodiscard]] constexpr const HerdingSurfaceBinding*
+herding_surface_binding(HerdingSurface surface) noexcept {
+    for (const auto& binding : kHerdingSurfaceBindings) {
+        if (binding.surface == surface) {
+            return &binding;
+        }
+    }
+    return nullptr;
+}
+
+[[nodiscard]] constexpr HerdingSurface animal_surface(
+    EntityType type) noexcept {
+    switch (type) {
+    case EntityType::Sheep: return HerdingSurface::Sheep;
+    case EntityType::Rabbit: return HerdingSurface::Rabbit;
+    case EntityType::Duck: return HerdingSurface::Duck;
+    case EntityType::Scruffty: return HerdingSurface::Scruffty;
+    default: return HerdingSurface::Pickles;
+    }
+}
+
+[[nodiscard]] constexpr HerdingSurface food_bag_surface(
+    FoodType food) noexcept {
+    switch (food) {
+    case FoodType::DuckFood: return HerdingSurface::DuckBag;
+    case FoodType::RabbitFood: return HerdingSurface::RabbitBag;
+    case FoodType::SheepFood: return HerdingSurface::SheepBag;
+    case FoodType::None: return HerdingSurface::DuckBag;
+    }
+    return HerdingSurface::DuckBag;
+}
+
+[[nodiscard]] constexpr HerdingSurface food_toolbar_surface(
+    FoodType food) noexcept {
+    switch (food) {
+    case FoodType::DuckFood: return HerdingSurface::DuckToolbar;
+    case FoodType::RabbitFood: return HerdingSurface::RabbitToolbar;
+    case FoodType::SheepFood: return HerdingSurface::SheepToolbar;
+    case FoodType::None: return HerdingSurface::DuckToolbar;
+    }
+    return HerdingSurface::DuckToolbar;
+}
 
 struct RenderRect {
     std::int32_t left{};
