@@ -177,7 +177,7 @@ address,name,confidence,notes
 0x0041B140,UpdateMazePlayerMovement,high,"Walks player through current-screen graph links, interpolates between nodes, and performs West/Middle/East portal transitions"
 0x0041BF80,DrawMazeTimer,high,"Updates countdown from QPC; draws 103x25 timer surface at (422,430) with exact 102px fill scale, then centered 20px smallbox/boxghost package markers with dormant second-row wrap"
 0x0041C110,DrawMazeActivity,high,"Draws current Maze screen, player, Spud/package sprites, timer, and activity overlays"
-0x0041C710,DrawMazeScreenTransition,high,"Draws current Maze background/transition composition, updates transition state/counters and character transition coordinates, then draws countdown/overlay state during inter-screen movement"
+0x0041C710,DrawMazeScreenTransition,high,"Exact 600x380 (20..620,20..400) adjacent-screen slide compositor; phase 1->2 init, signed east/west crop ownership, speed=floor(numerator/5) from 10 toward 200 with remaining-distance clamp, actor offsets, and phase/direction clear on boundary completion"
 0x0041C9F0,SearchMazePathRecursive,high,"Recursive bounded simple-path search over four node links; accumulates truncated Euclidean edge costs, prunes against best cost, max path depth 12"
 0x0041CBE0,FindMazeShortestPath,high,"Initializes Maze path-search globals with start/target nodes and invokes recursive search"
 0x0041CC20,MoveMazeActorTowardNode,high,"Exact node-seeking kernel: truncates actor floats, calls/discards integer distance, uses shared quantized integer angle, updates y-=cos(angle)*speed then x+=sin(angle)*speed; 359-degree vertical-up artifact causes slight left drift"
