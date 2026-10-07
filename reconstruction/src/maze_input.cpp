@@ -121,7 +121,7 @@ PlayerInputStep compute_player_input_direction(
 
         result.intent =
             keyboard_direction_from_bits(sample.direction_bits);
-        result.reset_shared_input_phase = true;
+        result.writes_node_capture_radius_four = true;
         return result;
     }
 
@@ -171,7 +171,7 @@ PlayerInputStep compute_player_input_direction(
 
     result.intent = debounce.update(raw);
     result.debounce_applied = true;
-    result.reset_shared_input_phase = true;
+    result.writes_node_capture_radius_four = true;
     return result;
 }
 
