@@ -7,15 +7,15 @@ using namespace btb::maze;
 
 int main() {
     // Shared angle helper cardinal directions, including retail's 359-degree
-    // vertical-up artifact from the 9999.0 zero-X sentinel.
+    // vertical-up artifact from the 9999.0 zero-X sentinel. The stored\n    // 57.294998-degree conversion also makes two perfect diagonals 134/314.
     assert(angle_between_integer_points_degrees({100,100},{200,100}) == 90);
     assert(angle_between_integer_points_degrees({100,100},{100,200}) == 180);
     assert(angle_between_integer_points_degrees({100,100},{0,100}) == 270);
     assert(angle_between_integer_points_degrees({100,100},{100,0}) == 359);
 
-    assert(angle_between_integer_points_degrees({100,100},{200,200}) == 135);
+    assert(angle_between_integer_points_degrees({100,100},{200,200}) == 134);
     assert(angle_between_integer_points_degrees({100,100},{0,200}) == 225);
-    assert(angle_between_integer_points_degrees({100,100},{0,0}) == 315);
+    assert(angle_between_integer_points_degrees({100,100},{0,0}) == 314);
     assert(angle_between_integer_points_degrees({100,100},{200,0}) == 45);
 
     // Keyboard precedence is asymmetric and bypasses the three-sample debounce.
