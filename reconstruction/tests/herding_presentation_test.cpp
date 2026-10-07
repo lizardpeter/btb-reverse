@@ -5,6 +5,81 @@
 using namespace btb::herding;
 
 int main() {
+    static_assert(kHerdingSurfaceBindings.size() == 18);
+
+    constexpr auto* bg =
+        herding_surface_binding(HerdingSurface::Background);
+    static_assert(bg);
+    static_assert(bg->global_address == 0x00510724);
+    static_assert(bg->filename ==
+        "Data\\SubGame1\\bk)1_revised_01.bmp");
+    static_assert(!bg->color_keyed);
+
+    constexpr auto* pickles_surface =
+        herding_surface_binding(HerdingSurface::Pickles);
+    static_assert(pickles_surface);
+    static_assert(pickles_surface->global_address == 0x00510728);
+    static_assert(pickles_surface->filename ==
+        "Data\\SubGame1\\Pickles_1_8bit.bmp");
+    static_assert(pickles_surface->color_keyed);
+
+    constexpr auto* duck_bag =
+        herding_surface_binding(HerdingSurface::DuckBag);
+    static_assert(duck_bag);
+    static_assert(duck_bag->global_address == 0x0051073C);
+    static_assert(duck_bag->filename ==
+        "Data\\SubGame1\\duckbag.bmp");
+
+    constexpr auto* ui =
+        herding_surface_binding(HerdingSurface::UiSurround);
+    static_assert(ui);
+    static_assert(ui->global_address == 0x00510748);
+    static_assert(ui->filename ==
+        "Data\\SubGame1\\uisurround.bmp");
+
+    constexpr auto* left_gate_surface =
+        herding_surface_binding(HerdingSurface::GateLeft);
+    static_assert(left_gate_surface);
+    static_assert(left_gate_surface->global_address == 0x00510758);
+    static_assert(left_gate_surface->filename ==
+        "Data\\SubGame1\\gateleft.bmp");
+
+    constexpr auto* duck_toolbar =
+        herding_surface_binding(HerdingSurface::DuckToolbar);
+    constexpr auto* rabbit_toolbar =
+        herding_surface_binding(HerdingSurface::RabbitToolbar);
+    constexpr auto* sheep_toolbar =
+        herding_surface_binding(HerdingSurface::SheepToolbar);
+    static_assert(duck_toolbar &&
+        duck_toolbar->global_address == 0x005105A0);
+    static_assert(rabbit_toolbar &&
+        rabbit_toolbar->global_address == 0x005105A4);
+    static_assert(sheep_toolbar &&
+        sheep_toolbar->global_address == 0x005105A8);
+
+    static_assert(animal_surface(EntityType::Sheep) ==
+        HerdingSurface::Sheep);
+    static_assert(animal_surface(EntityType::Rabbit) ==
+        HerdingSurface::Rabbit);
+    static_assert(animal_surface(EntityType::Duck) ==
+        HerdingSurface::Duck);
+    static_assert(animal_surface(EntityType::Scruffty) ==
+        HerdingSurface::Scruffty);
+
+    static_assert(food_bag_surface(FoodType::DuckFood) ==
+        HerdingSurface::DuckBag);
+    static_assert(food_bag_surface(FoodType::RabbitFood) ==
+        HerdingSurface::RabbitBag);
+    static_assert(food_bag_surface(FoodType::SheepFood) ==
+        HerdingSurface::SheepBag);
+
+    static_assert(food_toolbar_surface(FoodType::DuckFood) ==
+        HerdingSurface::DuckToolbar);
+    static_assert(food_toolbar_surface(FoodType::RabbitFood) ==
+        HerdingSurface::RabbitToolbar);
+    static_assert(food_toolbar_surface(FoodType::SheepFood) ==
+        HerdingSurface::SheepToolbar);
+
     static_assert(kWorldViewportWidth == 600);
     static_assert(kWorldViewportHeight == 380);
     static_assert(kWorldViewportDestX == 20);
