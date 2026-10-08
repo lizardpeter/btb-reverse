@@ -142,4 +142,39 @@ int main() {
     const auto other_route = game.advance(other);
     assert(other_route.effects.next_outer_state == 0x0c);
     assert(game.globals().dispatcher.current_state == 0x0c);
+
+    // The Activity Select -1 branch differs from the four sub-choosers:
+    // native 0x42A917 returns to the five profile signs at outer state 1.
+    game.set_outer_state(State::ActivitySelectSetup);
+    assert(game.advance({}).kind == FrameKind::FrontEndInitialized);
+    ActivityFrameInput back{};
+    back.pointer_x = 93; // fixture's Activity Select area 8
+    back.pointer_y = 65;
+    back.click_pulse = true;
+    assert(game.advance(back).kind == FrameKind::FrontEndUpdated);
+    back.click_pulse = false;
+    const auto back_result = game.advance(back);
+    assert(back_result.effects.negative_ui_action == -1);
+    assert(back_result.menu_action);
+    assert(back_result.menu_action->next_state ==
+           State::PlayerProfileAndNameEntry);
+    assert(game.globals().dispatcher.current_state == 0x01);
+
+    // Activity Select Help -6 leaves the outer update state intact:
+    // the original generic UI engine owns its contextual help mode.
+    game.set_outer_state(State::ActivitySelectSetup);
+    assert(game.advance({}).kind == FrameKind::FrontEndInitialized);
+    ActivityFrameInput help{};
+    help.pointer_x = 103; // fixture's Activity Select area 9
+    help.pointer_y = 65;
+    help.click_pulse = true;
+    assert(game.advance(help).kind == FrameKind::FrontEndUpdated);
+    help.click_pulse = false;
+    const auto help_result = game.advance(help);
+    assert(help_result.effects.negative_ui_action == -6);
+    assert(help_result.menu_action);
+    assert(help_result.menu_action->request_contextual_help);
+    assert(!help_result.menu_action->next_state);
+    assert(game.globals().dispatcher.current_state ==
+           static_cast<int>(State::ActivitySelectUpdate));
 }
