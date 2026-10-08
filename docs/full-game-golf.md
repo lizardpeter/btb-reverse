@@ -73,7 +73,7 @@ sprite, aim indicator, arrow, power bar, shot result overlay, or scoreboard.
 The driver does not invent missing bitmaps. These eight commands are kept in
 a staged adapter until the exact retail draw ordering is recovered.
 
-The input bridge is similarly explicit: `queue_control` receives
+The original electronic game booklet (`ebooklet/golf.htm`, *Bob's Crazy Golf*) confirms left/right cursor or arrow keys adjust the aim, a first mouse click or Space Bar press selects the angle, and a second click/Space locks the moving power bar and starts the swing. The generic input pulse is now mapped to these two confirmed click transitions (without guessing the aim scale). The other control inputs still use an explicit source bridge: `queue_control` receives
 `aim_delta`, `accept_aim`, `accept_power`,
 `swing_animation_finished`, and `feedback_audio_finished` from a future
 original-DirectInput / animation / sound-device adapter. The generic
