@@ -44,6 +44,25 @@ bool GameRoot::install_generic_front_end_pair(
     return true;
 }
 
+bool GameRoot::install_pregame_front_end_pair(
+    game_flow::State setup_state,
+    std::unique_ptr<FrontEndDriver> driver) {
+
+    const auto* pair = retail_pregame_for_state(setup_state);
+    if (!pair || pair->setup != setup_state || !driver) {
+        return false;
+    }
+    const auto key = static_cast<std::size_t>(setup_state);
+    if (generic_front_end_initialized_[key] &&
+        globals_.dispatcher.current_state ==
+            static_cast<int>(pair->update)) {
+        return false; // Do not replace a live original pregame UI.
+    }
+    generic_front_end_drivers_[key] = std::move(driver);
+    generic_front_end_initialized_[key] = false;
+    return true;
+}
+
 bool GameRoot::select_profile(int index) noexcept {
     if (index < 0 ||
         index >= static_cast<int>(progress::kPlayerCount)) {
@@ -174,6 +193,36 @@ void GameRoot::consume_menu_action(
     }
 }
 
+void GameRoot::consume_pregame_action(
+    game_flow::State update,
+    GameFrame& result) noexcept {
+
+    if (!result.effects.negative_ui_action) {
+        return;
+    }
+    const auto choice = route_retail_pregame_action(
+        update,*result.effects.negative_ui_action);
+    if (!choice.recognized) {
+        return;
+    }
+    result.pregame_action = choice;
+    if (choice.difficulty) {
+        globals_.menu.source_variant = *choice.difficulty;
+        globals_.menu.variant_selection_origin = update;
+        if (choice.persistent_herding_difficulty) {
+            globals_.retained_herding_difficulty = *choice.difficulty;
+        }
+    }
+    if (choice.skate_immediate_start) {
+        globals_.spud_skate_start_latch = true;
+    }
+    if (choice.next_state) {
+        globals_.dispatcher.current_state =
+            static_cast<std::int32_t>(*choice.next_state);
+        result.state_changed = true;
+    }
+}
+
 GameFrame GameRoot::advance(const ActivityFrameInput& input) {
     GameFrame result;
     const auto dispatch = game_flow::dispatch_step(globals_.dispatcher);
@@ -252,11 +301,16 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
         return result;
     }
 
-    // Recover the common seven chooser/replay menu pairs before falling
-    // back to unsupported pregame/movie states. Every pair uses its own
-    // original source-data screen and deferred managed-voice transition.
-    if (const auto* menu = generic_front_end_pair_for_state(state.state)) {
-        const auto key = static_cast<std::size_t>(menu->setup);
+    // The original same generic UI implementation serves seven chooser/
+    // replay pairs AND ten pregame/instruction pairs. Their negative actions
+    // must be interpreted by the matching native outer state, never as
+    // untyped negative 68-entry jump-table offsets.
+    const auto* menu = generic_front_end_pair_for_state(state.state);
+    const auto* pregame = retail_pregame_for_state(state.state);
+    if (menu || pregame) {
+        const auto setup_state = menu ? menu->setup : pregame->setup;
+        const auto update_state = menu ? menu->update : pregame->update;
+        const auto key = static_cast<std::size_t>(setup_state);
         auto* driver = generic_front_end_drivers_[key].get();
         if (!driver) {
             result.kind = FrameKind::FrontEndRequiresAdapter;
@@ -266,7 +320,7 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
             result.kind = FrameKind::InactiveProfile;
             return result;
         }
-        if (state.state == menu->setup) {
+        if (state.state == setup_state) {
             generic_front_end_initialized_[key] = false;
             auto& record = globals_.player_progress[
                 static_cast<std::size_t>(*globals_.active_profile)];
@@ -277,7 +331,18 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
             }
             generic_front_end_initialized_[key] = true;
             globals_.dispatcher.current_state =
-                static_cast<int>(menu->update);
+                static_cast<int>(update_state);
+            if (pregame) {
+                // Native setup calls OpenWalkthroughMovie @ 0x4281D0 and
+                // registers original instruction surfaces. The real Bink
+                // device must be connected before claiming presentation.
+                result.requires_original_walkthrough_host = true;
+                if (pregame->setup ==
+                    game_flow::State::HerdingPregameSetup) {
+                    globals_.menu.source_variant =
+                        globals_.retained_herding_difficulty;
+                }
+            }
             result.kind = FrameKind::FrontEndInitialized;
             result.state_changed = true;
             return result;
@@ -292,7 +357,12 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
         apply_effects(result.effects);
         result.state_changed =
             result.effects.next_outer_state.has_value();
-        consume_menu_action(state.state, result);
+        if (pregame) {
+            consume_pregame_action(state.state,result);
+            result.requires_original_walkthrough_host = true;
+        } else {
+            consume_menu_action(state.state,result);
+        }
         if (result.menu_action &&
             result.menu_action->requires_source_variant) {
             // No fabricated 0x51C344/348/34C dino variant values.
