@@ -96,7 +96,10 @@ Composition::ReplaceResult Composition::replace_selected(
                 --owner_second;
             }
         }
-        const auto removed = erase_owner({cell.row, owner_second});
+        // Native always removes at the CLICKED cell. The peculiar scan
+        // above changes only the fallback restoration coordinate, not
+        // the removal target.
+        const auto removed = erase_owner(cell);
         if (!removed) {
             return result;
         }
@@ -106,7 +109,8 @@ Composition::ReplaceResult Composition::replace_selected(
         if (!result.placed) {
             // Original 0x41F651 failure path restores the old event at
             // the removed event's origin, not necessarily at click position.
-            static_cast<void>(place(removed->origin, removed->machine_type));
+            static_cast<void>(place({cell.row, owner_second},
+                                    removed->machine_type));
             result.took_previous_note = false;
             result.previous_machine = -1;
         }
