@@ -14,7 +14,8 @@ int main() {
         "MP_BOB_01.wav 510\r\n"
         "MP_BOB_02.wav\t511\r\n"
         "MP_WEN_01.wav 523\n"
-        "MP_PIC_01.wav 536\n");
+        "MP_PIC_01.wav 536\n"
+        "PA_BOB_01.wav 573\n");
     auto parsed = planner.load_catalog(original_like_catalog);
     assert(parsed.success);
     assert(parsed.entries == 5);
