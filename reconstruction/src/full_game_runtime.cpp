@@ -19,10 +19,19 @@ void GameRoot::install(
     drivers_[i] = std::move(driver);
 }
 
+void GameRoot::install_activity_select(
+    std::unique_ptr<FrontEndDriver> driver) {
+    activity_select_driver_ = std::move(driver);
+    activity_select_initialized_ = false;
+}
+
 bool GameRoot::select_profile(int index) noexcept {
     if (index < 0 ||
         index >= static_cast<int>(progress::kPlayerCount)) {
         return false;
+    }
+    if (globals_.active_profile != index) {
+        activity_select_initialized_ = false;
     }
     globals_.active_profile = index;
     return true;
@@ -69,6 +78,12 @@ void GameRoot::apply_effects(
     if (output.next_ui_context) {
         globals_.ui_context = *output.next_ui_context;
     }
+    if (output.open_progress_screen) {
+        globals_.dispatcher.progress_screen_active = true;
+    }
+    if (output.open_options_overlay) {
+        globals_.dispatcher.options_active = true;
+    }
     if (output.open_yes_no_confirmation) {
         globals_.dispatcher.generic_yes_no_active = true;
     }
@@ -108,6 +123,46 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
     const auto& state = *dispatch.dispatch;
     if (state.kind == game_flow::StateKind::NoOp) {
         result.kind = FrameKind::StateNoOp;
+        return result;
+    }
+
+    if (state.state == game_flow::State::ActivitySelectSetup ||
+        state.state == game_flow::State::ActivitySelectUpdate) {
+
+        if (!activity_select_driver_) {
+            result.kind = FrameKind::FrontEndRequiresAdapter;
+            return result;
+        }
+        if (!globals_.active_profile) {
+            result.kind = FrameKind::InactiveProfile;
+            return result;
+        }
+        if (state.state == game_flow::State::ActivitySelectSetup) {
+            activity_select_initialized_ = false;
+            auto& record = globals_.player_progress[
+                static_cast<std::size_t>(*globals_.active_profile)];
+            if (!activity_select_driver_->initialize(
+                    record, globals_.finale_gate, result.error)) {
+                result.kind = FrameKind::FrontEndFailed;
+                return result;
+            }
+            activity_select_initialized_ = true;
+            globals_.dispatcher.current_state =
+                static_cast<int>(game_flow::State::ActivitySelectUpdate);
+            result.kind = FrameKind::FrontEndInitialized;
+            result.state_changed = true;
+            return result;
+        }
+
+        if (!activity_select_initialized_) {
+            result.kind = FrameKind::FrontEndFailed;
+            result.error = "Activity Select state 0x05 entered without setup 0x04";
+            return result;
+        }
+        result.effects = activity_select_driver_->advance(input);
+        apply_effects(result.effects);
+        result.state_changed = result.effects.next_outer_state.has_value();
+        result.kind = FrameKind::FrontEndUpdated;
         return result;
     }
 
