@@ -4,7 +4,7 @@ state,address,branch_semantics,evidence
 2,0x0041CEED,"Move to indexed waypoint; when distance<3 increment path index; last waypoint rechecks box status, marks status=2 with ID89 sound and animation +=7 or switches phase6","0x0041CEED..0x0041CFDF"
 3,0x0041CFE4,"Clear global 0x512154 and advance phase to 4","0x0041CFE4..0x0041CFF5"
 4,0x0041CFFA,"Choose return route by randomized rotation around four neighboring links with fallback if no eligible link; set phase 5","0x0041CFFA..0x0041D1C9"
-5,0x0041D1CE,"Follow chosen path with alternate speed; optional voice ID90..93 (rand()%30 gate), collision package drop/reaction IDs94..95","0x0041D1CE..0x0041D338"
+5,0x0041D1CE,"Node speed1 except hard2; minimum waypoint distance; waypoint<3 chooses phase4/6 from old latch and 1-in-30 voice90..93; player<60 with clear latch drops package to status3 and truncates x/y, plays voice94/95","0x0041D1CE..0x0041D338"
 6,0x0041D33D,"Rebuild return path and prepare phase 7","0x0041D33D..0x0041D3D9"
 7,0x0041D3DE,"Follow return path; on last waypoint restore phase0 and fixed 500-tick cooldown","0x0041D3DE..0x0041D489"
 gate,0x0041CCB0,"If npc_screen!=player_screen and phase>1 decrement offscreen countdown; at -1 reset selected box status to1 and enter phase1; both exits skip previous-position snapshot","0x0041CCB0..0x0041CD08"
