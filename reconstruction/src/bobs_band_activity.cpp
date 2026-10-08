@@ -148,7 +148,10 @@ BandFrame Activity::advance(FrameInput input) {
             input.mouse_y, edited.event == EditEvent::NoteRemoved));
     }
 
-    const bool started =
+    // The Play click starts a managed voice first. Even if no sound was
+    // active at the start of THIS frame, native never starts the backing
+    // track until a later update sees that voice finish.
+    const bool started = edited.event != EditEvent::PlayPending &&
         editor_.advance_play_pending(input.managed_voice_playing);
     if (started) {
         editor_.start_playback();
