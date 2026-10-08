@@ -113,6 +113,40 @@ retail_pregame_for_state(game_flow::State state) noexcept {
     }
 }
 
+// Original pregame bitmap name table at 0x490770 uses 256-byte
+// records. The native setup passes 0x490770 + slot*0x100 to
+// LoadBitmapToDirectDrawSurface (0x4038D0), so the resulting slot indexes
+// loaddata/uiBitmapName.txt exactly. Spud/Adventure/Dino options add
+// 0x100 * original 0x51C2E4 selected_subgame.
+[[nodiscard]] constexpr std::optional<std::size_t>
+retail_pregame_backdrop_index(
+    game_flow::State setup,
+    int selected_subgame) noexcept {
+    using game_flow::State;
+    switch (setup) {
+    case State::HerdingPregameSetup: return 4;
+    case State::DinoPregameSetup:
+        return selected_subgame >= 0 && selected_subgame <= 2
+            ? std::optional<std::size_t>{static_cast<std::size_t>(
+                  5 + selected_subgame)} : std::nullopt;
+    case State::SpudSkatePregameSetup:
+    case State::SpudMazePregameSetup:
+        return selected_subgame >= 0 && selected_subgame <= 1
+            ? std::optional<std::size_t>{static_cast<std::size_t>(
+                  10 + selected_subgame)} : std::nullopt;
+    case State::MazePregameSetup:
+    case State::GolfPregameSetup:
+        return selected_subgame >= 0 && selected_subgame <= 1
+            ? std::optional<std::size_t>{static_cast<std::size_t>(
+                  13 + selected_subgame)} : std::nullopt;
+    case State::FireworksPregameSetup: return 15;
+    case State::SquirrelPregameSetup: return 16;
+    case State::BobsBandPregameSetup: return 17;
+    case State::ParkDesignerPregameSetup: return 18;
+    default: return std::nullopt;
+    }
+}
+
 // State effects directly recovered from all ten 6-entry action+6 jump tables:
 // -6 Help/no-transition, -5 Start, -4 Hard, -3 Medium, -2 Easy or
 // screen-specific Start, -1 Back. Values outside that interval never jump.
