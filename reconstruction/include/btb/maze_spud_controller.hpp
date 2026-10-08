@@ -244,6 +244,70 @@ struct SpudNeighborSelection {
             4, opposite, false};
 }
 
+// Phase 5: waypoint arrival is checked before player collision.
+// The old latch selects phase 4 vs 6, even if a collision on the same frame
+// subsequently drops the package and sets the latch.
+inline constexpr float kSpudPlayerCollisionRadiusExclusive = 60.0f;
+inline constexpr std::int32_t kSpudDroppedPackageStatus = 3;
+
+struct SpudCarryStep {
+    SpudNpcPhase next_phase{SpudNpcPhase::TravelCarryingPackage};
+    std::int32_t nearest_node_distance{};
+    bool captured_waypoint{};
+    bool drop_package{};
+    bool set_collision_latch{};
+    bool clear_carrying_flag{};
+    std::optional<std::int32_t> waypoint_voice{};
+    std::optional<std::int32_t> collision_voice{};
+};
+
+[[nodiscard]] constexpr std::int32_t spud_carry_speed(
+    std::int32_t difficulty_index) noexcept {
+    // cmp difficulty,2 / sete / inc: easy & medium 1; hard 2.
+    return difficulty_index == 2 ? 2 : 1;
+}
+
+[[nodiscard]] constexpr SpudCarryStep advance_spud_carry_frame(
+    std::int32_t distance_to_node,
+    std::int32_t nearest_node_distance,
+    float player_distance,
+    bool already_collided,
+    std::int32_t waypoint_voice_roll30,
+    std::int32_t waypoint_voice_roll4,
+    std::int32_t collision_voice_roll2) noexcept {
+    SpudCarryStep plan;
+    plan.nearest_node_distance = distance_to_node < nearest_node_distance
+        ? distance_to_node : nearest_node_distance;
+    if (distance_to_node < kSpudPathArrivalDistanceExclusive) {
+        plan.captured_waypoint = true;
+        plan.next_phase = already_collided
+            ? SpudNpcPhase::ResetPath
+            : SpudNpcPhase::ChooseReturnRoute;
+        if (waypoint_voice_roll30 == 0) {
+            plan.waypoint_voice = 90 + waypoint_voice_roll4;
+        }
+    }
+    if (player_distance < kSpudPlayerCollisionRadiusExclusive &&
+        !already_collided) {
+        plan.drop_package = true;
+        plan.set_collision_latch = true;
+        plan.clear_carrying_flag = true;
+        plan.collision_voice = 94 + collision_voice_roll2;
+    }
+    return plan;
+}
+
+struct SpudDroppedPackagePosition {
+    std::int32_t x{};
+    std::int32_t y{};
+};
+
+[[nodiscard]] constexpr SpudDroppedPackagePosition
+spud_dropped_package_position(float x, float y) noexcept {
+    // Retail truncates both float coordinates through 0x004304D0.
+    return {static_cast<std::int32_t>(x), static_cast<std::int32_t>(y)};
+}
+
 // The phase-3 handler zeroes 0x00512154 and enters phase 4 immediately.
 [[nodiscard]] constexpr SpudNpcPhase spud_begin_return_phase() noexcept {
     return SpudNpcPhase::ChooseReturnRoute;
