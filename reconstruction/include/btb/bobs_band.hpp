@@ -60,12 +60,21 @@ struct Cell {
     int second{};
 };
 [[nodiscard]] constexpr std::optional<Cell> grid_hit(int x, int y) noexcept {
-    if (x < kGridX || y < kGridY ||
+    if (x <= kGridX || y <= kGridY ||
         x >= kGridX + kSeconds*kCellWidth ||
         y >= kGridY + kRows*kCellHeight) {
         return std::nullopt;
     }
-    return Cell{(y-kGridY)/kCellHeight, (x-kGridX)/kCellWidth};
+    const auto local_x = x - kGridX;
+    const auto local_y = y - kGridY;
+    // The original 120-region table tests STRICT inequalities for every
+    // rectangle. Shared cell boundaries (x=44+23*n, y=310+19*n)
+    // belong to neither adjacent hotspot, not the next cell.
+    if (local_x % kCellWidth == 0 ||
+        local_y % kCellHeight == 0) {
+        return std::nullopt;
+    }
+    return Cell{local_y/kCellHeight, local_x/kCellWidth};
 }
 
 struct ErasedNote {
