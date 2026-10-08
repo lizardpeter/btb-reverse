@@ -1,6 +1,7 @@
 #pragma once
 
 #include "btb/game_flow.hpp"
+#include "btb/front_end_ui.hpp"
 #include "btb/player_progress.hpp"
 #include "btb/player_profiles.hpp"
 
@@ -65,6 +66,48 @@ inline constexpr std::array<ActivityEntry, kActivityCount> kActivities{{
         game_flow::State::SpudMazePregameUpdate, game_flow::State::SpudMazeInit,
         game_flow::State::SpudMazeRun, "spud_maze"},
 }};
+
+// Only confirmed table-backed chooser/replay pairs are registered here.
+// Instruction/pregame states own additional Bink, voice, and difficulty setup
+// and must not be collapsed into a generic menu without source evidence.
+struct GenericFrontEndPair {
+    game_flow::State setup{};
+    game_flow::State update{};
+    front_end::Screen screen{};
+};
+inline constexpr std::array<GenericFrontEndPair, 7> kGenericFrontEndPairs{{
+    {game_flow::State::DinoChooserSetup,
+     game_flow::State::DinoChooserUpdate,
+     front_end::Screen::DinoChooser},
+    {game_flow::State::MusicChooserSetup,
+     game_flow::State::MusicChooserUpdate,
+     front_end::Screen::MusicChooser},
+    {game_flow::State::SpudChooserSetup,
+     game_flow::State::SpudChooserUpdate,
+     front_end::Screen::SpudChooser},
+    {game_flow::State::AdventureChooserSetup,
+     game_flow::State::AdventureChooserUpdate,
+     front_end::Screen::AdventurePlaygroundChooser},
+    {game_flow::State::PlayAgainYesNoSetup,
+     game_flow::State::PlayAgainYesNoUpdate,
+     front_end::Screen::PlayAgainYesNo},
+    {game_flow::State::PlayAgainDifficultySetup,
+     game_flow::State::PlayAgainDifficultyUpdate,
+     front_end::Screen::PlayAgainDifficulty},
+    {game_flow::State::FireworksReplayChoiceSetup,
+     game_flow::State::FireworksReplayChoiceUpdate,
+     front_end::Screen::FireworksEditViewReplay},
+}};
+
+[[nodiscard]] constexpr const GenericFrontEndPair*
+generic_front_end_pair_for_state(game_flow::State state) noexcept {
+    for (const auto& pair : kGenericFrontEndPairs) {
+        if (pair.setup == state || pair.update == state) {
+            return &pair;
+        }
+    }
+    return nullptr;
+}
 
 [[nodiscard]] constexpr const ActivityEntry*
 activity_for_state(game_flow::State state) noexcept {
@@ -212,6 +255,9 @@ public:
 
     void install(ActivityId id, std::unique_ptr<ActivityDriver> driver);
     void install_activity_select(std::unique_ptr<FrontEndDriver> driver);
+    [[nodiscard]] bool install_generic_front_end_pair(
+        game_flow::State setup_state,
+        std::unique_ptr<FrontEndDriver> driver);
     [[nodiscard]] bool select_profile(int index) noexcept;
     [[nodiscard]] bool load_profile_files(
         const std::filesystem::path& directory,
@@ -231,6 +277,10 @@ private:
     void apply_effects(const ActivityFrameOutput& output) noexcept;
     std::array<std::unique_ptr<ActivityDriver>, kActivityCount> drivers_{};
     std::unique_ptr<FrontEndDriver> activity_select_driver_{};
+    std::array<std::unique_ptr<FrontEndDriver>,game_flow::kStateCount>
+        generic_front_end_drivers_{};
+    std::array<bool,game_flow::kStateCount>
+        generic_front_end_initialized_{};
     bool activity_select_initialized_{};
     std::optional<ActivityId> initialized_activity_{};
     GameGlobals globals_{};
