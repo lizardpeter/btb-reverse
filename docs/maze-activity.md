@@ -342,3 +342,49 @@ The typed C++26 reconstruction now spans:
 It currently reproduces the complete graph/data parse, portal semantics, retail-bounded shortest-path search, one-call-late mouse/keyboard arbitration, exact shared integer-angle and node-seeking motion, player 4px/30px node-candidate scanning, three-sample all-or-nothing mouse debounce, the complete two-screen slide compositor, exact surface bindings, actor sheet geometry/origins, timer/package HUD composition, and the typed outer completion/startup/leave controller.
 
 The main remaining Maze source closures are the rest of the player interpolation/animation state machine and Spud's eight-state package/path controller.
+
+
+## Maze Spud NPC eight-state controller (partial closure)
+
+The original PE32 executable's `0x0041CCB0 UpdateMazeSpudNPC` dispatches through
+**eight actual retail jump-table targets** at `0x0041D4AC`. The addresses and
+state names are now recorded in `ghidra/maze_spud_npc_states.csv`.
+
+The source-level reconstruction has added a deliberately bounded, auditable
+`maze_spud_controller.hpp` rather than pretending the entire NPC is already
+ported:
+
+- **Off-screen gate:** when Spud is on another screen and the NPC phase is
+  2..7, decrement `0x5120E8`. The zero countdown frame still returns without
+  updating previous X/Y. On the following negative tick, retail restores the
+  selected package record to status **1** and returns to phase **1**.
+- **Spawn state 0:** a difficulty interval of `-1` skips the spawn work and
+  position snapshot. Otherwise, the delay is decremented **before** the test:
+  `counter <= 0` enters phase 1.
+- **Package state 1:** only records with a valid nonnegative node and package
+  status **1** qualify. Retail counts qualifying entries among **four slots**,
+  chooses a random **rank modulo that count**, then resolves that rank in slot
+  order. It never uses `rand()%4` against unchecked slots.
+- **Travel state 2:** advance one path index only when distance to the target
+  node is **strictly below 3**. On the last waypoint, recheck the box status;
+  available status 1 becomes taken status **2**, enters state **4**, plays
+  managed voice **89**, and adds **7** to the animation counter. If the box is
+  no longer available, enter state **6** without claiming it.
+- **Handoff state 3:** clears the `0x512154` carried/collision latch and
+  advances to phase 4.
+- **Home state 7:** on arrival at its last waypoint, enter spawn state 0 with
+  the fixed, **500-tick** cooldown, not the per-difficulty spawn interval.
+- **Previous-position snapshot:** ordinary in-view state exits copy actor
+  X/Y `0x510790/0x510794` to `0x510798/0x51079C`; the off-screen and
+  disabled-spawn early exits skip that update.
+
+These branches are covered by `maze_spud_controller_test.cpp` as a standalone
+C++26 CTest regression. Numeric constants and state decisions come from
+the identified 2002 retail binary, not guessed replacement behavior.
+
+**Not yet closed:** the full randomized neighbor/cycle selection in state 4,
+exact per-frame behavior while carrying in state 5, and the route rebuild in
+state 6. The corresponding state targets are identified, but they must be
+promoted to C++26 only after the path-array indexing and collision/animation
+side effects are fully established. The Maze minigame should not yet be
+described as completely reconstructed.
