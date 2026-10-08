@@ -11,7 +11,7 @@ executable and the installed `machinedata.txt`, not approximated from video.
 
 | RVA/VA | Working name | Evidence / responsibility |
 |---|---|---|
-| `0x0041D7C0` | `LoadBandMachineData` | Opens `data\\subgameOpen\\machinedata.txt`; reads 10 machine positions, 10 sizes, 3 conductor positions, 3 sizes, 3 frame counts, and 10 palette rectangles |
+| `0x0041D7C0` | `LoadBandMachineData` | Opens `data\\subgameOpen\\machinedata.txt`; reads 10 machine positions, 10 sizes, 3 conductor positions, 3 sizes, 3 frame counts, and 10 static animation rectangles |
 | `0x0041D920` | `UnloadBandResourcesAndSave` | Releases surfaces/audio; writes 120 32-bit composition cells via C runtime I/O for the selected player/conductor |
 | `0x0041DB20` | `InitializeBobsBand` | Sets tables, surfaces, note samples, backing tracks and reloads the selected 480-byte music composition |
 | `0x0041F090` | `DrawBobsBandScene` | Draw order, five machine animation updates, conductor editor animation |
@@ -64,7 +64,7 @@ loops are confirmed at `0x0041DA78..` and `0x0041EA1E..`.
 
 Original `machinedata.txt` was inspected from the user's installed game
 files. It contains the actual ten short/long machine source coordinates and
-sizes plus conductor metadata and palette hitboxes. Unlike an earlier rough
+sizes plus conductor metadata and ten static machine-animation rectangles. The ten clickable palette hitboxes come from the separate 132-entry native editor hit table at 0x0041FB90. Unlike an earlier rough
 visual geometry spreadsheet, the loader-derived values are source-authoritative
 for these fields; hard-coded alternate dimensions are not used.
 
