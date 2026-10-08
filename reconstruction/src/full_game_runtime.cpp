@@ -69,6 +69,12 @@ void GameRoot::apply_effects(
     if (output.next_ui_context) {
         globals_.ui_context = *output.next_ui_context;
     }
+    if (output.open_yes_no_confirmation) {
+        globals_.dispatcher.generic_yes_no_active = true;
+    }
+    if (output.yes_no_context) {
+        globals_.ui_context = *output.yes_no_context;
+    }
     if (output.next_outer_state) {
         globals_.dispatcher.current_state = *output.next_outer_state;
     }
