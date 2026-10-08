@@ -30,10 +30,30 @@ bool GameRoot::select_profile(int index) noexcept {
         index >= static_cast<int>(progress::kPlayerCount)) {
         return false;
     }
+    if (initialized_activity_ && globals_.active_profile != index) {
+        return false; // Never redirect live activity progress to new player.
+    }
     if (globals_.active_profile != index) {
         activity_select_initialized_ = false;
     }
     globals_.active_profile = index;
+    return true;
+}
+
+bool GameRoot::delete_profile(int index) {
+    if (index < 0 ||
+        index >= static_cast<int>(progress::kPlayerCount) ||
+        initialized_activity_) {
+        return false;
+    }
+    const auto i = static_cast<std::size_t>(index);
+    profiles::delete_profile_in_memory(
+        globals_.profile_metadata, globals_.player_progress, i);
+    if (globals_.active_profile == index) {
+        globals_.active_profile.reset();
+        globals_.finale_gate = {};
+        activity_select_initialized_ = false;
+    }
     return true;
 }
 
@@ -238,6 +258,18 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
     }
     apply_effects(result.effects);
     result.state_changed = result.effects.next_outer_state.has_value();
+
+    if (result.effects.save_and_unload &&
+        !profile_directory_.empty()) {
+        if (!save_profile_files(profile_directory_, result.error)) {
+            // Filesystem errors are not swallowed; the host can surface or
+            // retry the save. The native activity was already unloaded and
+            // its transition remains visible, rather than being re-run.
+            result.kind = FrameKind::ActivityFailed;
+        } else {
+            result.profile_saved = true;
+        }
+    }
     return result;
 }
 
