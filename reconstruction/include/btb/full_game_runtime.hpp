@@ -2,6 +2,7 @@
 
 #include "btb/game_flow.hpp"
 #include "btb/front_end_ui.hpp"
+#include "btb/full_game_menu_actions.hpp"
 #include "btb/player_progress.hpp"
 #include "btb/player_profiles.hpp"
 
@@ -176,6 +177,8 @@ struct ActivityFrameOutput {
     std::optional<int> shared_completion_code{};
     std::optional<std::int32_t> next_outer_state{};
     std::optional<std::int32_t> next_ui_context{};
+    std::optional<std::int32_t> next_saved_state{};
+    std::optional<std::int32_t> next_replay_class{};
     bool save_and_unload{};
     bool open_yes_no_confirmation{};
     bool open_progress_screen{};
@@ -215,6 +218,7 @@ struct GameGlobals {
     std::optional<int> active_profile{};
     progress::FinaleGate finale_gate{};
     int shared_completion_code{-1};
+    RetailMenuState menu{};
     int ui_context{};
     bool input_pulse{};
 };
@@ -239,6 +243,7 @@ struct GameFrame {
     game_flow::DispatcherStep dispatch{};
     std::optional<ActivityId> activity{};
     ActivityFrameOutput effects{};
+    std::optional<RetailMenuAction> menu_action{};
     std::string error{};
     bool clear_input_pulse{};
     bool state_changed{};
@@ -275,6 +280,9 @@ public:
 
 private:
     void apply_effects(const ActivityFrameOutput& output) noexcept;
+    void consume_menu_action(
+        game_flow::State update,
+        GameFrame& result) noexcept;
     std::array<std::unique_ptr<ActivityDriver>, kActivityCount> drivers_{};
     std::unique_ptr<FrontEndDriver> activity_select_driver_{};
     std::array<std::unique_ptr<FrontEndDriver>,game_flow::kStateCount>
