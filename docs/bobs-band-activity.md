@@ -158,3 +158,24 @@ These pieces still require **integration**, not claims of completeness:
 **Compilation, preview packaging, and CI verification of these new modules
 were intentionally not requested at this stage.** These commits add source
 reconstruction and evidence; they do not establish a working Band build.
+
+## Whole-game source adapter (October 8)
+
+`reconstruction/src/full_game_bobs_band.cpp` now connects the existing
+music module to `GameRoot` (the ten-activity / 68-state coordinator).
+The shared activity contract keeps **backing WAV start** separate from
+**one-shot pitch sample triggers**, preserving the need for different native
+DirectSound lifetime/loop semantics. The adapter loads the original machine
+data, restores the selected player's binary grid, converts native drawing
+and sound effects into source-neutral commands, writes one conductor progress
+slot and shared completion code 6, and saves both `music*.txt` and
+`last.txt` before returning to `0x3C`.
+
+The generic Activity Select adapter separately handles the original action
+`0x2C` Bob's Band pregame setup target via the native replacement table;
+the **pregame movie handler** still needs its own source adapter before the
+whole game can navigate end-to-end from its original menu to the music room.
+
+The new `full_game_bobs_band_source_test.cpp` is a **deferred source
+regression**, not a passed test. Final C++26 compilation and native renderer/
+audio integration remain postponed at the user's request.
