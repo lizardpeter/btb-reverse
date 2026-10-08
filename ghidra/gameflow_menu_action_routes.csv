@@ -1,0 +1,30 @@
+owner_state,action,handler_address,outer_state_after,selected_subgame_after,source_variant_after,other_effect,evidence,confidence
+0x05,-1,0x0042A917,0x01,,,back to five profile signs,cmp and state assignment,high
+0x05,-6,0x0042A97A,0x05,,,contextual Help owns mode,cmp and unchanged outer state,high
+0x11,-1,0x0042C8CD,0x04,,,shared chooser Back path,jump table and state assignment,high
+0x11,-2,0x0042AE1B,0x12,0,copy 0x51C344,select first Dino branch,jump table and memory writes,high
+0x11,-3,0x0042AE37,0x12,1,copy 0x51C348,select second Dino branch,jump table and memory writes,high
+0x11,-4,0x0042AE55,0x12,2,copy 0x51C34C,select third Dino branch,jump table and memory writes,high
+0x11,-6,0x0042AE77,0x11,,,Help returns to chooser update,jump table and state assignment,high
+0x17,-1,0x0042C8CD,0x04,,,shared chooser Back path,jump table and state assignment,high
+0x17,-2,0x0042B2B9,0x38,0,,Spud Maze pregame,jump table and state assignment,high
+0x17,-3,0x0042B2CF,0x18,1,,Spud Skate pregame,jump table and state assignment,high
+0x17,-6,0x0042B2E5,0x17,,,Help returns to chooser update,jump table and state assignment,high
+0x1D,-1,0x0042C8CD,0x04,,,shared chooser Back path,jump table and state assignment,high
+0x1D,-2,0x0042B900,0x1E,0,,Maze pregame,jump table and state assignment,high
+0x1D,-3,0x0042B916,0x34,1,,Golf pregame,jump table and state assignment,high
+0x1D,-6,0x0042B92C,0x1D,,,Help returns to chooser update,jump table and state assignment,high
+0x2B,-1,0x0042C8CD,0x04,,,shared chooser Back path,jump table and state assignment,high
+0x2B,-2,0x0042C4DE,0x2C,0,,Bob conductor,jump table and state assignment,high
+0x2B,-3,0x0042C4F4,0x2C,1,,Wendy conductor,jump table and state assignment,high
+0x2B,-4,0x0042C50A,0x2C,2,,Farmer Pickles conductor,jump table and state assignment,high
+0x2B,-6,0x0042C524,0x2B,,,Help returns to chooser update,jump table and state assignment,high
+0x3D,-20,0x0042CBA5,0x3E,,,replay class 1 enters difficulty chooser,replay class comparison at 0x51C2FC,high
+0x3D,-20,0x0042CBBF,0x42,,,replay class 2 enters Fireworks edit/view choice,replay class comparison at 0x51C2FC,high
+0x3D,-20,0x0042CBD3,saved_state,,,other replay class returns saved 0x51B418 state,replay class fallthrough,high
+0x3D,-21,0x0042CBEB,0x40,,,No goes to shared movie transition,direct negative action test,high
+0x3F,-30,0x0042CCC2,saved_state,,0,restore Easy difficulty and clear replay class,-30 minus signed action,high
+0x3F,-31,0x0042CCC2,saved_state,,1,restore Medium difficulty and clear replay class,-30 minus signed action,high
+0x3F,-32,0x0042CCC2,saved_state,,2,restore Hard difficulty and clear replay class,-30 minus signed action,high
+0x43,-20,0x0042CA56,0x25,,,Fireworks edit replay calls original editor reset/music helpers,action comparison and sequence,high
+0x43,-21,0x0042CAAD,0x25,,,Fireworks view replay writes inner mode 8,action comparison and mode write,high
