@@ -132,11 +132,25 @@ struct ActivityFrameOutput {
     std::optional<std::int32_t> next_ui_context{};
     bool save_and_unload{};
     bool open_yes_no_confirmation{};
+    bool open_progress_screen{};
+    bool open_options_overlay{};
+    std::optional<int> negative_ui_action{};
     std::optional<int> yes_no_context{};
 };
 
 // Each activity translates its own original native effects into shared
 // commands. The root must not execute an activity without a registered driver.
+class FrontEndDriver {
+public:
+    virtual ~FrontEndDriver() = default;
+    [[nodiscard]] virtual bool initialize(
+        const progress::Record& current_profile,
+        progress::FinaleGate& finale_gate,
+        std::string& error) = 0;
+    [[nodiscard]] virtual ActivityFrameOutput advance(
+        const ActivityFrameInput& input) = 0;
+};
+
 class ActivityDriver {
 public:
     virtual ~ActivityDriver() = default;
@@ -162,6 +176,9 @@ enum class FrameKind {
     Intercept,
     FrontEndRequiresAdapter,
     ActivityRequiresAdapter,
+    FrontEndInitialized,
+    FrontEndUpdated,
+    FrontEndFailed,
     ActivityInitialized,
     ActivityUpdated,
     ActivityFailed,
@@ -188,6 +205,7 @@ public:
     [[nodiscard]] GameGlobals& globals() noexcept { return globals_; }
 
     void install(ActivityId id, std::unique_ptr<ActivityDriver> driver);
+    void install_activity_select(std::unique_ptr<FrontEndDriver> driver);
     [[nodiscard]] bool select_profile(int index) noexcept;
     void set_outer_state(game_flow::State state) noexcept;
     [[nodiscard]] GameFrame advance(const ActivityFrameInput& input);
@@ -196,6 +214,8 @@ public:
 private:
     void apply_effects(const ActivityFrameOutput& output) noexcept;
     std::array<std::unique_ptr<ActivityDriver>, kActivityCount> drivers_{};
+    std::unique_ptr<FrontEndDriver> activity_select_driver_{};
+    bool activity_select_initialized_{};
     std::optional<ActivityId> initialized_activity_{};
     GameGlobals globals_{};
 };
