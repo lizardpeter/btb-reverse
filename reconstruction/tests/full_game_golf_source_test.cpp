@@ -141,7 +141,23 @@ data\subgamegolf\wendy.bmp
            btb::progress::Slot::Golf);
     assert(game.globals().player_progress[0].get(btb::progress::Slot::Golf) == 1);
     assert(game.globals().dispatcher.current_state == 0x3C);
+    assert(game.globals().dispatcher.saved_state == 0x36);
+    assert(game.globals().menu.replay_class == 1);
     assert(!handle->round()); // released once, never duplicated
+
+    // Original 0x3F replay difficulty action -32 writes value 2 into
+    // global 0x51C284, then re-enters saved Golf init state 0x36.
+    game.globals().menu.variant_selection_origin =
+        btb::game_flow::State::PlayAgainDifficultyUpdate;
+    game.globals().menu.source_variant = 2;
+    game.set_outer_state(btb::game_flow::State::GolfInit);
+    auto again = game.advance({});
+    assert(again.kind == FrameKind::ActivityInitialized);
+    assert(handle->round());
+    assert(handle->round()->difficulty() == 2);
+    assert(handle->round()->attempts_remaining() == 5);
+    std::string error;
+    assert(game.unload_current(error));
 
     fs::remove_all(root);
 }
