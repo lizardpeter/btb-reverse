@@ -287,6 +287,17 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
         apply_effects(result.effects);
         result.state_changed =
             result.effects.next_outer_state.has_value();
+        consume_menu_action(state.state, result);
+        if (result.menu_action &&
+            result.menu_action->requires_source_variant) {
+            // No fabricated 0x51C344/348/34C dino variant values.
+            // Retail initializes these in its pregame bookkeeping; the
+            // host must supply the actual values before selecting species.
+            result.kind = FrameKind::FrontEndFailed;
+            result.error =
+                "native Dino chooser source-variant globals are not initialized";
+            return result;
+        }
         result.kind = FrameKind::FrontEndUpdated;
         return result;
     }
