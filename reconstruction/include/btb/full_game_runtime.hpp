@@ -3,6 +3,7 @@
 #include "btb/game_flow.hpp"
 #include "btb/front_end_ui.hpp"
 #include "btb/full_game_menu_actions.hpp"
+#include "btb/full_game_pregame.hpp"
 #include "btb/full_game_replay_transition.hpp"
 #include "btb/player_progress.hpp"
 #include "btb/player_profiles.hpp"
@@ -224,6 +225,8 @@ struct GameGlobals {
     progress::FinaleGate finale_gate{};
     int shared_completion_code{-1};
     RetailMenuState menu{};
+    std::int32_t retained_herding_difficulty{}; // 0x51C340
+    bool spud_skate_start_latch{}; // 0x51C32C
     int ui_context{};
     bool input_pulse{};
 };
@@ -249,6 +252,8 @@ struct GameFrame {
     std::optional<ActivityId> activity{};
     ActivityFrameOutput effects{};
     std::optional<RetailMenuAction> menu_action{};
+    std::optional<RetailPregameAction> pregame_action{};
+    bool requires_original_walkthrough_host{};
     std::optional<ReplayPreparationPlan> replay_preparation{};
     std::string error{};
     bool clear_input_pulse{};
@@ -269,6 +274,9 @@ public:
     [[nodiscard]] bool install_generic_front_end_pair(
         game_flow::State setup_state,
         std::unique_ptr<FrontEndDriver> driver);
+    [[nodiscard]] bool install_pregame_front_end_pair(
+        game_flow::State setup_state,
+        std::unique_ptr<FrontEndDriver> driver);
     [[nodiscard]] bool select_profile(int index) noexcept;
     [[nodiscard]] bool load_profile_files(
         const std::filesystem::path& directory,
@@ -287,6 +295,9 @@ public:
 private:
     void apply_effects(const ActivityFrameOutput& output) noexcept;
     void consume_menu_action(
+        game_flow::State update,
+        GameFrame& result) noexcept;
+    void consume_pregame_action(
         game_flow::State update,
         GameFrame& result) noexcept;
     std::array<std::unique_ptr<ActivityDriver>, kActivityCount> drivers_{};
