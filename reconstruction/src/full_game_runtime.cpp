@@ -234,9 +234,15 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
     globals_.dispatcher.current_state = dispatch.current_state;
     globals_.dispatcher.generic_screen_mode =
         dispatch.generic_screen_mode;
+    ActivityFrameInput effective_input = input;
     if (dispatch.clear_input_pulse) {
         globals_.input_pulse = false;
         result.clear_input_pulse = true;
+        // When native global Bink mode 13/14 finishes, retail clears
+        // 0x4FBE54 BEFORE the restored state executes on this same frame.
+        // Suppress the host's matching click event as well; otherwise a
+        // movie-dismissal click can incorrectly activate a menu choice.
+        effective_input.click_pulse = false;
     }
 
     if (dispatch.intercept == game_flow::Intercept::InvalidState) {
@@ -293,7 +299,7 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
             globals_.finale_gate, record);
         activity_select_driver_->synchronize_finale_gate(
             globals_.finale_gate);
-        result.effects = activity_select_driver_->advance(input);
+        result.effects = activity_select_driver_->advance(effective_input);
         apply_effects(result.effects);
         result.state_changed = result.effects.next_outer_state.has_value();
         consume_menu_action(state.state, result);
@@ -336,6 +342,15 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
                 // Native setup loads the instructed generic screen, then
                 // opens the independent walkthrough via 0x4281D0.
                 result.requires_original_walkthrough_host = true;
+                result.original_walkthrough_index = retail_walkthrough_index(
+                    pregame->setup,globals_.menu.selected_subgame);
+                if (!result.original_walkthrough_index) {
+                    result.kind = FrameKind::FrontEndFailed;
+                    result.error = "original walkthrough index requires the "
+                                   "0/1 selected subgame global";
+                    generic_front_end_initialized_[key] = false;
+                    return result;
+                }
                 globals_.dispatcher.generic_screen_mode =
                     static_cast<int>(pregame->screen);
                 if (pregame->setup ==
@@ -366,7 +381,7 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
             return result;
         }
         driver->synchronize_finale_gate(globals_.finale_gate);
-        result.effects = driver->advance(input);
+        result.effects = driver->advance(effective_input);
         apply_effects(result.effects);
         result.state_changed =
             result.effects.next_outer_state.has_value();
@@ -449,7 +464,7 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
         return result;
     }
 
-    result.effects = drivers_[index]->advance(input);
+    result.effects = drivers_[index]->advance(effective_input);
     result.kind = FrameKind::ActivityUpdated;
 
     if (result.effects.save_and_unload &&
