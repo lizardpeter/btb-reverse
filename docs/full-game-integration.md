@@ -211,3 +211,21 @@ Fireworks animation/resource reinitialization still needs a full driver.
 See [exact x86 menu routing](full-game-menu-actions.md) and
 [per-branch CSV evidence](../ghidra/gameflow_menu_action_routes.csv).
 No full compile or source-test execution has occurred.
+
+## Retail common replay preparation and input-interruptible voice
+
+Direct disassembly of the original `0x42CFD0` routine has closed the
+shared Play Again prelude used by the original activity exit flows.
+It releases the prior activity-music group, draws the replay underlay,
+sets native latch `0x51C300 = 1`, stops all currently managed sounds,
+plays **`PA_BOB_01.wav` (ID 573)** with priority 50 / class 1, and marks
+that managed sound input-interruptible.
+
+`full_game_replay_transition.hpp` captures this behavior; on Golf/Band
+exits, `GameRoot` now sends the stop/play instructions and records the
+replay-active latch. `full_game_audio.cpp` honors the original
+input-interruptible slot state for later managed sound reaping.
+
+This is source-level audio/lifecycle coverage, **not** actual DirectSound
+or DirectDraw output. Exact reference: [native replay preparation and
+menu branch evidence](full-game-menu-actions.md).
