@@ -296,6 +296,31 @@ bool Editor::advance_play_pending(bool managed_sound_playing) noexcept {
     return true;
 }
 
+bool Editor::update_delete_mode_lifetime(
+    int cursor_y, bool deletion_latched_this_frame) noexcept {
+
+    if (!delete_mode_) {
+        return false;
+    }
+
+    // 0x4200C3..0x4200EB: native cancels delete mode outside the
+    // strict 289 < Y < 401 editor band when no deletion occurred.
+    if (!deletion_latched_this_frame &&
+        (cursor_y <= 289 || cursor_y >= 401)) {
+        delete_mode_ = false;
+        return true;
+    }
+    return false;
+}
+
+void Editor::start_playback() noexcept {
+    if (state_ == InternalState::BeginPlayback) {
+        state_ = InternalState::Playback;
+        selected_machine_ = -1;
+        delete_mode_ = false;
+    }
+}
+
 void Editor::stop_playback() noexcept {
     state_ = InternalState::EditIdle;
     play_pending_ = false;
