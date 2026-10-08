@@ -159,6 +159,13 @@ target_include_directories(btb_maze_spud_controller_tests PRIVATE include)
 target_compile_features(btb_maze_spud_controller_tests PRIVATE cxx_std_26)
 add_test(NAME maze_spud_controller COMMAND btb_maze_spud_controller_tests)
 
+add_executable(btb_maze_spud_neighbor_tests
+    tests/maze_spud_neighbor_test.cpp
+)
+target_include_directories(btb_maze_spud_neighbor_tests PRIVATE include)
+target_compile_features(btb_maze_spud_neighbor_tests PRIVATE cxx_std_26)
+add_test(NAME maze_spud_neighbor COMMAND btb_maze_spud_neighbor_tests)
+
 
 add_library(btb_herding
     src/herding_data.cpp
