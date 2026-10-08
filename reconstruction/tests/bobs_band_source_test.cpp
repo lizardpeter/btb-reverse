@@ -74,7 +74,10 @@ int main() {
     assert(!loaded.decode_le_dwords(broken));
     assert(loaded.cells() == grid.cells());
 
-    assert(grid_hit(44,310)->row == 0);
+    assert(!grid_hit(44,310));
+    assert(!grid_hit(67,320));
+    assert(!grid_hit(60,329));
+    assert(grid_hit(45,311)->row == 0);
     assert(grid_hit(595,404)->second == 23);
     assert(!grid_hit(596,405));
     assert(pitch_sample_index(0,9) == 49);
