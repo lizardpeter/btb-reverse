@@ -1,6 +1,7 @@
 #include "btb/full_game_generic_ui.hpp"
 #include "btb/full_game_pregame.hpp"
 
+#include <array>
 #include <cassert>
 #include <memory>
 #include <string>
@@ -93,10 +94,25 @@ int main() {
         const auto initialized=root.advance({});
         assert(initialized.kind == FrameKind::FrontEndInitialized);
         assert(initialized.requires_original_walkthrough_host);
+        if (pregame.starts_global_movie_mode14) {
+            assert(root.globals().dispatcher.current_state ==
+                   static_cast<int>(pregame.setup));
+            assert(root.globals().dispatcher.generic_screen_mode == 14);
+            // A global intro movie must not be skipped. Native mode-14
+            // returns without dispatch while Bink is still playing.
+            assert(root.advance({}).kind == FrameKind::Intercept);
+            root.globals().dispatcher.global_movie_finished = true;
+            const auto resumed=root.advance({});
+            assert(resumed.kind == FrameKind::FrontEndUpdated);
+            assert(resumed.clear_input_pulse);
+            assert(root.globals().dispatcher.generic_screen_mode ==
+                   (pregame.update == State::FireworksPregameUpdate
+                        ? 7 : 2));
+        }
         assert(root.globals().dispatcher.current_state ==
                static_cast<int>(pregame.update));
 
-        const int easy_index = pregame.selected_difficulty ? 1 : 1;
+        const int easy_index = 1;
         auto easy=click_area(root,easy_index);
         assert(easy.kind == FrameKind::FrontEndUpdated);
         assert(easy.requires_original_walkthrough_host);
@@ -132,6 +148,11 @@ int main() {
         // hover/click state. Back must return to its actual parent chooser.
         root.set_outer_state(pregame.setup);
         assert(root.advance({}).kind == FrameKind::FrontEndInitialized);
+        if (pregame.starts_global_movie_mode14) {
+            assert(root.advance({}).kind == FrameKind::Intercept);
+            root.globals().dispatcher.global_movie_finished = true;
+            assert(root.advance({}).kind == FrameKind::FrontEndUpdated);
+        }
         auto back=click_area(root,0);
         assert(back.pregame_action);
         assert(back.pregame_action->leaves_to_parent);
@@ -151,6 +172,9 @@ int main() {
             std::vector<int>(6,0))));
     herding.set_outer_state(State::HerdingPregameSetup);
     assert(herding.advance({}).kind == FrameKind::FrontEndInitialized);
+    assert(herding.advance({}).kind == FrameKind::Intercept);
+    herding.globals().dispatcher.global_movie_finished = true;
+    assert(herding.advance({}).kind == FrameKind::FrontEndUpdated);
     const auto hard=click_area(herding,3);
     assert(hard.pregame_action->difficulty == 2);
     assert(herding.globals().retained_herding_difficulty == 2);
