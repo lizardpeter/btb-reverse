@@ -75,17 +75,22 @@ directly jump into the 68-state table:
 - Replay difficulty **-30..-32**
 
 The shared driver returns `negative_ui_action` to the enclosing native
-state's owner; it does not invent a target state from these numbers. Positive
-actions in the valid original 0..67 range can route to the corresponding
-outer state after managed voice completion. The Options flag **-99** stays
-a separate modal action.
+state's owner. **The recovered outer game root now interprets the
+source-proven chooser/replay negative branches**, including Music conductor,
+Dino species, Spud/Adventure destination, Play Again, and replay difficulty.
+These branch targets come from the original x86 jump tables, not invented
+target states. Positive actions in the valid original 0..67 range still
+route directly after managed voice completion. Options **-99** remains a
+separate modal action. See [binary-verified menu actions](full-game-menu-actions.md).
 
 ### Still missing before end-to-end completeness
 
-The routing layer is now available, but the native per-state interpretation
-of these negative action values, screen-specific backdrop/sprite drawing,
-UI surface lifetimes, pregame walkthrough transitions, real DirectSound
-completion, and the movie bridge remain to be connected.
+The chooser/replay negative action state mutations are now source-integrated,
+but screen-specific overlay/sprite drawing, UI surface lifetimes, pregame
+walkthroughs and difficulty instruction updates, Help presentation, real
+DirectSound completion, and the movie bridge remain unbound. Fireworks
+Edit/View requires its original in-game animation/resource reset, not
+just the recovered destination state.
 
 The original `loaddata/uiBitmapName.txt` also contains 24 ordered bitmap
 paths plus an `END.bmp` sentinel. Those map to page states, not a one-to-one
