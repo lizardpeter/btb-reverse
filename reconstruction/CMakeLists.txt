@@ -173,6 +173,13 @@ target_include_directories(btb_maze_spud_carry_tests PRIVATE include)
 target_compile_features(btb_maze_spud_carry_tests PRIVATE cxx_std_26)
 add_test(NAME maze_spud_carry COMMAND btb_maze_spud_carry_tests)
 
+add_executable(btb_maze_spud_reset_tests
+    tests/maze_spud_reset_test.cpp
+)
+target_include_directories(btb_maze_spud_reset_tests PRIVATE include)
+target_compile_features(btb_maze_spud_reset_tests PRIVATE cxx_std_26)
+add_test(NAME maze_spud_reset COMMAND btb_maze_spud_reset_tests)
+
 
 add_library(btb_herding
     src/herding_data.cpp
