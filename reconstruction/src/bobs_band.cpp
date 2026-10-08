@@ -220,7 +220,7 @@ EditResult Editor::click_grid(Cell cell) noexcept {
         state_ = InternalState::BrickSelected;
         selected_machine_ = removed->machine_type;
         return {
-            EditEvent::NotePickedUp, selected_machine_, true, false, false
+            EditEvent::NotePickedUp, selected_machine_, false, false, false
         };
     }
 
