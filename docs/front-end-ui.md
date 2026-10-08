@@ -436,8 +436,7 @@ Activity Select screen, as an actual `FrontEndDriver` of the shared
   is changed only after managed feedback is idle.
 - The Firework tile has `target_state_or_action == 0x22` in the
   source file. Before all prerequisites are met the click opens
-  the progress overlay without replacing `0x0051C2BC`/outer-state
-  ownership; after unlocking it routes to normal pregame state 0x22.
+  the progress overlay without replacing the outer game-flow state; after unlocking it routes to normal pregame state 0x22.
 - Negative target actions -1 (Back) and -6 (Help) are returned as
   unresolved UI actions to the shared frontend host, **never** fed
   into the unsigned 68-entry game dispatcher.
