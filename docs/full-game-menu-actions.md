@@ -118,3 +118,38 @@ choices, replay difficulty and actual activity-root field propagation.
 Following the current project instruction, **no full compilation, CTest
 run, or new executable was performed**. Native screenshot/input/sound
 differential tests remain necessary for full reversal.
+
+## Common Play Again preparation — further binary closure
+
+The shared routine at `0x0042CFD0`, called by Golf and Band before their
+activity-specific unload, has been recovered as a separate
+`full_game_replay_transition.hpp` policy step.
+
+Native instruction order:
+
+1. release the previous activity-music group at `0x51C2B4`;
+2. render the shared Play Again underlay using the COM draw method;
+3. set play-again active latch **`0x51C300 = 1`**;
+4. call `0x402C90 StopAllManagedSounds`;
+5. call `0x402CF0 PlayManagedSoundById(573, 50, 1)`;
+6. look up that managed sound's active slot and set its
+   `+0xD98` **input-interruptible flag to 1**.
+
+Original `Data/sound/binklist.txt` confirms **ID 573 =
+`PA_BOB_01.wav`**.
+
+`GameRoot` now marks this exact transition and appends the original
+stop-and-replay-voice operations to the source-neutral activity-exit effect
+stream. The shared `AudioEffectPlanner` now honors the per-request
+input-interruptible flag, allowing the recovered native sound manager's
+`reap_finished_slots` rule to stop/rewind the replay voice on input.
+
+What remains: the actual COM music-group release, replay-underlay render,
+real DirectSound buffer playback, and observed slot/status feedback from
+the final platform backend. These are exposed as original lifecycle/effect
+requirements, not falsely represented as a completed audio renderer.
+
+Additional source-only regression cases were added to
+`full_game_audio_source_test.cpp`, `full_game_golf_source_test.cpp`, and
+`full_game_bobs_band_source_test.cpp`. They remain **uncompiled and unrun**
+under the project's current source-first policy.
