@@ -83,11 +83,21 @@ data\subgamegolf\wendy.bmp
     assert(step.effects.progress_writes.empty());
 
     for (int shot=0; shot<5; ++shot) {
-        handle->queue_control({.accept_aim=true});
-        step = game.advance({});
+        if (shot == 0) {
+            // Original printed manual: click/Space selects angle, second
+            // click/Space locks power. No invented pointer-to-angle mapping.
+            step = game.advance({.click_pulse=true});
+        } else {
+            handle->queue_control({.accept_aim=true});
+            step = game.advance({});
+        }
         assert(handle->round()->state() == btb::golf::RoundState::PowerMeter);
-        handle->queue_control({.accept_power=true});
-        step = game.advance({});
+        if (shot == 0) {
+            step = game.advance({.click_pulse=true});
+        } else {
+            handle->queue_control({.accept_power=true});
+            step = game.advance({});
+        }
         step = game.advance({}); // launch -> swing delay
         assert(handle->round()->state() ==
                btb::golf::RoundState::SwingAnimationDelay);
