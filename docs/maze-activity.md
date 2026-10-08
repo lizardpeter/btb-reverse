@@ -382,9 +382,19 @@ These branches are covered by `maze_spud_controller_test.cpp` as a standalone
 C++26 CTest regression. Numeric constants and state decisions come from
 the identified 2002 retail binary, not guessed replacement behavior.
 
-**Not yet closed:** the full randomized neighbor/cycle selection in state 4,
-exact per-frame behavior while carrying in state 5, and the route rebuild in
-state 6. The corresponding state targets are identified, but they must be
-promoted to C++26 only after the path-array indexing and collision/animation
-side effects are fully established. The Maze minigame should not yet be
-described as completely reconstructed.
+**State 4 route selection closed:** the original routine first rotates the
+last direction by 180 degrees (`(previous + 2) % 4`) and picks a random
+starting slot with `rand()%4`. It scans all four node links cyclically.
+Pass 1 excludes that reverse direction, Spud's potential neighbor matching
+the player's current node, any of the player's four linked neighbors, and
+missing links (`-1`). Pass 2 allows the reverse direction while retaining
+the player-neighborhood exclusions. Pass 3 allows any non-`-1` neighbor.
+The implementation in `select_spud_return_neighbor` retains the retail
+degenerate fallthrough: if every link is `-1`, the handler still selects
+the original randomized direction and enters phase 5 with node `-1`.
+`maze_spud_neighbor_test.cpp` checks all three scan passes, cyclic wrap,
+and that failure case.
+
+**Not yet closed:** the complete per-frame motion, collision, package-drop
+and animation side effects in phase 5, plus the route rebuild in phase 6.
+The full Spud NPC cannot yet be described as completely reconstructed.
