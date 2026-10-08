@@ -1,5 +1,6 @@
 #include "btb/full_game_effect_pipeline.hpp"
 
+#include <iterator>
 #include <utility>
 
 namespace btb::full_game {
