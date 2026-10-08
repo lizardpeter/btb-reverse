@@ -28,7 +28,9 @@ struct RetailMenuState {
     // selected source_variant when Dino's three species are chosen.
     // Do not replace these with species indices: the native instruction
     // sequence copies 0x51C344 / 0x51C348 / 0x51C34C respectively.
-    std::array<std::optional<std::int32_t>,3> dino_source_variants{};
+    // These addresses live in the original uninitialized image region and
+    // are zero-filled by the PE loader until the Dino pregame updates them.
+    std::array<std::optional<std::int32_t>,3> dino_source_variants{{0,0,0}};
 };
 
 struct RetailMenuAction {
