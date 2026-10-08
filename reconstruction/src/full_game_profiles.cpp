@@ -11,6 +11,11 @@ bool GameRoot::load_profile_files(
     const std::filesystem::path& directory,
     std::string& error) {
 
+    if (initialized_activity_) {
+        error = "cannot replace player records while an activity is running";
+        return false;
+    }
+
     // Stage every file before changing the live player or unlock state.
     // Retail stores playerinfo.txt separately from five ASCII progress
     // records, each with exactly 100 signed int32 values.
