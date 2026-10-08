@@ -23,7 +23,7 @@ struct MachineSprite {
     int machine{}; // 0=Roley, 1=Muck, 2=Lofty, 3=Dizzy, 4=Scoop
     int type{};    // machine*2 + (state == TwoSeconds)
     Point destination{};
-    Size frame_size{};
+    Size frame_size{}; // authoritative source-rect stride from machinedata.txt
     int source_frame{};
     bool animated{};
 };
@@ -60,20 +60,5 @@ struct ConductorEditorAnimation {
     // it continues through 20..49. Frame 50 always wraps to frame zero.
     [[nodiscard]] bool advance(int random_value) noexcept;
 };
-
-inline constexpr std::array<Size, 5> kSourceFallbackShortMachineFrames{{
-    {189,168}, // Roley
-    {200,162}, // Muck
-    {165,238}, // Lofty
-    {84,102},  // Dizzy
-    {132,143}, // Scoop
-}};
-inline constexpr std::array<Size, 5> kSourceFallbackLongMachineFrames{{
-    {246,177},
-    {222,177},
-    {177,242},
-    {85,103},
-    {138,167},
-}};
 
 } // namespace btb::bobs_band
