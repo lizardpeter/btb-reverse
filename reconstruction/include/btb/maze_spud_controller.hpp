@@ -308,6 +308,55 @@ spud_dropped_package_position(float x, float y) noexcept {
     return {static_cast<std::int32_t>(x), static_cast<std::int32_t>(y)};
 }
 
+// The state-1 spawn and state-6 path reset both choose the terminal node
+// with the same middle-screen parity branch. Middle screen (index 1)
+// uses node 15 for rand()%2==0 and node 0 otherwise. Other screens use 0.
+[[nodiscard]] constexpr std::int32_t spud_random_edge_node(
+    std::int32_t current_screen,
+    std::int32_t random_modulo_two) noexcept {
+    return current_screen == 1 && random_modulo_two == 0 ? 15 : 0;
+}
+
+// Retail scans direction slots 0..3 in order and accepts the first match.
+// If the target is not linked, it preserves index 4, not -1.
+[[nodiscard]] constexpr std::int32_t spud_direction_to_path_node(
+    const std::array<std::int32_t,4>& linked_nodes,
+    std::int32_t next_path_node) noexcept {
+    for (std::int32_t i = 0; i < 4; ++i) {
+        if (linked_nodes[static_cast<std::size_t>(i)] ==
+            next_path_node) {
+            return i;
+        }
+    }
+    return 4;
+}
+
+// 0x0041D33D: phase 6 clears collision latch, builds a shortest path from
+// current NPC node to the selected edge target, sets path index 0, enters
+// phase 7, clears carrying and sets animation delay to signed trunc(ticks/2).
+struct SpudReturnRouteBuildPlan {
+    SpudNpcPhase next_phase{SpudNpcPhase::TravelHome};
+    std::int32_t target_node{};
+    std::int32_t first_path_index{};
+    std::int32_t animation_countdown{};
+    bool clear_collision_latch{true};
+    bool clear_carrying_flag{true};
+};
+
+[[nodiscard]] constexpr SpudReturnRouteBuildPlan spud_return_route_build(
+    std::int32_t current_screen,
+    std::int32_t random_modulo_two,
+    std::int32_t difficulty_animation_ticks) noexcept {
+    return {
+        SpudNpcPhase::TravelHome,
+        spud_random_edge_node(current_screen, random_modulo_two),
+        0,
+        difficulty_animation_ticks / 2,
+        true,
+        true,
+    };
+}
+
 // The phase-3 handler zeroes 0x00512154 and enters phase 4 immediately.
 [[nodiscard]] constexpr SpudNpcPhase spud_begin_return_phase() noexcept {
     return SpudNpcPhase::ChooseReturnRoute;
