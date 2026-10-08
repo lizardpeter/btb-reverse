@@ -58,8 +58,11 @@ int main() {
         assert(band.selected_subgame == selected);
         assert(band.subgame_selection_origin == State::MusicChooserUpdate);
     }
+    auto missing_native_variant = initial;
+    missing_native_variant.dino_source_variants[0].reset();
     assert(route_retail_menu_action(
-        State::DinoChooserUpdate,-2,initial,0).requires_source_variant);
+        State::DinoChooserUpdate,-2,missing_native_variant,0)
+        .requires_source_variant);
 
     assert(route_retail_menu_action(
         State::SpudChooserUpdate,-2,initial,0).next_state ==
