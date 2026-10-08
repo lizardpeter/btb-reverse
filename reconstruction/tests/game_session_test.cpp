@@ -7,7 +7,7 @@
 #define CHECK(test) do { \
     if (!(test)) { \
         std::cerr << "game_session check failed at line " << __LINE__ \
-                  << ": " #test << '\\n'; \
+                  << ": " #test << '\n'; \
         return 1; \
     } \
 } while (false)
