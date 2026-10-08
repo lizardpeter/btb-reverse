@@ -112,6 +112,11 @@ ActivityFrameOutput GenericUiScreenDriver::advance(
     if (!initialized_) {
         return result;
     }
+    // Background stays visible while voice-gated clicks are pending.
+    // The caller supplies the real 23-entry source index for this state.
+    if (backdrop_) {
+        result.draws.push_back(*backdrop_);
+    }
     const auto index = static_cast<std::size_t>(screen_);
     const auto& records = catalog_.replacements[index].records;
 
