@@ -3,6 +3,7 @@
 #include "btb/game_flow.hpp"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 
@@ -18,6 +19,7 @@ struct RetailMenuState {
     std::int32_t selected_subgame{};  // original 0x0051C2E4
     std::int32_t source_variant{};    // original 0x0051C284
     std::int32_t replay_class{};      // original 0x0051C2FC (0/1/2)
+    bool replay_active_latch{};     // original 0x0051C300
     std::int32_t fireworks_view_mode{}; // original 0x0050A5BC
 
     // Three values initialized separately by retail and copied into the
