@@ -86,6 +86,33 @@ retail_pregame_for_state(game_flow::State state) noexcept {
     return nullptr;
 }
 
+// Argument passed to the independent 0x4281D0 OpenWalkthroughMovie.
+// The Spud and Adventure groups calculate these from original global
+// 0x51C2E4, not from the outer state number or difficulty. No synthetic
+// Bink filenames are constructed here; the retail binkwalk table owns them.
+[[nodiscard]] constexpr std::optional<int> retail_walkthrough_index(
+    game_flow::State setup,
+    int selected_subgame) noexcept {
+    using game_flow::State;
+    switch (setup) {
+    case State::HerdingPregameSetup: return 0;
+    case State::DinoPregameSetup: return 1;
+    case State::SpudSkatePregameSetup:
+    case State::SpudMazePregameSetup:
+        return selected_subgame >= 0 && selected_subgame <= 1
+            ? std::optional<int>{2 + selected_subgame} : std::nullopt;
+    case State::MazePregameSetup:
+    case State::GolfPregameSetup:
+        return selected_subgame >= 0 && selected_subgame <= 1
+            ? std::optional<int>{4 + selected_subgame} : std::nullopt;
+    case State::FireworksPregameSetup: return 6;
+    case State::SquirrelPregameSetup: return 7;
+    case State::BobsBandPregameSetup: return 8;
+    case State::ParkDesignerPregameSetup: return 9;
+    default: return std::nullopt;
+    }
+}
+
 // State effects directly recovered from all ten 6-entry action+6 jump tables:
 // -6 Help/no-transition, -5 Start, -4 Hard, -3 Medium, -2 Easy or
 // screen-specific Start, -1 Back. Values outside that interval never jump.
