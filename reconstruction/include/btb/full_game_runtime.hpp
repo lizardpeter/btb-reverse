@@ -92,7 +92,8 @@ struct Draw {
     bool color_keyed{};
 };
 enum class AudioOperation {
-    PlayFile,
+    StartBackingTrack,
+    PlaySampleFile,
     StopBackingTrack,
     StopManagedSounds,
     ManagedSoundId,
