@@ -136,6 +136,14 @@ data\subgamegolf\wendy.bmp
     // the owning GameRoot record and changes outer state to Play Again.
     assert(step.kind == FrameKind::ActivityUpdated);
     assert(step.effects.save_and_unload);
+    assert(step.replay_preparation);
+    assert(step.replay_preparation->voice_sound_id == 573);
+    assert(game.globals().menu.replay_active_latch);
+    assert(step.effects.audio.size() >= 2);
+    assert(step.effects.audio[step.effects.audio.size()-2].operation ==
+           AudioOperation::StopManagedSounds);
+    assert(step.effects.audio.back().sound_id == 573);
+    assert(step.effects.audio.back().input_interruptible);
     assert(step.effects.progress_writes.size() == 1);
     assert(step.effects.progress_writes[0].slot ==
            btb::progress::Slot::Golf);
