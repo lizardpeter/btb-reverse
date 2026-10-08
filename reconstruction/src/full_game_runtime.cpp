@@ -159,6 +159,12 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
             result.error = "Activity Select state 0x05 entered without setup 0x04";
             return result;
         }
+        const auto& record = globals_.player_progress[
+            static_cast<std::size_t>(*globals_.active_profile)];
+        globals_.finale_gate = progress::update_finale_gate_from_progress(
+            globals_.finale_gate, record);
+        activity_select_driver_->synchronize_finale_gate(
+            globals_.finale_gate);
         result.effects = activity_select_driver_->advance(input);
         apply_effects(result.effects);
         result.state_changed = result.effects.next_outer_state.has_value();
