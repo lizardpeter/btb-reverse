@@ -185,6 +185,65 @@ struct SpudHomeArrival {
     };
 }
 
+// Phase 4 (0x0041CFFA..0x0041D1C9) attempts all four directions in circular
+// order starting at rand()%4. Pass 1 excludes reversal AND the player node/
+// neighbors; pass 2 allows reversal; pass 3 allows any non--1 link. When all
+// links are -1 the retail code still selects the original random direction.
+struct SpudNeighborSelection {
+    std::int32_t direction{};
+    std::int32_t node_id{-1};
+    std::int32_t attempt_pass{}; // 1,2,3; 4 = none found.
+    std::int32_t opposite_previous_direction{};
+    bool found_eligible_neighbor{};
+};
+
+[[nodiscard]] constexpr SpudNeighborSelection select_spud_return_neighbor(
+    const std::array<std::int32_t,4>& spud_links,
+    std::int32_t previous_direction,
+    std::int32_t random_start,
+    std::int32_t player_node,
+    const std::array<std::int32_t,4>& player_links) noexcept {
+
+    // Retail's previous direction is a valid 0..3 index.
+    const auto opposite = previous_direction < 2
+        ? previous_direction + 2 : previous_direction - 2;
+    const auto start = random_start & 3;
+
+    for (std::int32_t pass = 1; pass <= 3; ++pass) {
+        for (std::int32_t offset = 0; offset < 4; ++offset) {
+            const auto direction = (start + offset) & 3;
+            const auto neighbor =
+                spud_links[static_cast<std::size_t>(direction)];
+            if (pass == 1 && direction == opposite) {
+                continue;
+            }
+            if (pass <= 2) {
+                if (neighbor == player_node) {
+                    continue;
+                }
+                bool adjacent_to_player = false;
+                for (const auto player_link : player_links) {
+                    if (neighbor == player_link) {
+                        adjacent_to_player = true;
+                        break;
+                    }
+                }
+                if (adjacent_to_player) {
+                    continue;
+                }
+            }
+            if (neighbor != -1) {
+                return {direction, neighbor, pass, opposite, true};
+            }
+        }
+    }
+
+    // The third scan has no post-failure escape: retail enters phase 5 with
+    // the original random direction and its -1 link in this degenerate case.
+    return {start, spud_links[static_cast<std::size_t>(start)],
+            4, opposite, false};
+}
+
 // The phase-3 handler zeroes 0x00512154 and enters phase 4 immediately.
 [[nodiscard]] constexpr SpudNpcPhase spud_begin_return_phase() noexcept {
     return SpudNpcPhase::ChooseReturnRoute;
