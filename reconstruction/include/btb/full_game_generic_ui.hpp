@@ -1,6 +1,7 @@
 #pragma once
 
 #include "btb/full_game_front_end.hpp"
+#include "btb/full_game_ui_bitmaps.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -49,6 +50,15 @@ public:
     [[nodiscard]] const std::vector<front_end::ReplacementRuntimeState>&
     records() const noexcept { return replacements_; }
 
+    // The outer state owns the uiBitmapName.txt index. Generic screen index
+    // is NOT a valid replacement for that separate 23-entry asset table.
+    [[nodiscard]] bool configure_backdrop(
+        const OriginalUiBitmapCatalog& bitmaps,
+        std::size_t original_source_slot) {
+        backdrop_ = bitmaps.backdrop(original_source_slot);
+        return backdrop_.has_value();
+    }
+
 private:
     GenericUiCatalog catalog_{};
     front_end::Screen screen_{};
@@ -56,6 +66,7 @@ private:
     std::vector<front_end::ReplacementRuntimeState> replacements_{};
     front_end::GenericUiRuntimeState ui_state_{};
     bool initialized_{};
+    std::optional<Draw> backdrop_{};
 };
 
 } // namespace btb::full_game
