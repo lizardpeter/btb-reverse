@@ -2,6 +2,7 @@
 
 #include "btb/dino_level.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
