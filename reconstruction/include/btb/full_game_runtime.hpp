@@ -2,10 +2,12 @@
 
 #include "btb/game_flow.hpp"
 #include "btb/player_progress.hpp"
+#include "btb/player_profiles.hpp"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <string>
@@ -165,6 +167,7 @@ public:
 struct GameGlobals {
     game_flow::DispatcherInput dispatcher{};
     std::array<progress::Record, progress::kPlayerCount> player_progress{};
+    profiles::ProfileTable profile_metadata{};
     std::optional<int> active_profile{};
     progress::FinaleGate finale_gate{};
     int shared_completion_code{-1};
@@ -208,6 +211,15 @@ public:
     void install(ActivityId id, std::unique_ptr<ActivityDriver> driver);
     void install_activity_select(std::unique_ptr<FrontEndDriver> driver);
     [[nodiscard]] bool select_profile(int index) noexcept;
+    [[nodiscard]] bool load_profile_files(
+        const std::filesystem::path& directory,
+        std::string& error);
+    [[nodiscard]] bool save_profile_files(
+        const std::filesystem::path& directory,
+        std::string& error) const;
+    void configure_profile_directory(std::filesystem::path directory) {
+        profile_directory_ = std::move(directory);
+    }
     void set_outer_state(game_flow::State state) noexcept;
     [[nodiscard]] GameFrame advance(const ActivityFrameInput& input);
     [[nodiscard]] bool unload_current(std::string& error);
@@ -219,6 +231,7 @@ private:
     bool activity_select_initialized_{};
     std::optional<ActivityId> initialized_activity_{};
     GameGlobals globals_{};
+    std::filesystem::path profile_directory_{};
 };
 
 } // namespace btb::full_game
