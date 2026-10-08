@@ -4,6 +4,7 @@
 #include <exception>
 #include <fstream>
 #include <string>
+#include <utility>
 
 namespace btb::full_game {
 
