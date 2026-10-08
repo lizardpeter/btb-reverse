@@ -165,10 +165,13 @@ Play Again difficulty (0x3E/0x3F), and Fireworks replay edit/view
 (0x42/0x43). These sit alongside the specialized Activity Select pair
 already wired on 0x04/0x05.
 
-Source-only means negative actions (-1/-6, -2..-5, -20/-21,
--30..-32) remain observable and still require their original enclosing
-state-specific interpretations. Rendering and real audio remain unbound.
-See [generic UI source integration](full-game-generic-ui.md).
+The original Dino, Spud, Adventure, Music, Activity Select Back/Help,
+and replay Yes/No/Edit/View/difficulty **negative-action state transitions
+are now reconstructed and applied by the common root**. Instruction,
+walkthrough, Help presentation and source-variant side effects still require
+their respective runtime/renderer adapters. Rendering and real audio remain
+unbound. See [generic UI source integration](full-game-generic-ui.md)
+and [x86 menu branch evidence](full-game-menu-actions.md).
 
 ## Original UI bitmap paths and Golf controls
 
@@ -187,3 +190,24 @@ scaling, swing animation completion, voice completion and exact HUD remain
 outside the driver until original-executable evidence closes them.
 
 No new full compilation, binary packaging, or gameplay session was run.
+
+## Binary-verified chooser/replay action closure
+
+A fresh direct x86 audit recovered the exact `action+6` branch tables
+for the Dino, Spud, Adventure and Music choosers, plus the replay Yes/No,
+replay difficulty and Fireworks Edit/View paths. The former root dropped
+negative actions on the floor; it now consumes the returned actions and
+updates the original global state/variant fields.
+
+The Music chooser's value 0/1/2 is now supplied to
+`BobsBandDriver` to open Bob/Wendy/Farmer's respective original sequence
+file. Both Band and Golf source drivers now set the native saved init state
+(0x2E or 0x36) and replay class 1 when entering Play Again. The replay
+difficulty screen updates Golf's difficulty before the next initialization.
+The Activity Select Back action now correctly enters five-sign
+Player Profile state 0x01. Fireworks Edit/View routing is represented, but
+Fireworks animation/resource reinitialization still needs a full driver.
+
+See [exact x86 menu routing](full-game-menu-actions.md) and
+[per-branch CSV evidence](../ghidra/gameflow_menu_action_routes.csv).
+No full compile or source-test execution has occurred.
