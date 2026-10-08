@@ -395,6 +395,24 @@ the original randomized direction and enters phase 5 with node `-1`.
 `maze_spud_neighbor_test.cpp` checks all three scan passes, cyclic wrap,
 and that failure case.
 
-**Not yet closed:** the complete per-frame motion, collision, package-drop
-and animation side effects in phase 5, plus the route rebuild in phase 6.
-The full Spud NPC cannot yet be described as completely reconstructed.
+**State 5 carrying/collision closure:** its node-seeking speed is **1**
+on Easy/Medium and **2** on Hard. The path-node distance is tracked as a
+minimum in global `0x444238`. Upon node distance **<3**, the handler updates
+the current node and branches to phase **4** if the collision latch was clear,
+or phase **6** if it was already set. Only on that waypoint-arrival branch,
+a `rand()%30 == 0` check may select voice **90..93**.
+
+Every phase-5 frame independently measures player/Spud distance after truncating
+both actors' coordinates. Distance **<60.0** with a clear collision latch
+drops the package: it marks package status **3**, clears the carrying flag,
+sets the collision latch, copies Spud X/Y into the box position by truncation,
+and plays voice **94 or 95**. The order matters: if a waypoint is reached and
+the collision happens on the **same frame**, the next phase was already
+chosen using the old latch. The typed function preserves this and is covered
+by `maze_spud_carry_test.cpp`, along with both strict threshold boundaries.
+
+**Still open:** full phase-6 route rebuilding; source-level integration of the
+recovered independent Spud helpers into a single frame controller; and
+frame-by-frame comparison against the original executable for the NPC's
+randomization and side effects. The full Spud NPC cannot yet be described
+as completely reconstructed.
