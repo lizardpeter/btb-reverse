@@ -90,7 +90,7 @@ int main() {
     assert(md.machine_positions[3].x == 30);
     assert(md.machine_sizes[5].width == 42);
     assert(md.conductor_idle_frame_counts[2] == 64);
-    assert(md.machine_palette_hit_rects[9].left == 190);
+    assert(md.machine_static_animation_rects[9].left == 190);
 
     MachineAnimations machines;
     assert(machines.trigger(1));
@@ -117,8 +117,8 @@ int main() {
     assert(app.active_sequence_filename() == "musicwendy4.txt");
 
     FrameInput click_palette{};
-    click_palette.mouse_x=105;
-    click_palette.mouse_y=210;
+    click_palette.mouse_x=245;
+    click_palette.mouse_y=295;
     click_palette.click_pulse=true;
     const auto palette=app.advance(click_palette);
     assert(app.editor().state() == InternalState::BrickSelected);
