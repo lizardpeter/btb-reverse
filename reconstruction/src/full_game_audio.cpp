@@ -1,5 +1,6 @@
 #include "btb/full_game_audio.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <sstream>
 #include <string>
@@ -58,6 +59,35 @@ const CatalogEntry* SoundCatalog::find(int sound_id) const noexcept {
     }
     const auto& entry = entries_[static_cast<std::size_t>(sound_id)];
     return entry.present ? &entry : nullptr;
+}
+
+void AudioEffectPlanner::populate_retail_filename_records() noexcept {
+    for (std::size_t i = 0; i < sound::kSoundCatalogCount; ++i) {
+        const auto* entry = catalog_.find(static_cast<int>(i));
+        if (!entry) {
+            continue;
+        }
+        auto& fixed = manager_.filename_by_sound_id[i].bytes;
+        // The retail object owns a 20-byte filename record. Catalog::read
+        // guarantees at most 19 ASCII filename bytes, leaving a NUL terminator.
+        std::copy(entry->filename.begin(), entry->filename.end(),
+                  fixed.begin());
+    }
+}
+
+void AudioEffectPlanner::reset() noexcept {
+    manager_ = {};
+    sound::initialize_retail_metadata(manager_);
+    // Reset transient playback slots, not the installed WAV catalog.
+    populate_retail_filename_records();
+}
+
+CatalogLoadResult AudioEffectPlanner::load_catalog(std::istream& input) {
+    auto result = catalog_.read(input);
+    if (result.success) {
+        reset();
+    }
+    return result;
 }
 
 std::string AudioEffectPlanner::sound_file(int sound_id) const {
