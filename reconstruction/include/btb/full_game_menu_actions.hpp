@@ -17,7 +17,9 @@ namespace btb::full_game {
 // Fireworks edit/view runtime mode.
 struct RetailMenuState {
     std::int32_t selected_subgame{};  // original 0x0051C2E4
+    std::optional<game_flow::State> subgame_selection_origin{};
     std::int32_t source_variant{};    // original 0x0051C284
+    std::optional<game_flow::State> variant_selection_origin{};
     std::int32_t replay_class{};      // original 0x0051C2FC (0/1/2)
     bool replay_active_latch{};     // original 0x0051C300
     std::int32_t fireworks_view_mode{}; // original 0x0050A5BC
@@ -183,13 +185,16 @@ struct RetailMenuAction {
 
 constexpr void apply_retail_menu_action(
     RetailMenuState& state,
+    game_flow::State update,
     const RetailMenuAction& action) noexcept {
 
     if (action.selected_subgame) {
         state.selected_subgame = *action.selected_subgame;
+        state.subgame_selection_origin = update;
     }
     if (action.source_variant) {
         state.source_variant = *action.source_variant;
+        state.variant_selection_origin = update;
     }
     if (action.replay_class) {
         state.replay_class = *action.replay_class;
