@@ -48,7 +48,7 @@ EditResult Activity::click(int x, int y) {
     }
 
     for (int i = 0; i < static_cast<int>(kPaletteHitboxes.size()); ++i) {
-        if (data_.machine_palette_hit_rects[static_cast<std::size_t>(i)]
+        if (kPaletteHitboxes[static_cast<std::size_t>(i)]
                 .strict_contains(x,y)) {
             return editor_.choose_machine(i);
         }
