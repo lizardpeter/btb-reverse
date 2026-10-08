@@ -138,6 +138,9 @@ ActivityFrameOutput GolfDriver::advance(
     if (frame.progress_golf_completion) {
         out.progress_writes.push_back({progress::Slot::Golf,1});
         out.save_and_unload = true;
+        out.next_saved_state =
+            static_cast<int>(game_flow::State::GolfInit);
+        out.next_replay_class = 1;
         out.next_outer_state = static_cast<int>(
             game_flow::State::PlayAgainYesNoSetup);
     }
