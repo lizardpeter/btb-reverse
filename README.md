@@ -58,3 +58,19 @@ The main executable is small and unprotected enough that the plan is to recover 
 10. build a faithful source reconstruction of the original game
 
 See `docs/initial-analysis.md` for the first verified anchors.
+
+## First integrated game executable
+
+The new `reconstruction` CMake project now builds `btb_game`, a **Windows
+C++26 preview** that hosts the recovered game-flow dispatcher and a playable
+Dinosaur puzzle using the original `dino.txt` and `piece<ID>.bmp` files.
+
+The preview is a functional *source reconstruction milestone*, **not** the
+complete game or a retail-faithful graphical clone. The other subgames are not
+yet hosted, and the original UI/audio/certificate presentation remain to be
+integrated.
+
+Build/run instructions and current scope: [Integrated C++26 executable](docs/integrated-cpp26-build.md).
+
+Successful GitHub Actions Windows runs publish the source-only
+`btb-game-win64-preview` artifact.
