@@ -32,3 +32,20 @@ jobs:
         run: cmake --build build/reconstruction --parallel
       - name: Test reconstruction
         run: ctest --test-dir build/reconstruction --output-on-failure
+
+  integrated-game-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure C++26 Windows game
+        run: cmake -S reconstruction -B build/reconstruction-win -G "Visual Studio 17 2022" -A x64
+      - name: Build game and integrated regression
+        run: cmake --build build/reconstruction-win --config Release --target btb_game btb_game_session_tests --parallel
+      - name: Verify integrated session on Windows
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^game_session$"
+      - name: Upload source-only preview EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: btb-game-win64-preview
+          path: build/reconstruction-win/Release/btb_game.exe
+          if-no-files-found: error
