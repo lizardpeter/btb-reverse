@@ -33,10 +33,10 @@ MachineData parse_machine_data(std::istream& input) {
             throw std::runtime_error("invalid Bob's Band conductor frame count");
         }
     }
-    for (auto& hit : data.machine_palette_hit_rects) {
+    for (auto& hit : data.machine_static_animation_rects) {
         if (!(input >> hit.left >> hit.top >> hit.right >> hit.bottom) ||
             hit.right <= hit.left || hit.bottom <= hit.top) {
-            throw std::runtime_error("invalid Bob's Band palette rectangle");
+            throw std::runtime_error("invalid Bob's Band static animation rectangle");
         }
     }
 
