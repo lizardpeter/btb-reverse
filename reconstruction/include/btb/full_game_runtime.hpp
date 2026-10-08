@@ -3,6 +3,7 @@
 #include "btb/game_flow.hpp"
 #include "btb/front_end_ui.hpp"
 #include "btb/full_game_menu_actions.hpp"
+#include "btb/full_game_replay_transition.hpp"
 #include "btb/player_progress.hpp"
 #include "btb/player_profiles.hpp"
 
@@ -151,6 +152,7 @@ struct Audio {
     int sound_id{-1};
     int priority{};
     int arbitration_class{};
+    bool input_interruptible{};
 };
 struct ProgressMutation {
     progress::Slot slot{};
@@ -247,6 +249,7 @@ struct GameFrame {
     std::optional<ActivityId> activity{};
     ActivityFrameOutput effects{};
     std::optional<RetailMenuAction> menu_action{};
+    std::optional<ReplayPreparationPlan> replay_preparation{};
     std::string error{};
     bool clear_input_pulse{};
     bool state_changed{};
