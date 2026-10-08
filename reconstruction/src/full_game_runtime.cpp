@@ -333,14 +333,27 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
             globals_.dispatcher.current_state =
                 static_cast<int>(update_state);
             if (pregame) {
-                // Native setup calls OpenWalkthroughMovie @ 0x4281D0 and
-                // registers original instruction surfaces. The real Bink
-                // device must be connected before claiming presentation.
+                // Native setup loads the instructed generic screen, then
+                // opens the independent walkthrough via 0x4281D0.
                 result.requires_original_walkthrough_host = true;
+                globals_.dispatcher.generic_screen_mode =
+                    static_cast<int>(pregame->screen);
                 if (pregame->setup ==
                     game_flow::State::HerdingPregameSetup) {
                     globals_.menu.source_variant =
                         globals_.retained_herding_difficulty;
+                }
+                if (pregame->starts_global_movie_mode14) {
+                    // Herding, Fireworks, Squirrel and Park Designer open
+                    // an additional global Bink at 0x408EB0, DECREMENT
+                    // the state back to setup, then enter screen mode 14.
+                    // The original dispatcher awaits a real host-completed
+                    // Bink and only then increments to update (in the same
+                    // frame) and clears the input pulse. Do not skip it.
+                    globals_.dispatcher.current_state =
+                        static_cast<int>(setup_state);
+                    globals_.dispatcher.generic_screen_mode = 14;
+                    globals_.dispatcher.global_movie_finished = false;
                 }
             }
             result.kind = FrameKind::FrontEndInitialized;
