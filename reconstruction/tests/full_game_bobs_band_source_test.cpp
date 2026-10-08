@@ -138,6 +138,14 @@ static machine animation rectangles
     const auto leave = game.advance({});
     assert(leave.effects.save_and_unload);
     assert(leave.kind == FrameKind::ActivityUpdated);
+    assert(leave.replay_preparation);
+    assert(leave.replay_preparation->voice_sound_id == 573);
+    assert(game.globals().menu.replay_active_latch);
+    assert(leave.effects.audio.size() >= 2);
+    assert(leave.effects.audio[leave.effects.audio.size()-2].operation ==
+           AudioOperation::StopManagedSounds);
+    assert(leave.effects.audio.back().sound_id == 573);
+    assert(leave.effects.audio.back().input_interruptible);
     assert(game.globals().dispatcher.current_state == 0x3C);
     assert(game.globals().ui_context == 0x2E);
     assert(installed->activity() == nullptr);
