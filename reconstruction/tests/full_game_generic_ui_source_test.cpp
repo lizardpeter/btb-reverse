@@ -126,6 +126,8 @@ int main() {
         std::make_unique<GenericUiScreenDriver>(
             catalog,front_end::Screen::PlayAgainYesNo,
             std::vector<int>(2,0))));
+    root.globals().menu.replay_class = 1; // Original Golf/Band exit
+    root.globals().dispatcher.saved_state = 0x36; // Golf initializer
     root.set_outer_state(State::PlayAgainYesNoSetup);
     setup=root.advance({});
     assert(setup.kind == FrameKind::FrontEndInitialized);
@@ -135,6 +137,10 @@ int main() {
     click.click_pulse=false;
     auto selected=root.advance(click);
     assert(selected.effects.negative_ui_action == -20);
+    assert(selected.menu_action && selected.menu_action->recognized);
+    assert(selected.menu_action->next_state ==
+           State::PlayAgainDifficultySetup);
+    assert(selected.state_changed);
     assert(root.globals().dispatcher.current_state ==
-           static_cast<int>(State::PlayAgainYesNoUpdate));
+           static_cast<int>(State::PlayAgainDifficultySetup));
 }
