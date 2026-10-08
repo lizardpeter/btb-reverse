@@ -411,8 +411,26 @@ the collision happens on the **same frame**, the next phase was already
 chosen using the old latch. The typed function preserves this and is covered
 by `maze_spud_carry_test.cpp`, along with both strict threshold boundaries.
 
-**Still open:** full phase-6 route rebuilding; source-level integration of the
-recovered independent Spud helpers into a single frame controller; and
-frame-by-frame comparison against the original executable for the NPC's
-randomization and side effects. The full Spud NPC cannot yet be described
-as completely reconstructed.
+**State 6 return-route setup closure:** state 6 clears the collision
+latch at `0x512154` and calls the existing shortest-path search from Spud's
+current node to a **screen-dependent edge node**. On the middle screen
+(index 1), `rand()%2 == 0` produces node **15** through a literal
+`dec/neg/sbb/and 0xF` sequence; the other parity selects node **0**.
+West/East always select **0**. The routine resets path index to zero,
+enters phase **7**, clears the carrying flag, and sets the sprite timing
+counter to `trunc(difficulty_ticks / 2)`.
+
+Each path setup/waypoint advance derives direction by scanning the current
+node's four link entries in stored order and accepting the **first** match
+for the next path node. A missing match returns **4**, not `-1`. These
+semantics are in `spud_return_route_build`,
+`spud_random_edge_node` and `spud_direction_to_path_node`, with
+`maze_spud_reset_test.cpp` covering parity, duplicate links, no match and
+signed truncation.
+
+**Still open:** source-level integration of these independent Spud helpers
+into one stateful frame controller, preserving the original shared-global
+writes, exact random draw order and original resource/audio manager calls;
+then direct frame-by-frame comparison against retail. Eight state branches
+are now mapped, but the Maze Spud NPC is not yet a complete stand-alone
+reimplementation.
