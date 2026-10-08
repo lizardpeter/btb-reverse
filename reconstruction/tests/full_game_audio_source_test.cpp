@@ -1,4 +1,5 @@
 #include "btb/full_game_audio.hpp"
+#include "btb/full_game_replay_transition.hpp"
 
 #include <cassert>
 #include <sstream>
@@ -16,7 +17,7 @@ int main() {
         "MP_PIC_01.wav 536\n");
     auto parsed = planner.load_catalog(original_like_catalog);
     assert(parsed.success);
-    assert(parsed.entries == 4);
+    assert(parsed.entries == 5);
     assert(planner.catalog().find(510));
     assert(planner.catalog().find(510)->filename == "MP_BOB_01.wav");
     assert(planner.catalog().find(509) == nullptr);
@@ -26,7 +27,7 @@ int main() {
     assert(!bad.success);
     assert(bad.error_line == 2);
     // Reject damaged replacements without losing the installed catalog.
-    assert(planner.catalog().size() == 4);
+    assert(planner.catalog().size() == 5);
     assert(planner.catalog().find(510)->filename == "MP_BOB_01.wav");
 
     // Original managed Play acquisition plays a newly loaded buffer twice.
@@ -105,4 +106,29 @@ int main() {
 
     planner.reset();
     assert(planner.manager().mapped_slot(510) == -1);
+
+    const auto replay_plan = prepare_retail_play_again_transition();
+    assert(replay_plan.voice_sound_id == 573);
+    assert(replay_plan.voice_priority == 50);
+    assert(replay_plan.voice_arbitration_class == 1);
+    assert(replay_plan.voice_input_interruptible);
+    assert(replay_plan.stop_all_managed_sounds);
+
+    const auto voice = planner.plan({{
+        AudioOperation::ManagedSoundId,{},573,50,1,true
+    }},{});
+    assert(voice.managed_results.size() == 1);
+    assert(voice.managed_results[0].slot == 0);
+    assert(planner.manager().input_interruptible[0] == 1);
+    assert(voice.operations[0].filename ==
+           "Data/sound/PA_BOB_01.wav");
+
+    ManagedSoundObservation replay_playing{};
+    replay_playing.playing[0] = true;
+    const auto interrupted = planner.reap(
+        replay_playing,true,false);
+    assert(interrupted.operations.size() == 1);
+    assert(interrupted.operations[0].kind ==
+           SoundEffectKind::StopRewindManagedSlot);
+    assert(interrupted.operations[0].slot == 0);
 }
