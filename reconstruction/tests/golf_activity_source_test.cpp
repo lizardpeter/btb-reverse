@@ -125,16 +125,16 @@ int main() {
     assert(frame.power == 0);
 
     for (int shot=1; shot<5; ++shot) {
-        round.advance({.accept_aim=true});
-        round.advance({.accept_power=true});
-        round.advance({});
-        round.advance({.swing_animation_finished=true});
+        static_cast<void>(round.advance({.accept_aim=true}));
+        static_cast<void>(round.advance({.accept_power=true}));
+        static_cast<void>(round.advance({}));
+        static_cast<void>(round.advance({.swing_animation_finished=true}));
         int frames = 0;
         while (round.state() == RoundState::BallFlight && frames++ < 200) {
-            round.advance({});
+            static_cast<void>(round.advance({}));
         }
         assert(round.state() == RoundState::ResolveLanding);
-        round.advance({});
+        static_cast<void>(round.advance({}));
         const auto feedback = round.advance({.random_value=0});
         assert(feedback.managed_voice.has_value());
         if (shot == 4) {
