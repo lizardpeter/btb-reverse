@@ -65,7 +65,7 @@ data\subgamegolf\wendy.bmp
     auto golf = std::make_unique<GolfDriver>(root,1);
     GolfDriver* handle = golf.get();
     game.install(ActivityId::Golf, std::move(golf));
-    game.set_outer_state(game_flow::State::GolfInit);
+    game.set_outer_state(btb::game_flow::State::GolfInit);
 
     auto step = game.advance({});
     assert(step.kind == FrameKind::ActivityInitialized);
@@ -85,27 +85,27 @@ data\subgamegolf\wendy.bmp
     for (int shot=0; shot<5; ++shot) {
         handle->queue_control({.accept_aim=true});
         step = game.advance({});
-        assert(handle->round()->state() == golf::RoundState::PowerMeter);
+        assert(handle->round()->state() == btb::golf::RoundState::PowerMeter);
         handle->queue_control({.accept_power=true});
         step = game.advance({});
         step = game.advance({}); // launch -> swing delay
         assert(handle->round()->state() ==
-               golf::RoundState::SwingAnimationDelay);
+               btb::golf::RoundState::SwingAnimationDelay);
 
         // The native input/animation layer explicitly reports completion.
         handle->queue_control({.swing_animation_finished=true});
         step = game.advance({});
-        assert(handle->round()->state() == golf::RoundState::BallFlight);
+        assert(handle->round()->state() == btb::golf::RoundState::BallFlight);
 
         int flight_frames=0;
-        while (handle->round()->state() == golf::RoundState::BallFlight &&
+        while (handle->round()->state() == btb::golf::RoundState::BallFlight &&
                flight_frames++ < 200) {
             step = game.advance({});
         }
         assert(flight_frames < 200);
         step = game.advance({}); // landing -> feedback
         assert(handle->round()->state() ==
-               golf::RoundState::ScoreAndFeedback);
+               btb::golf::RoundState::ScoreAndFeedback);
         step = game.advance({}); // once-per-shot managed voice
         assert(step.effects.audio.size() == 1);
         assert(step.effects.audio[0].operation ==
@@ -114,7 +114,7 @@ data\subgamegolf\wendy.bmp
         handle->queue_control({.feedback_audio_finished=true});
         step = game.advance({});
         assert(handle->round()->state() ==
-               golf::RoundState::ResetNextAttempt);
+               btb::golf::RoundState::ResetNextAttempt);
         step = game.advance({});
         if (shot < 4) {
             assert(step.effects.progress_writes.empty());
@@ -128,8 +128,8 @@ data\subgamegolf\wendy.bmp
     assert(step.effects.save_and_unload);
     assert(step.effects.progress_writes.size() == 1);
     assert(step.effects.progress_writes[0].slot ==
-           progress::Slot::Golf);
-    assert(game.globals().player_progress[0].get(progress::Slot::Golf) == 1);
+           btb::progress::Slot::Golf);
+    assert(game.globals().player_progress[0].get(btb::progress::Slot::Golf) == 1);
     assert(game.globals().dispatcher.current_state == 0x3C);
     assert(!handle->round()); // released once, never duplicated
 
