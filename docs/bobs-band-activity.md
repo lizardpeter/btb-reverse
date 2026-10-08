@@ -59,12 +59,21 @@ diagnostic, so reading a retail save does not silently rewrite it.
 composition slots. The executable indexes their fixed 128-byte path slots by
 `(conductor*5 + player)*128`. The file-open path and 480-byte read/write
 loops are confirmed at `0x0041DA78..` and `0x0041EA1E..`.
+The original opens the files with `wb` for saving and `rb` for reading.
+It performs 120 individual `fwrite(ptr,4,1,...)` or `fread(ptr,4,1,...)`
+operations; the `.txt` suffix does **not** indicate ASCII text. On a short
+read the remaining preinitialized cells are left at -1. The companion
+`last.txt` is also binary: the original loop writes the same selected
+conductor dword **five times**, producing 20 bytes. The new
+`bobs_band_persistence.cpp` source implements these exact file operations
+using portable little-endian serialization; it is not yet wired to the
+shared player-profile filesystem adapter.
 
 ## Visual and audio mapping
 
 Original `machinedata.txt` was inspected from the user's installed game
 files. It contains the actual ten short/long machine source coordinates and
-sizes plus conductor metadata and ten static machine-animation rectangles. The ten clickable palette hitboxes come from the separate 132-entry native editor hit table at 0x0041FB90. Unlike an earlier rough
+sizes plus conductor metadata and ten static machine-animation rectangles. The ten clickable palette hitboxes come from the separate 132-entry native editor hit table at `0x0041FB90` (not those last ten data rectangles). Unlike an earlier rough
 visual geometry spreadsheet, the loader-derived values are source-authoritative
 for these fields; hard-coded alternate dimensions are not used.
 
