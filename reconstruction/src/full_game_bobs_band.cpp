@@ -59,8 +59,10 @@ Audio BobsBandDriver::convert_audio(
 
     switch (request.kind) {
     case bobs_band::AudioRequest::Kind::StartBacking:
+        result.operation = AudioOperation::StartBackingTrack;
+        break;
     case bobs_band::AudioRequest::Kind::PlayMachineSample:
-        result.operation = AudioOperation::PlayFile;
+        result.operation = AudioOperation::PlaySampleFile;
         break;
     case bobs_band::AudioRequest::Kind::StopBacking:
         result.operation = AudioOperation::StopBackingTrack;
