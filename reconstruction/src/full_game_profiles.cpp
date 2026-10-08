@@ -60,6 +60,7 @@ bool GameRoot::load_profile_files(
     globals_.finale_gate = {};
     profile_directory_ = directory;
     activity_select_initialized_ = false;
+    generic_front_end_initialized_.fill(false);
     error.clear();
     return true;
 }
