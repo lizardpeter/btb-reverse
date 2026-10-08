@@ -38,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure C++26 Windows game
-        run: cmake -S reconstruction -B build/reconstruction-win -G "Visual Studio 17 2022" -A x64
+        run: cmake -S reconstruction -B build/reconstruction-win -G "Visual Studio 18 2026" -A x64
       - name: Build game and integrated regression
         run: cmake --build build/reconstruction-win --config Release --target btb_game btb_game_session_tests --parallel
       - name: Verify integrated session on Windows
