@@ -95,3 +95,34 @@ real outer-state selection logic rather than indexing backgrounds with the
 
 **No full compile or preview packaging was performed** for these source
 changes; source regressions remain staged for the eventual complete game.
+
+## Original UI background resource table
+
+The uploaded `loaddata/uiBitmapName.txt` was inspected directly. It has
+**23 bitmap filenames**, followed by the literal **`END.bmp`** sentinel
+(24 lines total). The correct source slot is owned by the *outer game-flow
+page*, not by `GenericUiScreenDriver`'s 0..11 screen index.
+
+New source:
+
+- `full_game_ui_bitmaps.hpp/.cpp` parses all 23 filenames atomically and
+  checks the sentinel. It emits an original, opaque, full-screen `Draw`
+  source command for an explicitly selected slot.
+- `GenericUiScreenDriver::configure_backdrop` accepts the page's original
+  bitmap source index and submits the corresponding draw layer on every
+  active screen frame, including while a click voice is playing.
+- The shipped source includes `Data\\ui\\subact\\music.bmp` at slot
+  **22**, `Data\\ui\\subact\\ddsubsel.bmp` at **8**,
+  `Data\\ui\\subact\\skate.bmp` at **9**, and
+  `Data\\ui\\subact\\golf.bmp` at **12**.
+- `full_game_ui_bitmaps_source_test.cpp` and the updated generic
+  source fixture cover original filenames and the menu background stream.
+
+Crucially, the parser does **not** assert that every UI page maps one-to-one
+onto the twelve interaction-table indices. The source index must be bound
+using the real enclosing outer state, especially for pages which reuse an
+instruction or replay interaction layout with different artwork.
+
+The overlay animations and depressed button-surface naming logic are still
+separate work. This source change supplies the retail background layer,
+not a claim that menu rendering is complete.
