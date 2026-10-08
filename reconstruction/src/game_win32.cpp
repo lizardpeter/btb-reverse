@@ -90,6 +90,9 @@ public:
     int species{};
     int difficulty{};
     Vec2i mouse{320, 240};
+    std::vector<Bitmap> pieces{};
+    Bitmap background{};
+    Bitmap certificate{};
 
     ~Host() {
         clear_bitmaps();
@@ -148,7 +151,8 @@ public:
         const auto art_name = fs::path(
             btb::dino::completion_artwork_filename(game.species()))
             .filename();
-        for (auto search = directory, depth = 0; depth != 6; ++depth) {
+        auto search = directory;
+        for (int depth = 0; depth < 6; ++depth) {
             certificate.load(search / art_name);
             if (certificate.handle) {
                 break;
