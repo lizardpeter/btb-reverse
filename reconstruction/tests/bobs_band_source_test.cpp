@@ -130,7 +130,7 @@ int main() {
     click_wall.mouse_x=45;
     click_wall.mouse_y=311;
     click_wall.click_pulse=true;
-    app.advance(click_wall);
+    static_cast<void>(app.advance(click_wall));
     assert(app.editor().composition().at({0,0}) == 0);
     assert(app.editor().state() == InternalState::EditIdle);
 
@@ -146,7 +146,7 @@ int main() {
 
     FrameInput voice_still_playing{};
     voice_still_playing.managed_voice_playing=true;
-    app.advance(voice_still_playing);
+    static_cast<void>(app.advance(voice_still_playing));
     assert(app.editor().play_pending());
 
     FrameInput voice_done{};
