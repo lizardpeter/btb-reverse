@@ -25,7 +25,7 @@ initialize/run pairs:
 | Squirrel | `0x28 / 0x29` | data, runtime and presentation models | Not hosted |
 | Bob's Band | `0x2E / 0x2F` | editor, 5x24 grid, sequence I/O, 5 machine animations, 3 conductors and 24s sequencer | **Source-integrated** with the new shared 68-state root; actual bitmap/audio platform callbacks still not bound |
 | Park Designer | `0x32 / 0x33` | data/runtime models | Not hosted |
-| Golf | `0x36 / 0x37` | data/runtime state model | Not hosted |
+| Golf | `0x36 / 0x37` | data/runtime + **new full-game round lifecycle, exact scoring and fixed-five-attempt source driver** | **Source-integrated** in `GameRoot`; source-backed partial presentation; exact input/animation and sound devices remain unbound |
 | Spud Maze | `0x3A / 0x3B` | data/runtime models | Not hosted |
 
 These are source-coverage descriptions, **not** percentages or claims of
@@ -138,3 +138,17 @@ See [shared graphics/audio effect bridge](full-game-shared-effects.md) for
 interfaces, source-only regression fixtures, and outstanding DirectDraw /
 DirectSound implementation steps. This milestone is **not an end-to-end
 rendering or audio playback result**; no new full compilation was requested.
+
+## Golf driver integration (source-only)
+
+`golf_activity.hpp/.cpp` and `full_game_golf.hpp/.cpp` implement the
+recovered native Golf state progression and game-root activity adapter:
+original `golfdata.txt` parse; a hard-coded five attempts at all difficulty
+settings (retail ignores the parsed 5/4/3 table); 0..88 aim and 0..1000 power;
+even-angle launch; ball flight/friction; strict <15 target snap; final-score
+managed voices; and completion progress **slot 62** followed by Play Again
+**state 0x3C**. Unverified DirectInput gesture mapping and eight-by-eight
+Bob-swing animation remain external instead of being invented as shortcuts.
+
+See [Golf source lifecycle and remaining presentation gap](full-game-golf.md).
+New source tests were written but **not compiled or executed**.
