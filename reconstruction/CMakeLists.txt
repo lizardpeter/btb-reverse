@@ -21,7 +21,7 @@ add_library(btb_dino
 )
 
 target_include_directories(btb_dino PUBLIC include)
-btb_require_cpp26(btb_dino PUBLIC cxx_std_26)
+btb_require_cpp26(btb_dino PUBLIC)
 
 add_executable(btb_dino_tests
     tests/dino_level_test.cpp
@@ -51,7 +51,7 @@ add_library(btb_fireworks
     src/fireworks_editor.cpp
 )
 target_include_directories(btb_fireworks PUBLIC include)
-btb_require_cpp26(btb_fireworks PUBLIC cxx_std_26)
+btb_require_cpp26(btb_fireworks PUBLIC)
 
 add_executable(btb_fireworks_layout_tests
     tests/fireworks_layout_test.cpp
@@ -90,7 +90,7 @@ add_library(btb_golf
     src/golf_runtime.cpp
 )
 target_include_directories(btb_golf PUBLIC include)
-btb_require_cpp26(btb_golf PUBLIC cxx_std_26)
+btb_require_cpp26(btb_golf PUBLIC)
 
 add_executable(btb_golf_data_tests
     tests/golf_data_test.cpp
@@ -113,7 +113,7 @@ add_library(btb_maze
     src/maze_transition.cpp
 )
 target_include_directories(btb_maze PUBLIC include)
-btb_require_cpp26(btb_maze PUBLIC cxx_std_26)
+btb_require_cpp26(btb_maze PUBLIC)
 
 add_executable(btb_maze_data_tests
     tests/maze_data_test.cpp
@@ -168,28 +168,28 @@ add_executable(btb_maze_spud_controller_tests
     tests/maze_spud_controller_test.cpp
 )
 target_include_directories(btb_maze_spud_controller_tests PRIVATE include)
-btb_require_cpp26(btb_maze_spud_controller_tests PRIVATE cxx_std_26)
+btb_require_cpp26(btb_maze_spud_controller_tests PRIVATE)
 add_test(NAME maze_spud_controller COMMAND btb_maze_spud_controller_tests)
 
 add_executable(btb_maze_spud_neighbor_tests
     tests/maze_spud_neighbor_test.cpp
 )
 target_include_directories(btb_maze_spud_neighbor_tests PRIVATE include)
-btb_require_cpp26(btb_maze_spud_neighbor_tests PRIVATE cxx_std_26)
+btb_require_cpp26(btb_maze_spud_neighbor_tests PRIVATE)
 add_test(NAME maze_spud_neighbor COMMAND btb_maze_spud_neighbor_tests)
 
 add_executable(btb_maze_spud_carry_tests
     tests/maze_spud_carry_test.cpp
 )
 target_include_directories(btb_maze_spud_carry_tests PRIVATE include)
-btb_require_cpp26(btb_maze_spud_carry_tests PRIVATE cxx_std_26)
+btb_require_cpp26(btb_maze_spud_carry_tests PRIVATE)
 add_test(NAME maze_spud_carry COMMAND btb_maze_spud_carry_tests)
 
 add_executable(btb_maze_spud_reset_tests
     tests/maze_spud_reset_test.cpp
 )
 target_include_directories(btb_maze_spud_reset_tests PRIVATE include)
-btb_require_cpp26(btb_maze_spud_reset_tests PRIVATE cxx_std_26)
+btb_require_cpp26(btb_maze_spud_reset_tests PRIVATE)
 add_test(NAME maze_spud_reset COMMAND btb_maze_spud_reset_tests)
 
 
@@ -198,7 +198,7 @@ add_library(btb_herding
     src/herding_runtime.cpp
 )
 target_include_directories(btb_herding PUBLIC include)
-btb_require_cpp26(btb_herding PUBLIC cxx_std_26)
+btb_require_cpp26(btb_herding PUBLIC)
 
 add_executable(btb_herding_data_tests
     tests/herding_data_test.cpp
@@ -225,7 +225,7 @@ add_library(btb_park_designer
     src/park_designer_runtime.cpp
 )
 target_include_directories(btb_park_designer PUBLIC include)
-btb_require_cpp26(btb_park_designer PUBLIC cxx_std_26)
+btb_require_cpp26(btb_park_designer PUBLIC)
 
 add_executable(btb_park_designer_data_tests
     tests/park_designer_data_test.cpp
@@ -246,7 +246,7 @@ add_library(btb_spud_skate
     src/spud_skate_runtime.cpp
 )
 target_include_directories(btb_spud_skate PUBLIC include)
-btb_require_cpp26(btb_spud_skate PUBLIC cxx_std_26)
+btb_require_cpp26(btb_spud_skate PUBLIC)
 
 add_executable(btb_spud_skate_data_tests
     tests/spud_skate_data_test.cpp
@@ -272,7 +272,7 @@ add_library(btb_spud_maze
     src/spud_maze_runtime.cpp
 )
 target_include_directories(btb_spud_maze PUBLIC include)
-btb_require_cpp26(btb_spud_maze PUBLIC cxx_std_26)
+btb_require_cpp26(btb_spud_maze PUBLIC)
 
 add_executable(btb_spud_maze_data_tests
     tests/spud_maze_data_test.cpp
@@ -294,7 +294,7 @@ add_library(btb_squirrel
     src/squirrel_presentation.cpp
 )
 target_include_directories(btb_squirrel PUBLIC include)
-btb_require_cpp26(btb_squirrel PUBLIC cxx_std_26)
+btb_require_cpp26(btb_squirrel PUBLIC)
 
 add_executable(btb_squirrel_data_tests
     tests/squirrel_data_test.cpp
@@ -321,7 +321,7 @@ add_library(btb_grand_opening
     src/grand_opening_runtime.cpp
 )
 target_include_directories(btb_grand_opening PUBLIC include)
-btb_require_cpp26(btb_grand_opening PUBLIC cxx_std_26)
+btb_require_cpp26(btb_grand_opening PUBLIC)
 
 add_executable(btb_grand_opening_data_tests
     tests/grand_opening_data_test.cpp
@@ -346,7 +346,7 @@ add_library(btb_player_progress
     src/player_progress.cpp
 )
 target_include_directories(btb_player_progress PUBLIC include)
-btb_require_cpp26(btb_player_progress PUBLIC cxx_std_26)
+btb_require_cpp26(btb_player_progress PUBLIC)
 
 add_executable(btb_player_progress_tests
     tests/player_progress_test.cpp
@@ -359,7 +359,7 @@ add_library(btb_player_profiles
     src/player_profiles.cpp
 )
 target_include_directories(btb_player_profiles PUBLIC include)
-btb_require_cpp26(btb_player_profiles PUBLIC cxx_std_26)
+btb_require_cpp26(btb_player_profiles PUBLIC)
 
 add_executable(btb_player_profiles_tests
     tests/player_profiles_test.cpp
@@ -372,7 +372,7 @@ add_library(btb_sound_manager
     src/sound_manager.cpp
 )
 target_include_directories(btb_sound_manager PUBLIC include)
-btb_require_cpp26(btb_sound_manager PUBLIC cxx_std_26)
+btb_require_cpp26(btb_sound_manager PUBLIC)
 
 add_executable(btb_sound_manager_tests
     tests/sound_manager_test.cpp
@@ -385,7 +385,7 @@ add_library(btb_bitmap_registry
     src/bitmap_registry.cpp
 )
 target_include_directories(btb_bitmap_registry PUBLIC include)
-btb_require_cpp26(btb_bitmap_registry PUBLIC cxx_std_26)
+btb_require_cpp26(btb_bitmap_registry PUBLIC)
 
 add_executable(btb_bitmap_registry_tests
     tests/bitmap_registry_test.cpp
@@ -398,7 +398,7 @@ add_executable(btb_display_manager_tests
     tests/display_manager_test.cpp
 )
 target_include_directories(btb_display_manager_tests PRIVATE include)
-btb_require_cpp26(btb_display_manager_tests PRIVATE cxx_std_26)
+btb_require_cpp26(btb_display_manager_tests PRIVATE)
 add_test(NAME display_manager COMMAND btb_display_manager_tests)
 
 
@@ -406,7 +406,7 @@ add_executable(btb_dsutil_tests
     tests/dsutil_test.cpp
 )
 target_include_directories(btb_dsutil_tests PRIVATE include)
-btb_require_cpp26(btb_dsutil_tests PRIVATE cxx_std_26)
+btb_require_cpp26(btb_dsutil_tests PRIVATE)
 add_test(NAME dsutil_layout COMMAND btb_dsutil_tests)
 
 
@@ -414,7 +414,7 @@ add_library(btb_printing_system
     src/printing_system.cpp
 )
 target_include_directories(btb_printing_system PUBLIC include)
-btb_require_cpp26(btb_printing_system PUBLIC cxx_std_26)
+btb_require_cpp26(btb_printing_system PUBLIC)
 
 add_executable(btb_printing_system_tests
     tests/printing_system_test.cpp
@@ -427,7 +427,7 @@ add_library(btb_bink_system
     src/bink_system.cpp
 )
 target_include_directories(btb_bink_system PUBLIC include)
-btb_require_cpp26(btb_bink_system PUBLIC cxx_std_26)
+btb_require_cpp26(btb_bink_system PUBLIC)
 
 add_executable(btb_bink_system_tests
     tests/bink_system_test.cpp
@@ -440,7 +440,7 @@ add_executable(btb_application_state_tests
     tests/application_state_test.cpp
 )
 target_include_directories(btb_application_state_tests PRIVATE include)
-btb_require_cpp26(btb_application_state_tests PRIVATE cxx_std_26)
+btb_require_cpp26(btb_application_state_tests PRIVATE)
 add_test(NAME application_state COMMAND btb_application_state_tests)
 
 
@@ -448,7 +448,7 @@ add_executable(btb_application_runtime_tests
     tests/application_runtime_test.cpp
 )
 target_include_directories(btb_application_runtime_tests PRIVATE include)
-btb_require_cpp26(btb_application_runtime_tests PRIVATE cxx_std_26)
+btb_require_cpp26(btb_application_runtime_tests PRIVATE)
 add_test(NAME application_runtime COMMAND btb_application_runtime_tests)
 
 
@@ -456,7 +456,7 @@ add_executable(btb_input_runtime_tests
     tests/input_runtime_test.cpp
 )
 target_include_directories(btb_input_runtime_tests PRIVATE include)
-btb_require_cpp26(btb_input_runtime_tests PRIVATE cxx_std_26)
+btb_require_cpp26(btb_input_runtime_tests PRIVATE)
 add_test(NAME input_runtime COMMAND btb_input_runtime_tests)
 
 
@@ -464,7 +464,7 @@ add_executable(btb_window_runtime_tests
     tests/window_runtime_test.cpp
 )
 target_include_directories(btb_window_runtime_tests PRIVATE include)
-btb_require_cpp26(btb_window_runtime_tests PRIVATE cxx_std_26)
+btb_require_cpp26(btb_window_runtime_tests PRIVATE)
 add_test(NAME window_runtime COMMAND btb_window_runtime_tests)
 
 
@@ -472,7 +472,7 @@ add_executable(btb_game_flow_tests
     tests/game_flow_test.cpp
 )
 target_include_directories(btb_game_flow_tests PRIVATE include)
-btb_require_cpp26(btb_game_flow_tests PRIVATE cxx_std_26)
+btb_require_cpp26(btb_game_flow_tests PRIVATE)
 add_test(NAME game_flow COMMAND btb_game_flow_tests)
 
 
@@ -480,7 +480,7 @@ add_executable(btb_front_end_ui_tests
     tests/front_end_ui_test.cpp
 )
 target_include_directories(btb_front_end_ui_tests PRIVATE include)
-btb_require_cpp26(btb_front_end_ui_tests PRIVATE cxx_std_26)
+btb_require_cpp26(btb_front_end_ui_tests PRIVATE)
 add_test(NAME front_end_ui COMMAND btb_front_end_ui_tests)
 
 
@@ -488,7 +488,7 @@ add_library(btb_front_end_ui_data
     src/front_end_ui_data.cpp
 )
 target_include_directories(btb_front_end_ui_data PUBLIC include)
-btb_require_cpp26(btb_front_end_ui_data PUBLIC cxx_std_26)
+btb_require_cpp26(btb_front_end_ui_data PUBLIC)
 
 add_executable(btb_front_end_ui_data_tests
     tests/front_end_ui_data_test.cpp
@@ -501,7 +501,7 @@ add_executable(btb_front_end_ui_runtime_tests
     tests/front_end_ui_runtime_test.cpp
 )
 target_include_directories(btb_front_end_ui_runtime_tests PRIVATE include)
-btb_require_cpp26(btb_front_end_ui_runtime_tests PRIVATE cxx_std_26)
+btb_require_cpp26(btb_front_end_ui_runtime_tests PRIVATE)
 add_test(NAME front_end_ui_runtime COMMAND btb_front_end_ui_runtime_tests)
 
 # First integrated native executable. The recoveries above remain independent
@@ -511,14 +511,14 @@ add_library(btb_game_session
     src/game_session.cpp
 )
 target_include_directories(btb_game_session PUBLIC include)
-btb_require_cpp26(btb_game_session PUBLIC cxx_std_26)
+btb_require_cpp26(btb_game_session PUBLIC)
 target_link_libraries(btb_game_session PUBLIC btb_dino)
 
 add_executable(btb_game WIN32
     src/game_main.cpp
     src/game_win32.cpp
 )
-btb_require_cpp26(btb_game PRIVATE cxx_std_26)
+btb_require_cpp26(btb_game PRIVATE)
 target_link_libraries(btb_game PRIVATE btb_game_session)
 
 if(WIN32)
@@ -532,6 +532,6 @@ endif()
 add_executable(btb_game_session_tests
     tests/game_session_test.cpp
 )
-btb_require_cpp26(btb_game_session_tests PRIVATE cxx_std_26)
+btb_require_cpp26(btb_game_session_tests PRIVATE)
 target_link_libraries(btb_game_session_tests PRIVATE btb_game_session)
 add_test(NAME game_session COMMAND btb_game_session_tests)
