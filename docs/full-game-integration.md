@@ -117,3 +117,24 @@ action handling, and the original resources must be provided to the shared
 surface/audio/Bink backends. Frame-level retail verification and profile
 round trips across every activity remain required. No new completion
 percentage is asserted from source-file counts alone.
+
+## Shared effect and source-asset bridge (source-only)
+
+The whole-game activity pipeline now has an additional common layer:
+`full_game_effect_pipeline.hpp/.cpp` converts recovered
+`ActivityFrameOutput` draw/audio commands into preserved-order resource
+instructions without inventing standalone minigame renderers. The new
+`full_game_audio` source connects the already recovered 80-slot managed
+sound policy to actual WAV catalog IDs, loading the native 20-byte filename
+records from original `Data/sound/binklist.txt`. The asset resolver provides
+case-insensitive original Windows path behavior across Linux/Windows and
+installed-disc fallback.
+
+The installed `Data/sound` catalog contains 1000 IDs (0..999); the separate
+`loaddata` copy contains 996 (0..995). This discrepancy is recorded instead
+of silently treating the files as identical.
+
+See [shared graphics/audio effect bridge](full-game-shared-effects.md) for
+interfaces, source-only regression fixtures, and outstanding DirectDraw /
+DirectSound implementation steps. This milestone is **not an end-to-end
+rendering or audio playback result**; no new full compilation was requested.
