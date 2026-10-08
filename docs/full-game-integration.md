@@ -169,3 +169,21 @@ Source-only means negative actions (-1/-6, -2..-5, -20/-21,
 -30..-32) remain observable and still require their original enclosing
 state-specific interpretations. Rendering and real audio remain unbound.
 See [generic UI source integration](full-game-generic-ui.md).
+
+## Original UI bitmap paths and Golf controls
+
+The uploaded `loaddata/uiBitmapName.txt` was recovered as a distinct
+**23-name + END.bmp** source table. `full_game_ui_bitmaps.hpp/.cpp`
+now parses it, and `GenericUiScreenDriver` can render its opaque original
+backdrop by the explicit outer-state source index, without confusing those
+23 file records with the 12 hot-area screen layouts. Menu overlays/animated
+source frames remain unverified.
+
+The installed BBC electronic booklet `ebooklet/golf.htm` independently
+confirms Golf's left/right cursor/arrow aiming and two-step mouse/Space
+shooting interaction. `GolfDriver` now consumes the generic click pulse
+to enter power mode and lock the power on the following click. Fine aim
+scaling, swing animation completion, voice completion and exact HUD remain
+outside the driver until original-executable evidence closes them.
+
+No new full compilation, binary packaging, or gameplay session was run.
