@@ -198,6 +198,7 @@ struct GameFrame {
     std::string error{};
     bool clear_input_pulse{};
     bool state_changed{};
+    bool profile_saved{};
 };
 
 // This is the shared source-level coordinator for ten native activities.
@@ -221,6 +222,7 @@ public:
         profile_directory_ = std::move(directory);
     }
     void set_outer_state(game_flow::State state) noexcept;
+    [[nodiscard]] bool delete_profile(int index);
     [[nodiscard]] GameFrame advance(const ActivityFrameInput& input);
     [[nodiscard]] bool unload_current(std::string& error);
 
