@@ -159,3 +159,14 @@ The source-oriented boundary is now exact:
 - `0x004207E0` is the later Spud Maze initializer.
 
 So `0x00420360`, rather than `0x00420560` or the later `0x004207E0` initializer, is the actual start of the Spud Maze module when helper/teardown code is included.
+
+## Bob's Band C++26 reconstruction (integration pending)
+
+The formerly missing music sequencer now has a source-level grid model,
+editor controller, 50-sample pitch-bank map, original `machinedata.txt` parser,
+machine/conductor animation, and a frame-oriented playback/audio/progress plan.
+The music machine is **not wired to the unified game executable** yet, and
+these sources have deliberately not been included in a new compile stage.
+
+See [Bob's Band / music sequencer](bobs-band-activity.md) for disassembly
+anchors, limits, and input/asset contract.
