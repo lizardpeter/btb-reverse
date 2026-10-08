@@ -109,6 +109,18 @@ ActivityFrameOutput GolfDriver::advance(
     // Input translation is a separate retail-DirectInput/UI responsibility.
     // No guessed click-zone/aim-angle mapping is embedded in this driver.
     auto action = queued_input_.value_or(golf::RoundInput{});
+    // The original BBC game manual confirms that either mouse button
+    // (or Space Bar, translated by the host into the input pulse) enters
+    // the power-meter phase on the first press and locks it on the second.
+    // We still require explicit native input translation for left/right
+    // aim movement and for animation/audio completion.
+    if (!queued_input_ && input.click_pulse) {
+        if (round_->state() == golf::RoundState::Aim) {
+            action.accept_aim = true;
+        } else if (round_->state() == golf::RoundState::PowerMeter) {
+            action.accept_power = true;
+        }
+    }
     action.random_value =
         static_cast<std::uint32_t>(input.random_value);
     queued_input_.reset();
