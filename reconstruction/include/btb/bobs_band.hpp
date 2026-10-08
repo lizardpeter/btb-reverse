@@ -170,7 +170,10 @@ public:
     [[nodiscard]] EditResult click_grid(Cell cell) noexcept;
     [[nodiscard]] EditResult toolbar_click(Toolbar button) noexcept;
     void resolve_clear_confirmation(bool affirmative) noexcept;
+    [[nodiscard]] bool update_delete_mode_lifetime(
+        int cursor_y, bool deletion_latched_this_frame) noexcept;
     [[nodiscard]] bool advance_play_pending(bool managed_sound_playing) noexcept;
+    void start_playback() noexcept;
     void stop_playback() noexcept;
     void exit_to_play_again() noexcept { state_ = InternalState::ExitToPlayAgain; }
     void set_composition(Composition value) noexcept { composition_ = value; }
