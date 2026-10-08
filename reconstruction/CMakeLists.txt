@@ -152,6 +152,13 @@ add_executable(btb_maze_transition_tests
 target_link_libraries(btb_maze_transition_tests PRIVATE btb_maze)
 add_test(NAME maze_transition COMMAND btb_maze_transition_tests)
 
+add_executable(btb_maze_spud_controller_tests
+    tests/maze_spud_controller_test.cpp
+)
+target_include_directories(btb_maze_spud_controller_tests PRIVATE include)
+target_compile_features(btb_maze_spud_controller_tests PRIVATE cxx_std_26)
+add_test(NAME maze_spud_controller COMMAND btb_maze_spud_controller_tests)
+
 
 add_library(btb_herding
     src/herding_data.cpp
