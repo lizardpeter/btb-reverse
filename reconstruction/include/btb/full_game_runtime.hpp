@@ -147,6 +147,7 @@ public:
         const progress::Record& current_profile,
         progress::FinaleGate& finale_gate,
         std::string& error) = 0;
+    virtual void synchronize_finale_gate(progress::FinaleGate gate) noexcept = 0;
     [[nodiscard]] virtual ActivityFrameOutput advance(
         const ActivityFrameInput& input) = 0;
 };
