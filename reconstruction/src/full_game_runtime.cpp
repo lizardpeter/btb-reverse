@@ -113,6 +113,13 @@ void GameRoot::apply_effects(
             }
         }
     }
+    if (output.next_saved_state &&
+        game_flow::valid_state_value(*output.next_saved_state)) {
+        globals_.dispatcher.saved_state = *output.next_saved_state;
+    }
+    if (output.next_replay_class) {
+        globals_.menu.replay_class = *output.next_replay_class;
+    }
     if (output.shared_completion_code) {
         globals_.shared_completion_code = *output.shared_completion_code;
     }
@@ -133,6 +140,32 @@ void GameRoot::apply_effects(
     }
     if (output.next_outer_state) {
         globals_.dispatcher.current_state = *output.next_outer_state;
+    }
+}
+
+void GameRoot::consume_menu_action(
+    game_flow::State update,
+    GameFrame& result) noexcept {
+
+    if (!result.effects.negative_ui_action) {
+        return;
+    }
+    const auto routed = route_retail_menu_action(
+        update, *result.effects.negative_ui_action,
+        globals_.menu, globals_.dispatcher.saved_state);
+    if (!routed.recognized) {
+        return;
+    }
+    result.menu_action = routed;
+    apply_retail_menu_action(globals_.menu, routed);
+    // Native also sets the global 0x51C300 play-again latch to zero.
+    if (routed.clear_replay_active_latch) {
+        globals_.menu.replay_active_latch = false;
+    }
+    if (routed.next_state) {
+        globals_.dispatcher.current_state =
+            static_cast<std::int32_t>(*routed.next_state);
+        result.state_changed = true;
     }
 }
 
@@ -209,6 +242,7 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
         result.effects = activity_select_driver_->advance(input);
         apply_effects(result.effects);
         result.state_changed = result.effects.next_outer_state.has_value();
+        consume_menu_action(state.state, result);
         result.kind = FrameKind::FrontEndUpdated;
         return result;
     }
