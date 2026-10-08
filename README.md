@@ -81,5 +81,13 @@ The next source reconstruction milestone includes the formerly missing
 [Bob's Band music sequencer](docs/bobs-band-activity.md):
 five machine channels, the five-by-24 composition wall, ten note types,
 three conductors, editor transitions, playback, and all fifty pitch-bank
-sample mappings. This module remains **unintegrated and uncompiled** while
-full-game source recovery takes priority over standalone preview builds.
+sample mappings. This module is now **source-integrated with the common 68-state game
+coordinator** (including original conductor selection and binary sequence
+saving), but the new full-game code has **not been compiled or exercised**
+against the retail engine. The experimental native executable still hosts
+only a partial Dinosaur activity. Golf also has a source-integrated round
+driver, and the original seven chooser/replay pairs now route their
+binary-verified negative menu actions in the shared coordinator.
+
+See [full-game integration](docs/full-game-integration.md) and
+[retail menu action evidence](docs/full-game-menu-actions.md).
