@@ -36,7 +36,7 @@ struct MachineData {
     std::array<Point,3> conductor_positions{};
     std::array<Size,3> conductor_sizes{};
     std::array<int,3> conductor_idle_frame_counts{};
-    std::array<HitRectangle,10> machine_palette_hit_rects{};
+    std::array<HitRectangle,10> machine_static_animation_rects{};
 };
 [[nodiscard]] MachineData parse_machine_data(std::istream& input);
 
