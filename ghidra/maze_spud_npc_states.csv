@@ -1,0 +1,12 @@
+state,address,branch_semantics,evidence
+0,0x0041CD19,"Skip if difficulty spawn interval is -1; otherwise decrement delay; phase 1 at <=0","0x0041CD19..0x0041CD45"
+1,0x0041CD4A,"Filter four box records by node>=0 and status==1; rand()%eligible_count; take ordinal matching slot; no boxes resets phase 0","0x0041CD4A..0x0041CEE8"
+2,0x0041CEED,"Move to indexed waypoint; when distance<3 increment path index; last waypoint rechecks box status, marks status=2 with ID89 sound and animation +=7 or switches phase6","0x0041CEED..0x0041CFDF"
+3,0x0041CFE4,"Clear global 0x512154 and advance phase to 4","0x0041CFE4..0x0041CFF5"
+4,0x0041CFFA,"Choose return route by randomized rotation around four neighboring links with fallback if no eligible link; set phase 5","0x0041CFFA..0x0041D1C9"
+5,0x0041D1CE,"Follow chosen path with alternate speed; optional voice ID90..93 (rand()%30 gate), collision package drop/reaction IDs94..95","0x0041D1CE..0x0041D338"
+6,0x0041D33D,"Rebuild return path and prepare phase 7","0x0041D33D..0x0041D3D9"
+7,0x0041D3DE,"Follow return path; on last waypoint restore phase0 and fixed 500-tick cooldown","0x0041D3DE..0x0041D489"
+gate,0x0041CCB0,"If npc_screen!=player_screen and phase>1 decrement offscreen countdown; at -1 reset selected box status to1 and enter phase1; both exits skip previous-position snapshot","0x0041CCB0..0x0041CD08"
+finish,0x0041D48C,"Copy actor current x/y to previous x/y at 0x510798/0x51079C except early-return paths","0x0041D48C..0x0041D4A9"
+jump_table,0x0041D4AC,"Eight little-endian targets CD19 CD4A CEED CFE4 CFFA D1CE D33D D3DE","0x0041D4AC..0x0041D4CC"
