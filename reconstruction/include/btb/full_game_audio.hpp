@@ -91,14 +91,9 @@ public:
         sound::initialize_retail_metadata(manager_);
     }
 
-    void reset() noexcept {
-        manager_ = {};
-        sound::initialize_retail_metadata(manager_);
-    }
+    void reset() noexcept;
 
-    [[nodiscard]] CatalogLoadResult load_catalog(std::istream& input) {
-        return catalog_.read(input);
-    }
+    [[nodiscard]] CatalogLoadResult load_catalog(std::istream& input);
 
     [[nodiscard]] const SoundCatalog& catalog() const noexcept {
         return catalog_;
@@ -120,6 +115,7 @@ public:
         bool secondary_input_pulse);
 
 private:
+    void populate_retail_filename_records() noexcept;
     [[nodiscard]] std::string sound_file(int sound_id) const;
 
     SoundCatalog catalog_{};
