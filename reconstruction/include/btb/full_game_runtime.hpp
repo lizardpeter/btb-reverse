@@ -204,6 +204,9 @@ public:
 class ActivityDriver {
 public:
     virtual ~ActivityDriver() = default;
+    // Optional recovered pregame/menu-selected runtime state. Existing
+    // standalone activities need no new constructor or fixed subgame args.
+    virtual void configure_menu_state(const RetailMenuState&) noexcept {}
     [[nodiscard]] virtual bool initialize(
         int player_index, std::string& error) = 0;
     [[nodiscard]] virtual ActivityFrameOutput advance(
