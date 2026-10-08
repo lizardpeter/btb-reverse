@@ -248,6 +248,7 @@ struct DrawCommand {
     int index{};
     int source_frame{};
     bool color_keyed{};
+    int sprite_sound_type{-1}; // for machine draw: short vs long retail sheet
 };
 [[nodiscard]] std::vector<DrawCommand> editor_draw_order(
     const Composition& composition,
