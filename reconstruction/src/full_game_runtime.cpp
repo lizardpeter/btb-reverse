@@ -25,6 +25,20 @@ void GameRoot::install_activity_select(
     activity_select_initialized_ = false;
 }
 
+bool GameRoot::install_generic_front_end_pair(
+    game_flow::State setup_state,
+    std::unique_ptr<FrontEndDriver> driver) {
+
+    const auto* pair = generic_front_end_pair_for_state(setup_state);
+    if (!pair || pair->setup != setup_state || !driver) {
+        return false;
+    }
+    const auto key = static_cast<std::size_t>(setup_state);
+    generic_front_end_drivers_[key] = std::move(driver);
+    generic_front_end_initialized_[key] = false;
+    return true;
+}
+
 bool GameRoot::select_profile(int index) noexcept {
     if (index < 0 ||
         index >= static_cast<int>(progress::kPlayerCount)) {
@@ -188,6 +202,50 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
         result.effects = activity_select_driver_->advance(input);
         apply_effects(result.effects);
         result.state_changed = result.effects.next_outer_state.has_value();
+        result.kind = FrameKind::FrontEndUpdated;
+        return result;
+    }
+
+    // Recover the common seven chooser/replay menu pairs before falling
+    // back to unsupported pregame/movie states. Every pair uses its own
+    // original source-data screen and deferred managed-voice transition.
+    if (const auto* menu = generic_front_end_pair_for_state(state.state)) {
+        const auto key = static_cast<std::size_t>(menu->setup);
+        auto* driver = generic_front_end_drivers_[key].get();
+        if (!driver) {
+            result.kind = FrameKind::FrontEndRequiresAdapter;
+            return result;
+        }
+        if (!globals_.active_profile) {
+            result.kind = FrameKind::InactiveProfile;
+            return result;
+        }
+        if (state.state == menu->setup) {
+            generic_front_end_initialized_[key] = false;
+            auto& record = globals_.player_progress[
+                static_cast<std::size_t>(*globals_.active_profile)];
+            if (!driver->initialize(
+                    record,globals_.finale_gate,result.error)) {
+                result.kind = FrameKind::FrontEndFailed;
+                return result;
+            }
+            generic_front_end_initialized_[key] = true;
+            globals_.dispatcher.current_state =
+                static_cast<int>(menu->update);
+            result.kind = FrameKind::FrontEndInitialized;
+            result.state_changed = true;
+            return result;
+        }
+        if (!generic_front_end_initialized_[key]) {
+            result.kind = FrameKind::FrontEndFailed;
+            result.error = "generic UI update entered before original setup";
+            return result;
+        }
+        driver->synchronize_finale_gate(globals_.finale_gate);
+        result.effects = driver->advance(input);
+        apply_effects(result.effects);
+        result.state_changed =
+            result.effects.next_outer_state.has_value();
         result.kind = FrameKind::FrontEndUpdated;
         return result;
     }
