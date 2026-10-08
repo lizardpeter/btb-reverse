@@ -103,6 +103,23 @@ private:
     bool emit_exit_once_{};
 };
 
+
+inline constexpr std::array<HitRectangle,10> kPaletteHitboxes{{
+    {232,284,274,306}, // Roley, 1 sec
+    {191,262,231,288}, // Roley, 2 sec
+    {286,249,325,273}, // Muck, 1 sec
+    {248,233,285,260}, // Muck, 2 sec
+    {353,221,387,245}, // Lofty, 1 sec
+    {316,205,351,232}, // Lofty, 2 sec
+    {411,210,446,231}, // Dizzy, 1 sec
+    {372,195,408,219}, // Dizzy, 2 sec
+    {481,194,512,222}, // Scoop, 1 sec
+    {447,193,479,220}, // Scoop, 2 sec
+}};
+
+// Different from the last 10 machinedata.txt source rectangles: these
+// numbers come from the 132-entry retail editor hit-region table.
+
 inline constexpr std::array<HitRectangle, 4> kToolbarBounds{{
     {324,416,378,472}, // Play
     {260,416,314,472}, // Stop
