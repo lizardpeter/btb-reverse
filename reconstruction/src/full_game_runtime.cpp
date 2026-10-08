@@ -369,6 +369,30 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
     result.effects = drivers_[index]->advance(input);
     result.kind = FrameKind::ActivityUpdated;
 
+    if (result.effects.save_and_unload &&
+        result.effects.next_outer_state ==
+            static_cast<int>(game_flow::State::PlayAgainYesNoSetup)) {
+        // Every native activity exiting via PreparePlayAgainTransition
+        // executes the same sound/latch setup. Preserve the original 573
+        // managed voice, rather than replaying a made-up sound on screen 9.
+        const auto plan = prepare_retail_play_again_transition();
+        result.replay_preparation = plan;
+        globals_.menu.replay_active_latch =
+            plan.set_replay_active_latch;
+        if (plan.stop_all_managed_sounds) {
+            result.effects.audio.push_back({
+                AudioOperation::StopManagedSounds
+            });
+        }
+        result.effects.audio.push_back({
+            AudioOperation::ManagedSoundId, {},
+            plan.voice_sound_id,
+            plan.voice_priority,
+            plan.voice_arbitration_class,
+            plan.voice_input_interruptible
+        });
+    }
+
     if (result.effects.save_and_unload) {
         // Native state-10 teardown persists the activity before the outer
         // dispatcher switches to Play Again. Do not commit the next state if
