@@ -180,6 +180,9 @@ ActivityFrameOutput BobsBandDriver::advance(
     }
     if (frame.save_and_exit_to_play_again) {
         out.save_and_unload = true;
+        out.next_saved_state =
+            static_cast<int>(game_flow::State::BobsBandInit);
+        out.next_replay_class = 1;
         out.next_outer_state = frame.new_outer_game_flow_state;
         out.next_ui_context = frame.play_again_context;
     }
