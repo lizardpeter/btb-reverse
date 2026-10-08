@@ -57,7 +57,7 @@ diagnostic, so reading a retail save does not silently rewrite it.
 `musicbob1.txt` through `musicbob5.txt`, the equivalent Wendy files, and
 `musicfarmer1.txt` through `musicfarmer5.txt` are the 15 player/conductor
 composition slots. The executable indexes their fixed 128-byte path slots by
-`(player*3 + conductor)*128`. The file-open path and 480-byte read/write
+`(conductor*5 + player)*128`. The file-open path and 480-byte read/write
 loops are confirmed at `0x0041DA78..` and `0x0041EA1E..`.
 
 ## Visual and audio mapping
