@@ -77,20 +77,25 @@ AssetResolution OriginalAssetResolver::resolve_below(
     for (std::size_t i = 0; i < components.size(); ++i) {
         const bool last = i + 1 == components.size();
         const auto direct = current / components[i];
-        // Refuse symbolic links so no asset path can escape a configured
-        // retail/CD directory using a pre-existing symlink.
-        if (!std::filesystem::is_symlink(direct, ec) && !ec) {
-            const bool right_type = last
-                ? std::filesystem::is_regular_file(direct, ec)
-                : std::filesystem::is_directory(direct, ec);
-            if (!ec && right_type) {
-                current = direct;
-                continue;
-            }
+        // Use the *non-following* status API. A missing exact spelling
+        // must fall through to case-insensitive enumeration, not be treated
+        // as an I/O failure. Refuse symlinks that could leave the roots.
+        const auto status = std::filesystem::symlink_status(direct, ec);
+        if (ec == std::errc::no_such_file_or_directory) {
+            ec.clear();
         }
         if (ec) {
             return {AssetResolutionStatus::FileSystemError, {},
                     "cannot inspect source asset: " + ec.message()};
+        }
+        if (!std::filesystem::is_symlink(status)) {
+            const bool right_type = last
+                ? std::filesystem::is_regular_file(status)
+                : std::filesystem::is_directory(status);
+            if (right_type) {
+                current = direct;
+                continue;
+            }
         }
 
         std::filesystem::path match;
