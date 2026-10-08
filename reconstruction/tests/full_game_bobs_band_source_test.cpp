@@ -143,6 +143,32 @@ static machine animation rectangles
     assert(installed->activity() == nullptr);
     assert(fs::file_size(saved / "musicbob1.txt") == 480);
     assert(fs::file_size(saved / "last.txt") == 20);
+    assert(game.globals().dispatcher.saved_state == 0x2E);
+    assert(game.globals().menu.replay_class == 1);
+
+    // A different original Music chooser action now reaches the same
+    // installed Band driver, not a hard-coded Bob conductor. -3 means
+    // Wendy and -4 Farmer Pickles in retail 0x42C4F4 / 0x42C50A.
+    game.globals().menu.subgame_selection_origin =
+        btb::game_flow::State::MusicChooserUpdate;
+    game.globals().menu.selected_subgame = 1;
+    game.set_outer_state(btb::game_flow::State::BobsBandInit);
+    assert(game.advance({}).kind == FrameKind::ActivityInitialized);
+    assert(installed->activity()->conductor() ==
+           btb::bobs_band::Conductor::Wendy);
+    assert(installed->activity()->active_sequence_filename() ==
+           "musicwendy1.txt");
+    std::string error;
+    assert(game.unload_current(error));
+
+    game.globals().menu.selected_subgame = 2;
+    game.set_outer_state(btb::game_flow::State::BobsBandInit);
+    assert(game.advance({}).kind == FrameKind::ActivityInitialized);
+    assert(installed->activity()->conductor() ==
+           btb::bobs_band::Conductor::FarmerPickles);
+    assert(installed->activity()->active_sequence_filename() ==
+           "musicfarmer1.txt");
+    assert(game.unload_current(error));
 
     fs::remove_all(root);
 }
