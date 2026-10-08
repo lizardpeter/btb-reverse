@@ -415,3 +415,38 @@ The original tables explain state `0x03`: generic screen 0,
 `Main_start_screen`, contains the same eight activity tiles as the live
 Activity Select but lacks the screen-1 Back/Help rows. Normal startup and
 profile selection bypass it and use screen 1.
+
+
+## October 8: native Activity Select source integration
+
+The original `loaddata/NumUiHotArea.txt`, `uiHotArea.txt` and
+`uiHotAreaReplace.txt` were rechecked from the installed game source.
+`reconstruction/include/btb/full_game_front_end.hpp` and
+`reconstruction/src/full_game_front_end.cpp` now load and cross-validate
+all 12 screen record counts and implement **screen index 1**, the 10-area
+Activity Select screen, as an actual `FrontEndDriver` of the shared
+`GameRoot`.
+
+- Hover regions are sourced from the file's four-corner rectangles with
+  **strict bounds**, not created as an arbitrary contemporary menu.
+- Hover/pressed audio uses `front_end_ui_runtime.hpp` and preserves
+  the original one-based selected-area index, sound-index advancement,
+  sound priority, and click-pending state.
+- Clicking any tile **arms** the pending selection; the outer state
+  is changed only after managed feedback is idle.
+- The Firework tile has `target_state_or_action == 0x22` in the
+  source file. Before all prerequisites are met the click opens
+  the progress overlay without replacing `0x0051C2BC`/outer-state
+  ownership; after unlocking it routes to normal pregame state 0x22.
+- Negative target actions -1 (Back) and -6 (Help) are returned as
+  unresolved UI actions to the shared frontend host, **never** fed
+  into the unsigned 68-entry game dispatcher.
+- The generic UI's remaining eleven contexts, common surface loading,
+  animation asset filename construction, actual polygon hit behavior
+  outside the rectangular Activity Select screen, Bink walkthrough
+  handling, and corresponding main/replay handlers remain to be integrated.
+
+The source-level regression file `full_game_front_end_source_test.cpp`
+contains locked/unlocked Finale, deferred click, native hotspot boundary,
+and positive route cases. It has **not** been compiled or executed at
+this stage; do not infer runtime parity from its presence.
