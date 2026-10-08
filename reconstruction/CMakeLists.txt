@@ -491,3 +491,35 @@ add_executable(btb_front_end_ui_runtime_tests
 target_include_directories(btb_front_end_ui_runtime_tests PRIVATE include)
 target_compile_features(btb_front_end_ui_runtime_tests PRIVATE cxx_std_26)
 add_test(NAME front_end_ui_runtime COMMAND btb_front_end_ui_runtime_tests)
+
+# First integrated native executable. The recoveries above remain independent
+# testable modules; this host connects retail game-flow dispatch with one
+# playable activity. This is NOT yet a full retail WinMain replacement.
+add_library(btb_game_session
+    src/game_session.cpp
+)
+target_include_directories(btb_game_session PUBLIC include)
+target_compile_features(btb_game_session PUBLIC cxx_std_26)
+target_link_libraries(btb_game_session PUBLIC btb_dino)
+
+add_executable(btb_game WIN32
+    src/game_main.cpp
+    src/game_win32.cpp
+)
+target_compile_features(btb_game PRIVATE cxx_std_26)
+target_link_libraries(btb_game PRIVATE btb_game_session)
+
+if(WIN32)
+    target_compile_definitions(btb_game PRIVATE UNICODE _UNICODE)
+    target_link_libraries(btb_game PRIVATE user32 gdi32 msimg32 comdlg32)
+else()
+    # Linux smoke mode exercises the same game-session and activity libraries.
+    add_test(NAME game_executable_smoke COMMAND btb_game --smoke)
+endif()
+
+add_executable(btb_game_session_tests
+    tests/game_session_test.cpp
+)
+target_compile_features(btb_game_session_tests PRIVATE cxx_std_26)
+target_link_libraries(btb_game_session_tests PRIVATE btb_game_session)
+add_test(NAME game_session COMMAND btb_game_session_tests)
