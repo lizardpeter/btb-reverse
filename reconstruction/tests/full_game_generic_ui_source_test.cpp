@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -72,10 +73,19 @@ int main() {
         State::GolfPregameSetup,
         std::make_unique<GenericUiScreenDriver>(
             catalog,front_end::Screen::MusicChooser,std::vector<int>(5,0))));
+    std::ostringstream source_bitmaps;
+    for (int i=0; i<22; ++i) {
+        source_bitmaps << "Data/ui/backdrop" << i << ".bmp\\n";
+    }
+    source_bitmaps << "Data/ui/subact/music.bmp\\nEND.bmp\\n";
+    std::istringstream names(source_bitmaps.str());
+    OriginalUiBitmapCatalog backdrop_table;
+    assert(backdrop_table.read(names,err));
+    auto menu = std::make_unique<GenericUiScreenDriver>(
+        catalog,front_end::Screen::MusicChooser,std::vector<int>(5,0));
+    assert(menu->configure_backdrop(backdrop_table,22));
     assert(root.install_generic_front_end_pair(
-        State::MusicChooserSetup,
-        std::make_unique<GenericUiScreenDriver>(
-            catalog,front_end::Screen::MusicChooser,std::vector<int>(5,0))));
+        State::MusicChooserSetup,std::move(menu)));
 
     root.set_outer_state(State::MusicChooserSetup);
     auto setup = root.advance({});
@@ -89,6 +99,9 @@ int main() {
     click.click_pulse=true;
     auto hover_click = root.advance(click);
     assert(hover_click.kind == FrameKind::FrontEndUpdated);
+    assert(hover_click.effects.draws.size() == 1);
+    assert(hover_click.effects.draws[0].source_asset ==
+           "Data/ui/subact/music.bmp");
     assert(hover_click.effects.audio.size() == 3);
     assert(hover_click.effects.audio[0].sound_id == 80);
     assert(hover_click.effects.audio[1].operation ==
