@@ -152,3 +152,20 @@ Bob-swing animation remain external instead of being invented as shortcuts.
 
 See [Golf source lifecycle and remaining presentation gap](full-game-golf.md).
 New source tests were written but **not compiled or executed**.
+
+## Seven recovered native chooser/replay UI pairs
+
+`full_game_generic_ui.hpp/.cpp` now provides the same file-driven
+hover/click/deferred-voice logic for every original 12-screen table index,
+including strict polygon hit tests for nonrectangular original hotspots.
+`GameRoot` registers **seven confirmed 68-state pairs**: Dino chooser
+(0x10/0x11), Music chooser (0x2A/0x2B), Spud chooser (0x16/0x17),
+Adventure chooser (0x1C/0x1D), Play Again Yes/No (0x3C/0x3D),
+Play Again difficulty (0x3E/0x3F), and Fireworks replay edit/view
+(0x42/0x43). These sit alongside the specialized Activity Select pair
+already wired on 0x04/0x05.
+
+Source-only means negative actions (-1/-6, -2..-5, -20/-21,
+-30..-32) remain observable and still require their original enclosing
+state-specific interpretations. Rendering and real audio remain unbound.
+See [generic UI source integration](full-game-generic-ui.md).
