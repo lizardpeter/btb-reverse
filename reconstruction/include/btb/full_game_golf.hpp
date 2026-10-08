@@ -21,6 +21,17 @@ public:
         : golf_data_dir_(std::move(golf_data_dir)),
           difficulty_(difficulty) {}
 
+    void configure_menu_state(const RetailMenuState& menu) noexcept override {
+        // The 0x3F replay chooser sets original global 0x51C284 to 0/1/2.
+        // Initial Golf difficulty is selected by an earlier pregame state,
+        // not by the Adventure chooser's separate subgame selector.
+        if (menu.variant_selection_origin ==
+                game_flow::State::PlayAgainDifficultyUpdate &&
+            menu.source_variant >= 0 && menu.source_variant <= 2) {
+            difficulty_ = menu.source_variant;
+        }
+    }
+
     [[nodiscard]] bool initialize(
         int player_index, std::string& error) override;
     [[nodiscard]] ActivityFrameOutput advance(
