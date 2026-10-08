@@ -33,7 +33,9 @@ The composition occupies **480 bytes**, 120 little-endian signed int32
 cells at `0x005123B8..0x00512597`. Grid geometry:
 
 - 5 pitch rows × 24 second columns
-- screen-space origin `(44,310)`; 23×19 pixels per cell
+- screen-space origin `(44,310)`; 23×19 pixels per cell. Every
+  rectangle uses **strict** bounds; the shared borders between cells are
+  noninteractive rather than assigned to the next cell.
 - `-1` empty; `0..9` ten machine sound types;
   `10` continuation of a two-second note
 - types 0,2,4,6,8 occupy **one** column; types 1,3,5,7,9
