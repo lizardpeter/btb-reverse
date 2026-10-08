@@ -157,7 +157,12 @@ void GameRoot::consume_menu_action(
         return;
     }
     result.menu_action = routed;
-    apply_retail_menu_action(globals_.menu, routed);
+    if (routed.requires_source_variant) {
+        result.error = "the original Dino selector source-variant globals "
+                       "0x51C344/348/34C are not supplied";
+        return;
+    }
+    apply_retail_menu_action(globals_.menu, update, routed);
     // Native also sets the global 0x51C300 play-again latch to zero.
     if (routed.clear_replay_active_latch) {
         globals_.menu.replay_active_latch = false;
@@ -294,8 +299,9 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
             // Retail initializes these in its pregame bookkeeping; the
             // host must supply the actual values before selecting species.
             result.kind = FrameKind::FrontEndFailed;
-            result.error =
-                "native Dino chooser source-variant globals are not initialized";
+            if (result.error.empty()) {
+                result.error = "native Dino chooser source-variant globals are not initialized";
+            }
             return result;
         }
         result.kind = FrameKind::FrontEndUpdated;
@@ -333,6 +339,12 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
                 result.kind = FrameKind::ActivityFailed;
                 return result;
             }
+        }
+        // The retail pregame/chooser writes selected variant and conductor
+        // globals before the corresponding original initializer executes.
+        // Supply those choices to the activity driver before loading data.
+        if (initialized_activity_ != activity->id) {
+            drivers_[index]->configure_menu_state(globals_.menu);
         }
         if (initialized_activity_ != activity->id &&
             !drivers_[index]->initialize(*globals_.active_profile,
