@@ -171,8 +171,10 @@ and sound effects into source-neutral commands, writes one conductor progress
 slot and shared completion code 6, and saves both `music*.txt` and
 `last.txt` before returning to `0x3C`.
 
-The generic Activity Select adapter separately handles the original action
-`0x2C` Bob's Band pregame setup target via the native replacement table;
+The generic Activity Select adapter separately routes the original
+`Music_practice` tile to decimal **42 = 0x2A**, the **Music Chooser**
+setup state, via the native replacement table. The chooser then leads to
+Bob's Band pregame setup **0x2C**;
 the **pregame movie handler** still needs its own source adapter before the
 whole game can navigate end-to-end from its original menu to the music room.
 
