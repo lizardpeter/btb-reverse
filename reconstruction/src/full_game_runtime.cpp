@@ -34,6 +34,11 @@ bool GameRoot::install_generic_front_end_pair(
         return false;
     }
     const auto key = static_cast<std::size_t>(setup_state);
+    if (generic_front_end_initialized_[key] &&
+        globals_.dispatcher.current_state ==
+            static_cast<int>(pair->update)) {
+        return false; // Cannot replace a currently running native menu.
+    }
     generic_front_end_drivers_[key] = std::move(driver);
     generic_front_end_initialized_[key] = false;
     return true;
@@ -49,6 +54,7 @@ bool GameRoot::select_profile(int index) noexcept {
     }
     if (globals_.active_profile != index) {
         activity_select_initialized_ = false;
+        generic_front_end_initialized_.fill(false);
     }
     globals_.active_profile = index;
     return true;
@@ -67,6 +73,7 @@ bool GameRoot::delete_profile(int index) {
         globals_.active_profile.reset();
         globals_.finale_gate = {};
         activity_select_initialized_ = false;
+        generic_front_end_initialized_.fill(false);
     }
     return true;
 }
