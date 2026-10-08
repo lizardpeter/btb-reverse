@@ -29,6 +29,16 @@ public:
           save_dir_(std::move(save_dir)),
           conductor_(conductor) {}
 
+    void configure_menu_state(const RetailMenuState& menu) noexcept override {
+        if (menu.subgame_selection_origin ==
+                game_flow::State::MusicChooserUpdate &&
+            menu.selected_subgame >= 0 &&
+            menu.selected_subgame < bobs_band::kConductorCount) {
+            conductor_ = static_cast<bobs_band::Conductor>(
+                menu.selected_subgame);
+        }
+    }
+
     [[nodiscard]] bool initialize(
         int player_index, std::string& error) override;
     [[nodiscard]] ActivityFrameOutput advance(
