@@ -254,6 +254,7 @@ struct GameFrame {
     std::optional<RetailMenuAction> menu_action{};
     std::optional<RetailPregameAction> pregame_action{};
     bool requires_original_walkthrough_host{};
+    std::optional<int> original_walkthrough_index{};
     std::optional<ReplayPreparationPlan> replay_preparation{};
     std::string error{};
     bool clear_input_pulse{};
