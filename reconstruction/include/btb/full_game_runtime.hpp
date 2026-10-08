@@ -130,6 +130,8 @@ struct ActivityFrameOutput {
     std::optional<std::int32_t> next_outer_state{};
     std::optional<std::int32_t> next_ui_context{};
     bool save_and_unload{};
+    bool open_yes_no_confirmation{};
+    std::optional<int> yes_no_context{};
 };
 
 // Each activity translates its own original native effects into shared
