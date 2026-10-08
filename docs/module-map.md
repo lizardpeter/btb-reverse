@@ -38,3 +38,13 @@ This is a working source-oriented map of the main executable. Boundaries are bas
 | 10 | Playagain.wav |
 
 The routine stops/releases the previous music group, loads the selected WAV through the recovered WAV/DirectSound layer, starts it, and records that music is active. `0x004280A0 StopActivityMusic` is its companion teardown routine.
+
+## Bob's Band source reconstruction
+
+The `0x0041DB20..0x00420324` module now has dedicated source files:
+`bobs_band.hpp/.cpp`, `bobs_band_data.hpp/.cpp`,
+`bobs_band_animation.hpp/.cpp`, and
+`bobs_band_activity.hpp/.cpp`.
+
+See [Bob's Band evidence](bobs-band-activity.md). These C++26 sources
+are not yet part of the full-game host/compile target.
