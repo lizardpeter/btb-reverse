@@ -170,6 +170,16 @@ AudioFramePlan AudioEffectPlanner::plan(
                 request.priority, request.arbitration_class);
             frame.managed_results.push_back(played);
 
+            // Native PreparePlayAgainTransition marks the new 573 voice's
+            // managed buffer slot +0xD98=1, so an input pulse can stop it.
+            // Keep this out of the normal hover/feedback voice policy.
+            if (request.input_interruptible && played.status != 0 &&
+                played.slot >= 0 &&
+                played.slot < static_cast<int>(sound::kManagedSlotCount)) {
+                manager_.input_interruptible[
+                    static_cast<std::size_t>(played.slot)] = 1;
+            }
+
             for (std::size_t i = 0; i < played.preempted_count; ++i) {
                 frame.operations.push_back({
                     SoundEffectKind::StopRewindManagedSlot,
