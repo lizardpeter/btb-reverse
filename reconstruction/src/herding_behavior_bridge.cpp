@@ -58,8 +58,12 @@ bool HerdingRecoveredBehavior::apply_source_motion(
     // The frame-by-frame movement engine is responsible for these fields.
     // Do not accept external overwrites of food, follower, AI, delivery,
     // route allocation or sprite/DirectDraw ownership state.
-    target->previous_x=target->x;
-    target->previous_y=target->y;
+    // The original movement routine writes +0x14/+0x18 itself.
+    // Replacing those with the pre-import coordinates loses the
+    // same-frame roaming retry history and can break subsequent
+    // source rectangle/navigation decisions.
+    target->previous_x=source.previous_x;
+    target->previous_y=source.previous_y;
     target->x=source.x;
     target->y=source.y;
     target->x_float=source.x_float;
