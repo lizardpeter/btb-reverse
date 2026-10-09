@@ -6,6 +6,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <optional>
 
 namespace btb::herding {
