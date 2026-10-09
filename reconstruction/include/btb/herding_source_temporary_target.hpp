@@ -20,8 +20,9 @@ namespace btb::herding {
 // Movement magnitude is original 3.0 at 0x43B430.
 // Once moved, it compares point distance to ORIGINAL target against
 // 120.0f at 0x43B42C. A strict <120 clears the temporary-target
-// timer and RETURNS immediately from UpdateHerdingAnimal.
-// A distant result continues at the normal source return 0x418101.
+// timer and RETURNS through the immediate 0x41708B epilogue.
+// A distant result RETURNS through the shared 0x418101 epilogue.
+// Neither outcome dispatches another AI branch this update.
 //
 // The caller must dispatch this before the ordinary entity behavior
 // state branch, and MUST NOT run another animal branch after the early
@@ -98,7 +99,9 @@ original_herding_temporary_target_update(
         out.early_return=true;
         out.continue_normal_update=false;
     } else {
-        out.continue_normal_update=true;
+        // x86 0x41707B branches directly to the shared 0x418101
+        // function epilogue, not to the ordinary AI dispatcher.
+        out.continue_normal_update=false;
     }
     return out;
 }
