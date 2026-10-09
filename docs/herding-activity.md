@@ -795,3 +795,34 @@ steering, motion and contact candidates is still unfinished. The
 simulation adapter does not invent animal positions or falsely
 confirm contacts. The same uncompiled/full-game-not-yet-working
 boundary remains.
+
+## Original animal heading and steering equations now recovered
+
+Direct disassembly of the retail binary has closed the common
+`0x415D70` integer heading helper and the repeated animal steering
+instructions at `0x416C45/0x416DCE`, including the verified
+IEEE-754 float constants, signed quadrant conversions, integer
+45-degree sprite facing quantization, per-frame trigonometric
+motion, and the source's **0.01 speed gain below 0.8**.
+
+The exact zero-X fallback `9999.0` means vertical-up steering
+returns **359°**, not zero. The source's approximate conversion
+factor also yields **134° / 314°** for two nominal 135°/315°
+diagonals. These unusual numbers are deliberately retained;
+no generic `atan2` simplification or patched movement direction
+has been introduced.
+
+`herding_source_heading.hpp` and `herding_source_steering.hpp`
+contain the translation; corresponding source tests cover
+heading quadrants, motion, facing and speed. The actual
+`HerdingEventSimulation` checks optional original target points
+and resulting movement/facing/speed, rejecting inconsistent frames
+before they can alter animal progress. This closes another
+previously missing movement dependency.
+
+**Still missing:** native random target selection, full per-entity
+movement dispatch, Scruffty patrol motion, true collision-event
+generation and x87 bitwise differential parity. This is not yet
+a finished autonomous animal simulation.
+
+See [direct executable steering audit](herding-native-steering.md).
