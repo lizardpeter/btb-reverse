@@ -44,6 +44,17 @@ int main() {
     generator.seed(1);
     assert(generator.next_rand()==41);
 
+    // After the earlier startup srand, retail calls GetTickCount and
+    // overwrites that seed. The host must pass the actual tick count;
+    // a fresh retail run does NOT continue from the default seed 1.
+    r::OriginalRetailRandom startup{};
+    startup.seed(0xdeadbeefu); // first startup seed is overwritten
+    startup.apply_original_startup_tick_count(0x12345678u);
+    r::OriginalRetailRandom reference{0x12345678u};
+    for (int n=0;n<32;++n) {
+        assert(startup.next_rand()==reference.next_rand());
+    }
+
     generator.seed(0);
     assert(generator.next_rand()==38); // 0x269EC3 >> 16 = 38
     assert(generator.next_mod(4));
