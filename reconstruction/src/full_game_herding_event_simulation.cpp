@@ -150,6 +150,32 @@ bool HerdingEventSimulation::advance(
         error="Herding motion source must return every retail entity record";
         return false;
     }
+    if (observed.pickles_boundary_evidence) {
+        const auto& observed_motion=*observed.pickles_boundary_evidence;
+        const auto expected=herding::retail_herding_navigation_boundary_step(
+            data_.retail_transformed_group0(),
+            observed_motion.attempted_x,observed_motion.attempted_y,
+            observed_motion.previous_x,observed_motion.previous_y,
+            observed_motion.original_allows_axis_recovery);
+        if (!expected) {
+            error="source's original Pickles polygon movement probe "
+                  "could not be evaluated without x86 division failure";
+            return false;
+        }
+        const auto hero=std::find_if(
+            observed.motion_records.begin(),
+            observed.motion_records.end(),
+            [](const auto& e) {
+                return e.entity_type()==herding::EntityType::FarmerPickles;
+            });
+        if (hero==observed.motion_records.end() ||
+            hero->x_float!=expected->x ||
+            hero->y_float!=expected->y) {
+            error="original Pickles navigation differs from binary-verified "
+                  "0x418C2D polygon and axis-slide result";
+            return false;
+        }
+    }
     for (std::size_t i=0;i<observed.motion_records.size();++i) {
         if (!candidate.apply_source_motion(i,observed.motion_records[i])) {
             error="Herding movement source attempted to replace entity "
