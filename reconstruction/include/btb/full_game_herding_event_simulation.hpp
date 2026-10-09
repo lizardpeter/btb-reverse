@@ -7,6 +7,7 @@
 #include "btb/herding_source_steering.hpp"
 #include "btb/herding_source_heading.hpp"
 #include "btb/herding_source_roaming_loop.hpp"
+#include "btb/herding_source_temporary_target.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -88,12 +89,23 @@ struct HerdingRoamingRecoveryEvidence {
     std::uint64_t attempts{};
 };
 
+// The original 0x416F57 branch executes before generic behavior
+// dispatch whenever a herd animal has +0x58 > 0. Record its unmodified
+// pre-branch entity so the verified adapter can independently check
+// the exact 3-unit motion, resulting facing and 120-unit return gate.
+struct HerdingTemporaryTargetEvidence {
+    std::size_t entity_index{};
+    herding::RetailEntityRecord32 before{};
+    bool source_returned_early{};
+};
+
 struct HerdingObservedFrame {
     std::optional<HerdingPicklesBoundaryEvidence> pickles_boundary_evidence{};
     // Optional, branch-specific probes for native 0x416C45/0x416DCE
     // steering. These are not manufactured for unrelated AI branches.
     std::vector<HerdingSteeringEvidence> steering_evidence{};
     std::vector<HerdingRoamingRecoveryEvidence> recovery_evidence{};
+    std::vector<HerdingTemporaryTargetEvidence> temporary_target_evidence{};
     // Same ordering/entity IDs as the original 0x64-byte record table;
     // updates to behavior states and animation are ignored here because
     // the reconstructed behavior/compositor own those fields.
