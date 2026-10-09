@@ -90,7 +90,7 @@ original_herding_roaming_recovery_attempt(
     const RetailEntityRecord32& entity,
     Vec2i original_steering_anchor,
     retail::OriginalRetailRandom& shared_rng,
-    const std::vector<Vec2i>& transformed_navigation_polygon) noexcept {
+    const std::vector<Vec2i>& original_group2_polygon) noexcept {
 
     // Refuse obviously invalid external input before burning the
     // original process-global random sequence.
@@ -103,7 +103,7 @@ original_herding_roaming_recovery_attempt(
     return original_herding_roaming_recovery_attempt(
         entity,original_steering_anchor,
         random.selected_x_index,random.selected_y_index,
-        transformed_navigation_polygon);
+        original_group2_polygon);
 }
 
 } // namespace btb::herding
