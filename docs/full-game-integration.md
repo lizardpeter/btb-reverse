@@ -443,8 +443,8 @@ source-level movement and audio branches:
 - **Out-of-bounds random target recovery** (`0x417FFE..0x418101`):
   authentic four point pairs at `0x443AC8`, but **two independent
   `rand()%4` selections** for X and Y (16 possible destinations),
-  source three-unit movement and polygon acceptance. The full
-  same-frame retry loop remains unreconstructed.
+  source three-unit movement and group-2 polygon acceptance. The
+  same-frame retry loop has now been reconstructed from x86.
 - **Free-roam speed/animation branch** (`0x417C0C..0x417C85`):
   speed reduction by 0.4 only above 0.4, otherwise reset to 0.1,
   countdown -20 and species-specific animation frame wraps.
@@ -468,10 +468,12 @@ No new compile or runtime execution was performed.
 
 ### Original same-frame roaming retry loop — executable reconstruction
 
-The former isolated `0x417FFE..0x4180F1` roaming attempt is now
+The formerly isolated `0x417FFE..0x4180F1` roaming attempt is now
 joined into the original **in-frame loop** at
-`0x417F7C..0x418101`, with the exact jump
-`0x4180FB -> 0x417FB2` for an outside-polygon result.
+`0x417F7C..0x418101`. Native disassembly confirms the polygon
+is **herd.txt group TWO** (`0x5104E8`) and the exact jump
+`0x4180FB -> 0x417FB2` retries when the point is OUTSIDE,
+accepting only when the integer result is INSIDE that group.
 
 The disassembly corrected an important earlier source error:
 the native heading origin is
@@ -494,8 +496,8 @@ result against a one-call run and the exact six original RNG draws.
 `HerdingEventSimulation` can now independently verify an upstream
 motion frame's start/end RNG states, reported retry count, direction,
 current X/Y and original previous-position fields by replaying that
-original polygon loop. The behavior import was also fixed to retain
-source-supplied previous positions rather than fabricating them.
+original group-2 polygon loop. The behavior import was also fixed
+to retain source-supplied previous positions rather than fabricating them.
 Tracked-follower arrival now has an overload that directly consumes
 its original discarded rand() from the shared CRT stream.
 
@@ -567,3 +569,42 @@ execution was performed in this pass.
 
 [Detailed recovered movement branch audit](herding-autonomous-motion-branches.md)
 and [original executable evidence table](../ghidra/herding_motion_new_branch_evidence.csv).
+
+### Scruffty patrol and correction of earlier recovery misconceptions
+
+Another direct PE32 disassembly pass recovered the **complete type-7
+Scruffty patrol branch** in `UpdateHerdingActivity` at
+`0x418F23–0x41908D`. It advances through the actual five
+group-1 `herd.txt` waypoints, halves speed on strictly
+less-than-10-unit waypoint arrival, quantizes direction from the
+original heading helper, and gates position updates on the
+original `0x443B20` animation latch and sprite frames 3/4.
+Movement distance is speed × 10; speed climbs by 0.01 while
+below 1.6; animation decrements five ticks, reloads 25,
+cycles seven frames and re-arms the movement latch.
+
+The initializer at `0x41A2BB–0x41A331` creates exactly
+one Scruffty on Medium/Hard, at the first group-1 waypoint
+with a 101×116 source sprite rectangle. New source
+`herding_source_scruffty_patrol.hpp` plus its fixture
+model the original path and sprite rhythm. The
+`HerdingEventSimulation` validates the real starting
+record and can replay optional source patrol evidence against
+waypoint/latch state. It commits that state only on a successful
+simulation frame; the process-global latch survives reinitialization.
+
+The previous roam-recovery interpretation also contained two
+serious errors discovered in the same binary audit. The original
+`0x417F7C/0x4180F1` polygon is **group 2**, not group 0,
+and `0x417FB2/0x417FBE` restores current integer X/Y from
+saved previous positions instead of overwriting those saved
+positions. The source, full-game verification, and regression
+fixtures have been corrected. A latent undefined steering-anchor
+variable in the shared-RNG overload was corrected as well.
+
+These are **source-level** improvements. The complete ordinary
+animal AI, source provider, native full build, and actual
+original-game differential tests remain outstanding. No new
+C++ build or execution was performed under the project instruction.
+
+[Scruffty patrol and roam recovery audit](herding-autonomous-motion-branches.md).
