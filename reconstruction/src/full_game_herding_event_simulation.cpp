@@ -211,6 +211,18 @@ bool HerdingEventSimulation::advance(
             error="source steering probe references an absent entity";
             return false;
         }
+        if (probe.original_target) {
+            const auto recovered_heading=
+                herding::original_herding_integer_heading(
+                    probe.original_actor_x,probe.original_actor_y,
+                    probe.original_target->x,probe.original_target->y);
+            if (!recovered_heading ||
+                *recovered_heading!=probe.native_heading_degrees) {
+                error="source steering heading contradicts retail "
+                      "0x415D70 target/quadrant/truncation rules";
+                return false;
+            }
+        }
         const auto expected=herding::original_herding_steering_step(
             probe.original_x,probe.original_y,
             probe.native_heading_degrees,probe.magnitude_before_step,
