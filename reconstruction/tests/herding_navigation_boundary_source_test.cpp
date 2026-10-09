@@ -6,6 +6,15 @@
 
 int main() {
     using namespace btb::herding;
+    // Binary 0x418C65: one keyboard axis does not trigger sliding
+    // if original mouse mode is zero; two axes or mouse mode enable it.
+    assert(!retail_herding_axis_recovery_enabled(0,0));
+    assert(!retail_herding_axis_recovery_enabled(1,0));
+    assert(retail_herding_axis_recovery_enabled(2,0));
+    assert(retail_herding_axis_recovery_enabled(3,0));
+    assert(retail_herding_axis_recovery_enabled(0,1));
+    assert(retail_herding_axis_recovery_enabled(1,1));
+
     const std::vector<Vec2i> square{{
         {0,0},{10,0},{10,10},{0,10}
     }};
