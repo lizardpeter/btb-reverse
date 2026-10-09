@@ -43,7 +43,7 @@ static_assert(std::bit_cast<std::uint32_t>(
 
 struct RetailScrufftyPatrolState {
     std::size_t waypoint_index{};
-    bool movement_frame_latch{}; // global 0x443B20, default data word zero
+    bool movement_frame_latch{true}; // PE .data global 0x443B20 is initialized to 1
 };
 
 struct RetailScrufftyPatrolStep {
@@ -78,6 +78,9 @@ original_scruffty_patrol_step(
 
     RetailScrufftyPatrolStep result{};
     result.animal=scruffty;
+    // The outer original activity clears +0x48 for every entity at
+    // 0x418EFA before iterating updates. Include that preclear here.
+    result.animal.movement_active=0;
     result.state=source_state;
     auto target=original_group1_waypoints[result.state.waypoint_index];
 
