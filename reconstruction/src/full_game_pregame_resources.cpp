@@ -53,7 +53,8 @@ make_original_pregame_screen_driver(
     auto driver = std::make_unique<GenericUiScreenDriver>(
         std::move(ui_tables),pair->screen,
         std::move(original_initial_hover_random_draws));
-    if (!driver->configure_backdrop(bitmap_table,*backdrop_index)) {
+    if (!driver->bind_retail_pregame_backdrops(bitmap_table,setup) ||
+        !driver->configure_backdrop(bitmap_table,*backdrop_index)) {
         return {};
     }
     return driver;
