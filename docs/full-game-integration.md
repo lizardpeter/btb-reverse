@@ -399,3 +399,34 @@ not complete. No code was compiled, tested or run during this pass.
 
 Evidence and code: [Herding retail geometry](herding-retail-geometry.md)
 and `full_game_herding_event_simulation.cpp`.
+
+### Retail heading, per-frame animal steering and waypoint arrival closure
+
+Another direct audit of the original `UpdateHerdingAnimal` binary
+recovered the shared integer heading routine `0x415D70` and two
+steering loops `0x416C45/0x416DCE`. Source now preserves the game's
+approximate radian conversion, unusual 9999 vertical fallback
+producing **359° Up**, signed quadrant conversions, 45° sprite cell
+quantization, X sin/Y minus cos movement, and **0.01** speed increase
+while below **0.8**, with bit-checked original PE float constants.
+
+`HerdingEventSimulation` can verify both the **original target
+coordinate → integer heading** and the **heading → animation/
+movement/speed** result from the underlying animal movement source.
+The floating implementation still needs native x87 parity verification.
+
+The original x87 distance helper at `0x415D30` and the strict
+`distance < 10` branch also now gate animal home-route transitions.
+`HerdingRecoveredBehavior` no longer accepts bare "arrived"
+events from remote coordinates: the actual animal must be within ten
+units of the correct entrance waypoint and then the correct second-stage
+destination. Regression sources now move each of nine Easy-mode
+animals through both home points before decrementing the undelivered
+counter.
+
+This substantially reduces the amount of unverified animal AI, but
+the continuous target-selection/free-roam/steering dispatch and
+collision-event generator remain unimplemented. No full build
+or original-game execution was performed.
+
+See [original angle, steering and distance audit](herding-native-steering.md).
