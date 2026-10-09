@@ -2,10 +2,12 @@
 
 #include "btb/full_game_herding.hpp"
 #include "btb/herding_behavior_bridge.hpp"
+#include "btb/herding_navigation_boundary.hpp"
 
 #include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -38,7 +40,19 @@ struct HerdingObservedEvent {
     int source_verified_sound_id{-1};
 };
 
+// Source's raw pre-polygon Pickles candidate. The independently
+// recovered 0x418C2D..0x418CE4 validator checks that the source really
+// performed the retail axis-slide response, not a rectangle clamp.
+struct HerdingPicklesBoundaryEvidence {
+    float attempted_x{};
+    float attempted_y{};
+    std::int32_t previous_x{};
+    std::int32_t previous_y{};
+    bool original_allows_axis_recovery{};
+};
+
 struct HerdingObservedFrame {
+    std::optional<HerdingPicklesBoundaryEvidence> pickles_boundary_evidence{};
     // Same ordering/entity IDs as the original 0x64-byte record table;
     // updates to behavior states and animation are ignored here because
     // the reconstructed behavior/compositor own those fields.
