@@ -1,6 +1,8 @@
 #include "btb/full_game_pregame_resources.hpp"
 
 #include <cassert>
+#include <utility>
+#include <vector>
 #include <sstream>
 #include <string>
 
@@ -96,4 +98,37 @@ NULL data//sound//advent1walthroughsubhelp.wav
         State::GolfPregameUpdate,1,images,walkthroughs));
     assert(!resolve_original_pregame_resources(
         State::MusicChooserSetup,0,images,walkthroughs));
+
+    // Create the real generic UI adapter with the original instructional
+    // backdrop installed instead of a blank placeholder.
+    GenericUiCatalog ui_catalog;
+    for (std::size_t screen=0; screen<btb::front_end::kScreenCount; ++screen) {
+        const int n=btb::front_end::kRetailHotAreaCounts[screen];
+        ui_catalog.counts.push_back(n);
+        btb::front_end::HotAreaScreen areas;
+        btb::front_end::ReplacementScreen rows;
+        for (int i=0; i<n; ++i) {
+            areas.areas.push_back({
+                {{{10,10},{40,10},{40,40},{10,40}}},{}
+            });
+            btb::front_end::ReplacementRecord replacement{};
+            replacement.target_state_or_action=-6;
+            replacement.click_sound_id=-1;
+            rows.records.push_back(std::move(replacement));
+        }
+        ui_catalog.hot_areas.push_back(std::move(areas));
+        ui_catalog.replacements.push_back(std::move(rows));
+    }
+    auto driver=make_original_pregame_screen_driver(
+        std::move(ui_catalog),images,State::GolfPregameSetup,1,
+        std::vector<int>(6,0));
+    assert(driver);
+    btb::progress::Record profile{};
+    btb::progress::FinaleGate finale{};
+    assert(driver->initialize(profile,finale,error));
+    const auto first=driver->advance({});
+    assert(!first.draws.empty());
+    assert(first.draws.front().source_asset ==
+           "Data\\ui\\instruction\\playgolf.bmp");
+    assert(!first.draws.front().color_keyed);
 }
