@@ -363,6 +363,8 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
                         globals_.retained_herding_difficulty;
                 }
                 if (pregame->starts_global_movie_mode14) {
+                    result.original_global_intro_movie_index =
+                        retail_pregame_global_intro_index(pregame->setup);
                     // Herding, Fireworks, Squirrel and Park Designer open
                     // an additional global Bink at 0x408EB0, DECREMENT
                     // the state back to setup, then enter screen mode 14.
