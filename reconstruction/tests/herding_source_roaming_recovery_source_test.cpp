@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <limits>
 #include <set>
 #include <utility>
 #include <vector>
@@ -74,4 +75,24 @@ int main() {
 
     assert(!h::original_herding_roaming_recovery_attempt(
         animal,{498,491},4,2,original_navigation));
+
+    // The process-global original rand stream performs X then Y.
+    // srand(1) -> first pair (41%4=1,18467%4=3), followed by
+    // (6334%4=2,26500%4=0). This is not a per-animal PRNG.
+    btb::retail::OriginalRetailRandom shared{1};
+    const auto automatic=h::original_herding_roaming_recovery_attempt(
+        animal,{498,491},shared,original_navigation);
+    assert(automatic);
+    assert(automatic->randomly_selected_target ==
+           (h::Vec2i{400,659}));
+    assert(automatic->consumed_rand_calls==2);
+    assert(shared.next_rand()==6334);
+
+    shared.seed(1);
+    auto nonexistent=animal;
+    nonexistent.x_float=std::numeric_limits<float>::infinity();
+    const auto old_random=shared.state();
+    assert(!h::original_herding_roaming_recovery_attempt(
+        nonexistent,{498,491},shared,original_navigation));
+    assert(shared.state()==old_random);
 }
