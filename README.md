@@ -91,3 +91,20 @@ binary-verified negative menu actions in the shared coordinator.
 
 See [full-game integration](docs/full-game-integration.md) and
 [retail menu action evidence](docs/full-game-menu-actions.md).
+
+## Full-game instruction and movie source recovery
+
+The complete set of **ten original instruction/pregame setup-update
+pairs** is now modeled in the source-level 68-state `GameRoot`
+coordinator. They have their exact original six-way action tables,
+parent Back targets, first-run difficulty writes, special Spud Skate
+start branch, original BMP background slots, ten Bink walkthroughs,
+and the four separately opened global intro movies.
+
+The next native-host work is still substantial: original Bink/DirectDraw
+presentation, real sound output, screen-specific help and transition
+timing, and the remaining eight activity adapters. Do not treat these
+source changes or deferred regression files as a finished game.
+
+See [full pregame reverse-engineering evidence](docs/full-game-pregame.md)
+and [full-game integration gate](docs/full-game-integration.md).
