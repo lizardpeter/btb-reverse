@@ -1,6 +1,7 @@
 #include "btb/full_game_herding_event_simulation.hpp"
 
 #include <algorithm>
+#include <iterator>
 #include <utility>
 
 namespace btb::full_game {
