@@ -1,11 +1,14 @@
 #pragma once
 
 #include "btb/full_game_pregame.hpp"
+#include "btb/full_game_generic_ui.hpp"
 #include "btb/full_game_ui_bitmaps.hpp"
 #include "btb/full_game_walkthrough_catalog.hpp"
 
 #include <cstddef>
+#include <memory>
 #include <optional>
+#include <vector>
 #include <string>
 
 namespace btb::full_game {
@@ -30,5 +33,17 @@ resolve_original_pregame_resources(
     int selected_subgame,
     const OriginalUiBitmapCatalog& bitmap_table,
     const OriginalWalkthroughCatalog& walkthrough_table);
+
+
+// Construct the real table-driven pregame UI with the source-backed
+// background selected from uiBitmapName.txt. The caller still installs
+// the resulting driver into GameRoot, and hosts the separate Bink movie.
+[[nodiscard]] std::unique_ptr<GenericUiScreenDriver>
+make_original_pregame_screen_driver(
+    GenericUiCatalog ui_tables,
+    const OriginalUiBitmapCatalog& bitmap_table,
+    game_flow::State setup,
+    int selected_subgame,
+    std::vector<int> original_initial_hover_random_draws);
 
 } // namespace btb::full_game
