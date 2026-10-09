@@ -199,7 +199,7 @@ public:
     // Source-backed pregame menus may have backgrounds selected using
     // retail 0x51C2E4. Reconfigure before each original setup instead
     // of caching the wrong Dino/Spud/Adventure bitmap across sessions.
-    virtual void configure_menu_state(const RetailMenuState&) noexcept {}
+    virtual void configure_menu_state(const RetailMenuState&) {}
     [[nodiscard]] virtual bool initialize(
         const progress::Record& current_profile,
         progress::FinaleGate& finale_gate,
