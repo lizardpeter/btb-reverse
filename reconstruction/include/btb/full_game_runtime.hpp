@@ -177,6 +177,10 @@ struct ActivityFrameInput {
     int elapsed_centiseconds{};
     int frame_delta{1};
     int random_value{};
+    // Normalized original directional input byte. Herding's retail
+    // mapping is 0x01 Left, 0x02 Right, 0x04 Up, 0x08 Down.
+    // Activity-specific providers decide how to consume this input.
+    std::uint8_t directional_input_bits{};
 };
 
 struct ActivityFrameOutput {
