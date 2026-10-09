@@ -76,4 +76,29 @@ original_herding_roaming_recovery_attempt(
     };
 }
 
+// Production-facing recovery attempt: consume the actual shared
+// MSVC rand sequence instead of asking the caller to invent/replay
+// the two modulus results. The explicit-roll overload remains useful
+// for exact differential fixture playback.
+[[nodiscard]] inline std::optional<RetailRoamingRecoveryAttempt>
+original_herding_roaming_recovery_attempt(
+    const RetailEntityRecord32& entity,
+    Vec2i original_actor_center,
+    retail::OriginalRetailRandom& shared_rng,
+    const std::vector<Vec2i>& transformed_navigation_polygon) noexcept {
+
+    // Refuse obviously invalid external input before burning the
+    // original process-global random sequence.
+    if (!std::isfinite(entity.x_float) ||
+        !std::isfinite(entity.y_float) ||
+        transformed_navigation_polygon.empty()) {
+        return std::nullopt;
+    }
+    const auto random=next_original_herding_recovery_target(shared_rng);
+    return original_herding_roaming_recovery_attempt(
+        entity,original_actor_center,
+        random.selected_x_index,random.selected_y_index,
+        transformed_navigation_polygon);
+}
+
 } // namespace btb::herding
