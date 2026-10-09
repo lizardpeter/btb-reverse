@@ -1,6 +1,7 @@
 #pragma once
 
 #include "btb/herding_data.hpp"
+#include "btb/retail_crt_random.hpp"
 
 #include <array>
 #include <cstdint>
@@ -51,6 +52,17 @@ original_herding_recovery_target(
         },
         2,first_rand_mod_4,second_rand_mod_4
     };
+}
+
+// Draw from the ONE shared original CRT RNG. On the retail
+// out-of-bounds branch at 0x417FFE, these must be consecutive
+// calls; they are never the X/Y coordinates from a single index.
+[[nodiscard]] constexpr RetailRoamingRecoveryTarget
+next_original_herding_recovery_target(
+    retail::OriginalRetailRandom& shared_rand) noexcept {
+    const int xroll=shared_rand.next_rand()%4;
+    const int yroll=shared_rand.next_rand()%4;
+    return *original_herding_recovery_target(xroll,yroll);
 }
 
 } // namespace btb::herding
