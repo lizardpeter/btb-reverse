@@ -507,3 +507,59 @@ source fixtures only; no code was compiled during this pass.
 
 [Exact in-frame movement evidence](../ghidra/herding_motion_new_branch_evidence.csv)
 and [Pets Corner autonomous motion audit](herding-autonomous-motion-branches.md).
+
+### Pets Corner original state-zero movement dispatch (current pass)
+
+Direct comparison with the shipped 311,296-byte executable now covers
+another contiguous original animal-update section:
+`0x416F49..0x4175A2` (with the previously reconstructed
+home-route and random-recovery branches still separate).
+
+The new source is:
+- `herding_source_temporary_target.hpp`: positive +0x58 timer uses
+  the source's **positive half-cell center** (unlike roaming recovery's
+  negative half-cell anchor), moves exactly **3.0** units toward
+  original +0x5C/+0x60 target, and tests strict **distance <120**.
+  Both near and distant outcomes return from animal update; only near
+  clears the timer.
+- `herding_source_tracked_targets.hpp`: original ordinary followers
+  live in `0x50AF14` and **separate** tracked-target slots in
+  `0x50AF78`. Source tests tracked first, registers ordinary followers
+  with strict **distance <150**, retains first free tracked slot,
+  and decrements global remaining registrations `0x50B31C`.
+- `herding_source_partial_dispatcher.hpp`: integrates temporary
+  chase, real tracked/ordinary membership routing, tracked approach
+  and subsequent **distance <30** arrival into one deterministic
+  state-zero dispatcher. The source arrival writes **behavior_state 1
+  at +0x50** and consumes exactly one discarded original rand().
+  Other free-roam/follower branches remain explicitly *uncovered*.
+- `herding_source_follower_approach.hpp`: corrected earlier source
+  error so arrival changes behavior_state rather than
+  movement_active, and the still-approaching branch applies the
+  original **+0.01 acceleration below 0.8**.
+- `herding_behavior_bridge.cpp`: retains source-owned temporary
+  timer, target and animation records across game frames, instead
+  of dropping changes when importing the next movement snapshot.
+- `HerdingEventSimulation`: validates independently reported
+  temporary-target branches (source state, resulting float/int
+  position, original 120-unit timer/return and facing) without
+  accepting contradictory state changes.
+
+New test source files include
+`herding_source_temporary_target_source_test.cpp`,
+`herding_source_tracked_targets_source_test.cpp`, and
+`herding_source_partial_dispatcher_source_test.cpp`. The last
+traces one authentic branch sequence
+temporary target → 150-unit registration → tracked chase →
+30-unit arrival → behavior state 1, checking the single consumed
+original rand() and separation of both 20-entry lists.
+
+**Still not a fully functioning Pets Corner:** initial entity
+construction, ordinary follower and free-roam motion, Scruffty patrol,
+true independent input/contact event generation, and full-frame
+native rendering and video remain incomplete. Tests are source
+regressions only; per the standing instruction, no full build or
+execution was performed in this pass.
+
+[Detailed recovered movement branch audit](herding-autonomous-motion-branches.md)
+and [original executable evidence table](../ghidra/herding_motion_new_branch_evidence.csv).
