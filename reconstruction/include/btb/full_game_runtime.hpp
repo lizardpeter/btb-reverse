@@ -193,6 +193,9 @@ struct ActivityFrameOutput {
     bool open_options_overlay{};
     std::optional<int> negative_ui_action{};
     std::optional<int> yes_no_context{};
+    // Runtime provider failures must not silently submit a partially
+    // reconstructed activity frame as if the original game succeeded.
+    std::optional<std::string> fatal_error{};
 };
 
 // Each activity translates its own original native effects into shared
