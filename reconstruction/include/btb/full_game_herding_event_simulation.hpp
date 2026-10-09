@@ -6,6 +6,7 @@
 #include "btb/herding_retail_rect_contact.hpp"
 #include "btb/herding_source_steering.hpp"
 #include "btb/herding_source_heading.hpp"
+#include "btb/herding_source_roaming_loop.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -79,11 +80,20 @@ struct HerdingSteeringEvidence {
     bool native_roaming_speed_ramp{};
 };
 
+struct HerdingRoamingRecoveryEvidence {
+    std::size_t entity_index{};
+    herding::RetailEntityRecord32 before{};
+    std::uint32_t rng_state_before{};
+    std::uint32_t rng_state_after{};
+    std::uint64_t attempts{};
+};
+
 struct HerdingObservedFrame {
     std::optional<HerdingPicklesBoundaryEvidence> pickles_boundary_evidence{};
     // Optional, branch-specific probes for native 0x416C45/0x416DCE
     // steering. These are not manufactured for unrelated AI branches.
     std::vector<HerdingSteeringEvidence> steering_evidence{};
+    std::vector<HerdingRoamingRecoveryEvidence> recovery_evidence{};
     // Same ordering/entity IDs as the original 0x64-byte record table;
     // updates to behavior states and animation are ignored here because
     // the reconstructed behavior/compositor own those fields.
