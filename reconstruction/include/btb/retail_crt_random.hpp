@@ -30,6 +30,14 @@ public:
         state_=new_seed;
     }
 
+    // The native Win32 startup adapter passes GetTickCount's uint32
+    // return value here, preserving the exact final 0x4027FB seed.
+    // This pure source model does not read a different host clock.
+    constexpr void apply_original_startup_tick_count(
+        std::uint32_t original_get_tick_count) noexcept {
+        seed(original_get_tick_count);
+    }
+
     [[nodiscard]] constexpr std::uint32_t state() const noexcept {
         return state_;
     }
