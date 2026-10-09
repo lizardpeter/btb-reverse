@@ -15,6 +15,8 @@ h::RetailEntityRecord32 original_test_entity() {
     e.type=static_cast<int>(h::EntityType::Sheep);
     e.x=478;
     e.y=471;
+    e.previous_x=478;
+    e.previous_y=471;
     e.x_float=478.0f;
     e.y_float=471.0f;
     e.source_left=0;
@@ -36,10 +38,12 @@ int main() {
     assert(h::original_herding_recovery_anchor(odd) ==
            (h::Vec2i{458,450})); // negative signed halves truncate
 
-    // A world whose legal region begins at Y=477. Original seed-one
+    // A six-point exclusion-region fixture whose interior begins Y=477.
+    // Source 0x417F7C tests group TWO, not group-zero navigation.
+    // Original seed-one
     // movement needs THREE recovery attempts in the SAME frame:
     //  1: (400,659) -> Y ~473 (outside)
-    //  2: (891,766) -> Y ~475 (outside)
+    //  2: (891,766) -> Y ~475 (outside; ints restored from 478,471)
     //  3: (400,766) -> Y ~478 (inside)
     const std::vector<h::Vec2i> world{{
         {0,477},{1200,477},{1200,650},{0,650}
@@ -54,6 +58,8 @@ int main() {
     assert(state.attempts==1 && state.consumed_random_calls==2);
     assert(state.entity.x==477);
     assert(state.entity.y==473);
+    // Old source had the arrows reversed and overwrote previous_x/Y;
+    // disassembly 0x417FB2 restores current integers FROM previous.
     assert(state.entity.previous_x==478);
     assert(state.entity.previous_y==471);
     assert(state.entity.movement_speed==0.0f);
@@ -64,8 +70,8 @@ int main() {
     assert(state.attempts==2 && state.consumed_random_calls==4);
     assert(state.entity.x==479);
     assert(state.entity.y==475);
-    assert(state.entity.previous_x==477);
-    assert(state.entity.previous_y==473);
+    assert(state.entity.previous_x==478);
+    assert(state.entity.previous_y==471);
 
     status=h::resume_original_herding_roaming_loop(
         state,shared,world,1);
@@ -74,8 +80,8 @@ int main() {
     assert(state.attempts==3 && state.consumed_random_calls==6);
     assert(state.entity.x==479);
     assert(state.entity.y==478);
-    assert(state.entity.previous_x==479);
-    assert(state.entity.previous_y==475);
+    assert(state.entity.previous_x==478);
+    assert(state.entity.previous_y==471);
     assert(shared.next_rand()==11478); // source rolls advance exactly
     assert(h::resume_original_herding_roaming_loop(
         state,shared,world,1)==h::OriginalRoamingLoopStatus::Accepted);
@@ -92,6 +98,8 @@ int main() {
     assert(continuous.entity.y==state.entity.y);
     assert(continuous.entity.x_float==state.entity.x_float);
     assert(continuous.entity.y_float==state.entity.y_float);
+    assert(continuous.entity.previous_x==478);
+    assert(continuous.entity.previous_y==471);
     assert(continuous.attempts==state.attempts);
     // The resumed test already consumed an extra seventh rand() above;
     // compare both runs against an independent six-call sequence below.
