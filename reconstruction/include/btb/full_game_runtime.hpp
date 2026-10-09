@@ -5,6 +5,7 @@
 #include "btb/full_game_menu_actions.hpp"
 #include "btb/full_game_pregame.hpp"
 #include "btb/full_game_replay_transition.hpp"
+#include "btb/full_game_startup_movies.hpp"
 #include "btb/player_progress.hpp"
 #include "btb/player_profiles.hpp"
 
@@ -256,6 +257,7 @@ struct GameFrame {
     bool requires_original_walkthrough_host{};
     std::optional<int> original_walkthrough_index{};
     std::optional<std::size_t> original_pregame_backdrop_slot{};
+    std::optional<int> original_global_intro_movie_index{};
     std::optional<ReplayPreparationPlan> replay_preparation{};
     std::string error{};
     bool clear_input_pulse{};
