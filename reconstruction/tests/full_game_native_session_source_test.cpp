@@ -181,6 +181,14 @@ int main() {
         assert(device.walk_close == 1);
         assert(!session.has_walkthrough());
         assert(game.globals().dispatcher.current_state == 0x36);
+        // A missing Golf adapter cannot masquerade as a successful
+        // gameplay frame. The native host stops with a clear error.
+        const auto unhosted=session.tick({},false,false);
+        assert(unhosted.failure);
+        assert(unhosted.failure->stage ==
+               PhysicalPresentationStage::GameAdvance);
+        assert(!unhosted.submitted);
+        assert(session.failed());
     }
 
     {
