@@ -50,15 +50,15 @@ int main() {
     assert(near_step->moved.animation_frame==3);
     assert(near_step->moved.animation_frame_countdown==33);
 
-    // Distant target keeps temporary target active and continues into
-    // the other source state update return path after a 3-unit step.
+    // A distant target retains its timer, but it ALSO terminates
+    // this animal update via the shared 0x418101 epilogue.
     auto far=original_fixture();
     far.target_x=600;far.target_y=600;
     const auto far_step=h::original_herding_temporary_target_update(far);
     assert(far_step);
     assert(far_step->branch_taken);
     assert(!far_step->early_return);
-    assert(far_step->continue_normal_update);
+    assert(!far_step->continue_normal_update);
     assert(far_step->moved.temporary_target_timer==200);
     assert(far_step->moved.movement_speed==3.0f);
     assert(far_step->moved.x_float>200.0f);
