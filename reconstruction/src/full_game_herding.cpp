@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <fstream>
+#include <iterator>
 #include <utility>
 
 namespace btb::full_game {
@@ -68,11 +69,13 @@ ActivityFrameOutput HerdingDriver::advance(
         return out;
     }
     int undelivered=-1;
+    std::vector<Audio> source_audio_events;
     std::string error;
     const auto pickles_motion=herding::pickles_keyboard_motion(
         input.directional_input_bits);
     if (!simulation_->advance(
-            input,pickles_motion,scene_,undelivered,error)) {
+            input,pickles_motion,scene_,undelivered,
+            source_audio_events,error)) {
         out.fatal_error = error.empty()
             ? "original Pets Corner entity simulation failed" : error;
         return out;
@@ -105,6 +108,14 @@ ActivityFrameOutput HerdingDriver::advance(
             AudioOperation::ManagedSoundId,{},581,50,1
         });
     }
+
+    // Animal attraction, food pickup, distraction, and final-home route
+    // voices originate from the recovered gameplay event decisions.
+    // Preserve their event order and exact source-specified manager class.
+    out.audio.insert(
+        out.audio.end(),
+        std::make_move_iterator(source_audio_events.begin()),
+        std::make_move_iterator(source_audio_events.end()));
 
     const auto complete=herding::herding_completion_step(
         undelivered,completion_stage_,
