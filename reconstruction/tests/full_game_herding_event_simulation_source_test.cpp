@@ -284,6 +284,8 @@ int main() {
     assert(simulation.advance(
         {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
     assert(scene.entities[1].y==798);
+    assert(scene.entities[1].previous_x==520);
+    assert(scene.entities[1].previous_y==801);
     assert(scene.entities[1].y_float>798.0f);
     assert(scene.entities[1].y_float<800.0f);
     assert(remaining==9);
