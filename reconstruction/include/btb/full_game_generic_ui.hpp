@@ -1,6 +1,7 @@
 #pragma once
 
 #include "btb/full_game_front_end.hpp"
+#include "btb/full_game_pregame.hpp"
 #include "btb/full_game_ui_bitmaps.hpp"
 
 #include <cstddef>
@@ -31,6 +32,30 @@ public:
         : catalog_(std::move(catalog)),
           screen_(screen),
           initial_random_draws_(std::move(initial_random_draws)) {}
+
+    void configure_menu_state(const RetailMenuState& menu) override {
+        if (!pregame_setup_ || !pregame_bitmaps_) {
+            return;
+        }
+        const auto slot = retail_pregame_backdrop_index(
+            *pregame_setup_,menu.selected_subgame);
+        backdrop_ = slot ? pregame_bitmaps_->backdrop(*slot)
+                         : std::nullopt;
+    }
+
+    // The source table is retained so re-entering a Dino/Spud/Adventure
+    // instruction screen after another subgame selection uses the NEW
+    // BMP rather than the original driver's first backdrop.
+    [[nodiscard]] bool bind_retail_pregame_backdrops(
+        OriginalUiBitmapCatalog bitmaps, game_flow::State setup) {
+        const auto* pair = retail_pregame_for_state(setup);
+        if (!pair || pair->setup != setup || pair->screen != screen_) {
+            return false;
+        }
+        pregame_setup_ = setup;
+        pregame_bitmaps_ = std::move(bitmaps);
+        return true;
+    }
 
     [[nodiscard]] bool initialize(
         const progress::Record& current_profile,
@@ -67,6 +92,8 @@ private:
     front_end::GenericUiRuntimeState ui_state_{};
     bool initialized_{};
     std::optional<Draw> backdrop_{};
+    std::optional<game_flow::State> pregame_setup_{};
+    std::optional<OriginalUiBitmapCatalog> pregame_bitmaps_{};
 };
 
 } // namespace btb::full_game
