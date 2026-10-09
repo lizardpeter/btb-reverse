@@ -81,11 +81,20 @@ bool apply_confirmed_event(
             event.entity_index,event.random_mod_400,true);
         break;
     }
-    case HerdingObservedKind::EnterHomeRoute:
+    case HerdingObservedKind::TrackedTargetArrived:
+        // Retail 0x417314 writes behavior_state=1 and returns from
+        // this entity update. The route counter/state 10+N allocation
+        // happens on a LATER UpdateHerdingAnimal dispatch.
         if (!staged.confirm_home_route_trigger(event.entity_index,true)) {
-            error="Herding home trigger requires an existing follower";
+            error="source tracked arrival requires an ordinary follower "
+                  "in state zero";
             return false;
         }
+        step.accepted=true;
+        break;
+    case HerdingObservedKind::EnterHomeRoute:
+        // State one already came from the previous tracked arrival;
+        // never combine both retail control-flow steps in one tick.
         step=staged.begin_home_route(event.entity_index);
         break;
     case HerdingObservedKind::ReachHomeWaypoint:
