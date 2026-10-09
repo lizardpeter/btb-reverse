@@ -201,9 +201,15 @@ int main() {
         assert(device.global_open == 1);
         assert(game.globals().dispatcher.generic_screen_mode == 14);
         device.sample.global_movie_finished = false;
+        const auto prior_draws=device.draw_count;
         const auto waiting=session.tick({},false,false);
         assert(waiting.prepared.game.kind == FrameKind::Intercept);
+        assert(waiting.submitted);
         assert(game.globals().dispatcher.current_state == 0x0C);
+        // Original Bink decoder has already written its pixels during
+        // observe(); an empty normal draw would erase those movie pixels.
+        assert(device.draw_count == prior_draws);
+        assert(device.present_count == 2);
 
         device.sample.global_movie_finished = true;
         const auto resumed=session.tick({.click_pulse=true},true,false);
