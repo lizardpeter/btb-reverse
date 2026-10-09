@@ -69,7 +69,10 @@ ActivityFrameOutput HerdingDriver::advance(
     }
     int undelivered=-1;
     std::string error;
-    if (!simulation_->advance(input,scene_,undelivered,error)) {
+    const auto pickles_motion=herding::pickles_keyboard_motion(
+        input.directional_input_bits);
+    if (!simulation_->advance(
+            input,pickles_motion,scene_,undelivered,error)) {
         out.fatal_error = error.empty()
             ? "original Pets Corner entity simulation failed" : error;
         return out;
