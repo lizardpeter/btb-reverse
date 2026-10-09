@@ -22,11 +22,13 @@ public:
           difficulty_(difficulty) {}
 
     void configure_menu_state(const RetailMenuState& menu) noexcept override {
-        // The 0x3F replay chooser sets original global 0x51C284 to 0/1/2.
-        // Initial Golf difficulty is selected by an earlier pregame state,
-        // not by the Adventure chooser's separate subgame selector.
-        if (menu.variant_selection_origin ==
-                game_flow::State::PlayAgainDifficultyUpdate &&
+        // Native pregame 0x35 and replay 0x3F both write original
+        // difficulty 0x51C284. The Adventure chooser instead writes the
+        // unrelated 0x51C2E4 subgame index; do not confuse the two.
+        if ((menu.variant_selection_origin ==
+                 game_flow::State::PlayAgainDifficultyUpdate ||
+             menu.variant_selection_origin ==
+                 game_flow::State::GolfPregameUpdate) &&
             menu.source_variant >= 0 && menu.source_variant <= 2) {
             difficulty_ = menu.source_variant;
         }
