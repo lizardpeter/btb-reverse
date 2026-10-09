@@ -99,6 +99,14 @@ bool read_original_wave(
         error="original WAV is missing a format or sample-data chunk";
         return false;
     }
+    if (format.size()==17 ||
+        (format.size()>=18 &&
+         (static_cast<std::size_t>(format[16]) |
+          (static_cast<std::size_t>(format[17])<<8)) >
+             format.size()-18)) {
+        error="original WAV fmt extra-byte count exceeds its RIFF chunk";
+        return false;
+    }
 
     const auto format_bytes=std::max<std::size_t>(
         format.size(),sizeof(WAVEFORMATEX));
