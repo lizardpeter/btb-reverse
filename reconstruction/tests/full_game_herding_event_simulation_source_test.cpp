@@ -96,8 +96,13 @@ public:
             result.direction=predicted->facing_index;
             result.movement_speed=predicted->next_speed;
             if (contradict_steering_probe) result.y_float += 3.0f;
-            frame.steering_evidence.push_back({
-                1,original.x_float,original.y_float,0,0.5f,true
+            frame.steering_evidence.push_back(HerdingSteeringEvidence{
+                .entity_index=1,
+                .original_x=original.x_float,
+                .original_y=original.y_float,
+                .native_heading_degrees=0,
+                .magnitude_before_step=0.5f,
+                .native_roaming_speed_ramp=true
             });
         }
         if (emit_navigation_probe) {
