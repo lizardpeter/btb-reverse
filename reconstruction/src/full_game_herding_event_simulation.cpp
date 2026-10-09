@@ -295,6 +295,73 @@ bool HerdingEventSimulation::advance(
             return false;
         }
     }
+    // Replay the exact retail type-7 branch against the source-owned
+    // dog entity and activity-global waypoint/latch state. A failed
+    // later animal event must not commit a new patrol index or latch.
+    auto staged_scruffty_state=scruffty_patrol_state_;
+    if (observed.scruffty_patrol_evidence) {
+        const auto& probe=*observed.scruffty_patrol_evidence;
+        if (probe.entity_index>=candidate.entities().size() ||
+            probe.entity_index>=observed.motion_records.size() ||
+            probe.before.entity_type()!=herding::EntityType::Scruffty ||
+            candidate.entities()[probe.entity_index].entity_type()!=
+                herding::EntityType::Scruffty ||
+            probe.state_before.waypoint_index!=
+                scruffty_patrol_state_.waypoint_index ||
+            probe.state_before.movement_frame_latch!=
+                scruffty_patrol_state_.movement_frame_latch) {
+            error="original Scruffty waypoint/latch source evidence "
+                  "is missing, stale or inconsistent";
+            return false;
+        }
+        const auto& actual_before=candidate.entities()[probe.entity_index];
+        if (probe.before.entity_id!=actual_before.entity_id ||
+            probe.before.x!=actual_before.x ||
+            probe.before.y!=actual_before.y ||
+            probe.before.animation_frame!=actual_before.animation_frame ||
+            probe.before.animation_frame_countdown!=
+                actual_before.animation_frame_countdown ||
+            probe.before.movement_speed!=actual_before.movement_speed) {
+            error="original Scruffty patrol before-state differs from "
+                  "committed native entity";
+            return false;
+        }
+        const auto expected=herding::original_scruffty_patrol_step(
+            probe.before,herding::scruffty_patrol_path(data_),
+            probe.state_before);
+        if (!expected ||
+            expected->state.waypoint_index!=
+                probe.state_after.waypoint_index ||
+            expected->state.movement_frame_latch!=
+                probe.state_after.movement_frame_latch) {
+            error="original Scruffty patrol waypoint or movement "
+                  "latch does not match 0x418F23 source code";
+            return false;
+        }
+        const auto& moved=observed.motion_records[probe.entity_index];
+        constexpr float kNativeTrigTolerance=0.001f;
+        if (moved.x!=expected->animal.x ||
+            moved.y!=expected->animal.y ||
+            moved.direction!=expected->animal.direction ||
+            moved.animation_frame!=expected->animal.animation_frame ||
+            moved.animation_frame_countdown!=
+                expected->animal.animation_frame_countdown ||
+            moved.movement_active!=expected->animal.movement_active ||
+            !std::isfinite(moved.x_float) ||
+            !std::isfinite(moved.y_float) ||
+            !std::isfinite(moved.movement_speed) ||
+            std::fabs(moved.x_float-expected->animal.x_float)>
+                kNativeTrigTolerance ||
+            std::fabs(moved.y_float-expected->animal.y_float)>
+                kNativeTrigTolerance ||
+            std::fabs(moved.movement_speed-
+                expected->animal.movement_speed)>kNativeTrigTolerance) {
+            error="source Scruffty movement contradicts original "
+                  "five-waypoint animation-gated patrol";
+            return false;
+        }
+        staged_scruffty_state=expected->state;
+    }
     for (const auto& probe : observed.recovery_evidence) {
         // A reported recovery needs a completed same-frame retry
         // sequence. This is a validation budget, not a limit imposed
@@ -433,6 +500,7 @@ bool HerdingEventSimulation::advance(
         std::make_move_iterator(sounds.begin()),
         std::make_move_iterator(sounds.end()));
     *state_=std::move(candidate);
+    scruffty_patrol_state_=staged_scruffty_state;
     error.clear();
     return true;
 }
