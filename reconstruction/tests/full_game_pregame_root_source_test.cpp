@@ -94,6 +94,12 @@ int main() {
         const auto initialized=root.advance({});
         assert(initialized.kind == FrameKind::FrontEndInitialized);
         assert(initialized.requires_original_walkthrough_host);
+        assert(initialized.original_walkthrough_index ==
+               retail_walkthrough_index(
+                   pregame.setup,root.globals().menu.selected_subgame));
+        assert(initialized.original_pregame_backdrop_slot ==
+               retail_pregame_backdrop_index(
+                   pregame.setup,root.globals().menu.selected_subgame));
         if (pregame.starts_global_movie_mode14) {
             assert(root.globals().dispatcher.current_state ==
                    static_cast<int>(pregame.setup));
@@ -102,9 +108,16 @@ int main() {
             // returns without dispatch while Bink is still playing.
             assert(root.advance({}).kind == FrameKind::Intercept);
             root.globals().dispatcher.global_movie_finished = true;
-            const auto resumed=root.advance({});
+            // Movie completion consumes the same-frame input pulse,
+            // otherwise clicking to dismiss Bink would click Easy.
+            const auto resumed=root.advance({
+                .pointer_x=90,.pointer_y=65,.click_pulse=true
+            });
             assert(resumed.kind == FrameKind::FrontEndUpdated);
             assert(resumed.clear_input_pulse);
+            assert(!resumed.effects.negative_ui_action);
+            const auto no_phantom_click=root.advance({});
+            assert(!no_phantom_click.effects.negative_ui_action);
             assert(root.globals().dispatcher.generic_screen_mode ==
                    (pregame.update == State::FireworksPregameUpdate
                         ? 7 : 2));
