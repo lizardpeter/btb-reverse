@@ -86,11 +86,63 @@ Regression *source*, not an executed test:
   now checks acceptance of an expected steering probe and rejection
   of a contradictory position without committing any behavior state.
 
+## Original 0x415D70 heading helper recovered
+
+The shared integer-heading function `0x415D70..0x415E43`
+has now also been directly disassembled and translated into
+`herding_source_heading.hpp`.
+
+It takes four **integer coordinates** (actor X/Y and destination
+X/Y), computes absolute differences, then uses the source's x87
+`FPATAN` with this exact special case:
+
+- If `abs(actorX-targetX) != 0`, use the absolute Y/X
+  ratio in the arctangent.
+- If `abs(actorX-targetX) == 0`, use the **literal 9999.0**
+  instead, not infinity or a generic `atan2`.
+- Multiply the base radian angle by retail float constant
+  **57.29499816894531** (`0x43B3C4`, raw bits `0x42652E14`).
+- Apply one of the original four quadrant transformations,
+  using `dx=actorX-targetX`, `dy=actorY-targetY`:
+
+| Signed coordinate differences | Native returned angle before integer truncation |
+|---|---|
+| dx < 0, dy >= 0 | 90 − base |
+| dx < 0, dy < 0 | 90 + base |
+| dx >= 0, dy >= 0 | 270 + base |
+| dx >= 0, dy < 0 | 270 − base |
+
+It then truncates toward zero using the original
+`0x4304D0` x87 helper. With the source constants and
+signed coordinate branches, the expected outcomes are:
+
+- Up: **359°**, not 0° (the original vertical drift)
+- Right/Down/Left: **90° / 180° / 270°**
+- Up-right / down-right: **45° / 134°**
+- Up-left / down-left: **314° / 225°**
+
+The 134° and 314° results, rather than the idealized 135°
+and 315°, are caused by the original approximate radian-to-degree
+constant combined with truncation. These are retail oddities, not
+errors to normalize away.
+
+`HerdingSteeringEvidence` now optionally includes the actual target
+and actor integer coordinates. The event simulation first checks
+that `original_herding_integer_heading` produces the submitted
+heading, then validates the resulting float movement/speed/facing
+with `original_herding_steering_step`. This closes the previously
+external heading computation for observed steering branches.
+
+Regressions are in
+`herding_source_heading_source_test.cpp` and the extended
+`full_game_herding_event_simulation_source_test.cpp`. They have
+**not been compiled or run**, and standard-library trig is still
+not asserted bit-exact with original x87 `FPATAN`.
+
 ## Remaining Pets Corner code
 
-The next critical functions are the complete source heading
-`0x415D70` quadrant/quantization logic, animal random-target and
-behavior-state decisions around `0x416F49..0x418101`,
+The next critical functions are animal random-target and behavior-state decisions around
+`0x416F49..0x418101`,
 the input/recovery path in `UpdateHerdingActivity`, and
 actual initializer entity position/population sequencing.
 
