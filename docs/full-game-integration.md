@@ -344,3 +344,27 @@ New staged (not compiled) regression sources:
 viewport cropping.
 
 See [source Herding reconstruction and remaining AI gaps](herding-activity.md).
+
+### Pets Corner source behavior decisions beyond the renderer
+
+`herding_behavior_bridge.hpp/.cpp` now composes the existing native
+food hotspot, follower list, Scruffty distraction, animal home-route,
+gate timing, and terminal delivery helpers into one event-level source
+state. Every state change is triggered by a retail-confirmed event
+reported by a future original movement/collision provider, rather than
+invented distance checks or steering.
+
+The behavior bridge validates the population on each retail difficulty,
+preserves original voice choices and random draw arguments, and
+decrements undelivered animals only at confirmed terminal waypoints.
+Its new source fixture models all nine Easy-level home deliveries and
+both species-dependent gate events.
+
+`HerdingSimulationProvider` now emits ordered game-audio operations
+alongside the actual entity records, allowing food/follower/Scruffty
+voice requests to reach `GameEffectPipeline`. Continuous navigation,
+autonomous animal steering/collision and the actual event detector are
+not complete.
+
+No compilation, device execution or original-binary differential
+validation occurred during this pass.
