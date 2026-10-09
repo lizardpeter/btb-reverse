@@ -33,4 +33,30 @@ std::optional<OriginalPregameResources> resolve_original_pregame_resources(
     };
 }
 
+std::unique_ptr<GenericUiScreenDriver>
+make_original_pregame_screen_driver(
+    GenericUiCatalog ui_tables,
+    const OriginalUiBitmapCatalog& bitmap_table,
+    game_flow::State setup,
+    int selected_subgame,
+    std::vector<int> original_initial_hover_random_draws) {
+
+    const auto* pair = retail_pregame_for_state(setup);
+    if (!pair || pair->setup != setup) {
+        return {};
+    }
+    const auto backdrop_index = retail_pregame_backdrop_index(
+        setup,selected_subgame);
+    if (!backdrop_index || !bitmap_table.filename(*backdrop_index)) {
+        return {};
+    }
+    auto driver = std::make_unique<GenericUiScreenDriver>(
+        std::move(ui_tables),pair->screen,
+        std::move(original_initial_hover_random_draws));
+    if (!driver->configure_backdrop(bitmap_table,*backdrop_index)) {
+        return {};
+    }
+    return driver;
+}
+
 } // namespace btb::full_game
