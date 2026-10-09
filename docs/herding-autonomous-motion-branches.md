@@ -128,22 +128,28 @@ anchor**, not the ordinary visual center. The x86 instructions
 and the equivalent Y expression. For normal positive-width cells,
 this is **left/up from the entity's top-left**, not right/down.
 The actor then moves exactly **3.0 units**, stores float/int position
-and sprite facing, resets speed to zero, and tests transformed
-`herd.txt` navigation polygon 0 with the original `0x428520`.
-If outside, the assembly jumps back to `0x417FB2` to copy current
-integer X/Y to previous X/Y, recompute the anchor, consume another
-two RNG rolls and translate the **current accumulated float position**
-again. This all happens in the *same frame*.
+and sprite facing, resets speed to zero, and tests **`herd.txt`
+group 2 at `0x5104E8`**, not navigation group 0, with
+`PointInPolygon` (`0=inside, 1=outside`).
+
+The branch returns **when inside group 2** and retries when outside.
+At `0x417FB2` it copies **saved previous X/Y into current integer
+X/Y**, not current positions into previous fields, then recalculates
+the signed anchor, consumes two new original RNG values and translates
+the **accumulating floating-point X/Y**. Previous integer coordinates
+remain unchanged through every attempt. The original jump at
+`0x4180FB` confirms the within-frame loop. These corrections supersede
+the previous, incorrect group-0/previous-coordinate descriptions.
 
 `herding_source_recovery_target.hpp` recovers the point table and
 independent roll sequencing. `herding_source_roaming_recovery.hpp`
 implements a single attempt. **`herding_source_roaming_loop.hpp`
 now reconstructs the complete source-controlled retry sequence.**
-The loop keeps the candidate's evolving float X/Y, copies native
-integer X/Y to prior-position fields on each attempt, derives the
-signed half-cell steering anchor anew, consumes two sequential
-process-global random results, and exits only on a true polygon-inside
-result. A resumable work budget prevents an unbounded host call when
+The loop keeps the candidate's evolving float X/Y, restores
+current integers from the fixed saved previous X/Y each attempt,
+derives the negative half-cell steering anchor anew, consumes two
+sequential process-global random results, and exits only when the
+group-2 polygon regards the new integer point as inside. A resumable work budget prevents an unbounded host call when
 the source polygon/data is invalid, but budget exhaustion is a
 **Pending** result, never falsely reported as a retail exit or a new
 frame. The caller must resume while exclusively holding the original
@@ -157,6 +163,44 @@ source frame's pre/post RNG state, attempt count and final entity
 coordinates by replaying this loop with the original `herd.txt`
 polygon. The source bridge now preserves previous-position fields
 written by the motion routine instead of fabricating them.
+
+## Medium/Hard Scruffty patrol: 0x418F23..0x41908D
+
+The native type-7 branch of `UpdateHerdingActivity` reads the
+five `herd.txt` group-1 waypoints from `0x510628` and its
+current waypoint index from `0x51076C`, starting at zero.
+When Scruffty is **strictly within 10 units** of that point,
+the original code multiplies speed by the stored double **0.5**
+and increments the waypoint index, wrapping by the real waypoint
+count at `0x510768`. Heading is calculated toward the NEW waypoint.
+
+Scruffty's movement uses original process-global `0x443B20`,
+initialized to **1 in the retail PE .data section**. An actual
+translation occurs only when this latch is set and the sprite
+animation frame is 3 or 4. The translated distance is the
+current speed times **10.0**, applied via the recovered native
+heading/FSIN/FCOS equations; movement clears the latch.
+The speed independently increases by **0.01** while strictly below
+**1.6**, even when animation prevents movement. The animation
+counter decreases by **5**, resets to **25** on expiration,
+advances through **seven frames** and sets the latch back to 1.
+
+The source at `0x41A2BB..0x41A331` constructs one Scruffty on
+Medium/Hard only, at the FIRST group-1 waypoint, with original
+source rectangle `(0,0,101,116)`.
+
+`herding_source_scruffty_patrol.hpp` implements both the original
+constructor and frame-level patrol, not a generic pathfinder.
+`HerdingEventSimulation` validates the real Medium/Hard source
+entity, and optionally replays a reported Scruffty update against
+the actual point path, global latch, animation, position, direction
+and speed. The latch is committed only after a successful game
+frame and is preserved across reinitializations; the waypoint
+index resets to zero at each original initializer.
+
+This closes a complete **Scruffty patrol branch**. The other
+animals' autonomous movement and full physical game frame loop
+remain incomplete. Source fixtures are staged, not compiled.
 
 ## CRT source randomness: 0x42FFBA and 0x42FFC4
 
