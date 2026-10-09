@@ -133,6 +133,7 @@ struct Rect {
     int top{};
     int right{};
     int bottom{};
+    friend bool operator==(const Rect&,const Rect&) = default;
 };
 struct Draw {
     std::string source_asset{};
