@@ -150,7 +150,45 @@ bool HerdingEventSimulation::initialize(
         static_cast<void>(motion_->unload(cleanup_error));
         return false;
     }
+    const auto& records=candidate->entities();
+    const auto dog=std::find_if(records.begin(),records.end(),
+        [](const auto& e) {
+            return e.entity_type()==herding::EntityType::Scruffty;
+        });
+    const auto dog_count=std::count_if(records.begin(),records.end(),
+        [](const auto& e) {
+            return e.entity_type()==herding::EntityType::Scruffty;
+        });
+    const auto& dog_waypoints=herding::scruffty_patrol_path(original_data);
+    const bool has_dog=herding::scruffty_enabled(difficulty);
+    bool dog_valid=dog_count==(has_dog ? 1 : 0);
+    if (has_dog) {
+        const auto expected=dog==records.end()
+            ? std::optional<herding::RetailEntityRecord32>{}
+            : herding::original_scruffty_initial_record(
+                difficulty,dog->entity_id,dog_waypoints);
+        dog_valid=dog_valid && dog_waypoints.size()==5 &&
+            expected.has_value() &&
+            dog->x==expected->x && dog->y==expected->y &&
+            dog->x_float==expected->x_float &&
+            dog->y_float==expected->y_float &&
+            dog->source_left==expected->source_left &&
+            dog->source_top==expected->source_top &&
+            dog->source_right==expected->source_right &&
+            dog->source_bottom==expected->source_bottom;
+    }
+    if (!dog_valid) {
+        error="original Herding Medium/Hard Scruffty entity does not "
+              "match five-point group-1 start, 101x116 sprite, or "
+              "source difficulty-dependent population";
+        std::string cleanup_error;
+        static_cast<void>(motion_->unload(cleanup_error));
+        return false;
+    }
     data_=original_data;
+    // The original initializer resets 0x51076C to waypoint zero,
+    // but does NOT reset 0x443B20, the process-global sprite latch.
+    scruffty_patrol_state_.waypoint_index=0;
     state_=std::move(candidate);
     error.clear();
     return true;
