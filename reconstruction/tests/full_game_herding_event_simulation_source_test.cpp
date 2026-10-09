@@ -74,7 +74,7 @@ public:
             scheduled,std::vector<HerdingObservedEvent>{});
         if (emit_navigation_probe) {
             frame.pickles_boundary_evidence =
-                HerdingPicklesBoundaryEvidence{240.0f,414.0f,240,414,true};
+                HerdingPicklesBoundaryEvidence{240.0f,414.0f,240,414,0,1};
             if (contradict_navigation_probe) {
                 frame.motion_records[0].x_float=-99.0f;
             }
