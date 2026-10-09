@@ -202,6 +202,14 @@ bool Win32OriginalDirectDraw::load_bitmap(
         return false;
     }
     const auto old=SelectObject(source,hbitmap);
+    if (!old || old==HGDI_ERROR) {
+        DeleteDC(source);
+        surface->ReleaseDC(dst);
+        surface->Release();
+        DeleteObject(hbitmap);
+        error="GDI failed to select the original BMP for DirectDraw upload";
+        return false;
+    }
     const BOOL copied=BitBlt(
         dst,0,0,bitmap.bmWidth,bitmap.bmHeight,
         source,0,0,SRCCOPY);
