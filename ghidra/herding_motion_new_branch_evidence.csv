@@ -1,0 +1,27 @@
+virtual_address,original_x86_evidence,recovered_behavior,source_file,confidence,remaining_limitation
+0x004172D2,FCOMP float at 0x43B424 (30.0),Follower-target arrival only when distance strictly less than 30,herding_source_follower_approach.hpp,high,Target source table lookup and follower iteration remain separate
+0x004172FE,Write -1 to matching 0x50AF78 member,Remove tracked animal from source follower array,herding_source_follower_approach.hpp,high,Caller must mutate its original follower array
+0x00417309,CALL 0x42FFC4 before return 1,Consumes one random value even though branch discards its result,herding_source_follower_approach.hpp,high,Host must advance its shared RNG in exact call order
+0x00417321,CALL 0x415D70,Recompute heading from current integer actor position to tracked source point,herding_source_follower_approach.hpp,high,Exact x87 FPATAN bit parity unverified
+0x00417363,FMUL 0x43B384 then FSIN and FCOS,Translate float X/Y using source heading and existing movement speed,herding_source_follower_approach.hpp,high,Portable trig not bit-exact x87
+0x004173B5,Write 1 to entity +0x48,Mark movement_active in original 0x64-byte entity record,herding_source_follower_approach.hpp,high,Only this follower-target branch applies
+0x004173E4,SUB 5 from entity +0x2C,Decrement follower animation countdown by exactly five,herding_source_follower_approach.hpp,high,Other sprite branches have different cadence
+0x004173FD,Reset +0x2C to 100 on expiration,Reload follower animation countdown,herding_source_follower_approach.hpp,high,None
+0x00417419,CMP animation frame to 3 then reset zero,Wrap tracked-target walking animation through three source frames,herding_source_follower_approach.hpp,high,None
+0x00417FFE,CALL 0x42FFC4 then signed remainder 4,Pick independent random X coordinate index 0..3,herding_source_recovery_target.hpp,high,Original startup seed varies by GetTickCount
+0x00418016,CALL 0x42FFC4 then signed remainder 4,Pick independent random Y coordinate index 0..3,herding_source_recovery_target.hpp,high,Must not reuse the X index
+0x00443AC8,Four consecutive x/y 32-bit point pairs,Recovery targets (100/766) (400/400) (891/616) (1128/659),herding_source_recovery_target.hpp,high,Initial target selection preceding escape remains separate
+0x00418032,CALL 0x415D70,Compute heading from sprite CENTER to independently chosen recovery target,herding_source_roaming_recovery.hpp,high,Caller must supply real source sprite center
+0x00418077,FSIN*3 and FCOS*3,Perform one 3-unit roaming recovery movement step,herding_source_roaming_recovery.hpp,high,Exact x87 parity still pending
+0x004180C1,Write 0 to entity speed +0x4C,Reset recovered animal speed to zero on this branch,herding_source_roaming_recovery.hpp,high,Do not apply on other branches
+0x004180F1,CALL 0x428520,Check original group-0 polygon and retry on outside result,herding_source_roaming_recovery.hpp,high,Full same-frame retry sequencing remains to be reconstructed
+0x00417C0C,FCOMP speed vs float 0x43B3E0 (0.4),Use strict >0.4 braking decision,herding_source_roam_braking.hpp,high,Only the corresponding roaming motion branch
+0x00417C25,FSUB 0.4 when speed >0.4,Decelerate by original 0.4,herding_source_roam_braking.hpp,high,x87 rounding not verified
+0x00417C33,Write 0x3DCCCCCD to speed,Set speed to 0.1 when speed <=0.4,herding_source_roam_braking.hpp,high,None
+0x00417C3D,ADD -20 to entity +0x2C,Decrement roaming animation countdown by 20,herding_source_roam_braking.hpp,high,Render-pass animation is separate
+0x00417C52,Reload countdown 100 on expiration,Reset roaming animation timer and advance source frame,herding_source_roam_braking.hpp,high,None
+0x00417C62,Compare to type-specific 0x443AFC upper bound,Wrap frame using 0x443AF0 starting frame for each animal species,herding_source_roam_braking.hpp,high,Species-to-table index inferred through previously audited renderer
+0x0042FFBA,Store srand argument at 0x447558,Set shared original process PRNG state,retail_crt_random.hpp,high,None
+0x0042FFC4,IMUL 0x343FD ADD 0x269EC3 SAR 16 AND 0x7FFF,Generate exact 15-bit Microsoft CRT random value,retail_crt_random.hpp,high,None
+0x004027F4,Imported KERNEL32 GetTickCount at IAT 0x43B164,Read final startup seed for shared PRNG,retail_crt_random.hpp,high,Live Windows host must supply observed GetTickCount
+0x004027FB,CALL 0x42FFBA after GetTickCount,Overwrite earlier time-based startup seed,retail_crt_random.hpp,high,Host-side startup connection remains outstanding
