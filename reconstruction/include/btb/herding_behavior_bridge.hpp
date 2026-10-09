@@ -49,6 +49,22 @@ public:
     [[nodiscard]] const std::vector<RetailEntityRecord32>& entities()
         const noexcept { return entities_; }
 
+    // Import only source-confirmed motion and presentation counters.
+    // Original behavior states, route counters, food, followers and
+    // delivered totals remain owned by this recovered state machine.
+    [[nodiscard]] bool apply_source_motion(
+        std::size_t entity_index,
+        const RetailEntityRecord32& source_state) noexcept;
+    [[nodiscard]] bool synchronize_render_counters(
+        const std::vector<RetailEntityRecord32>& previous_drawn_frame) noexcept;
+
+    // Source 0->1 home trigger requires an externally verified home
+    // collision, and the animal must actually be following Pickles.
+    // This method never invents a distance/collision threshold.
+    [[nodiscard]] bool confirm_home_route_trigger(
+        std::size_t entity_index,
+        bool original_trigger_confirmed) noexcept;
+
     [[nodiscard]] HerdingBehaviorEvent select_food(
         FoodType food,int pickles_x,int pickles_y,int random_mod_2,
         const std::vector<WanderRandom>& random_per_entity_index);
