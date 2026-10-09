@@ -47,6 +47,8 @@ public:
     bool fail_advance{};
     bool emit_navigation_probe{};
     bool contradict_navigation_probe{};
+    bool emit_steering_probe{};
+    bool contradict_steering_probe{};
     bool started{};
     int steps{};
     int shutdowns{};
@@ -81,6 +83,23 @@ public:
         frame.motion_records=current;
         frame.events=std::exchange(
             scheduled,std::vector<HerdingObservedEvent>{});
+        if (emit_steering_probe) {
+            const auto original=current[1];
+            const auto predicted=h::original_herding_steering_step(
+                original.x_float,original.y_float,0,0.5f,true);
+            assert(predicted);
+            auto& result=frame.motion_records[1];
+            result.x_float=predicted->x;
+            result.y_float=predicted->y;
+            result.x=predicted->rounded_x;
+            result.y=predicted->rounded_y;
+            result.direction=predicted->facing_index;
+            result.movement_speed=predicted->next_speed;
+            if (contradict_steering_probe) result.y_float += 3.0f;
+            frame.steering_evidence.push_back({
+                1,original.x_float,original.y_float,0,0.5f,true
+            });
+        }
         if (emit_navigation_probe) {
             frame.pickles_boundary_evidence =
                 HerdingPicklesBoundaryEvidence{240.0f,414.0f,240,414,0,1};
@@ -176,6 +195,25 @@ int main() {
         {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
     assert(error.find("four-corner")!=std::string::npos);
     assert(remaining==9);
+
+    // The 0x416C45 steering branch is checked independently, including
+    // 90-degree-relative facing, movement speed ramp, and integer position.
+    source->emit_steering_probe=true;
+    sounds.clear();
+    assert(simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(scene.entities[1].direction==0);
+    assert(scene.entities[1].movement_speed>0.5f);
+    const auto previous_steering_y=scene.entities[1].y_float;
+
+    source->contradict_steering_probe=true;
+    assert(!simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(error.find("native steering kernel")!=std::string::npos);
+    assert(scene.entities[1].y_float==previous_steering_y);
+    assert(remaining==9);
+    source->contradict_steering_probe=false;
+    source->emit_steering_probe=false;
 
     // Original rendering writes animation frame and countdown fields into
     // the same entity array as gameplay. The next simulation frame must
