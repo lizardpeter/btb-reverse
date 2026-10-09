@@ -27,6 +27,7 @@ public:
         const herding::PicklesKeyboardMotion& normalized_motion,
         HerdingScene& out,
         int& undelivered_animals,
+        std::vector<Audio>& source_audio_events,
         std::string& error) = 0;
     [[nodiscard]] virtual bool unload(std::string& error) = 0;
 };
