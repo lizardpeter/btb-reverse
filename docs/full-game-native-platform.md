@@ -152,3 +152,33 @@ functionality.
    all sprite/physics/audio lifecycle paths.
 4. Add a unified complete-game Windows build; differential-test
    gameplay, UI, movie, sound and persistence against the retail PE32.
+
+## Edge-safe original sprite blitting
+
+`full_game_blt_clip.hpp` now encodes the physical **640×480**
+viewport crop shared by all source-neutral sprite commands. It adjusts
+source and destination rectangles together, retaining the original
+pixel scale. Partially offscreen actors and animated machine sprites
+no longer force a DirectDraw invalid-rectangle error. Fully offscreen
+draws are valid no-ops. `win32_original_directdraw.cpp` consumes this
+calculation before `IDirectDrawSurface7::Blt`.
+
+`full_game_blt_clip_source_test.cpp` records constant-evaluable test
+cases for original scale, negative X/Y, right/bottom clipping, corners,
+fully offscreen sprites and reversed rectangles. As with the other new
+tests, the source has **not been compiled or executed**.
+
+### Important release boundary
+
+These sources are staged, **not compiled or linked into the existing
+Dinosaur-only native preview target**. The exact original Bink runtime
+still requires the matching DLL (or verified codec) and real copied-frame
+surface adapter; the new export resolver is not that adapter.
+
+The present source bridge uses DirectSound8 COM buffers and GDI-backed
+uploads to DirectDraw7 source surfaces as a modern Win32 replacement
+backend. No differential visual or audio parity testing has yet proven
+identical output to the 2002 executable. Full-frame surface loss,
+shipped-source pixel formats, special codec WAVs, help overlays and
+high-frequency activity animation must all be tested before the game
+can be considered rebuilt.
