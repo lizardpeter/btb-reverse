@@ -384,7 +384,7 @@ bool HerdingEventSimulation::advance(
             probe.rng_state_before};
         const auto result=herding::resume_original_herding_roaming_loop(
             reconstructed,replay_rng,
-            herding::animal_exclusion_polygon(data_),
+            herding::animal_roaming_acceptance_polygon(data_),
             static_cast<std::size_t>(probe.attempts));
         const auto& moved=observed.motion_records[probe.entity_index];
         // Portable trigonometry has not been shown to match x87's
