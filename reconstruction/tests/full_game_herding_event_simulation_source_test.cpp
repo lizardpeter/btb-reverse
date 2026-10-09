@@ -9,6 +9,7 @@
 
 namespace {
 namespace h=btb::herding;
+namespace r=btb::retail;
 using namespace btb::full_game;
 
 std::vector<h::RetailEntityRecord32> population(int difficulty) {
@@ -52,6 +53,8 @@ public:
     bool emit_steering_probe{};
     bool contradict_steering_probe{};
     bool contradict_heading_probe{};
+    bool emit_recovery_probe{};
+    bool contradict_recovery_probe{};
     bool started{};
     int steps{};
     int shutdowns{};
@@ -73,7 +76,7 @@ public:
         return true;
     }
 
-    bool advance(const h::Data&,const ActivityFrameInput&,
+    bool advance(const h::Data& data,const ActivityFrameInput&,
         const h::PicklesKeyboardMotion& motion,
         const std::vector<h::RetailEntityRecord32>& current,
         HerdingObservedFrame& frame,std::string& error) override {
@@ -125,6 +128,28 @@ public:
                 .original_actor_y=original.y,
                 .magnitude_before_step=0.5f,
                 .native_roaming_speed_ramp=true
+            });
+        }
+        if (emit_recovery_probe) {
+            auto before=current[1];
+            before.x=520;
+            before.y=801; // below the source world polygon's y=800 edge
+            before.x_float=520.0f;
+            before.y_float=801.0f;
+            r::OriginalRetailRandom exact_rng{1};
+            const auto initial_rng=exact_rng.state();
+            h::OriginalRoamingLoop replay{.entity=before};
+            const auto result=h::resume_original_herding_roaming_loop(
+                replay,exact_rng,
+                data.retail_transformed_group0(),8);
+            assert(result==h::OriginalRoamingLoopStatus::Accepted);
+            assert(replay.attempts==1);
+            frame.motion_records[1]=replay.entity;
+            if (contradict_recovery_probe) {
+                frame.motion_records[1].y_float+=1.0f;
+            }
+            frame.recovery_evidence.push_back({
+                1,before,initial_rng,exact_rng.state(),replay.attempts
             });
         }
         if (emit_navigation_probe) {
@@ -249,6 +274,30 @@ int main() {
     assert(remaining==9);
     source->contradict_heading_probe=false;
     source->emit_steering_probe=false;
+
+    // Source's same-frame out-of-bounds recovery must preserve both
+    // the original global LCG state and the observed retry count. One
+    // candidate starting just beyond herd.txt polygon Y=800 returns
+    // inside after exactly one pair of original random rolls.
+    source->emit_recovery_probe=true;
+    const auto before_recovery=scene.entities[1].y_float;
+    assert(simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(scene.entities[1].y==798);
+    assert(scene.entities[1].y_float>798.0f);
+    assert(scene.entities[1].y_float<800.0f);
+    assert(remaining==9);
+    assert(scene.entities[1].y_float!=before_recovery);
+
+    source->contradict_recovery_probe=true;
+    const auto accepted_y=scene.entities[1].y_float;
+    assert(!simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(error.find("same-frame")!=std::string::npos);
+    assert(scene.entities[1].y_float==accepted_y);
+    assert(remaining==9);
+    source->contradict_recovery_probe=false;
+    source->emit_recovery_probe=false;
 
     // Original rendering writes animation frame and countdown fields into
     // the same entity array as gameplay. The next simulation frame must
