@@ -93,10 +93,9 @@ int main() {
     assert(continuous.entity.x_float==state.entity.x_float);
     assert(continuous.entity.y_float==state.entity.y_float);
     assert(continuous.attempts==state.attempts);
-    assert(continuous_rand.state()==shared.state() -
-           0u /* next_rand above already advanced; compare call below */ ||
-           continuous_rand.state()!=shared.state());
-    // Compare directly against an unadvanced independent six-call stream.
+    // The resumed test already consumed an extra seventh rand() above;
+    // compare both runs against an independent six-call sequence below.
+
     r::OriginalRetailRandom exact_six{1};
     for (int i=0;i<6;++i) static_cast<void>(exact_six.next_rand());
     assert(continuous_rand.state()==exact_six.state());
