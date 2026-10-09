@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <utility>
 #include <string>
 
 namespace btb::full_game {
@@ -23,6 +24,7 @@ public:
         std::string& error) = 0;
     [[nodiscard]] virtual bool advance(
         const ActivityFrameInput& input,
+        const herding::PicklesKeyboardMotion& normalized_motion,
         HerdingScene& out,
         int& undelivered_animals,
         std::string& error) = 0;
