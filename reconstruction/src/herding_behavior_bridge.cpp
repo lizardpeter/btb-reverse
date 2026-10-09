@@ -1,6 +1,7 @@
 #include "btb/herding_behavior_bridge.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <utility>
 
 namespace btb::herding {
@@ -37,6 +38,69 @@ HerdingRecoveredBehavior::HerdingRecoveredBehavior(
 RetailEntityRecord32* HerdingRecoveredBehavior::entity(
     std::size_t index) noexcept {
     return index<entities_.size() ? &entities_[index] : nullptr;
+}
+
+bool HerdingRecoveredBehavior::apply_source_motion(
+    std::size_t index,
+    const RetailEntityRecord32& source) noexcept {
+
+    auto* target=entity(index);
+    if (!valid_ || !target ||
+        source.entity_id != target->entity_id ||
+        source.type != target->type ||
+        source.direction<0 || source.direction>7 ||
+        !std::isfinite(source.x_float) ||
+        !std::isfinite(source.y_float) ||
+        !std::isfinite(source.movement_speed)) {
+        return false;
+    }
+    // The frame-by-frame movement engine is responsible for these fields.
+    // Do not accept external overwrites of food, follower, AI, delivery,
+    // route allocation or sprite/DirectDraw ownership state.
+    target->previous_x=target->x;
+    target->previous_y=target->y;
+    target->x=source.x;
+    target->y=source.y;
+    target->x_float=source.x_float;
+    target->y_float=source.y_float;
+    target->direction=source.direction;
+    target->direction_degrees=source.direction_degrees;
+    target->movement_direction_mask=source.movement_direction_mask;
+    target->movement_active=source.movement_active;
+    target->movement_speed=source.movement_speed;
+    return true;
+}
+
+bool HerdingRecoveredBehavior::synchronize_render_counters(
+    const std::vector<RetailEntityRecord32>& rendered) noexcept {
+    if (!valid_ || rendered.size()!=entities_.size()) return false;
+    for (std::size_t i=0;i<rendered.size();++i) {
+        if (rendered[i].entity_id!=entities_[i].entity_id ||
+            rendered[i].type!=entities_[i].type) {
+            return false;
+        }
+    }
+    for (std::size_t i=0;i<rendered.size();++i) {
+        entities_[i].animation_frame=rendered[i].animation_frame;
+        entities_[i].animation_frame_countdown=
+            rendered[i].animation_frame_countdown;
+    }
+    return true;
+}
+
+bool HerdingRecoveredBehavior::confirm_home_route_trigger(
+    std::size_t index,
+    bool original_trigger_confirmed) noexcept {
+
+    auto* animal=entity(index);
+    if (!valid_ || !animal || !original_trigger_confirmed ||
+        animal->behavior_state!=0 ||
+        !is_herd_animal(animal->entity_type()) ||
+        !followers_.contains(static_cast<int>(index))) {
+        return false;
+    }
+    animal->behavior_state=1;
+    return true;
 }
 
 std::optional<std::size_t> HerdingRecoveredBehavior::species_index(
