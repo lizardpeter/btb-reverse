@@ -148,6 +148,26 @@ int main() {
     assert(sounds[0].sound_id==584);
     assert(sounds[1].sound_id==589);
 
+    // Native dog/animal collision is not symmetric AABB overlap.
+    // Even an externally asserted event must contain 0x4169A0 ordered
+    // rectangle evidence before the follower may be distracted.
+    source->scheduled={event(HerdingObservedKind::ScrufftyCollision,1)};
+    assert(!simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(error.find("four-corner")!=std::string::npos);
+    assert(remaining==9);
+    assert(scene.entities[1].behavior_state==0);
+
+    auto wrong_contact=event(HerdingObservedKind::ScrufftyCollision,1);
+    wrong_contact.retail_rect_contact=HerdingCollisionEvidence{
+        {0,0,10,10},{4,4,6,6}
+    }; // nested rectangle; FIRST corners are not inside SECOND
+    source->scheduled={wrong_contact};
+    assert(!simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(error.find("four-corner")!=std::string::npos);
+    assert(remaining==9);
+
     // Original rendering writes animation frame and countdown fields into
     // the same entity array as gameplay. The next simulation frame must
     // preserve these mutated values instead of restoring stale copies.
