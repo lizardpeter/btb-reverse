@@ -361,6 +361,15 @@ int main() {
     auto waypoint1=event(HerdingObservedKind::ReachHomeWaypoint,1);
     auto waypoint2=event(HerdingObservedKind::ReachHomeWaypoint,1);
 
+    // Reject two transitions on ONE native entity update: the
+    // tracked-arrival branch returns before the route allocator runs.
+    source->scheduled={reached_tracked_point,home};
+    assert(!simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(error.find("same animal update")!=std::string::npos);
+    assert(scene.entities[1].behavior_state==0);
+    assert(remaining==9);
+
     // The source arrival at 0x417314 writes state ONE and RETURNS.
     // It must not allocate state TEN until the following update.
     source->scheduled={reached_tracked_point};
