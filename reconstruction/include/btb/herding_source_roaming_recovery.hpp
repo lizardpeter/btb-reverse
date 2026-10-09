@@ -11,10 +11,13 @@
 namespace btb::herding {
 
 // Source 0x417FFE..0x4180FB performs ONE roaming/exclusion recovery
-// attempt. The previous code (0x417FB2..0x417FFD) restores the current
-// integer top-left and computes actor's CENTER using its original sprite
-// cell dimensions. This center must be supplied explicitly. In
-// particular it must NOT be confused with the entity's top-left.
+// attempt. At 0x417FB2..0x417FFD the binary copies current integer
+// X/Y to previous X/Y, then computes the ORIGINAL STEERING ANCHOR:
+// current integer X + signed_trunc((source_left-source_right)/2),
+// current integer Y + signed_trunc((source_top-source_bottom)/2).
+// This anchor is LEFT/ABOVE the entity top-left for positive sprite
+// extents, NOT the usual visual sprite center. The calling same-frame
+// loop is reconstructed in herding_source_roaming_loop.hpp.
 //
 // The source then:
 //  - consumes two separate rand()%4 values for X and Y
@@ -38,7 +41,7 @@ struct RetailRoamingRecoveryAttempt {
 [[nodiscard]] inline std::optional<RetailRoamingRecoveryAttempt>
 original_herding_roaming_recovery_attempt(
     const RetailEntityRecord32& entity,
-    Vec2i original_actor_center,
+    Vec2i original_steering_anchor,
     int random_x_mod4,
     int random_y_mod4,
     const std::vector<Vec2i>& transformed_navigation_polygon) noexcept {
@@ -48,7 +51,7 @@ original_herding_roaming_recovery_attempt(
     if (!target) return std::nullopt;
 
     const auto heading=original_herding_integer_heading(
-        original_actor_center.x,original_actor_center.y,
+        original_steering_anchor.x,original_steering_anchor.y,
         target->point.x,target->point.y);
     if (!heading) return std::nullopt;
 
@@ -96,7 +99,7 @@ original_herding_roaming_recovery_attempt(
     }
     const auto random=next_original_herding_recovery_target(shared_rng);
     return original_herding_roaming_recovery_attempt(
-        entity,original_actor_center,
+        entity,original_steering_anchor,
         random.selected_x_index,random.selected_y_index,
         transformed_navigation_polygon);
 }
