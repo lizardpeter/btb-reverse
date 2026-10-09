@@ -35,6 +35,7 @@ public:
     bool advance(const ActivityFrameInput&,
                  const h::PicklesKeyboardMotion& motion,
                  HerdingScene& scene,int& remaining,
+                 std::vector<Audio>& source_audio_events,
                  std::string& error) override {
         ++updates;
         last_motion=motion;
@@ -60,6 +61,11 @@ public:
         sheep.animation_frame=6;
         scene.entities.push_back(sheep);
         remaining=undelivered;
+        if (updates==2) {
+            source_audio_events.push_back({
+                AudioOperation::ManagedSoundId,{},589,50,1
+            }); // original sheep attraction line
+        }
         error.clear();
         return true;
     }
@@ -140,7 +146,8 @@ int main() {
 
     frame=game.advance({});
     assert(frame.kind==FrameKind::ActivityUpdated);
-    assert(frame.effects.audio.empty()); // startup is emitted only once
+    assert(frame.effects.audio.size()==1);
+    assert(frame.effects.audio[0].sound_id==589); // AI owns this event
 
     provider->undelivered=0;
     frame=game.advance({.managed_sound_playing=true});
