@@ -18,6 +18,7 @@ public:
     bool fail_next{};
     int updates{};
     int unloads{};
+    h::PicklesKeyboardMotion last_motion{};
 
     bool initialize(const h::Data& file,int difficulty,
                     std::string& error) override {
@@ -32,9 +33,11 @@ public:
         return true;
     }
     bool advance(const ActivityFrameInput&,
+                 const h::PicklesKeyboardMotion& motion,
                  HerdingScene& scene,int& remaining,
                  std::string& error) override {
         ++updates;
+        last_motion=motion;
         if (fail_next) {
             error="original AI provider reported navigation failure";
             return false;
@@ -116,9 +119,13 @@ int main() {
     assert(provider->expected_animals==15);
     assert(game.globals().dispatcher.current_state==0x0F);
 
-    frame=game.advance({});
+    frame=game.advance({.directional_input_bits=0x06});
     assert(frame.kind==FrameKind::ActivityUpdated);
     assert(provider->updates==1);
+    assert(provider->last_motion.movement_mask==
+           (h::PicklesMoveRight|h::PicklesMoveUp));
+    assert(provider->last_motion.delta_x==1.5f);
+    assert(provider->last_motion.delta_y==-1.5f);
     assert(frame.effects.draws.size()==7); // bg, 2 entities, 3 bags, surround
     assert(frame.effects.draws[0].source_asset ==
            "Data\\SubGame1\\bk)1_revised_01.bmp");
