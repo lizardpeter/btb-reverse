@@ -50,6 +50,14 @@ bool apply_confirmed_event(
             event.entity_index,event.random_mod_2,true);
         break;
     case HerdingObservedKind::ScrufftyCollision:
+        if (!event.retail_rect_contact ||
+            !herding::original_herding_rect_contact(
+                event.retail_rect_contact->first,
+                event.retail_rect_contact->second)) {
+            error="Scruffty collision was not established by retail "
+                  "0x4169A0 ordered four-corner contact";
+            return false;
+        }
         step=staged.scruffty_distraction(
             event.entity_index,event.random_mod_400,true);
         break;
