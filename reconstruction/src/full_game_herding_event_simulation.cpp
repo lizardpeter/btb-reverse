@@ -164,7 +164,9 @@ bool HerdingEventSimulation::advance(
             data_.retail_transformed_group0(),
             observed_motion.attempted_x,observed_motion.attempted_y,
             observed_motion.previous_x,observed_motion.previous_y,
-            observed_motion.original_allows_axis_recovery);
+            herding::retail_herding_axis_recovery_enabled(
+                observed_motion.active_directional_axes,
+                observed_motion.source_mouse_navigation_mode_443a9c));
         if (!expected) {
             error="source's original Pickles polygon movement probe "
                   "could not be evaluated without x86 division failure";
