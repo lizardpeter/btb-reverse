@@ -15,24 +15,32 @@ nav/polygon retries, frame order and Win32 differential validation.
 ## Followed animal -> tracked point: source 0x4172B0..0x417432
 
 The branch first checks that the animal is present in the real
-20-entry follower table at `0x50AF78`. It resolves a tracked source
+20-entry **tracked-target table** at `0x50AF78` (NOT the
+separate ordinary-follower table at `0x50AF14`). It resolves a tracked source
 coordinate from the original `0x50B2F4/0x50B2F8` table and compares
 integer point distance using `0x415D30` against **30.0**, strictly.
 
 If the point is reached:
-- Remove the corresponding animal ID from the follower table
-  (write -1).
+- Remove that index from the **tracked-target table** only
+  (write -1 to its matching `0x50AF78` slot). The ordinary
+  followers array `0x50AF14` is not changed by this branch.
 - **Consume exactly one call to original rand (0x42FFC4), discarding
   the output**. This matters to later game RNG behavior.
-- Mark source `movement_active = 1` and return 1; do not translate
-  its position or update the animation on this branch.
+- Write **behavior_state=1 at entity +0x50** (0x417314), which is
+  dispatched as BeginHomeRoute on a later update, and return 1.
+  Earlier reconstruction incorrectly reported this as movement_active
+  at +0x48; that has been corrected. No position/animation update
+  occurs on this arrival branch.
 
 Otherwise:
 - Compute the original integer heading using `0x415D70`.
 - Translate X/Y by `sin(heading)*current_speed` and
   `-cos(heading)*current_speed`, truncate float positions and set
   the original facing sector.
-- Set movement_active=1.
+- Set movement_active=1 at **+0x48** (0x4173B5).
+- **If speed <0.8, add 0.01** to the speed after that frame's
+  movement (0x4173BF..0x4173DE). Earlier helper code omitted this
+  acceleration; it has been corrected.
 - Subtract **5** from animation countdown at record offset +0x2C.
   When expired, reset to **100**, increment animation frame and
   wrap **3 -> 0**.
@@ -41,6 +49,62 @@ Otherwise:
 branch with an explicit tracked point. It returns a source RNG-call
 count and follower-removal effect so the caller can preserve both
 without guessing later scheduling. It does not select follower targets.
+
+
+## State-zero dispatcher, two lists and temporary-target chase
+
+A renewed direct disassembly closed the original sequence
+`0x416F49..0x4172B0` and exposed two separate 20-entry lists.
+
+**The original state-zero branch order is:**
+
+1. Test behavior_state at +0x50. Nonzero state dispatches via its
+   other recovered state logic (not through these state-zero branches).
+2. If positive temporary_target_timer at +0x58, run
+   `0x416F57..0x417094`: compute actor anchor with
+   **positive** half of the absolute source-sprite width/height,
+   steer toward the stored +0x5C/+0x60 target with a **3.0**
+   original-unit step, update float/int position, facing and speed.
+   Compare **new integer X/Y** against target with strict
+   **distance <120** (`0x43B42C` source literal). If close,
+   clear the temporary timer and return at `0x41708B`; if distant,
+   keep timer and return at shared `0x418101`. **Both branches
+   terminate the current entity update**. An earlier interpretation
+   that the distant case continued with generic animal AI has
+   been corrected against the actual disassembly jump.
+3. Otherwise scan tracked-target slots `0x50AF78..0x50AFC8`
+   **first**. If this entity is tracked, enter the <30 movement/
+   arrival branch described above.
+4. Otherwise scan ordinary follower slots
+   `0x50AF14..0x50AF64`. A source ordinary follower within
+   strict **distance <150** of the real species registration point
+   (`0x43B428=150.0`) can enter the first vacant tracked slot
+   at `0x417586`, decrementing source remaining-registration
+   global `0x50B31C`. When it reaches zero the original writes
+   a separate outer activity flag at `0x510718`. The ordinary
+   follower membership is not replaced by the tracked table.
+5. Other ordinary-follower and free-roam movement remains
+   partly unrecovered.
+
+The C++26 source now reflects these distinctions:
+
+- `herding_source_temporary_target.hpp` for actual 3-unit
+  temporary-target steering, 120-unit gate and both returns.
+- `herding_source_tracked_targets.hpp` for the **separate**
+  tracked/ordinary membership and strict 150-unit enrollment.
+- `herding_source_partial_dispatcher.hpp` combines the known
+  source subsequences, using the real external species target
+  and process-global CRT RNG. It never considers uncovered
+  branches successful gameplay.
+- `herding_behavior_bridge.cpp` now also imports motion-owned
+  temporary target/timer and animation-frame/countdown mutations.
+  Previously those values could be discarded between updates.
+
+Regression **source** fixtures cover the near/far temporary
+target cases, strict 150-unit registration, tracked 30-unit
+arrival, behavior-state-1 handoff, unchanged ordinary follower
+membership, acceleration, and exact consumed random values.
+None have been compiled or run.
 
 ## Random recovery targets: 0x417FFE..0x418101
 
@@ -155,6 +219,9 @@ statuses must come from DirectSound, never a synthetic elapsed timer.
 New **uncompiled, unexecuted** source fixtures:
 
 - `herding_source_follower_approach_source_test.cpp`
+- `herding_source_temporary_target_source_test.cpp`
+- `herding_source_tracked_targets_source_test.cpp`
+- `herding_source_partial_dispatcher_source_test.cpp`
 - `herding_source_roaming_recovery_source_test.cpp`
 - `herding_source_roaming_loop_source_test.cpp` (three-attempt same-frame
   recovery versus resumable chunks, exact RNG usage and original
