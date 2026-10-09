@@ -140,6 +140,10 @@ struct Draw {
     int y{};
     std::optional<Rect> source_rectangle{};
     bool color_keyed{};
+    // The game frame is 640x480, but some original activities have their
+    // own smaller world viewport (Herding: [20,20]..[620,400]).
+    // Absent means ordinary full-screen DirectDraw bounds only.
+    std::optional<Rect> destination_clip{};
 };
 enum class AudioOperation {
     StartBackingTrack,
