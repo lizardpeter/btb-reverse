@@ -711,3 +711,45 @@ and fatal AI provider failures.
 **No new CMake target, C++ compile, device execution or visual capture
 was performed.** This is a partial activity integration, not yet
 a finished Pets Corner or complete game rebuild.
+
+## Recovered food/follower/home-route behavior event bridge
+
+`herding_behavior_bridge.hpp/.cpp` adds `HerdingRecoveredBehavior`,
+a source-level state machine that composes the individual retail helper
+rules already present in `herding_runtime.hpp`. This closes their
+previous separation without inventing proximity/collision physics.
+
+It validates exact animal populations (3/4/5 of each sheep, rabbit and
+duck for Easy/Medium/Hard), then handles:
+
+- Source-proven food pickup hotspots and the original Pickles/Travis
+  voices **582–584 / 609–611**.
+- Strictly ordered release of 20-entry follower-list indices when
+  changing food, applying the two original `rand()%400` wandering
+  targets without consuming guessed random values.
+- Food-species matching and externally confirmed attraction collisions,
+  inserting an animal only once and returning the original
+  **585–590** follower voice selection.
+- Externally confirmed Scruffty collisions, follower removal, temporary
+  timer **200**, and the original randomized X target.
+- Per-species route counters, assigning behavior **10–14** (depending
+  on difficulty) from state 1, starting left/right gate timers **50**
+  for the final sheep/rabbit, and issuing voice **596/597/598**.
+- Explicit home-waypoint arrival events, moving 10–14 to 20–24 and
+  then state **99**, decrementing the remaining count exactly once.
+
+These inputs are event gates because **the original continuous movement,
+steering, and proximity/collision detection are still missing**, not
+because the player can arbitrarily teleport animals between states.
+This bridge is a building block for the real `HerdingSimulationProvider`.
+
+The activity provider also now reports ordered `Audio` effects to
+`HerdingDriver`, so the above food, follower, dog and route voice IDs can
+be delivered to the common physical managed-audio planner rather than
+being silently discarded. It does not synthesize sound effects.
+
+`herding_behavior_bridge_source_test.cpp` includes original-food,
+follow/duplicate rejection, atomic follower release, Scruffty
+distraction, all three species route allocations, final gate triggers
+and the full **9-delivery Easy completion**. The tests are staged,
+**not compiled or run**.
