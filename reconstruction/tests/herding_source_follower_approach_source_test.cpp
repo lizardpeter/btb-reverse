@@ -32,7 +32,8 @@ int main() {
     assert(close->source_rand_calls==1);
     assert(close->updated.x==100);
     assert(close->updated.y==100);
-    assert(close->updated.movement_active==1);
+    assert(close->updated.behavior_state==1);
+    assert(close->updated.movement_active==0);
     assert(close->updated.animation_frame==2);
     assert(close->updated.animation_frame_countdown==4);
 
@@ -82,6 +83,19 @@ int main() {
         starting,{130,100},original_rng);
     assert(source_move && !source_move->remove_from_follower_table);
     assert(original_rng.next_rand()==41);
+
+    // Original approaching branch accelerates +0.01 only when
+    // the existing movement speed is strictly below 0.8.
+    auto slow=starting;
+    slow.movement_speed=0.5f;
+    const auto accelerating=h::original_herding_follower_approach(
+        slow,{200,100});
+    assert(accelerating);
+    assert(std::fabs(accelerating->updated.movement_speed-0.51f) <
+           0.00001f);
+    assert(accelerating->updated.movement_active==1);
+    assert(accelerating->updated.behavior_state==0);
+    assert(edge->updated.movement_speed==0.8f);
 
     auto invalid=starting;
     invalid.type=static_cast<int>(h::EntityType::GateRight);
