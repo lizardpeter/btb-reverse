@@ -561,6 +561,22 @@ int main() {
         assert(with_dog.unload(error));
     }
 
+    // Medium/Hard constructor is retail-specific. A generic sprite
+    // placeholder at Scruffty's position must not be accepted in lieu
+    // of the original 101x116 source cell or actual group-1 start.
+    {
+        auto invalid_source=std::make_unique<EvidenceSource>(1);
+        auto* invalid_owner=invalid_source.get();
+        invalid_source->originals.back().source_right=40;
+        HerdingEventSimulation invalid_dog(
+            std::move(invalid_source));
+        assert(!invalid_dog.initialize(
+            original_shape_data(),1,error));
+        assert(error.find("101x116")!=std::string::npos);
+        assert(!invalid_dog.initialized());
+        assert(invalid_owner->shutdowns==1);
+    }
+
     HerdingEventSimulation no_motion(nullptr);
     assert(!no_motion.initialize(original_shape_data(),0,error));
     assert(!no_motion.initialized());
