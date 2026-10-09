@@ -160,3 +160,34 @@ replace the intro with the help/walkthrough animation.
 
 A new source-only test `full_game_startup_movies_source_test.cpp`
 covers all four indices, filenames, and malformed-file rejection.
+
+## Source-level Adventure → Golf lifecycle regression
+
+`full_game_adventure_to_golf_source_test.cpp` exercises a complete
+**single GameRoot** flow using the original action codes and real data
+formats:
+
+1. Adventure chooser setup `0x1C` → update `0x1D`;
+2. select the source's Golf tile **-3** → set `0x51C2E4 = 1` and
+   route to Golf pregame setup `0x34`;
+3. resolve original Golf instruction backdrop slot **14**,
+   `Data\\ui\\instruction\\playgolf.bmp`, and Adventure walkthrough
+   index **5**;
+4. choose Easy **-2** on pregame update `0x35`, writing difficulty
+   zero to `0x51C284`;
+5. press the separately encoded Start **-5** and enter Golf init `0x36`;
+6. initialize the source-backed Golf round with **Easy difficulty 0**
+   regardless of the initially configured fallback difficulty, retain
+   the game's original **five attempts**, then enter runtime `0x37`.
+
+The original background registry is now retained by source-backed
+pregame drivers. When a menu selects a different Dinosaur, Spud or
+Adventure subgame, `GameRoot` supplies the new retail
+`0x51C2E4` value **before the next instruction setup**, allowing
+the same generic UI driver to recalculate its original BMP slot.
+Previously, creating the driver for one choice could leave it displaying
+that choice's background after another choice was selected.
+
+This is an integration **test source fixture only**. It does not
+prove that the full Windows executable was compiled, played, or that
+the DirectDraw/Bink/DirectSound outputs match the retail game.
