@@ -1,6 +1,7 @@
 #include "btb/full_game_herding_event_simulation.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <iterator>
 #include <utility>
 
@@ -202,6 +203,38 @@ bool HerdingEventSimulation::advance(
             hero->y_float!=expected->y) {
             error="original Pickles navigation differs from binary-verified "
                   "0x418C2D polygon and axis-slide result";
+            return false;
+        }
+    }
+    for (const auto& probe : observed.steering_evidence) {
+        if (probe.entity_index>=observed.motion_records.size()) {
+            error="source steering probe references an absent entity";
+            return false;
+        }
+        const auto expected=herding::original_herding_steering_step(
+            probe.original_x,probe.original_y,
+            probe.native_heading_degrees,probe.magnitude_before_step,
+            probe.native_roaming_speed_ramp);
+        if (!expected) {
+            error="original animal steering probe has invalid input";
+            return false;
+        }
+        const auto& moved=observed.motion_records[probe.entity_index];
+        // The original executes x87 FSIN/FCOS, while this source helper
+        // uses std::sin/std::cos; tolerate less than 1/1000 world unit
+        // here until an x87-matching differential backend is available.
+        constexpr float kTrigTolerance=0.001f;
+        if (!std::isfinite(moved.x_float) ||
+            !std::isfinite(moved.y_float) ||
+            std::fabs(moved.x_float-expected->x)>kTrigTolerance ||
+            std::fabs(moved.y_float-expected->y)>kTrigTolerance ||
+            moved.x!=expected->rounded_x ||
+            moved.y!=expected->rounded_y ||
+            moved.direction!=expected->facing_index ||
+            std::fabs(moved.movement_speed-expected->next_speed)>
+                kTrigTolerance) {
+            error="source animal motion contradicts original "
+                  "0x416C45/0x416DCE native steering kernel";
             return false;
         }
     }
