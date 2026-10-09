@@ -355,11 +355,23 @@ int main() {
     scene.entities[1].animation_frame=7;
     scene.entities[1].animation_frame_countdown=73;
 
+    auto reached_tracked_point=event(
+        HerdingObservedKind::TrackedTargetArrived,1);
     auto home=event(HerdingObservedKind::EnterHomeRoute,1);
     auto waypoint1=event(HerdingObservedKind::ReachHomeWaypoint,1);
     auto waypoint2=event(HerdingObservedKind::ReachHomeWaypoint,1);
-    source->scheduled={home};
+
+    // The source arrival at 0x417314 writes state ONE and RETURNS.
+    // It must not allocate state TEN until the following update.
+    source->scheduled={reached_tracked_point};
     sounds.clear();
+    assert(simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(remaining==9);
+    assert(scene.entities[1].behavior_state==1);
+    assert(sounds.empty());
+
+    source->scheduled={home};
     assert(simulation.advance(
         {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
     assert(remaining==9);
