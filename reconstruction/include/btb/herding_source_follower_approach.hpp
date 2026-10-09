@@ -19,9 +19,12 @@ namespace btb::herding {
 // that table and membership in the original update order; this helper
 // does not invent a target or choose which animal should follow.
 //
-// 0x4172D2: source distance < float(30.0f) triggers removal from the
-// 20-slot follower table and returns 1; otherwise move with the
-// existing entity speed and update the original 3-frame animation.
+// 0x4172D2: source distance < float(30.0f) triggers removal from
+// the 20-slot TRACKED-TARGET table 0x50AF78, writes behavior_state
+// (+0x50) to 1 and returns 1; it does NOT mutate movement_active
+// (+0x48) in that arrival branch. The separate ordinary FOLLOWER
+// table is at 0x50AF14. Otherwise move with existing speed, ramp
+// speed by +0.01 when below 0.8, and update 3-frame animation.
 //
 // The source also consumes one 0x42FFC4 rand() result on the arrival
 // branch without using its value. This is observable in later RNG
@@ -65,7 +68,10 @@ original_herding_follower_approach(
     if (dx>-30 && dx<30 && dy>-30 && dy<30 &&
         dx*dx+dy*dy<900) {
         auto updated=original;
-        updated.movement_active=1;
+        // Original 0x417314 writes +0x50 (behavior_state=1), not
+        // +0x48. The next animal update dispatches this state to
+        // the separately recovered begin-home-route code.
+        updated.behavior_state=1;
         return RetailFollowerApproachStep{
             updated,true,true,1,false
         };
@@ -77,7 +83,7 @@ original_herding_follower_approach(
 
     const auto movement=original_herding_steering_step(
         original.x_float,original.y_float,*heading,
-        original.movement_speed,false);
+        original.movement_speed,true);
     if (!movement) return std::nullopt;
 
     auto updated=original;
@@ -87,6 +93,7 @@ original_herding_follower_approach(
     updated.y=movement->rounded_y;
     updated.direction=movement->facing_index;
     updated.movement_active=1;
+    updated.movement_speed=movement->next_speed;
 
     // The retail countdown is a signed 32-bit integer at +0x2C.
     // Normalize large external values explicitly rather than invoke
