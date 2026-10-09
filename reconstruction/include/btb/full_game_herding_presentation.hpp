@@ -25,6 +25,7 @@ struct HerdingComposedFrame {
     std::vector<Draw> draws{};
     herding::CameraPlan camera{};
     std::size_t rejected_unknown_entities{};
+    bool missing_farmer_pickles{};
 };
 
 [[nodiscard]] HerdingComposedFrame compose_original_herding_frame(
