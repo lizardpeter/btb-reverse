@@ -73,6 +73,17 @@ bool HerdingRecoveredBehavior::apply_source_motion(
     target->movement_direction_mask=source.movement_direction_mask;
     target->movement_active=source.movement_active;
     target->movement_speed=source.movement_speed;
+    // Original UpdateHerdingAnimal mutates these source record fields
+    // during frame dispatch. They are not exclusively renderer-owned:
+    // the temporary target at +0x58/+0x5C/+0x60, and the walking
+    // animation +0x04/+0x2C must survive until the following update.
+    // Do NOT import behavior_state +0x50 here: the recovered source-
+    // confirmed event machine remains its sole owner.
+    target->temporary_target_timer=source.temporary_target_timer;
+    target->target_x=source.target_x;
+    target->target_y=source.target_y;
+    target->animation_frame=source.animation_frame;
+    target->animation_frame_countdown=source.animation_frame_countdown;
     return true;
 }
 
