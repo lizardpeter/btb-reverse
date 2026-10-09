@@ -368,3 +368,29 @@ not complete.
 
 No compilation, device execution or original-binary differential
 validation occurred during this pass.
+
+### Direct retail executable geometry audit — source-first
+
+The installed `BTB-BBP/Exe/Bob the Builder - Bob Builds a Park.exe`
+was retrieved and verified at 311,296 bytes with matching SHA-256.
+Three original x86 functions are now reverse translated rather than
+approximated: `0x428520` integer polygon containment (0=inside),
+`0x418C2D` Pickles navigation axis-recovery order, and
+`0x4169A0` one-way inclusive four-corner rectangle collision.
+
+`HerdingEventSimulation` implements the previously abstract
+`HerdingSimulationProvider` using source-confirmed motion records and
+contact events. It compares Pickles updates against the recovered
+polygon/axis-slide algorithm and Scruffty events against the original
+ordered collision test, then applies already-recovered food, follower,
+home-route and sound behavior transactionally.
+
+The remaining prerequisite is a complete
+`OriginalHerdingMotionSource` that produces the actual retail
+per-entity steering, free-roam movement and contact probes.
+Therefore **Herding is still only partially source-integrated**:
+its behavior transitions are real, but native full gameplay is
+not complete. No code was compiled, tested or run during this pass.
+
+Evidence and code: [Herding retail geometry](herding-retail-geometry.md)
+and `full_game_herding_event_simulation.cpp`.
