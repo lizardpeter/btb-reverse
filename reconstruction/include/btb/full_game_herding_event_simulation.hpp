@@ -8,6 +8,7 @@
 #include "btb/herding_source_heading.hpp"
 #include "btb/herding_source_roaming_loop.hpp"
 #include "btb/herding_source_temporary_target.hpp"
+#include "btb/herding_source_scruffty_patrol.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -26,6 +27,7 @@ enum class HerdingObservedKind {
     PickUpFood,
     JoinFollower,
     ScrufftyCollision,
+    TrackedTargetArrived,
     EnterHomeRoute,
     ReachHomeWaypoint
 };
@@ -99,6 +101,16 @@ struct HerdingTemporaryTargetEvidence {
     bool source_returned_early{};
 };
 
+// Native dog branch 0x418F23 is deterministic given the entity,
+// group-1 waypoint table and activity-global animation latch. Its
+// source-controlled before/after states are independently replayed.
+struct HerdingScrufftyPatrolEvidence {
+    std::size_t entity_index{};
+    herding::RetailEntityRecord32 before{};
+    herding::RetailScrufftyPatrolState state_before{};
+    herding::RetailScrufftyPatrolState state_after{};
+};
+
 struct HerdingObservedFrame {
     std::optional<HerdingPicklesBoundaryEvidence> pickles_boundary_evidence{};
     // Optional, branch-specific probes for native 0x416C45/0x416DCE
@@ -106,6 +118,7 @@ struct HerdingObservedFrame {
     std::vector<HerdingSteeringEvidence> steering_evidence{};
     std::vector<HerdingRoamingRecoveryEvidence> recovery_evidence{};
     std::vector<HerdingTemporaryTargetEvidence> temporary_target_evidence{};
+    std::optional<HerdingScrufftyPatrolEvidence> scruffty_patrol_evidence{};
     // Same ordering/entity IDs as the original 0x64-byte record table;
     // updates to behavior states and animation are ignored here because
     // the reconstructed behavior/compositor own those fields.
@@ -167,6 +180,9 @@ private:
     std::unique_ptr<OriginalHerdingMotionSource> motion_{};
     std::unique_ptr<herding::HerdingRecoveredBehavior> state_{};
     herding::Data data_{};
+    // Original global 0x443B20 lives in process .data. Unlike the
+    // waypoint index it is not reset by InitializeHerdingActivity.
+    herding::RetailScrufftyPatrolState scruffty_patrol_state_{};
 };
 
 } // namespace btb::full_game
