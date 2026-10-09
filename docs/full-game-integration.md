@@ -532,6 +532,10 @@ The new source is:
   and subsequent **distance <30** arrival into one deterministic
   state-zero dispatcher. The source arrival writes **behavior_state 1
   at +0x50** and consumes exactly one discarded original rand().
+  It **returns immediately**: home-route state 10+N allocation belongs
+  to a later animal update. The event simulator now has separate
+  `TrackedTargetArrived` and `EnterHomeRoute` events and rejects
+  attempts to combine them within one update.
   Other free-roam/follower branches remain explicitly *uncovered*.
 - `herding_source_follower_approach.hpp`: corrected earlier source
   error so arrival changes behavior_state rather than
