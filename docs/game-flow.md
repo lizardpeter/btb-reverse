@@ -165,8 +165,25 @@ So `0x00420360`, rather than `0x00420560` or the later `0x004207E0` initializer,
 The formerly missing music sequencer now has a source-level grid model,
 editor controller, 50-sample pitch-bank map, original `machinedata.txt` parser,
 machine/conductor animation, and a frame-oriented playback/audio/progress plan.
-The music machine is **not wired to the unified game executable** yet, and
-these sources have deliberately not been included in a new compile stage.
+The music machine **is now source-integrated with the common 68-state
+GameRoot** alongside a Golf driver. It is still not connected to a final
+native DirectDraw/DirectSound/Bink host; these newly added source units
+have deliberately not been included in a new full-game compile stage.
 
 See [Bob's Band / music sequencer](bobs-band-activity.md) for disassembly
 anchors, limits, and input/asset contract.
+
+## Original pregame Bink source integration
+
+All ten pregame setup/update pairs now have source-level routing in
+`full_game_pregame.hpp` and `GameRoot`, grounded in sixty x86 action
+table entries. Four setups enter native global Bink mode 14 before
+updating their instruction UI, and the ten original help walkthroughs
+are loaded independently from `loaddata/binkwalk.txt`.
+
+The shared root suppresses any residual click pulse on movie completion,
+matching the instruction that clears input before same-frame state
+dispatch. Actual DirectDraw/Bink decode/audio and the remaining
+non-hosted activity drivers remain to be implemented.
+
+See [detailed pregame analysis](full-game-pregame.md).
