@@ -1,4 +1,5 @@
 #include "btb/win32_original_directdraw.hpp"
+#include "btb/bitmap_registry.hpp"
 
 #if defined(_WIN32)
 #include <cstdint>
@@ -162,9 +163,10 @@ bool Win32OriginalDirectDraw::load_bitmap(
     DDSURFACEDESC2 desc{};
     desc.dwSize=sizeof(desc);
     desc.dwFlags=DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT;
-    desc.ddsCaps.dwCaps= bitmap.bmWidth <=
-        display::kRetailWidth ? DDSCAPS_OFFSCREENPLAIN :
-        DDSCAPS_OFFSCREENPLAIN;
+    desc.ddsCaps.dwCaps =
+        bitmap.bmWidth <= bitmap_registry::kLargeBitmapWidthThreshold
+            ? DDSCAPS_OFFSCREENPLAIN
+            : (DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY);
     desc.dwWidth=static_cast<DWORD>(bitmap.bmWidth);
     desc.dwHeight=static_cast<DWORD>(bitmap.bmHeight);
 
