@@ -21,10 +21,11 @@ struct NativeClippedBlt {
     bool visible{};
 };
 
-[[nodiscard]] constexpr NativeClippedBlt retail_clip_blt(
+[[nodiscard]] constexpr NativeClippedBlt retail_clip_blt_to_rect(
     Rect original_source,
     int dest_x,
-    int dest_y) noexcept {
+    int dest_y,
+    Rect destination_viewport) noexcept {
 
     using std::int64_t;
     const int64_t width =
@@ -40,12 +41,18 @@ struct NativeClippedBlt {
     const int64_t right=left+width;
     const int64_t bottom=top+height;
 
-    const int64_t clipped_left=std::max<int64_t>(left,0);
-    const int64_t clipped_top=std::max<int64_t>(top,0);
-    const int64_t clipped_right=std::min<int64_t>(
-        right,display::kRetailWidth);
-    const int64_t clipped_bottom=std::min<int64_t>(
-        bottom,display::kRetailHeight);
+    const int64_t min_x=std::clamp<int64_t>(
+        destination_viewport.left,0,display::kRetailWidth);
+    const int64_t min_y=std::clamp<int64_t>(
+        destination_viewport.top,0,display::kRetailHeight);
+    const int64_t max_x=std::clamp<int64_t>(
+        destination_viewport.right,0,display::kRetailWidth);
+    const int64_t max_y=std::clamp<int64_t>(
+        destination_viewport.bottom,0,display::kRetailHeight);
+    const int64_t clipped_left=std::max<int64_t>(left,min_x);
+    const int64_t clipped_top=std::max<int64_t>(top,min_y);
+    const int64_t clipped_right=std::min<int64_t>(right,max_x);
+    const int64_t clipped_bottom=std::min<int64_t>(bottom,max_y);
 
     if (clipped_left>=clipped_right ||
         clipped_top>=clipped_bottom) {
@@ -74,6 +81,13 @@ struct NativeClippedBlt {
         },
         true,
     };
+}
+
+[[nodiscard]] constexpr NativeClippedBlt retail_clip_blt(
+    Rect original_source, int dest_x, int dest_y) noexcept {
+    return retail_clip_blt_to_rect(
+        original_source,dest_x,dest_y,
+        Rect{0,0,display::kRetailWidth,display::kRetailHeight});
 }
 
 } // namespace btb::full_game
