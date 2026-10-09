@@ -140,15 +140,17 @@ public:
         if (emit_recovery_probe) {
             auto before=current[1];
             before.x=520;
-            before.y=801; // below the source world polygon's y=800 edge
+            before.y=499; // immediately outside source GROUP-TWO y=500
+            before.previous_x=520;
+            before.previous_y=499;
             before.x_float=520.0f;
-            before.y_float=801.0f;
+            before.y_float=499.0f;
             r::OriginalRetailRandom exact_rng{1};
             const auto initial_rng=exact_rng.state();
             h::OriginalRoamingLoop replay{.entity=before};
             const auto result=h::resume_original_herding_roaming_loop(
                 replay,exact_rng,
-                data.retail_transformed_group0(),8);
+                h::animal_exclusion_polygon(data),8);
             assert(result==h::OriginalRoamingLoopStatus::Accepted);
             assert(replay.attempts==1);
             frame.motion_records[1]=replay.entity;
@@ -223,7 +225,8 @@ h::Data original_shape_data() {
         // Synthetic five-waypoint fixture, deliberately not claimed
         // to be the shipped herd.txt coordinates.
         {{545,315},{645,315},{645,415},{545,415},{545,315}},
-        std::vector<h::Vec2i>(6),
+        {{30,500},{500,500},{500,500},
+         {1200,500},{1200,850},{30,850}},
         std::vector<h::Vec2i>(1)};
     return data;
 }
@@ -321,17 +324,17 @@ int main() {
 
     // Source's same-frame out-of-bounds recovery must preserve both
     // the original global LCG state and the observed retry count. One
-    // candidate starting just beyond herd.txt polygon Y=800 returns
-    // inside after exactly one pair of original random rolls.
+    // candidate just above GROUP TWO's Y=500 boundary moves into
+    // its six-point polygon after one pair of source random draws.
     source->emit_recovery_probe=true;
     const auto before_recovery=scene.entities[1].y_float;
     assert(simulation.advance(
         {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
-    assert(scene.entities[1].y==798);
+    assert(scene.entities[1].y>=500 && scene.entities[1].y<505);
     assert(scene.entities[1].previous_x==520);
-    assert(scene.entities[1].previous_y==801);
-    assert(scene.entities[1].y_float>798.0f);
-    assert(scene.entities[1].y_float<800.0f);
+    assert(scene.entities[1].previous_y==499);
+    assert(scene.entities[1].y_float>=500.0f);
+    assert(scene.entities[1].y_float<505.0f);
     assert(remaining==9);
     assert(scene.entities[1].y_float!=before_recovery);
 
