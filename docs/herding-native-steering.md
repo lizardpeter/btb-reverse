@@ -139,6 +139,45 @@ Regressions are in
 **not been compiled or run**, and standard-library trig is still
 not asserted bit-exact with original x87 `FPATAN`.
 
+
+## Source-verified home delivery radius and actual position gating
+
+The x87 integer-distance helper `0x00415D30` computes
+`sqrt(abs(dx)^2 + abs(dy)^2)`. The original first- and second-stage
+animal home-route branches at `0x416D50` and `0x416ECF`
+compare this distance against the literal **10.0** at
+`0x0043B378` and accept only when **distance < 10**.
+Exactly ten units away is NOT arrival.
+
+`herding_source_home_arrival.hpp` reconstructs the same predicate
+using 64-bit integer squared-distance comparisons to **100** for
+the shipped integer-coordinate domain. This exactly preserves the
+strict inequality without spurious modern float sqrt rounding.
+
+The current target depends on both species and state:
+- states **10..14** use the species-specific entrance targets
+  recovered from the initializer's original source table;
+- states **20..24** use the five source-corrected final target
+  points for that species;
+- delivered state **99** is never a valid new arrival.
+
+Previously `HerdingRecoveredBehavior::arrive_at_home_waypoint`
+would advance its state and decrement remaining animals based solely
+on a caller's asserted arrival event. This was an unacceptable source
+fidelity gap. It now requires both **a confirmed event** and
+**the animal's actual position within its correct native waypoint
+radius**.
+
+The original Easy nine-delivery fixture has been corrected to move
+each animal through two actual source-coordinate positions. The full
+`HerdingEventSimulation` fixture now requires separate steps for
+begin-route, reaching entrance and reaching the terminal waypoint;
+an invalid early arrival aborts without decrementing progress.
+
+`herding_source_home_arrival_source_test.cpp` records zero distance,
+9-unit, 6/7-unit, exactly-10-unit (6/8) and all species/route
+cases. The source is not compiled or run.
+
 ## Remaining Pets Corner code
 
 The next critical functions are animal random-target and behavior-state decisions around
