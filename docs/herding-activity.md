@@ -86,7 +86,7 @@ For the shipped data, group 0 contains 12 points.
 After each embedded `-1 -1`, the initializer advances to the next group.
 
 - **group 1** -> `0x00510628`, 5 points: exact **Scruffty patrol path**
-- **group 2** -> `0x005104E8`, 6 points: exact **animal exclusion polygon**
+- **group 2** -> `0x005104E8`, 6 points: original **animal roaming acceptance polygon** (historically called exclusion polygon in older source)
 - **group 3** -> `0x0050AF70/0x0050AF74`, one point `(92,324)`: exact
   **animal free-roam navigation recovery/re-entry target**
 
@@ -101,11 +101,18 @@ Group 2 is the lower-world polygon:
 (30,850)
 ```
 
-For a non-following herd animal, `UpdateHerdingAnimal` tests its current
-integer position against this polygon. If the animal is inside, retail restores
-its previous position and repeatedly steers it toward **(650,486)**, retesting
-the polygon after each movement step until it is outside. This is therefore an
-exclusion/escape region rather than a route.
+The executable's `0x417F7C–0x4180FB` recovery branch tests
+this exact group-2 polygon. **If the animal is inside, the branch
+returns. If outside, it repeatedly takes a 3-unit step toward a
+random source target until it is inside.** On every retry, it restores
+current integer X/Y FROM the saved previous X/Y before computing
+the steering anchor, but continues accumulating the floating X/Y.
+Earlier documentation described the opposite outcome and confused
+group 2 with the group-0 navigation polygon. Those descriptions
+have now been corrected directly against the PE32 disassembly.
+The separately recovered fixed **(650,486)** escape behavior
+belongs to other animal-interaction code; it is not the destination
+of this random-retry branch.
 
 Group 3 is used by the outer Herding free-roam update. After an animal's normal
 movement step, retail tests the new position against group 0. If it crossed
@@ -826,6 +833,38 @@ generation and x87 bitwise differential parity. This is not yet
 a finished autonomous animal simulation.
 
 See [direct executable steering audit](herding-native-steering.md).
+
+## Original Scruffty patrol and initialization
+
+The original type-7 update at `0x418F23–0x41908D` is now reconstructed
+as `herding_source_scruffty_patrol.hpp`. It consumes the true
+five-waypoint `herd.txt` group 1 path. At strictly less than
+**10 units** from a waypoint, it halves current speed and advances
+the waypoint index with wraparound. Otherwise it continues toward
+the current waypoint, using original integer heading and float
+`sin/cos` movement.
+
+Actual position updates require both the process-global
+`0x443B20` movement latch (initialized to **1** in retail PE
+`.data`) and animation frame **3 or 4**. Movement magnitude
+is current speed times **10**; a completed step clears the latch.
+Speed increases by **0.01** while below **1.6**; animation
+subtracts **5** from countdown, reloads **25**, wraps through
+**seven** frames, and re-arms the latch when advancing.
+
+The original Medium/Hard initializer
+`0x41A2BB–0x41A331` creates a single Scruffty at the
+first group-1 coordinate with source sprite rectangle
+`(0,0,101,116)`. The full-game event simulation now validates
+this initial record and optionally compares live source-record
+patrol updates against the recovered path, facing, speed,
+animation timing, and retained latch. No synthetic patrol
+points or smoothing were introduced.
+
+This is a recovered source branch and staged regression
+coverage, **not yet a running complete Pets Corner**.
+The remaining ordinary animal movement branches and full
+Win32 build still require further reconstruction.
 
 ## Latest: contiguous state-zero motion dispatch
 
