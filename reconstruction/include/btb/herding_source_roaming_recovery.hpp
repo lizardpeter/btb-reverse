@@ -5,31 +5,33 @@
 #include "btb/herding_source_steering.hpp"
 #include "btb/retail_point_in_polygon.hpp"
 
+#include <cmath>
 #include <optional>
 #include <vector>
 
 namespace btb::herding {
 
 // Source 0x417FFE..0x4180FB performs ONE roaming/exclusion recovery
-// attempt. At 0x417FB2..0x417FFD the binary copies current integer
-// X/Y to previous X/Y, then computes the ORIGINAL STEERING ANCHOR:
-// current integer X + signed_trunc((source_left-source_right)/2),
-// current integer Y + signed_trunc((source_top-source_bottom)/2).
+// attempt. At 0x417FB2..0x417FFD the binary restores current
+// integer X/Y FROM saved previous_x/previous_y before computing the
+// original negative-half-cell STEERING ANCHOR:
+// restored X + signed_trunc((source_left-source_right)/2),
+// restored Y + signed_trunc((source_top-source_bottom)/2).
 // This anchor is LEFT/ABOVE the entity top-left for positive sprite
 // extents, NOT the usual visual sprite center. The calling same-frame
 // loop is reconstructed in herding_source_roaming_loop.hpp.
 //
 // The source then:
 //  - consumes two separate rand()%4 values for X and Y
-//  - computes native 0x415D70 heading from actor center to that point
+//  - computes native 0x415D70 heading from signed sprite anchor to target
 //  - applies native FSIN/FCOS movement with literal magnitude 3.0
 //  - truncates float X/Y to signed int and saves facing (heading+22)/45
 //  - sets speed +0x4C to zero
-//  - checks the transformed group-0 polygon with the original
-//    0=inside / 1=outside PointInPolygon helper
+//  - checks original herd.txt GROUP-2 six-point polygon 0x5104E8
+//    using 0=inside / 1=outside PointInPolygon
 // An outside result repeats from 0x417FB2 with ANOTHER pair of RNG
-// calls. That retry loop remains caller-owned to preserve x87 and
-// original frame-specific base-position updates.
+// calls. The caller retains accumulated floating-point X/Y and the
+// saved previous integer position across retries, as in retail.
 struct RetailRoamingRecoveryAttempt {
     RetailEntityRecord32 moved{};
     Vec2i randomly_selected_target{};
@@ -44,7 +46,7 @@ original_herding_roaming_recovery_attempt(
     Vec2i original_steering_anchor,
     int random_x_mod4,
     int random_y_mod4,
-    const std::vector<Vec2i>& transformed_navigation_polygon) noexcept {
+    const std::vector<Vec2i>& original_group2_polygon) noexcept {
 
     const auto target=original_herding_recovery_target(
         random_x_mod4,random_y_mod4);
@@ -61,7 +63,7 @@ original_herding_roaming_recovery_attempt(
     if (!motion) return std::nullopt;
 
     const auto inside=retail_geometry::original_polygon_contains(
-        transformed_navigation_polygon,
+        original_group2_polygon,
         motion->rounded_x,motion->rounded_y);
     if (!inside) return std::nullopt;
 
@@ -86,7 +88,7 @@ original_herding_roaming_recovery_attempt(
 [[nodiscard]] inline std::optional<RetailRoamingRecoveryAttempt>
 original_herding_roaming_recovery_attempt(
     const RetailEntityRecord32& entity,
-    Vec2i original_actor_center,
+    Vec2i original_steering_anchor,
     retail::OriginalRetailRandom& shared_rng,
     const std::vector<Vec2i>& transformed_navigation_polygon) noexcept {
 
@@ -94,7 +96,7 @@ original_herding_roaming_recovery_attempt(
     // original process-global random sequence.
     if (!std::isfinite(entity.x_float) ||
         !std::isfinite(entity.y_float) ||
-        transformed_navigation_polygon.empty()) {
+        original_group2_polygon.empty()) {
         return std::nullopt;
     }
     const auto random=next_original_herding_recovery_target(shared_rng);
