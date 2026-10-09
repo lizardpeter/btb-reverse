@@ -40,6 +40,24 @@ static_assert(!outside.visible);
 constexpr auto malformed=retail_clip_blt({50,0,20,40},0,0);
 static_assert(!malformed.visible);
 
+// Pets Corner's original 600x380 world viewport begins at 20,20,
+// independent of the outer 640x480 DirectDraw primary surface.
+constexpr Rect kPetsViewport{20,20,620,400};
+constexpr auto pets_left=retail_clip_blt_to_rect(
+    {100,200,228,328},-20,100,kPetsViewport);
+static_assert(pets_left.visible);
+static_assert(pets_left.destination.left==20);
+static_assert(pets_left.source.left==140);
+static_assert(pets_left.source.right==228);
+constexpr auto pets_bottom=retail_clip_blt_to_rect(
+    {0,0,100,100},200,390,kPetsViewport);
+static_assert(pets_bottom.visible);
+static_assert(pets_bottom.destination.bottom==400);
+static_assert(pets_bottom.source.bottom==10);
+constexpr auto pets_outside=retail_clip_blt_to_rect(
+    {0,0,60,60},0,410,kPetsViewport);
+static_assert(!pets_outside.visible);
+
 int main() {
     const auto corner=retail_clip_blt({100,200,140,240},-5,475);
     assert(corner.visible);
