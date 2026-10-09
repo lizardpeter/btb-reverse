@@ -49,6 +49,7 @@ public:
     bool contradict_navigation_probe{};
     bool emit_steering_probe{};
     bool contradict_steering_probe{};
+    bool contradict_heading_probe{};
     bool started{};
     int steps{};
     int shutdowns{};
@@ -85,8 +86,16 @@ public:
             scheduled,std::vector<HerdingObservedEvent>{});
         if (emit_steering_probe) {
             const auto original=current[1];
+            const h::Vec2i original_target{
+                original.x,original.y-100
+            };
+            const auto source_heading=h::original_herding_integer_heading(
+                original.x,original.y,
+                original_target.x,original_target.y);
+            assert(source_heading==359);
             const auto predicted=h::original_herding_steering_step(
-                original.x_float,original.y_float,0,0.5f,true);
+                original.x_float,original.y_float,
+                *source_heading,0.5f,true);
             assert(predicted);
             auto& result=frame.motion_records[1];
             result.x_float=predicted->x;
@@ -100,7 +109,11 @@ public:
                 .entity_index=1,
                 .original_x=original.x_float,
                 .original_y=original.y_float,
-                .native_heading_degrees=0,
+                .native_heading_degrees=contradict_heading_probe ?
+                    90 : *source_heading,
+                .original_target=original_target,
+                .original_actor_x=original.x,
+                .original_actor_y=original.y,
                 .magnitude_before_step=0.5f,
                 .native_roaming_speed_ramp=true
             });
@@ -218,6 +231,14 @@ int main() {
     assert(scene.entities[1].y_float==previous_steering_y);
     assert(remaining==9);
     source->contradict_steering_probe=false;
+
+    source->contradict_heading_probe=true;
+    assert(!simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(error.find("0x415D70")!=std::string::npos);
+    assert(scene.entities[1].y_float==previous_steering_y);
+    assert(remaining==9);
+    source->contradict_heading_probe=false;
     source->emit_steering_probe=false;
 
     // Original rendering writes animation frame and countdown fields into
