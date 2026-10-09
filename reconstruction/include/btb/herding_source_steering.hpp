@@ -2,6 +2,7 @@
 
 #include "btb/herding_runtime.hpp"
 
+#include <bit>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -25,6 +26,15 @@ inline constexpr float kRetailHerdingRadiansPerDegree =
 inline constexpr float kRetailHerdingRoamingSpeedThreshold=0.8f;
 inline constexpr float kRetailHerdingRoamingSpeedGain=0.01f;
 inline constexpr float kRetailHerdingFollowerStep=3.0f;
+
+static_assert(std::bit_cast<std::uint32_t>(
+    kRetailHerdingRadiansPerDegree)==0x3C8EFAB5u);
+static_assert(std::bit_cast<std::uint32_t>(
+    kRetailHerdingRoamingSpeedThreshold)==0x3F4CCCCDu);
+static_assert(std::bit_cast<std::uint32_t>(
+    kRetailHerdingRoamingSpeedGain)==0x3C23D70Au);
+static_assert(std::bit_cast<std::uint32_t>(
+    kRetailHerdingFollowerStep)==0x40400000u);
 
 struct RetailHerdingSteeringStep {
     float x{};
