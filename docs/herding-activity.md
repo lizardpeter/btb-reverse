@@ -826,3 +826,38 @@ generation and x87 bitwise differential parity. This is not yet
 a finished autonomous animal simulation.
 
 See [direct executable steering audit](herding-native-steering.md).
+
+## Latest: contiguous state-zero motion dispatch
+
+The reconstructed original game now has a source-scoped movement
+coordinator at
+`reconstruction/include/btb/herding_source_partial_dispatcher.hpp`.
+It connects three separate previously isolated branches of the retail
+`UpdateHerdingAnimal` routine:
+
+- positive temporary target timer → 3-unit motion toward the stored
+  point, with the **120-unit source return condition**;
+- ordinary follower `0x50AF14` → **<150-unit** registration into
+  the separate `0x50AF78` tracked-target array;
+- tracked target → original 30-unit approach → behavior state 1
+  with exactly one discarded shared CRT random draw.
+
+The two tables are intentionally not merged: original x86 checks
+tracked membership first and removes **only the tracked entry**
+at destination. Another direct binary audit corrected two earlier
+interpretations: the arrival writes **behavior state +0x50**, not
+movement_active +0x48; and even the far temporary-target case
+returns through the common function epilogue rather than starting
+another roaming update. The approaching branch also increases speed
+by 0.01 after movement when below 0.8.
+
+The movement import now carries source-owned temporary-target timer,
+coordinates and animation counters across frames. Optional
+`HerdingTemporaryTargetEvidence` checks that a source-supplied
+frame matches the recovered x86 movement/timer/facing behavior.
+
+Only branches directly established by the original executable are
+executed; uncovered branches return an explicit status. This is
+incremental native-game reconstruction, **not yet the entire
+`OriginalHerdingMotionSource`**. Source regression fixtures were
+committed but not compiled or run.
