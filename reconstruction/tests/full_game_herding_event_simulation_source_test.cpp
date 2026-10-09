@@ -37,6 +37,8 @@ std::vector<h::RetailEntityRecord32> population(int difficulty) {
         // Medium/Hard retail instantiates a Scruffty entity. These
         // coordinates are explicit test evidence, NOT retail spawns.
         add(h::EntityType::Scruffty,545,315);
+        records.back().source_right=101;
+        records.back().source_bottom=116;
     }
     return records;
 }
@@ -57,6 +59,9 @@ public:
     bool contradict_recovery_probe{};
     bool emit_temporary_target_probe{};
     bool contradict_temporary_target_probe{};
+    bool emit_scruffty_probe{};
+    bool contradict_scruffty_probe{};
+    h::RetailScrufftyPatrolState observed_scruffty_state{};
     bool started{};
     int steps{};
     int shutdowns{};
@@ -170,6 +175,25 @@ public:
                 2,before,predicted->early_return
             });
         }
+        if (emit_scruffty_probe) {
+            const std::size_t idx=current.size()-1;
+            const auto original_dog=current[idx];
+            assert(original_dog.entity_type()==h::EntityType::Scruffty);
+            const auto predicted=h::original_scruffty_patrol_step(
+                original_dog,h::scruffty_patrol_path(data),
+                observed_scruffty_state);
+            assert(predicted);
+            frame.motion_records[idx]=predicted->animal;
+            frame.scruffty_patrol_evidence=HerdingScrufftyPatrolEvidence{
+                idx,original_dog,observed_scruffty_state,
+                predicted->state
+            };
+            if (contradict_scruffty_probe) {
+                frame.motion_records[idx].x_float += 1.5f;
+            } else {
+                observed_scruffty_state=predicted->state;
+            }
+        }
         if (emit_navigation_probe) {
             frame.pickles_boundary_evidence =
                 HerdingPicklesBoundaryEvidence{240.0f,414.0f,240,414,0,1};
@@ -196,7 +220,9 @@ h::Data original_shape_data() {
         {{44,99},{202,99},{353,279},{461,263},
          {530,299},{966,181},{966,166},{966,235},
          {1086,349},{1257,405},{1257,900},{44,900}},
-        std::vector<h::Vec2i>(5),
+        // Synthetic five-waypoint fixture, deliberately not claimed
+        // to be the shipped herd.txt coordinates.
+        {{545,315},{645,315},{645,415},{545,415},{545,315}},
         std::vector<h::Vec2i>(6),
         std::vector<h::Vec2i>(1)};
     return data;
@@ -496,6 +522,31 @@ int main() {
         // Sheep [520,300]-[560,340] corner (560,340) is inside
         // Scruffty [545,315]-[585,355]. Reversed order is not
         // interchangeable, and no heuristic AABB shortcut is used.
+        // Validate the exact Medium/Hard dog update against the
+        // source-owned five-waypoint/latch machine. A bad movement
+        // record must not commit the next waypoint or latch.
+        dog->emit_scruffty_probe=true;
+        assert(with_dog.advance(
+            {},h::pickles_keyboard_motion(0),
+            dog_scene,dog_remaining,dog_audio,error));
+        const auto dog_index=dog_scene.entities.size()-1;
+        assert(dog_scene.entities[dog_index].direction==2);
+        assert(dog_scene.entities[dog_index].animation_frame_countdown==95);
+        assert(dog_remaining==12);
+
+        dog->contradict_scruffty_probe=true;
+        const auto accepted_speed=
+            dog_scene.entities[dog_index].movement_speed;
+        assert(!with_dog.advance(
+            {},h::pickles_keyboard_motion(0),
+            dog_scene,dog_remaining,dog_audio,error));
+        assert(error.find("Scruffty movement")!=std::string::npos);
+        assert(dog_scene.entities[dog_index].movement_speed==
+               accepted_speed);
+        assert(dog_remaining==12);
+        dog->contradict_scruffty_probe=false;
+        dog->emit_scruffty_probe=false;
+
         dog->scheduled={contact};
         dog_audio.clear();
         assert(with_dog.advance(
