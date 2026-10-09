@@ -97,7 +97,7 @@ layer and did **not** run a complete compile:
   The main **Activity Select** state pair 0x04/0x05 now has a real source
   adapter with all ten hit regions, strict edges, hover/click managed-sound
   effects, deferred click resolution, and the 0x22 locked-Finale interception.
-  Other eleven front-end screens remain to be routed through shared UI.
+  Other frontend screens still require their original rendering and modal behavior.
   The host must supply genuine random values at screen initialization.
 - `full_game_profiles.cpp` reads/writes `playerinfo.txt` and five
   `player*.txt` records with the existing retail profile/parser implementations,
@@ -111,7 +111,7 @@ layer and did **not** run a complete compile:
 
 ### Still outstanding before full recompilation
 
-The missing work is not just linking these files. The other nine games need
+The missing work is not just linking these files. The other eight games need
 equivalent source adapters, all twelve UI contexts need common rendering and
 action handling, and the original resources must be provided to the shared
 surface/audio/Bink backends. Frame-level retail verification and profile
@@ -229,3 +229,42 @@ input-interruptible slot state for later managed sound reaping.
 This is source-level audio/lifecycle coverage, **not** actual DirectSound
 or DirectDraw output. Exact reference: [native replay preparation and
 menu branch evidence](full-game-menu-actions.md).
+
+## Ten original instruction/walkthrough pairs — binary-audited
+
+The ten original pregame setup/update pairs (**20 of the 68 outer
+states**) have now been source-routed into `GameRoot` with the existing
+table-driven `GenericUiScreenDriver` and a separate retail pregame
+action policy. Exact `-6..-1` action branches are recovered and indexed
+in [60-row original jump table evidence](../ghidra/pregame_action_routes.csv).
+Back returns to the appropriate chooser, while the **Spud Skate -2**
+branch specifically enters init 0x1A, unlike the other Easy/-2 paths.
+
+The four pregame setups for Herding, Fireworks, Squirrel and Park Designer
+now preserve native **global Bink movie mode 14**. They keep their setup
+state while the host observes unfinished playback and continue into the
+update state on the same frame Bink completes. The common input-pulse
+clearing now also suppresses that frame's host click, preventing phantom
+instruction selections.
+
+Source binding now connects:
+- the 23 original `uiBitmapName.txt` BMP backgrounds, including subgame-
+  selected Dino, Spud and Adventure source indices;
+- the ten original `binkwalk.txt` Bink walkthroughs plus ten spoken-help
+  WAVs and three additional NULL-movie help entries;
+- the four `startupmovie.txt` global intro films at indices
+  **0, 4, 5, 7**, distinct from the looping walkthroughs.
+
+`full_game_pregame_resources.cpp` joins original screen and walkthrough
+sources; the original pregame UI factory retains the bitmap table and
+can change its background if the selected subgame changes. Golf's driver
+now accepts the first-run difficulty written by pregame state 0x35,
+not just replay difficulty 0x3F.
+
+**This is source-level routing/resource planning, not completed pregame
+presentation.** Real Bink decode/timing, independent walkthrough looping
+and speech, UI overlays and Help, automatic no-difficulty Start completion,
+native DirectDraw/DirectSound, and remaining activity drivers are still
+outstanding. No new compile or test execution was run.
+
+See [full pregame audit and integration boundaries](full-game-pregame.md).
