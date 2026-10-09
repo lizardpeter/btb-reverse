@@ -206,6 +206,48 @@ bool HerdingEventSimulation::advance(
             return false;
         }
     }
+    for (const auto& probe : observed.temporary_target_evidence) {
+        if (probe.entity_index>=observed.motion_records.size() ||
+            probe.before.entity_id !=
+                observed.motion_records[probe.entity_index].entity_id ||
+            probe.before.type !=
+                observed.motion_records[probe.entity_index].type ||
+            probe.before.temporary_target_timer<=0) {
+            error="invalid original positive temporary-target branch evidence";
+            return false;
+        }
+        const auto expected=
+            herding::original_herding_temporary_target_update(probe.before);
+        if (!expected || !expected->branch_taken ||
+            expected->early_return!=probe.source_returned_early) {
+            error="original temporary-target branch selection or "
+                  "120-unit early return differs from retail";
+            return false;
+        }
+        const auto& moved=observed.motion_records[probe.entity_index];
+        // Exact per-axis FSTP values may differ by the original x87
+        // extended precision. The source-equivalent direction, timer
+        // transition and integer positions must still agree.
+        constexpr float kOriginalTrigTolerance=0.001f;
+        if (!std::isfinite(moved.x_float) ||
+            !std::isfinite(moved.y_float) ||
+            std::fabs(moved.x_float-expected->moved.x_float)>
+                kOriginalTrigTolerance ||
+            std::fabs(moved.y_float-expected->moved.y_float)>
+                kOriginalTrigTolerance ||
+            moved.x!=expected->moved.x ||
+            moved.y!=expected->moved.y ||
+            moved.previous_x!=expected->moved.previous_x ||
+            moved.previous_y!=expected->moved.previous_y ||
+            moved.direction!=expected->moved.direction ||
+            moved.temporary_target_timer!=
+                expected->moved.temporary_target_timer ||
+            moved.movement_speed!=expected->moved.movement_speed) {
+            error="original 0x416F57 temporary target movement differs "
+                  "from source 3-unit steering and 120-unit gate";
+            return false;
+        }
+    }
     for (const auto& probe : observed.recovery_evidence) {
         // A reported recovery needs a completed same-frame retry
         // sequence. This is a validation budget, not a limit imposed
