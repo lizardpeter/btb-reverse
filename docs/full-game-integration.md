@@ -465,3 +465,45 @@ behavior integrated with the shared simulation.
 [Executable-address evidence](../ghidra/herding_motion_new_branch_evidence.csv)
 and [full movement audit](herding-autonomous-motion-branches.md).
 No new compile or runtime execution was performed.
+
+### Original same-frame roaming retry loop — executable reconstruction
+
+The former isolated `0x417FFE..0x4180F1` roaming attempt is now
+joined into the original **in-frame loop** at
+`0x417F7C..0x418101`, with the exact jump
+`0x4180FB -> 0x417FB2` for an outside-polygon result.
+
+The disassembly corrected an important earlier source error:
+the native heading origin is
+`x + trunc((spriteLeft-spriteRight)/2)`,
+`y + trunc((spriteTop-spriteBottom)/2)`, **not** the ordinary
+visual sprite center. Each retry copies the latest integer X/Y into
+the 0x64-byte record's previous-position fields, recalculates this
+signed anchor, consumes another TWO process-global CRT RNG calls,
+and translates the **accumulating** float X/Y by the original
+three-unit movement. There is no float-position reset between
+retries and no runtime cap evident in the retail branch.
+
+`herding_source_roaming_loop.hpp` supplies the resumable
+same-frame state machine. Its host-side per-call work budget is
+not treated as a retail completion, and gameplay must not advance
+or allow another RNG consumer between pending chunks. A new source
+regression covers three consecutive attempts and validates the
+result against a one-call run and the exact six original RNG draws.
+
+`HerdingEventSimulation` can now independently verify an upstream
+motion frame's start/end RNG states, reported retry count, direction,
+current X/Y and original previous-position fields by replaying that
+original polygon loop. The behavior import was also fixed to retain
+source-supplied previous positions rather than fabricating them.
+Tracked-follower arrival now has an overload that directly consumes
+its original discarded rand() from the shared CRT stream.
+
+**Not yet complete or executed:** the fully autonomous
+`OriginalHerdingMotionSource`, entity startup/target selection,
+all other animal branches, x87-differential behavior, Win32
+rendering/Bink, and native game compilation. New tests remain
+source fixtures only; no code was compiled during this pass.
+
+[Exact in-frame movement evidence](../ghidra/herding_motion_new_branch_evidence.csv)
+and [Pets Corner autonomous motion audit](herding-autonomous-motion-branches.md).
