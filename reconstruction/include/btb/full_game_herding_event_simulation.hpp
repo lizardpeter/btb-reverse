@@ -59,7 +59,8 @@ struct HerdingPicklesBoundaryEvidence {
     float attempted_y{};
     std::int32_t previous_x{};
     std::int32_t previous_y{};
-    bool original_allows_axis_recovery{};
+    std::int32_t active_directional_axes{};
+    std::int32_t source_mouse_navigation_mode_443a9c{};
 };
 
 struct HerdingObservedFrame {
