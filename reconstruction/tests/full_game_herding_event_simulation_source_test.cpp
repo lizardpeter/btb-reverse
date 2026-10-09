@@ -55,6 +55,8 @@ public:
     bool contradict_heading_probe{};
     bool emit_recovery_probe{};
     bool contradict_recovery_probe{};
+    bool emit_temporary_target_probe{};
+    bool contradict_temporary_target_probe{};
     bool started{};
     int steps{};
     int shutdowns{};
@@ -150,6 +152,22 @@ public:
             }
             frame.recovery_evidence.push_back({
                 1,before,initial_rng,exact_rng.state(),replay.attempts
+            });
+        }
+        if (emit_temporary_target_probe) {
+            auto before=current[2];
+            before.temporary_target_timer=200;
+            before.target_x=before.x+30;
+            before.target_y=before.y;
+            const auto predicted=
+                h::original_herding_temporary_target_update(before);
+            assert(predicted && predicted->branch_taken);
+            frame.motion_records[2]=predicted->moved;
+            if (contradict_temporary_target_probe) {
+                frame.motion_records[2].temporary_target_timer=200;
+            }
+            frame.temporary_target_evidence.push_back({
+                2,before,predicted->early_return
             });
         }
         if (emit_navigation_probe) {
@@ -300,6 +318,36 @@ int main() {
     assert(remaining==9);
     source->contradict_recovery_probe=false;
     source->emit_recovery_probe=false;
+
+    // Positive +0x58 dispatch uses 3-unit source steering, then both
+    // the near and distant cases return from UpdateHerdingAnimal.
+    // Verify the near branch clears the temporary timer and that the
+    // source's target fields survive the behavior import.
+    source->emit_temporary_target_probe=true;
+    assert(simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(scene.entities[2].temporary_target_timer==0);
+    const auto original_target_x=scene.entities[2].target_x;
+    assert(original_target_x>scene.entities[2].x);
+    assert(remaining==9);
+
+    source->contradict_temporary_target_probe=true;
+    const auto valid_anim_countdown=
+        scene.entities[2].animation_frame_countdown;
+    assert(!simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(error.find("temporary target movement")!=std::string::npos);
+    assert(scene.entities[2].temporary_target_timer==0);
+    assert(scene.entities[2].animation_frame_countdown==
+           valid_anim_countdown);
+    assert(remaining==9);
+    source->contradict_temporary_target_probe=false;
+    source->emit_temporary_target_probe=false;
+
+    assert(simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(scene.entities[2].target_x==original_target_x);
+    assert(scene.entities[2].temporary_target_timer==0);
 
     // Original rendering writes animation frame and countdown fields into
     // the same entity array as gameplay. The next simulation frame must
