@@ -29,6 +29,44 @@ static_assert(original_herding_rect_contact(
 static_assert(!original_herding_rect_contact(outside,large));
 static_assert(original_herding_rect_contact(large,large));
 
+// Original 0x417A2E builds animal rectangle FIRST and Scruffty SECOND
+// from the same 0x64-byte sprite record, using source-cell dimensions.
+constexpr auto animal=[] {
+    btb::herding::RetailEntityRecord32 e{};
+    e.type=static_cast<int>(btb::herding::EntityType::Sheep);
+    e.x=100;e.y=100;
+    e.source_left=20;e.source_right=60;
+    e.source_top=30;e.source_bottom=70;
+    return e;
+}();
+constexpr auto scruffty=[] {
+    btb::herding::RetailEntityRecord32 e{};
+    e.type=static_cast<int>(btb::herding::EntityType::Scruffty);
+    e.x=130;e.y=130;
+    e.source_left=0;e.source_right=50;
+    e.source_top=0;e.source_bottom=50;
+    return e;
+}();
+static_assert(btb::herding::original_herding_entity_rect(animal)==
+              (RetailCornerRect{100,100,140,140}));
+static_assert(btb::herding::original_herding_animal_hits_scruffty(
+    animal,scruffty));
+
+constexpr auto nested_dog=[] {
+    auto e=scruffty;
+    e.x=140;e.y=140;
+    e.source_right=20;e.source_bottom=20;
+    return e;
+}();
+constexpr auto large_animal=[] {
+    auto e=animal;
+    e.source_left=0;e.source_right=100;
+    e.source_top=0;e.source_bottom=100;
+    return e;
+}();
+static_assert(!btb::herding::original_herding_animal_hits_scruffty(
+    large_animal,nested_dog));
+
 int main() {
     assert(original_herding_rect_contact(small,large));
     assert(!original_herding_rect_contact(large,small));
