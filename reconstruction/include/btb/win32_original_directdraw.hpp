@@ -67,6 +67,8 @@ private:
     IDirectDrawSurface7* backbuffer_{};
     IDirectDrawClipper* clipper_{};
     std::unordered_map<std::wstring,OriginalSurface> images_{};
+    std::vector<ResolvedDraw> previous_frame_{};
+    bool surface_lost_during_draw_{};
 };
 
 } // namespace btb::full_game
