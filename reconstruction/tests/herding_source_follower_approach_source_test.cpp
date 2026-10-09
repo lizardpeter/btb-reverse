@@ -70,6 +70,19 @@ int main() {
     assert(north->updated.x_float<100.0f); // native 359-degree drift
     assert(north->updated.y_float<100.0f);
 
+    // Original strict-30 arrival consumes one otherwise unused CRT
+    // rand result; the moving branch consumes none.
+    btb::retail::OriginalRetailRandom original_rng{1};
+    const auto source_arrival=h::original_herding_follower_approach(
+        starting,{129,100},original_rng);
+    assert(source_arrival && source_arrival->remove_from_follower_table);
+    assert(original_rng.next_rand()==18467);
+    original_rng.seed(1);
+    const auto source_move=h::original_herding_follower_approach(
+        starting,{130,100},original_rng);
+    assert(source_move && !source_move->remove_from_follower_table);
+    assert(original_rng.next_rand()==41);
+
     auto invalid=starting;
     invalid.type=static_cast<int>(h::EntityType::GateRight);
     assert(!h::original_herding_follower_approach(invalid,{200,100}));
