@@ -277,9 +277,11 @@ bool Win32OriginalDirectDraw::blit(
         error="retail sprite source rectangle extends beyond original BMP";
         return false;
     }
-    const auto clipped=retail_clip_blt(
+    const auto clipped=retail_clip_blt_to_rect(
         Rect{src.left,src.top,src.right,src.bottom},
-        requested.original.x,requested.original.y);
+        requested.original.x,requested.original.y,
+        requested.original.destination_clip.value_or(
+            Rect{0,0,display::kRetailWidth,display::kRetailHeight}));
     if (!clipped.visible) {
         // Fully offscreen is a valid original animation frame; it is
         // not a lost bitmap and must not abort the entire game tick.
