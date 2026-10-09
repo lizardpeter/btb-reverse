@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -44,6 +45,7 @@ public:
     std::vector<h::RetailEntityRecord32> originals{};
     int source_difficulty{};
     std::vector<HerdingObservedEvent> scheduled{};
+    std::optional<h::Vec2i> forced_sheep_position{};
     bool fail_advance{};
     bool emit_navigation_probe{};
     bool contradict_navigation_probe{};
@@ -82,6 +84,13 @@ public:
         ++steps;
         last_motion=motion;
         frame.motion_records=current;
+        if (forced_sheep_position) {
+            auto& animal=frame.motion_records[1];
+            animal.x=forced_sheep_position->x;
+            animal.y=forced_sheep_position->y;
+            animal.x_float=static_cast<float>(animal.x);
+            animal.y_float=static_cast<float>(animal.y);
+        }
         frame.events=std::exchange(
             scheduled,std::vector<HerdingObservedEvent>{});
         if (emit_steering_probe) {
@@ -250,10 +259,35 @@ int main() {
     auto home=event(HerdingObservedKind::EnterHomeRoute,1);
     auto waypoint1=event(HerdingObservedKind::ReachHomeWaypoint,1);
     auto waypoint2=event(HerdingObservedKind::ReachHomeWaypoint,1);
-    source->scheduled={home,waypoint1,waypoint2};
+    source->scheduled={home};
     sounds.clear();
     assert(simulation.advance(
         {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(remaining==9);
+    assert(scene.entities[1].behavior_state==10);
+
+    // An arrival event from the old animal coordinates cannot skip
+    // the retail 10-unit distance and prematurely deliver the animal.
+    source->scheduled={waypoint1};
+    assert(!simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(remaining==9);
+    assert(scene.entities[1].behavior_state==10);
+
+    source->forced_sheep_position=h::home_entrance_target(
+        h::EntityType::Sheep);
+    source->scheduled={waypoint1};
+    assert(simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(remaining==9);
+    assert(scene.entities[1].behavior_state==20);
+
+    source->forced_sheep_position=*h::home_entry_target(
+        h::EntityType::Sheep,20);
+    source->scheduled={waypoint2};
+    assert(simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    source->forced_sheep_position.reset();
     assert(remaining==8);
     assert(scene.entities[1].behavior_state==99);
     assert(scene.entities[1].animation_frame==7);
