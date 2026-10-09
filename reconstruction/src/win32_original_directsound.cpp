@@ -257,7 +257,7 @@ bool Win32OriginalDirectSound::observe(
     managed={};
     any_managed_voice_playing=false;
     for (std::size_t i=0;i<slots_.size();++i) {
-        const auto* const buffer=slots_[i];
+        auto* const buffer=slots_[i];
         if (!buffer) {
             continue;
         }
