@@ -117,9 +117,33 @@ int main() {
             }
             assert(!home.begin_home_route(id).accepted);
             assert(!home.arrive_at_home_waypoint(id,false).accepted);
+            // A claimed home event cannot teleport an animal from its
+            // previous position. The retail 0x415D30 helper requires
+            // actual distance <10 to the SPECIES entrance.
+            assert(!home.arrive_at_home_waypoint(id,true).accepted);
+            auto relocated=home.entities()[id];
+            const auto initial_target=h::home_entrance_target(
+                relocated.entity_type());
+            relocated.x=initial_target.x;
+            relocated.y=initial_target.y;
+            relocated.x_float=static_cast<float>(relocated.x);
+            relocated.y_float=static_cast<float>(relocated.y);
+            assert(home.apply_source_motion(id,relocated));
             auto approaching=home.arrive_at_home_waypoint(id,true);
             assert(approaching.accepted && !approaching.animal_delivered);
             assert(home.entities()[id].behavior_state==20+n);
+            // The second source stage has a different per-species,
+            // per-animal waypoint. Position must reach that one too.
+            assert(!home.arrive_at_home_waypoint(id,true).accepted);
+            const auto final_target=h::home_entry_target(
+                relocated.entity_type(),20+n);
+            assert(final_target);
+            relocated=home.entities()[id];
+            relocated.x=final_target->x;
+            relocated.y=final_target->y;
+            relocated.x_float=static_cast<float>(relocated.x);
+            relocated.y_float=static_cast<float>(relocated.y);
+            assert(home.apply_source_motion(id,relocated));
             auto delivered=home.arrive_at_home_waypoint(id,true);
             assert(delivered.accepted && delivered.animal_delivered);
             ++deliveries;
