@@ -37,6 +37,8 @@ public:
     std::vector<h::RetailEntityRecord32> originals{};
     std::vector<HerdingObservedEvent> scheduled{};
     bool fail_advance{};
+    bool emit_navigation_probe{};
+    bool contradict_navigation_probe{};
     bool started{};
     int steps{};
     int shutdowns{};
@@ -70,6 +72,13 @@ public:
         frame.motion_records=current;
         frame.events=std::exchange(
             scheduled,std::vector<HerdingObservedEvent>{});
+        if (emit_navigation_probe) {
+            frame.pickles_boundary_evidence =
+                HerdingPicklesBoundaryEvidence{240.0f,414.0f,240,414,true};
+            if (contradict_navigation_probe) {
+                frame.motion_records[0].x_float=-99.0f;
+            }
+        }
         error.clear();
         return true;
     }
@@ -86,7 +95,9 @@ h::Data original_shape_data() {
     h::Data data;
     data.setup_positions[3]={478,471};
     data.coordinate_groups={
-        std::vector<h::Vec2i>(12),
+        {{44,99},{202,99},{353,279},{461,263},
+         {530,299},{966,181},{966,166},{966,235},
+         {1086,349},{1257,405},{1257,900},{44,900}},
         std::vector<h::Vec2i>(5),
         std::vector<h::Vec2i>(6),
         std::vector<h::Vec2i>(1)};
@@ -190,6 +201,21 @@ int main() {
     assert(remaining==8);
 
     source->fail_advance=false;
+
+    // The exact shared x86 integer polygon routine and the retail
+    // axis-slide decision are independently compared to the upstream
+    // movement coordinates before any event changes are committed.
+    source->emit_navigation_probe=true;
+    assert(simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(remaining==8);
+    source->contradict_navigation_probe=true;
+    assert(!simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(error.find("binary-verified")!=std::string::npos);
+    assert(remaining==8);
+    source->contradict_navigation_probe=false;
+
     assert(simulation.unload(error));
     assert(!simulation.initialized());
     assert(source->shutdowns==1);
