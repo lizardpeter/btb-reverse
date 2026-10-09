@@ -131,4 +131,16 @@ NULL data//sound//advent1walthroughsubhelp.wav
     assert(first.draws.front().source_asset ==
            "Data\\ui\\instruction\\playgolf.bmp");
     assert(!first.draws.front().color_keyed);
+
+    // The same table-backed driver can be reused when the Adventure
+    // chooser switches from Golf (selected=1) to Maze (selected=0).
+    // Native 0x51C2E4 controls the backdrop's 256-byte record slot.
+    RetailMenuState selected_maze{};
+    selected_maze.selected_subgame = 0;
+    driver->configure_menu_state(selected_maze);
+    assert(driver->initialize(profile,finale,error));
+    const auto different_selection=driver->advance({});
+    assert(!different_selection.draws.empty());
+    assert(different_selection.draws.front().source_asset ==
+           "Data\\ui\\instruction\\golfcollect.bmp");
 }
