@@ -430,3 +430,38 @@ collision-event generator remain unimplemented. No full build
 or original-game execution was performed.
 
 See [original angle, steering and distance audit](herding-native-steering.md).
+
+### Original follower and autonomous-roam kernels (latest executable audit)
+
+A direct audit of the original 2002 PE32 has added several additional
+source-level movement and audio branches:
+
+- **Tracked follower approach** (`0x4172B0..0x417432`):
+  strict 30-unit point arrival, original follower-slot removal,
+  preserved discarded `rand()` call, otherwise moving on the
+  native integer heading with 5-countdown / three-frame animation.
+- **Out-of-bounds random target recovery** (`0x417FFE..0x418101`):
+  authentic four point pairs at `0x443AC8`, but **two independent
+  `rand()%4` selections** for X and Y (16 possible destinations),
+  source three-unit movement and polygon acceptance. The full
+  same-frame retry loop remains unreconstructed.
+- **Free-roam speed/animation branch** (`0x417C0C..0x417C85`):
+  speed reduction by 0.4 only above 0.4, otherwise reset to 0.1,
+  countdown -20 and species-specific animation frame wraps.
+- **Animal chatter** (`0x417B1D..0x417BB0`):
+  source `rand()%8` override and three managed-sound status checks,
+  with source sound IDs 817–825, priority 10 / class 0.
+- **Process-global original CRT random** (`0x42FFBA/0x42FFC4`):
+  the exact 32-bit Microsoft LCG, with a shared 15-bit result,
+  and startup's final **GetTickCount -> srand** overwrite at
+  `0x4027F4/0x4027FB`. Constant seed 1 is only a test fixture.
+
+This is genuine additional source coverage of the continuous
+AI movement and source RNG schedule, but **not a complete
+`OriginalHerdingMotionSource`**. These isolated branches still
+need exact per-frame ordering, initializer state and other navigation
+behavior integrated with the shared simulation.
+
+[Executable-address evidence](../ghidra/herding_motion_new_branch_evidence.csv)
+and [full movement audit](herding-autonomous-motion-branches.md).
+No new compile or runtime execution was performed.
