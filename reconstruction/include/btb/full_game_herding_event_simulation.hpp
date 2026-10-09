@@ -5,6 +5,7 @@
 #include "btb/herding_navigation_boundary.hpp"
 #include "btb/herding_retail_rect_contact.hpp"
 #include "btb/herding_source_steering.hpp"
+#include "btb/herding_source_heading.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -69,6 +70,11 @@ struct HerdingSteeringEvidence {
     float original_x{};
     float original_y{};
     std::int32_t native_heading_degrees{};
+    // Once source target selection is recovered, include its exact
+    // integer point to independently re-evaluate native 0x415D70.
+    std::optional<herding::Vec2i> original_target{};
+    std::int32_t original_actor_x{};
+    std::int32_t original_actor_y{};
     float magnitude_before_step{};
     bool native_roaming_speed_ramp{};
 };
