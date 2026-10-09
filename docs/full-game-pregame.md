@@ -132,3 +132,31 @@ and global movie-mode14 requirement. It does not synthesize art or sound.
 
 **No new full build, CTest run or executable validation has taken place.**
 All new test files are still source-only pending the complete game build.
+
+## Global startup-film catalog — exact four mode-14 sources
+
+The installed `loaddata/startupmovie.txt` was also read. It contains
+eight filenames, ordered Herd, Dino, Skate, Adventure, Fireworks,
+Squirrel, Music and Designer. The retail setup's live pointers are
+`0x493970 + 0x100 * index`, directly confirming the four pregame
+`OpenGlobalBinkMovie` calls:
+
+| Mode-14 pregame | Table slot | Original retail filename |
+|---|---:|---|
+| Herding | 0 | `Data\\movies\\herdstartup.bik` |
+| Fireworks | 4 | `Data\\movies\\fireworkstartup.bik` |
+| Squirrel | 5 | `Data\\movies\\squirelstartup.bik` |
+| Park Designer | 7 | `Data\\movies\\designstartup.bik` |
+
+The other startup movie names remain in the table but are not asserted to
+be directly opened by the six non-mode14 pregame setup handlers. Their
+complete lifecycle may be driven from other source states.
+
+`full_game_startup_movies.hpp/.cpp` loads the exact eight records.
+The full-game pregame setup now exposes an
+`original_global_intro_movie_index` alongside its independently
+loaded walkthrough movie index. These are different movies: do not
+replace the intro with the help/walkthrough animation.
+
+A new source-only test `full_game_startup_movies_source_test.cpp`
+covers all four indices, filenames, and malformed-file rejection.
