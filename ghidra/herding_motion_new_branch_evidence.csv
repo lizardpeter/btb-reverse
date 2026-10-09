@@ -1,6 +1,6 @@
 virtual_address,original_x86_evidence,recovered_behavior,source_file,confidence,remaining_limitation
 0x004172D2,FCOMP float at 0x43B424 (30.0),Follower-target arrival only when distance strictly less than 30,herding_source_follower_approach.hpp,high,Target source table lookup and follower iteration remain separate
-0x004172FE,Write -1 to matching 0x50AF78 member,Remove tracked animal from source follower array,herding_source_follower_approach.hpp,high,Caller must mutate its original follower array
+0x004172FE,Write -1 to matching 0x50AF78 member,Remove entity from separate 0x50AF78 tracked table without touching ordinary 0x50AF14 followers,herding_source_follower_approach.hpp,high,Caller must mutate ONLY the tracked-target slot array
 0x00417309,CALL 0x42FFC4 before return 1,Consumes one random value even though branch discards its result,herding_source_follower_approach.hpp,high,Host must advance its shared RNG in exact call order
 0x00417321,CALL 0x415D70,Recompute heading from current integer actor position to tracked source point,herding_source_follower_approach.hpp,high,Exact x87 FPATAN bit parity unverified
 0x00417363,FMUL 0x43B384 then FSIN and FCOS,Translate float X/Y using source heading and existing movement speed,herding_source_follower_approach.hpp,high,Portable trig not bit-exact x87
@@ -11,10 +11,10 @@ virtual_address,original_x86_evidence,recovered_behavior,source_file,confidence,
 0x00417FFE,CALL 0x42FFC4 then signed remainder 4,Pick independent random X coordinate index 0..3,herding_source_recovery_target.hpp,high,Original startup seed varies by GetTickCount
 0x00418016,CALL 0x42FFC4 then signed remainder 4,Pick independent random Y coordinate index 0..3,herding_source_recovery_target.hpp,high,Must not reuse the X index
 0x00443AC8,Four consecutive x/y 32-bit point pairs,Recovery targets (100/766) (400/400) (891/616) (1128/659),herding_source_recovery_target.hpp,high,Initial target selection preceding escape remains separate
-0x00418032,CALL 0x415D70,Compute heading from signed negative half-cell ANCHOR to independently chosen recovery target,herding_source_roaming_recovery.hpp,high,Caller must supply real source sprite center
+0x00418032,CALL 0x415D70,Compute heading from signed negative half-cell ANCHOR to independently chosen recovery target,herding_source_roaming_recovery.hpp,high,Signed negative half-cell anchor is independently reconstructed by original roaming loop
 0x00418077,FSIN*3 and FCOS*3,Perform one 3-unit roaming recovery movement step,herding_source_roaming_recovery.hpp,high,Exact x87 parity still pending
 0x004180C1,Write 0 to entity speed +0x4C,Reset recovered animal speed to zero on this branch,herding_source_roaming_recovery.hpp,high,Do not apply on other branches
-0x004180F1,CALL 0x428520,Check original group-0 polygon and retry on outside result,herding_source_roaming_recovery.hpp,high,Full same-frame retry sequencing remains to be reconstructed
+0x004180F1,CALL 0x428520,Check original group-0 polygon and retry on outside result,herding_source_roaming_recovery.hpp,high,Full same-frame retry loop recovered in herding_source_roaming_loop.hpp
 0x00417C0C,FCOMP speed vs float 0x43B3E0 (0.4),Use strict >0.4 braking decision,herding_source_roam_braking.hpp,high,Only the corresponding roaming motion branch
 0x00417C25,FSUB 0.4 when speed >0.4,Decelerate by original 0.4,herding_source_roam_braking.hpp,high,x87 rounding not verified
 0x00417C33,Write 0x3DCCCCCD to speed,Set speed to 0.1 when speed <=0.4,herding_source_roam_braking.hpp,high,None
@@ -30,3 +30,18 @@ virtual_address,original_x86_evidence,recovered_behavior,source_file,confidence,
 0x00417FCA,Subtract source right from left then CDQ SUB SAR 1,Compute original steering X anchor with trunc((left-right)/2) added to current integer X,herding_source_roaming_loop.hpp,high,Negative half-cell offset is NOT sprite center
 0x00417FED,Subtract source bottom from top then CDQ SUB SAR 1,Compute original steering Y anchor with trunc((top-bottom)/2) added to current integer Y,herding_source_roaming_loop.hpp,high,Recomputed after each rejected polygon test
 0x004180FB,JNE back to 0x417FB2 if polygon status outside,Repeat within same game update consuming two fresh rand values and evolving X/Y until accepted,herding_source_roaming_loop.hpp,high,Original contains no visible finite retry cap; host may return Pending while resuming same frame
+0x00416F49,TEST original entity behavior_state +0x50 then JNE 0x418101,Bypass state-zero target and follower dispatch for nonzero behavior state,herding_source_partial_dispatcher.hpp,high,Other behavior-state paths are separate
+0x00416F57,Read positive entity temporary_target_timer +0x58,Dispatch stored chase target before tracked and follower lists,herding_source_temporary_target.hpp,high,Source input/event ordering still requires full activity integration
+0x00416F7D,ABS sprite right-left and bottom-top then SAR 1,Steer temporary target from positive half-cell actor anchor,herding_source_temporary_target.hpp,high,This is different from negative roaming recovery anchor
+0x00417004,FSIN times float3 then add source X and negative FCOS to Y,Move temporary-target animal exactly three units per update,herding_source_temporary_target.hpp,high,Exact x87 trig requires differential test
+0x0041706D,FCOMP float 0x43B42C equals120,Accept temporary target completion only at post-move distance strictly below 120,herding_source_temporary_target.hpp,high,None
+0x0041707B,JE 0x418101 when distance is not below 120,Return through function epilogue without clearing timer or running normal AI,herding_source_temporary_target.hpp,high,Previous mistaken continuation interpretation corrected
+0x00417081,Set original temporary_target_timer +0x58 to zero,Clear target timer only on strictly close source distance and return,herding_source_temporary_target.hpp,high,None
+0x0041721E,Scan 0x50AF78 through 0x50AFC8 BEFORE 0x50AF14,Select tracked-target approach before ordinary follower routing,herding_source_partial_dispatcher.hpp,high,Source tracked table and follower membership are separate
+0x00417239,Scan ordinary follower slots 0x50AF14 through 0x50AF64,Select ordinary follower handling only after failed tracked-table match,herding_source_partial_dispatcher.hpp,high,Other follower chasing branch still missing
+0x0041727C,FCOMP float 0x43B428 equals150,Register ordinary follower at species target only if distance strictly below 150,herding_source_tracked_targets.hpp,high,Other follower movement when not within range still missing
+0x00417290,Search first vacant -1 slot in 20-element tracked table 0x50AF78,Allocate separate tracked destination membership,herding_source_tracked_targets.hpp,high,Do not overwrite tracked slots when full
+0x00417586,Write entity index to tracked table and decrement 0x50B31C,Preserve remaining-to-register global count and first vacant slot,herding_source_tracked_targets.hpp,high,Last-registration outer activity flag not yet physically wired
+0x0041759C,JNE 0x418101 if remaining tracked registrations nonzero,Exit animal update after registration and signal all-registered when counter reaches zero,herding_source_partial_dispatcher.hpp,high,Global completion flag 0x510718 still needs physical runtime integration
+0x00417314,Write 1 to original entity behavior_state +0x50,Tracked animal arrival enters state-one for later home-route dispatch and leaves movement_active untouched,herding_source_follower_approach.hpp,high,Previous mistaken movement_active interpretation corrected
+0x004173BF,FCOMP source speed vs float 0x43B438 equals0.8,Increase tracked approaching speed by source 0.01 only when below 0.8,herding_source_follower_approach.hpp,high,Source float timing is after current movement
