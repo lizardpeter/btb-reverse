@@ -10,7 +10,7 @@ namespace {
 namespace h=btb::herding;
 using namespace btb::full_game;
 
-std::vector<h::RetailEntityRecord32> population() {
+std::vector<h::RetailEntityRecord32> population(int difficulty) {
     std::vector<h::RetailEntityRecord32> records;
     const auto add=[&](h::EntityType type,int x,int y) {
         h::RetailEntityRecord32 record{};
@@ -21,20 +21,28 @@ std::vector<h::RetailEntityRecord32> population() {
         record.y_float=static_cast<float>(y);
         record.direction=2;
         record.animation_frame_countdown=100;
+        record.source_left=0;record.source_top=0;
+        record.source_right=40;record.source_bottom=40;
         records.push_back(record);
     };
     add(h::EntityType::FarmerPickles,240,414);
-    for (int i=0;i<3;++i) add(h::EntityType::Sheep,520+i*10,300);
-    for (int i=0;i<3;++i) add(h::EntityType::Rabbit,620+i*10,300);
-    for (int i=0;i<3;++i) add(h::EntityType::Duck,720+i*10,300);
+    for (int i=0;i<difficulty+3;++i) add(h::EntityType::Sheep,520+i*10,300);
+    for (int i=0;i<difficulty+3;++i) add(h::EntityType::Rabbit,620+i*10,300);
+    for (int i=0;i<difficulty+3;++i) add(h::EntityType::Duck,720+i*10,300);
     add(h::EntityType::GateLeft,717,162);
     add(h::EntityType::GateRight,859,101);
+    if (difficulty>0) {
+        // Medium/Hard retail instantiates a Scruffty entity. These
+        // coordinates are explicit test evidence, NOT retail spawns.
+        add(h::EntityType::Scruffty,545,315);
+    }
     return records;
 }
 
 class EvidenceSource final : public OriginalHerdingMotionSource {
 public:
     std::vector<h::RetailEntityRecord32> originals{};
+    int source_difficulty{};
     std::vector<HerdingObservedEvent> scheduled{};
     bool fail_advance{};
     bool emit_navigation_probe{};
@@ -44,12 +52,13 @@ public:
     int shutdowns{};
     h::PicklesKeyboardMotion last_motion{};
 
-    EvidenceSource() : originals(population()) {}
+    explicit EvidenceSource(int difficulty=0)
+        : originals(population(difficulty)),source_difficulty(difficulty) {}
 
     bool initialize(const h::Data& data,int difficulty,
         std::vector<h::RetailEntityRecord32>& out,
         std::string& error) override {
-        if (difficulty!=0 || data.coordinate_groups.size()!=4) {
+        if (difficulty!=source_difficulty || data.coordinate_groups.size()!=4) {
             error="unexpected original herd source";
             return false;
         }
@@ -239,6 +248,46 @@ int main() {
     assert(simulation.unload(error));
     assert(!simulation.initialized());
     assert(source->shutdowns==1);
+
+    // Medium difficulty includes Scruffty; the adapter derives the
+    // original animal-FIRST, dog-SECOND ordered rectangles directly
+    // from the source 0x64-byte entity records, then removes a follower.
+    {
+        auto dog_source=std::make_unique<EvidenceSource>(1);
+        auto* dog=dog_source.get();
+        HerdingEventSimulation with_dog(std::move(dog_source));
+        assert(with_dog.initialize(original_shape_data(),1,error));
+        HerdingScene dog_scene{};
+        int dog_remaining=-1;
+        std::vector<Audio> dog_audio{};
+        auto select=event(HerdingObservedKind::PickUpFood);
+        select.food=h::FoodType::SheepFood;
+        select.random_mod_2=1;
+        select.follower_release_random.assign(
+            dog->originals.size(),{25,40});
+        auto follow=event(HerdingObservedKind::JoinFollower,1);
+        follow.random_mod_2=0;
+        dog->scheduled={select,follow};
+        assert(with_dog.advance(
+            {},h::pickles_keyboard_motion(0),
+            dog_scene,dog_remaining,dog_audio,error));
+        assert(dog_remaining==12);
+
+        auto contact=event(HerdingObservedKind::ScrufftyCollision,1);
+        contact.random_mod_400=3;
+        // Sheep [520,300]-[560,340] corner (560,340) is inside
+        // Scruffty [545,315]-[585,355]. Reversed order is not
+        // interchangeable, and no heuristic AABB shortcut is used.
+        dog->scheduled={contact};
+        dog_audio.clear();
+        assert(with_dog.advance(
+            {},h::pickles_keyboard_motion(0),
+            dog_scene,dog_remaining,dog_audio,error));
+        assert(dog_remaining==12);
+        assert(dog_scene.entities[1].temporary_target_timer==200);
+        assert(dog_scene.entities[1].target_x==289);
+        assert(with_dog.unload(error));
+    }
 
     HerdingEventSimulation no_motion(nullptr);
     assert(!no_motion.initialize(original_shape_data(),0,error));
