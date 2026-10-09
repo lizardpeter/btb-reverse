@@ -330,6 +330,9 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
             generic_front_end_initialized_[key] = false;
             auto& record = globals_.player_progress[
                 static_cast<std::size_t>(*globals_.active_profile)];
+            if (pregame) {
+                driver->configure_menu_state(globals_.menu);
+            }
             if (!driver->initialize(
                     record,globals_.finale_gate,result.error)) {
                 result.kind = FrameKind::FrontEndFailed;
