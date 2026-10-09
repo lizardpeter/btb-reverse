@@ -20,6 +20,17 @@ namespace btb::herding {
 //
 // Float->integer tests are performed by runtime helper 0x4304D0:
 // x87 FISTP with RC=11 (truncate toward zero).
+// Verified at 0x418C65..0x418C74:
+// [esp+0x10] counts accepted directional input axes, and 0x443A9C
+// preserves the native mouse-navigation mode. On leaving the polygon,
+// the retail branch attempts independent axis recovery only when
+// direction_count>1 OR the mouse mode value is nonzero.
+[[nodiscard]] constexpr bool retail_herding_axis_recovery_enabled(
+    std::int32_t directional_axes,
+    std::int32_t mouse_navigation_mode_443a9c) noexcept {
+    return directional_axes>1 || mouse_navigation_mode_443a9c!=0;
+}
+
 enum class RetailHerdingBoundaryChoice {
     ValidNewPosition,
     RestorePreviousX,
