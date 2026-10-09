@@ -54,6 +54,37 @@ int main() {
         assert(!route_retail_pregame_action(pair.setup,-5).recognized);
     }
 
+    // Source command 0x4281D0 and the 256-byte bitmap-path slots must
+    // follow original selected-subgame globals, not be hard-coded from
+    // the generic instruction UI screen ID.
+    assert(retail_walkthrough_index(State::HerdingPregameSetup,0) == 0);
+    assert(retail_walkthrough_index(State::DinoPregameSetup,2) == 1);
+    assert(retail_walkthrough_index(State::SpudMazePregameSetup,0) == 2);
+    assert(retail_walkthrough_index(State::SpudSkatePregameSetup,1) == 3);
+    assert(retail_walkthrough_index(State::MazePregameSetup,0) == 4);
+    assert(retail_walkthrough_index(State::GolfPregameSetup,1) == 5);
+    assert(retail_walkthrough_index(State::FireworksPregameSetup,0) == 6);
+    assert(retail_walkthrough_index(State::SquirrelPregameSetup,0) == 7);
+    assert(retail_walkthrough_index(State::BobsBandPregameSetup,2) == 8);
+    assert(retail_walkthrough_index(State::ParkDesignerPregameSetup,0) == 9);
+    assert(!retail_walkthrough_index(State::GolfPregameSetup,2));
+    assert(!retail_walkthrough_index(State::SpudMazePregameSetup,-1));
+
+    assert(retail_pregame_backdrop_index(State::HerdingPregameSetup,0) == 4);
+    assert(retail_pregame_backdrop_index(State::DinoPregameSetup,0) == 5);
+    assert(retail_pregame_backdrop_index(State::DinoPregameSetup,1) == 6);
+    assert(retail_pregame_backdrop_index(State::DinoPregameSetup,2) == 7);
+    assert(retail_pregame_backdrop_index(State::SpudMazePregameSetup,0) == 10);
+    assert(retail_pregame_backdrop_index(State::SpudSkatePregameSetup,1) == 11);
+    assert(retail_pregame_backdrop_index(State::MazePregameSetup,0) == 13);
+    assert(retail_pregame_backdrop_index(State::GolfPregameSetup,1) == 14);
+    assert(retail_pregame_backdrop_index(State::FireworksPregameSetup,0) == 15);
+    assert(retail_pregame_backdrop_index(State::SquirrelPregameSetup,0) == 16);
+    assert(retail_pregame_backdrop_index(State::BobsBandPregameSetup,2) == 17);
+    assert(retail_pregame_backdrop_index(State::ParkDesignerPregameSetup,0) == 18);
+    assert(!retail_pregame_backdrop_index(State::DinoPregameSetup,3));
+    assert(!retail_pregame_backdrop_index(State::GolfPregameSetup,2));
+
     assert(retail_pregame_for_state(State::ActivitySelectUpdate) ==
            nullptr);
     assert(retail_pregame_for_state(State::PlayAgainYesNoUpdate) ==
