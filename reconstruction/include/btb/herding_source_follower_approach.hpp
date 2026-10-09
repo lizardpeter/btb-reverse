@@ -3,6 +3,7 @@
 #include "btb/herding_runtime.hpp"
 #include "btb/herding_source_heading.hpp"
 #include "btb/herding_source_steering.hpp"
+#include "btb/retail_crt_random.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -114,6 +115,25 @@ original_herding_follower_approach(
     return RetailFollowerApproachStep{
         updated,false,false,0,advanced
     };
+}
+
+// The 0x417309 arrival path consumes one rand() AFTER its strict
+// 30-unit distance test. The original process-global generator must
+// advance even though the result is discarded. The pure overload
+// above remains available to examine the branch without mutations.
+[[nodiscard]] inline std::optional<RetailFollowerApproachStep>
+original_herding_follower_approach(
+    const RetailEntityRecord32& original,
+    Vec2i tracked_point,
+    retail::OriginalRetailRandom& shared_rng) noexcept {
+
+    const auto step=original_herding_follower_approach(
+        original,tracked_point);
+    if (!step) return std::nullopt;
+    for (int i=0;i<step->source_rand_calls;++i) {
+        static_cast<void>(shared_rng.next_rand());
+    }
+    return step;
 }
 
 } // namespace btb::herding
