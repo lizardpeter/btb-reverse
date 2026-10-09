@@ -3,6 +3,7 @@
 #include "btb/full_game_herding.hpp"
 #include "btb/herding_behavior_bridge.hpp"
 #include "btb/herding_navigation_boundary.hpp"
+#include "btb/herding_retail_rect_contact.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -25,6 +26,13 @@ enum class HerdingObservedKind {
     ReachHomeWaypoint
 };
 
+struct HerdingCollisionEvidence {
+    // Ordered exactly as the two pointers passed to retail 0x4169A0.
+    // Swapping first/second can change the native result.
+    herding::RetailCornerRect first{};
+    herding::RetailCornerRect second{};
+};
+
 struct HerdingObservedEvent {
     HerdingObservedKind kind{};
     std::size_t entity_index{};
@@ -32,6 +40,9 @@ struct HerdingObservedEvent {
     int random_mod_2{};
     int random_mod_400{};
     bool retail_trigger_confirmed{};
+    // The original dog/animal collision must be independently
+    // reproduced by the asymmetric 0x4169A0 corner check.
+    std::optional<HerdingCollisionEvidence> retail_rect_contact{};
     // For PickUpFood: original rand()%400 X/Y pairs, indexed by the
     // original entity-table index, one for every current follower.
     std::vector<herding::WanderRandom> follower_release_random{};
