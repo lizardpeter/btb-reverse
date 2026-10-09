@@ -63,12 +63,16 @@ struct OriginalRoamingLoop {
 };
 
 // Reconstructs 0x417F7C..0x418101 as a same-frame state machine.
-// For each rejected attempt the binary jumps BACK to 0x417FB2,
-// copies current integer x/y into previous_x/y, RECOMPUTES the
-// signed-half-width/height anchor, consumes two NEW shared rand()%4
-// calls, and applies 3-unit movement to the CURRENT FLOAT x/y.
-// There is no saved list of targets and no reset to the initial float
-// position between retries.
+// 0x417F7C/0x4180F1 test herd.txt GROUP TWO (the six-point
+// exclusion polygon at 0x5104E8), NOT the group-zero navigation
+// polygon. If inside (native PointInPolygon returns 0), exit.
+// Otherwise 0x4180FB jumps BACK to 0x417FB2: restore current
+// INTEGER X/Y from the SAVED previous_x/previous_y, derive the
+// signed negative-half-sprite anchor using those restored integers,
+// consume two NEW shared rand()%4 values, and apply 3-unit movement
+// to the ACCUMULATING FLOAT X/Y. Each candidate is tested against
+// group two until its integer position lies inside. The previous
+// X/Y are not overwritten by any retry branch.
 //
 // With a malicious/invalid polygon the retail loop could run forever.
 // A bounded chunk is a host execution-safety facility, not a retail
@@ -78,11 +82,11 @@ struct OriginalRoamingLoop {
 resume_original_herding_roaming_loop(
     OriginalRoamingLoop& state,
     retail::OriginalRetailRandom& shared_rng,
-    const std::vector<Vec2i>& transformed_navigation_polygon,
+    const std::vector<Vec2i>& original_group2_polygon,
     std::size_t max_attempts_this_call) noexcept {
 
     if (state.finished) return state.status;
-    if (transformed_navigation_polygon.size()<3 ||
+    if (original_group2_polygon.size()<3 ||
         max_attempts_this_call==0) {
         state.status=OriginalRoamingLoopStatus::InvalidInput;
         return state.status;
@@ -107,7 +111,7 @@ resume_original_herding_roaming_loop(
             return state.status;
         }
         const auto inside=retail_geometry::original_polygon_contains(
-            transformed_navigation_polygon,
+            original_group2_polygon,
             static_cast<std::int32_t>(state.entity.x_float),
             static_cast<std::int32_t>(state.entity.y_float));
         if (!inside) {
@@ -124,8 +128,10 @@ resume_original_herding_roaming_loop(
 
     for (std::size_t i=0;i<max_attempts_this_call;++i) {
         auto candidate=state.entity;
-        candidate.previous_x=candidate.x;
-        candidate.previous_y=candidate.y;
+        // Original 0x417FB2/0x417FBE copies saved previous INTO
+        // current integer position, not current INTO previous.
+        candidate.x=candidate.previous_x;
+        candidate.y=candidate.previous_y;
         const auto anchor=original_herding_recovery_anchor(candidate);
         if (!anchor) {
             state.status=OriginalRoamingLoopStatus::InvalidInput;
@@ -133,7 +139,7 @@ resume_original_herding_roaming_loop(
         }
 
         auto moved=original_herding_roaming_recovery_attempt(
-            candidate,*anchor,shared_rng,transformed_navigation_polygon);
+            candidate,*anchor,shared_rng,original_group2_polygon);
         if (!moved) {
             state.status=OriginalRoamingLoopStatus::InvalidInput;
             return state.status;
