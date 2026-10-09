@@ -148,7 +148,16 @@ NativeSessionFrame NativeGameSession::tick(
         }
     }
 
-    if (!device_.draw_ordered(frame.prepared.resources.draws,error)) {
+    // Global Bink modes 13/14 decode directly into the common display
+    // surface during device.observe(). If the original dispatcher is
+    // intercepted waiting for that movie, do not clear the Bink pixels
+    // with a synthetic empty gameplay/UI draw list before present.
+    const auto mode=root_.globals().dispatcher.generic_screen_mode;
+    const bool global_movie_frame =
+        frame.prepared.game.kind == FrameKind::Intercept &&
+        (mode == 13 || mode == 14);
+    if (!global_movie_frame &&
+        !device_.draw_ordered(frame.prepared.resources.draws,error)) {
         fail(frame,PhysicalPresentationStage::SubmitDraw,error);
         return frame;
     }
