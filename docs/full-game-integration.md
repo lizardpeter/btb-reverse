@@ -17,7 +17,7 @@ initialize/run pairs:
 
 | Game-owned module | Retail outer states | Source-level recovery | Unified host integration |
 |---|---|---|---|
-| Herding / Pets Corner | `0x0E / 0x0F` | data/runtime/presentation models | Not hosted |
+| Herding / Pets Corner | `0x0E / 0x0F` | data/runtime/AI helper/presentation models | **Partial source driver**: real herd.txt, native render layers, sound 581, completion/progress 50; requires unrecovered full entity-AI provider |
 | Dinosaur | `0x14 / 0x15` | data, runtime, presentation and animation | Partial playable source host; retail visual/audio not complete |
 | Spud Skate | `0x1A / 0x1B` | data/runtime/presentation models | Not hosted |
 | Maze | `0x20 / 0x21` | data, movement, Spud NPC, presentation and transition models | Not hosted |
@@ -297,7 +297,7 @@ The new Win32 platform source is in:
 
 The original Bink DLL, its complete calling ABI and independent decoded
 frame-copy service are **not verified/hosted**. Additionally, the
-eight remaining non-integrated activities and the exact screen-specific
+seven activities with no newly unified driver plus Herding's still-missing full entity AI and the exact screen-specific
 overlay sprite composition remain significant blockers. The existing
 Dinosaur-only preview is unchanged.
 
@@ -309,3 +309,38 @@ and `full_game_blt_clip_source_test.cpp` (all viewport boundaries).
 Windows native binary launch or visual/audio parity assertion.
 
 See [native Windows platform source status](full-game-native-platform.md).
+
+## Pets Corner / Herding source adapter — 0x0E / 0x0F
+
+The recovered `herding_presentation.hpp` data now feeds a native
+`HerdingScene` compositor. It emits original source-backed BMP commands
+for the background, animated/depth-sorted entities, three conditional
+world food bags, UI surround and selected food toolbar. The original
+600×380 world viewport at (20,20) is preserved via a new optional
+per-Draw destination clip; `Win32OriginalDirectDraw` clips both source
+and destination to that subviewport without damaging the UI. The
+strictly nontransitive retail equal-depth qsort behavior is modeled as
+stable equal-depth order in portable C++ pending differential validation.
+
+`HerdingDriver` now participates in `GameRoot`'s source-level
+0x0E/0x0F activity lifecycle. It parses original `Data/SubGame1/herd.txt`,
+accepts the exact pregame difficulty/normalized 1.5-unit directional
+input, requests initial Pets Corner music and managed voice **581**,
+then uses the recovered zero-remaining-animal, speech-wait, last
+voice **599/600**, progress **slot 50** and Play Again **0x3C**
+completion sequence. It preserves original saved state **0x0E**.
+
+**The full animal AI is still missing.** The driver requires a
+`HerdingSimulationProvider` with actual source-derived entity,
+follower, food selection, home-route and Scruffty collision behavior.
+It fails explicitly if that provider is absent or supplies an invalid
+entity frame; it does not invent animal motion. Its replay-class
+write still needs original executable evidence.
+
+New staged (not compiled) regression sources:
+`full_game_herding_presentation_source_test.cpp` and
+`full_game_herding_source_test.cpp`. Existing
+`full_game_blt_clip_source_test.cpp` now also covers nested world
+viewport cropping.
+
+See [source Herding reconstruction and remaining AI gaps](herding-activity.md).
