@@ -3,6 +3,7 @@
 #include "btb/herding_source_roaming_recovery.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -88,6 +89,23 @@ resume_original_herding_roaming_loop(
     }
 
     if (!state.started) {
+        // C++ float-to-int overflow is undefined, unlike the original
+        // x87 converter's exceptional result. Reject bad host state
+        // before calling the native 32-bit polygon predicate.
+        const auto in_int32_domain=[](float value) noexcept {
+            return std::isfinite(value) &&
+                static_cast<double>(value) >=
+                    static_cast<double>(
+                        std::numeric_limits<std::int32_t>::min()) &&
+                static_cast<double>(value) <
+                    static_cast<double>(
+                        std::numeric_limits<std::int32_t>::max());
+        };
+        if (!in_int32_domain(state.entity.x_float) ||
+            !in_int32_domain(state.entity.y_float)) {
+            state.status=OriginalRoamingLoopStatus::InvalidInput;
+            return state.status;
+        }
         const auto inside=retail_geometry::original_polygon_contains(
             transformed_navigation_polygon,
             static_cast<std::int32_t>(state.entity.x_float),
