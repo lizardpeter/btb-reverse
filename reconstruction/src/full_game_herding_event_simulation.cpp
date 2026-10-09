@@ -359,9 +359,25 @@ bool HerdingEventSimulation::advance(
         }
     }
     std::vector<Audio> sounds{};
+    std::vector<bool> arrived_at_tracked_point_this_update(
+        candidate.entities().size(),false);
     for (const auto& event : observed.events) {
+        if (event.entity_index>=candidate.entities().size()) {
+            error="original Herding event references absent entity index";
+            return false;
+        }
+        if (event.kind==HerdingObservedKind::EnterHomeRoute &&
+            arrived_at_tracked_point_this_update[event.entity_index]) {
+            error="retail tracked-target arrival returns immediately; "
+                  "home-route allocation cannot occur in that same "
+                  "animal update";
+            return false;
+        }
         if (!apply_confirmed_event(candidate,event,sounds,error)) {
             return false;
+        }
+        if (event.kind==HerdingObservedKind::TrackedTargetArrived) {
+            arrived_at_tracked_point_this_update[event.entity_index]=true;
         }
     }
 
