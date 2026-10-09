@@ -638,3 +638,76 @@ in C++26.
 Further fidelity work can now focus on the small per-entity animation-timer
 updates and any remaining conditional overlay state, rather than an unknown
 rendering architecture.
+
+## Shared full-game Pets Corner source integration
+
+The recovered Herding presentation and completion rules now have an
+explicit C++26 adapter for the common 68-state `GameRoot`:
+
+- `reconstruction/include/btb/full_game_herding_presentation.hpp`
+- `reconstruction/src/full_game_herding_presentation.cpp`
+- `reconstruction/include/btb/full_game_herding.hpp`
+- `reconstruction/src/full_game_herding.cpp`
+- `reconstruction/tests/full_game_herding_presentation_source_test.cpp`
+- `reconstruction/tests/full_game_herding_source_test.cpp`
+
+The compositor accepts the original 0x64-byte entity records after an
+AI update. It computes the retail 600×380 world camera, draws the exact
+source BMP crop at (20,20), sorts gates ahead of ordinary entities, then
+draws their actual sprite sheets with direction/frame source rectangles.
+It applies the recovered per-render animation updates for ordinary
+free-roam sheep/rabbits/ducks, Travis cab and gate frames. It draws the
+three conditional world food bags, screen-fixed `uisurround.bmp`, and
+the selected food toolbar at (284,417) in that order.
+
+The shared `Draw` operation now supports an optional **destination
+clip rectangle**. World sprites use (20,20)–(620,400) and the original
+DirectDraw backend clips both source and destination to that area,
+while screen-fixed UI layers remain unclipped except by 640×480. This
+prevents a walking sprite outside the world from painting over the UI.
+
+**Retail qsort nuance:** The binary's equal-ordinary-depth comparator
+returns -1 rather than 0, which is not a strict weak ordering.
+The host-native compositor uses stable sorting for identical depths
+instead of passing that invalid comparator into C++ `std::sort`.
+Further output comparison is needed to establish whether the original
+qsort implementation reorders equal-depth objects.
+
+### Activity lifecycle
+
+The `HerdingDriver` sources `Data/SubGame1/herd.txt` (strict
+6 fixed points, four groups of 12/5/6/1). It accepts original
+Easy/Medium/Hard from pregame state 0x0D and creates the stage-0
+completion state.
+
+On its first successful update it requests retail Pets Corner backing
+music `data\\music\\petscorner.wav` and original managed sound **581**.
+Subsequent frames use the supplied original simulation's entity records
+for drawing. Once the simulator reports that every animal reached home,
+the exact native `herding_completion_step` waits for active managed
+audio, requests final line **599 or 600** once, waits again, writes
+progress slot **50**, sets saved outer state **0x0E**, and exits into
+shared Play Again state **0x3C**. The already reconstructed common
+Play Again transition requests managed voice **573**.
+
+**Full AI is not yet implemented in this driver.** It requires an
+explicit `HerdingSimulationProvider` responsible for native
+free-roam/food selection, follower steering, home-entry AI, Scruffty
+collision and actual delivered-animal counts. The driver refuses
+initialization without that provider. Invalid entity/output state
+produces an explicit activity failure, not fake successful gameplay.
+
+The native keyboard input mask travels through `ActivityFrameInput`;
+the driver invokes recovered `pickles_keyboard_motion` and supplies
+its exact 1.5-unit X/Y directions to the entity provider. Its
+positions, collisions and AI remain the provider's responsibility.
+
+The new source-only fixtures exercise viewport crops, depth layers,
+Pickles' unusual odd-direction 39-column bank, animation counters,
+initial managed voice/music, first-run Hard population expectations,
+the managed speech-gated completion sequence, progress persistence,
+and fatal AI provider failures.
+
+**No new CMake target, C++ compile, device execution or visual capture
+was performed.** This is a partial activity integration, not yet
+a finished Pets Corner or complete game rebuild.
