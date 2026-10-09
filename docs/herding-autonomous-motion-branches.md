@@ -57,24 +57,42 @@ The binary stores these four pairs beginning at `0x443AC8`:
 index selects the X coordinate, the second selects Y. Thus there are
 **16 possible destinations**, not four fixed random points.
 
-The source then calls heading `0x415D70` with the actor's
-**integer sprite center** (not top-left) and chosen target, moves
-exactly **3.0 units**, stores float/int position and sprite facing,
-sets movement speed to zero, then tests transformed `herd.txt`
-navigation polygon 0 using the original `0x428520` helper.
-If outside, the assembly loops back to `0x417FB2` for another
-two RNG rolls and candidate calculation in the *same frame*.
+The source then calls heading `0x415D70` with a **signed sprite
+anchor**, not the ordinary visual center. The x86 instructions
+`0x417FCA..0x417FFC` compute
+`actorX = currentIntegerX + trunc((sourceLeft-sourceRight)/2)`
+and the equivalent Y expression. For normal positive-width cells,
+this is **left/up from the entity's top-left**, not right/down.
+The actor then moves exactly **3.0 units**, stores float/int position
+and sprite facing, resets speed to zero, and tests transformed
+`herd.txt` navigation polygon 0 with the original `0x428520`.
+If outside, the assembly jumps back to `0x417FB2` to copy current
+integer X/Y to previous X/Y, recompute the anchor, consume another
+two RNG rolls and translate the **current accumulated float position**
+again. This all happens in the *same frame*.
 
 `herding_source_recovery_target.hpp` recovers the point table and
 independent roll sequencing. `herding_source_roaming_recovery.hpp`
-implements **one verified attempt**. It returns the updated entity
-record and original polygon accept/retry decision; the complete
-same-frame retry loop still requires analysis, in particular the
-float/int position restoration between attempts.
+implements a single attempt. **`herding_source_roaming_loop.hpp`
+now reconstructs the complete source-controlled retry sequence.**
+The loop keeps the candidate's evolving float X/Y, copies native
+integer X/Y to prior-position fields on each attempt, derives the
+signed half-cell steering anchor anew, consumes two sequential
+process-global random results, and exits only on a true polygon-inside
+result. A resumable work budget prevents an unbounded host call when
+the source polygon/data is invalid, but budget exhaustion is a
+**Pending** result, never falsely reported as a retail exit or a new
+frame. The caller must resume while exclusively holding the original
+RNG before allowing any other game subsystem to run.
 
 The production overload takes `OriginalRetailRandom&` directly,
 so consecutive X/Y draws are consumed from a single shared
 gamewide random state instead of a local generator.
+`HerdingEventSimulation` can also independently verify an upstream
+source frame's pre/post RNG state, attempt count and final entity
+coordinates by replaying this loop with the original `herd.txt`
+polygon. The source bridge now preserves previous-position fields
+written by the motion routine instead of fabricating them.
 
 ## CRT source randomness: 0x42FFBA and 0x42FFC4
 
@@ -138,6 +156,9 @@ New **uncompiled, unexecuted** source fixtures:
 
 - `herding_source_follower_approach_source_test.cpp`
 - `herding_source_roaming_recovery_source_test.cpp`
+- `herding_source_roaming_loop_source_test.cpp` (three-attempt same-frame
+  recovery versus resumable chunks, exact RNG usage and original
+  previous-position updates)
 - `herding_source_roam_braking_source_test.cpp`
 - `herding_source_animal_chatter_source_test.cpp`
 - `retail_crt_random_source_test.cpp`
