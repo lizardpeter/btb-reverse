@@ -206,6 +206,56 @@ bool HerdingEventSimulation::advance(
             return false;
         }
     }
+    for (const auto& probe : observed.recovery_evidence) {
+        // A reported recovery needs a completed same-frame retry
+        // sequence. This is a validation budget, not a limit imposed
+        // by the retail executable on how long it can retry.
+        constexpr std::uint64_t kMaxVerificationAttempts=4096;
+        if (probe.entity_index>=observed.motion_records.size() ||
+            probe.attempts==0 ||
+            probe.attempts>kMaxVerificationAttempts ||
+            probe.before.entity_id !=
+                observed.motion_records[probe.entity_index].entity_id ||
+            probe.before.type !=
+                observed.motion_records[probe.entity_index].type) {
+            error="invalid original roam recovery evidence metadata";
+            return false;
+        }
+        herding::OriginalRoamingLoop reconstructed{
+            .entity=probe.before
+        };
+        retail::OriginalRetailRandom replay_rng{
+            probe.rng_state_before};
+        const auto result=herding::resume_original_herding_roaming_loop(
+            reconstructed,replay_rng,
+            data_.retail_transformed_group0(),
+            static_cast<std::size_t>(probe.attempts));
+        const auto& moved=observed.motion_records[probe.entity_index];
+        // Portable trigonometry has not been shown to match x87's
+        // 80-bit FSIN/FCOS bit-for-bit. Use the same explicit tolerance
+        // as other original steering probes, never assume equality.
+        constexpr float kOriginalTrigComparisonTolerance=0.001f;
+        if (result!=herding::OriginalRoamingLoopStatus::Accepted ||
+            reconstructed.attempts!=probe.attempts ||
+            reconstructed.consumed_random_calls!=2*probe.attempts ||
+            replay_rng.state()!=probe.rng_state_after ||
+            moved.x!=reconstructed.entity.x ||
+            moved.y!=reconstructed.entity.y ||
+            moved.previous_x!=reconstructed.entity.previous_x ||
+            moved.previous_y!=reconstructed.entity.previous_y ||
+            moved.direction!=reconstructed.entity.direction ||
+            moved.movement_speed!=reconstructed.entity.movement_speed ||
+            !std::isfinite(moved.x_float) ||
+            !std::isfinite(moved.y_float) ||
+            std::fabs(moved.x_float-reconstructed.entity.x_float)>
+                kOriginalTrigComparisonTolerance ||
+            std::fabs(moved.y_float-reconstructed.entity.y_float)>
+                kOriginalTrigComparisonTolerance) {
+            error="original roam recovery differs from x86 same-frame "
+                  "retry / sprite-anchor / shared rand sequence";
+            return false;
+        }
+    }
     for (const auto& probe : observed.steering_evidence) {
         if (probe.entity_index>=observed.motion_records.size()) {
             error="source steering probe references an absent entity";
