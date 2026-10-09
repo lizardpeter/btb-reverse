@@ -4,6 +4,7 @@
 #include "btb/herding_behavior_bridge.hpp"
 #include "btb/herding_navigation_boundary.hpp"
 #include "btb/herding_retail_rect_contact.hpp"
+#include "btb/herding_source_steering.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -63,8 +64,20 @@ struct HerdingPicklesBoundaryEvidence {
     std::int32_t source_mouse_navigation_mode_443a9c{};
 };
 
+struct HerdingSteeringEvidence {
+    std::size_t entity_index{};
+    float original_x{};
+    float original_y{};
+    std::int32_t native_heading_degrees{};
+    float magnitude_before_step{};
+    bool native_roaming_speed_ramp{};
+};
+
 struct HerdingObservedFrame {
     std::optional<HerdingPicklesBoundaryEvidence> pickles_boundary_evidence{};
+    // Optional, branch-specific probes for native 0x416C45/0x416DCE
+    // steering. These are not manufactured for unrelated AI branches.
+    std::vector<HerdingSteeringEvidence> steering_evidence{};
     // Same ordering/entity IDs as the original 0x64-byte record table;
     // updates to behavior states and animation are ignored here because
     // the reconstructed behavior/compositor own those fields.
