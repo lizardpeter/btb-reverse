@@ -1,5 +1,6 @@
 #include "btb/win32_original_directdraw.hpp"
 #include "btb/bitmap_registry.hpp"
+#include "btb/full_game_blt_clip.hpp"
 
 #if defined(_WIN32)
 #include <cstdint>
@@ -268,11 +269,21 @@ bool Win32OriginalDirectDraw::blit(
         error="retail sprite source rectangle extends beyond original BMP";
         return false;
     }
+    const auto clipped=retail_clip_blt(
+        Rect{src.left,src.top,src.right,src.bottom},
+        requested.original.x,requested.original.y);
+    if (!clipped.visible) {
+        // Fully offscreen is a valid original animation frame; it is
+        // not a lost bitmap and must not abort the entire game tick.
+        return true;
+    }
+    src={
+        clipped.source.left,clipped.source.top,
+        clipped.source.right,clipped.source.bottom
+    };
     RECT dest{
-        requested.original.x,
-        requested.original.y,
-        requested.original.x+(src.right-src.left),
-        requested.original.y+(src.bottom-src.top)
+        clipped.destination.left,clipped.destination.top,
+        clipped.destination.right,clipped.destination.bottom
     };
 
     DWORD flags=DDBLT_WAIT;
