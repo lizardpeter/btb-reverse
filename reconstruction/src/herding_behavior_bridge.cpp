@@ -1,4 +1,5 @@
 #include "btb/herding_behavior_bridge.hpp"
+#include "btb/herding_source_home_arrival.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -229,7 +230,11 @@ HerdingBehaviorEvent HerdingRecoveredBehavior::arrive_at_home_waypoint(
 
     auto* animal=entity(index);
     if (!valid_ || !animal || !original_arrival_confirmed ||
-        !is_herd_animal(animal->entity_type())) {
+        !is_herd_animal(animal->entity_type()) ||
+        !original_herding_home_arrival(*animal)) {
+        // The 2002 game compares its actual integer position to the
+        // species-specific entrance/waypoint with DISTANCE < 10.
+        // A caller's asserted contact must not bypass this check.
         return {};
     }
     const auto step=home_route_arrival_step(
