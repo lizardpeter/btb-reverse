@@ -101,6 +101,8 @@ int main() {
                retail_pregame_backdrop_index(
                    pregame.setup,root.globals().menu.selected_subgame));
         if (pregame.starts_global_movie_mode14) {
+            assert(initialized.original_global_intro_movie_index ==
+                   retail_pregame_global_intro_index(pregame.setup));
             assert(root.globals().dispatcher.current_state ==
                    static_cast<int>(pregame.setup));
             assert(root.globals().dispatcher.generic_screen_mode == 14);
@@ -124,6 +126,9 @@ int main() {
         }
         assert(root.globals().dispatcher.current_state ==
                static_cast<int>(pregame.update));
+        if (!pregame.starts_global_movie_mode14) {
+            assert(!initialized.original_global_intro_movie_index);
+        }
 
         const int easy_index = 1;
         auto easy=click_area(root,easy_index);
