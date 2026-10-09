@@ -61,11 +61,13 @@ the verified constructor transformation `x -= 64, y -= 100`.
 
 1. If `PointInPolygon(currentX,currentY) == 0` (inside), retain
    original floating position.
-2. If outside, the source has an additional guard:
-   a frame-local comparison against 1 and another value at
-   `0x00443A9C`. Its exact ownership has **not** been fully
-   reconstructed here; the caller must pass whether it permits
-   per-axis recovery.
+2. If outside, the source checks the frame-local count of active
+   directional axes at `0x418C65` and the original mouse-navigation
+   mode global `0x00443A9C`. It permits per-axis recovery exactly
+   when **directional_axes > 1 OR mouse_navigation_mode != 0**.
+   The count is incremented by original keyboard branches at
+   `0x4184F4` / `0x418545`; the mouse-mode decision is made
+   in the earlier `0x418334..0x41846B` input dispatch.
 3. If axis recovery is permitted, test **(previousX,currentY)** first:
    if inside, restore only floating X using original previous integer X.
 4. Otherwise test **(currentX,previousY)**: if inside, restore only
@@ -77,13 +79,16 @@ This is original axis-slide priority, not a generic nearest-point-on-
 polygon or rectangle clamp. It needs two or three polygon evaluations
 only when the attempt leaves the navigation area.
 
-`retail_herding_navigation_boundary_step` encodes exactly that
-confirmed branch order, preserving the separately supplied source guard.
-The new event simulation can accept a
-`HerdingPicklesBoundaryEvidence` containing the upstream motion's
-raw candidate and original guard result. It independently compares
-the finalized Pickles floats to this recovered binary algorithm
-before committing animal state. Contradictory source frames fail.
+`retail_herding_axis_recovery_enabled` and
+`retail_herding_navigation_boundary_step` together encode
+the complete confirmed branch order and its source-level guard.
+`HerdingPicklesBoundaryEvidence` carries the raw candidate,
+the actual input-axis count and the original `0x443A9C` mode
+global, not a guessed Boolean. The simulation checks finalized
+Pickles floats against the independent binary-derived result
+before committing animal state. Contradictory frames fail.
+The movement constant at original `0x43B444` was also verified
+as IEEE-754 float **1.5**.
 
 ## 0x004169A0–0x00416A2D — original rectangle collision
 
@@ -111,12 +116,24 @@ Farmer Pickles actor-contact paths around 0x418A7F/0x418ADC/
 0x418B71/0x418C04. The exact order of first/second arguments
 must be preserved at each individual callsite.
 
-`HerdingEventSimulation` now **requires** ordered
-`HerdingCollisionEvidence` before accepting an externally declared
-Scruffty collision. It replays this exact four-corner helper and
-rejects an event if the original rectangles do not establish contact.
-This prevents a guessed symmetric overlap from removing an animal
-from the follower list.
+Further audit of `UpdateHerdingAnimal` at
+`0x4179BF..0x417A2E` established the actual argument order:
+**the current animal's integer sprite rectangle is first; Scruffty's
+integer sprite rectangle is second**. Each is computed as the entity's
+world `(x,y)` plus `(source_right-source_left,` 
+`source_bottom-source_top)` for the bottom/right corner.
+`original_herding_entity_rect` and
+`original_herding_animal_hits_scruffty` now reconstruct those values
+directly from 0x64-byte entity records. `HerdingEventSimulation`
+derives and validates contact independently; extra caller-provided
+rectangle evidence is optional and, when present, must exactly match
+the derived ordered rectangles. A guessed symmetric overlap cannot
+remove an animal from the follower list.
+
+Source regression scenarios now include a Medium-level original entity
+population with Scruffty and a confirmed animal-first contact, plus
+an overlapping nested-rectangle configuration that must **not**
+trigger the original routine.
 
 ## What remains unrecovered
 
@@ -125,8 +142,7 @@ but do not complete all animal motion:
 
 - source code producing the initial per-entity movement vectors and
   exactly allocating the entity starting positions;
-- the frame-local navigation axis-slide eligibility condition;
-- the steering speed, angle update, and target-selection calculations
+- the complete steering speed, angle update, and target-selection calculations
   for free roam, follower placement, Scruffty patrol, escape, and home;
 - exact source rectangles for each individual collision callsite;
 - native comparison runs on difficult boundary/corner frames.
