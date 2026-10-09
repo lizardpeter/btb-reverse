@@ -268,3 +268,44 @@ native DirectDraw/DirectSound, and remaining activity drivers are still
 outstanding. No new compile or test execution was run.
 
 See [full pregame audit and integration boundaries](full-game-pregame.md).
+
+## Native Windows frame execution boundary — source-only
+
+The previously separate `GameRoot` state coordinator,
+`GameEffectPipeline` original asset/sound planning, and original
+`binkwalk.txt`/`startupmovie.txt` catalogs are now joined in
+`NativeGameSession`. On each frame it requests actual managed buffer
+and Bink completion observations, advances one original outer state,
+opens/closes real source-backed walkthroughs and global intro movies,
+plans sound and BMP operations, and submits the entire ordered frame to
+an explicit `NativeGameDevice`.
+
+The new Win32 platform source is in:
+
+- `win32_original_directdraw.hpp/.cpp`: real DirectDraw7 640×480
+  fullscreen flip chain or windowed primary/offscreen Blt, original BMP
+  pixels, magenta source key, proper sprite crops, and surface-loss reload.
+- `win32_original_directsound.hpp/.cpp`: real DirectSound8 80-slot
+  managed buffer observation/play/stop, original RIFF WAV sample upload,
+  backing audio and individual activity sounds.
+- `win32_original_game_device.hpp/.cpp`: binds both physical devices
+  to `NativeGameSession`; requires an actual original Bink provider.
+- `win32_original_bink_exports.hpp/.cpp`: strict source loader for
+  exact original `binkw32.dll` exports. This is **not Bink decoding**.
+- `full_game_blt_clip.hpp`: 640×480 native sprite source/destination
+  clipping for partially offscreen original game animations.
+
+The original Bink DLL, its complete calling ABI and independent decoded
+frame-copy service are **not verified/hosted**. Additionally, the
+eight remaining non-integrated activities and the exact screen-specific
+overlay sprite composition remain significant blockers. The existing
+Dinosaur-only preview is unchanged.
+
+Regression *sources* include
+`full_game_native_session_source_test.cpp` (movie/audio/frame order,
+missing-adapter/missing-asset failures, global Bink pixel preservation)
+and `full_game_blt_clip_source_test.cpp` (all viewport boundaries).
+**Neither was compiled or executed.** There has been no end-to-end
+Windows native binary launch or visual/audio parity assertion.
+
+See [native Windows platform source status](full-game-native-platform.md).
