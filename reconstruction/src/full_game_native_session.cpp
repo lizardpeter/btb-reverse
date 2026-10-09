@@ -45,10 +45,15 @@ NativeSessionFrame NativeGameSession::tick(
 
     if (game.kind == FrameKind::FrontEndFailed ||
         game.kind == FrameKind::ActivityFailed ||
-        game.kind == FrameKind::InvalidState) {
+        game.kind == FrameKind::InvalidState ||
+        game.kind == FrameKind::FrontEndRequiresAdapter ||
+        game.kind == FrameKind::ActivityRequiresAdapter ||
+        game.kind == FrameKind::InactiveProfile) {
         fail(frame,PhysicalPresentationStage::GameAdvance,
-             game.error.empty() ? "original game state dispatch failed"
-                                : game.error);
+             game.error.empty()
+                 ? "native game state cannot run without its original "
+                   "screen/activity/profile adapter"
+                 : game.error);
         return frame;
     }
 
