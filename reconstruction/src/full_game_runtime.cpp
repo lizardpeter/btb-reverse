@@ -344,10 +344,14 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
                 result.requires_original_walkthrough_host = true;
                 result.original_walkthrough_index = retail_walkthrough_index(
                     pregame->setup,globals_.menu.selected_subgame);
-                if (!result.original_walkthrough_index) {
+                result.original_pregame_backdrop_slot =
+                    retail_pregame_backdrop_index(
+                        pregame->setup,globals_.menu.selected_subgame);
+                if (!result.original_walkthrough_index ||
+                    !result.original_pregame_backdrop_slot) {
                     result.kind = FrameKind::FrontEndFailed;
-                    result.error = "original walkthrough index requires the "
-                                   "0/1 selected subgame global";
+                    result.error = "original walkthrough/background selection "
+                                   "requires the valid retail subgame index";
                     generic_front_end_initialized_[key] = false;
                     return result;
                 }
