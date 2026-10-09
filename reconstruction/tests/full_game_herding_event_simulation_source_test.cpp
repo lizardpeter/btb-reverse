@@ -34,7 +34,7 @@ std::vector<h::RetailEntityRecord32> population() {
 
 class EvidenceSource final : public OriginalHerdingMotionSource {
 public:
-    std::vector<herding::RetailEntityRecord32> originals{};
+    std::vector<h::RetailEntityRecord32> originals{};
     std::vector<HerdingObservedEvent> scheduled{};
     bool fail_advance{};
     bool started{};
