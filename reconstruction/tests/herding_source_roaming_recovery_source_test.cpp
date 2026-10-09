@@ -46,9 +46,9 @@ int main() {
     animal.direction=0;
     animal.movement_speed=0.8f;
 
-    // The source passes a sprite-center integer actor position to
-    // 0x415D70. It does not pass the raw top-left. With valid center
-    // and the pair (100,400) this is one 3-unit recovery step.
+    // The source passes a signed negative half-cell steering anchor
+    // to 0x415D70, NOT the conventional sprite center or top-left.
+    // This explicit anchor fixture checks one source 3-unit step.
     const auto attempt=h::original_herding_roaming_recovery_attempt(
         animal,{498,491},0,1,original_navigation);
     assert(attempt);
