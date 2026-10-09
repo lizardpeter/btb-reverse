@@ -49,18 +49,37 @@ bool apply_confirmed_event(
         step=staged.join_follower(
             event.entity_index,event.random_mod_2,true);
         break;
-    case HerdingObservedKind::ScrufftyCollision:
-        if (!event.retail_rect_contact ||
-            !herding::original_herding_rect_contact(
-                event.retail_rect_contact->first,
-                event.retail_rect_contact->second)) {
-            error="Scruffty collision was not established by retail "
-                  "0x4169A0 ordered four-corner contact";
+    case HerdingObservedKind::ScrufftyCollision: {
+        const auto& records=staged.entities();
+        if (event.entity_index>=records.size()) {
+            error="Scruffty collision refers to unknown original animal";
+            return false;
+        }
+        const auto dog=std::find_if(
+            records.begin(),records.end(),[](const auto& entity) {
+                return entity.entity_type()==herding::EntityType::Scruffty;
+            });
+        if (dog==records.end() ||
+            !herding::original_herding_animal_hits_scruffty(
+                records[event.entity_index],*dog)) {
+            error="Scruffty collision was not established by original "
+                  "animal-first four-corner contact";
+            return false;
+        }
+        if (event.retail_rect_contact &&
+            (event.retail_rect_contact->first !=
+                herding::original_herding_entity_rect(
+                    records[event.entity_index]) ||
+             event.retail_rect_contact->second !=
+                herding::original_herding_entity_rect(*dog))) {
+            error="Scruffty source rectangles differ from original "
+                  "animal-first four-corner contact";
             return false;
         }
         step=staged.scruffty_distraction(
             event.entity_index,event.random_mod_400,true);
         break;
+    }
     case HerdingObservedKind::EnterHomeRoute:
         if (!staged.confirm_home_route_trigger(event.entity_index,true)) {
             error="Herding home trigger requires an existing follower";
