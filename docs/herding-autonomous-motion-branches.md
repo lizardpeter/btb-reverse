@@ -242,3 +242,29 @@ Windows game's physical presentation path.
 
 No full build or native execution has been performed under the
 standing instruction to defer compilation.
+
+### Corrected frame boundary: tracked arrival is not home-route allocation
+
+The executable at `0x417309..0x417320` removes the entity from
+the tracked-target list, consumes one discarded `rand()`,
+writes **behavior_state=1** and **returns from UpdateHerdingAnimal**.
+The home-route allocator at `0x416B70` runs on a subsequent
+entity update, assigning behavior state `10+species_counter`.
+
+The earlier event bridge combined both transitions in a single
+`EnterHomeRoute` event. It now emits/accepts separate source events:
+
+- `TrackedTargetArrived` confirms an existing ordinary follower,
+  writes state 1 and returns with no route allocation.
+- `EnterHomeRoute` requires state 1 from a **prior update** and
+  executes the separately recovered species route allocator.
+
+`HerdingEventSimulation` rejects an event stream attempting
+both transitions for the same animal in one update. Because it
+stages the behavior state transactionally, this invalid stream
+cannot silently consume a route slot or modify game progress.
+
+The updated source regression first rejects a same-frame pair,
+then checks two distinct frames for state 1 followed by state 10.
+This is a reconstructed source-control-flow fix, not a cosmetic
+workaround. The tests remain uncompiled and unexecuted.
