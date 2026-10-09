@@ -753,3 +753,45 @@ follow/duplicate rejection, atomic follower release, Scruffty
 distraction, all three species route allocations, final gate triggers
 and the full **9-delivery Easy completion**. The tests are staged,
 **not compiled or run**.
+
+## New: exact executable geometry and source-confirmed physics bridge
+
+The full original 311,296-byte PE32 executable was retrieved from the
+connected `BTB-BBP/Exe` folder and directly disassembled for the
+shared movement/collision primitives.
+
+The results now committed:
+
+- `retail_point_in_polygon.hpp` translates original helper
+  **0x00428520**: integer-only ray crossings, signed 32-bit
+  `IMUL/IDIV` interpolation, boundary inequalities, and the unusual
+  return **0 inside / 1 outside**.
+- `herding_navigation_boundary.hpp` translates Pickles'
+  **0x00418C2D..0x00418CE4** response to leaving the nav polygon:
+  keep original position if inside; otherwise try restoring X,
+  then restoring Y, then restoring both. The binary's separate
+  axis-slide eligibility input is explicitly required.
+- `herding_retail_rect_contact.hpp` translates
+  **0x004169A0..0x00416A2D**: four corners of rectangle A tested
+  against B with inclusive edges. This is asymmetric and is not
+  ordinary rectangle intersection.
+- `full_game_herding_event_simulation.hpp/.cpp` now implements a
+  genuine `HerdingSimulationProvider` adapter combining source
+  movement snapshots with reconstructed food/follower/home state.
+  Input frames are checked and applied transactionally. Rejected
+  collision evidence, invalid route sequences or contradictory
+  binary-verified Pickles movement prevent partial state changes.
+- Render-animation frame/countdown values survive from one frame to
+  the next, so the shared compositor no longer discards timer updates
+  when a new movement snapshot is supplied.
+
+The executable-equivalent geometry is documented in
+[the retail geometry audit](herding-retail-geometry.md), with
+independent source test files for polygon edge cases, axis-slide
+branches and non-symmetric collision cases.
+
+**Important gap:** the original per-entity physics source generating
+steering, motion and contact candidates is still unfinished. The
+simulation adapter does not invent animal positions or falsely
+confirm contacts. The same uncompiled/full-game-not-yet-working
+boundary remains.
