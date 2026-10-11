@@ -1,0 +1,74 @@
+name: Prepare graph-ingestible Ghidra text shards
+
+on:
+  push:
+    paths:
+      - .github/workflows/ghidra-graph-shards.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: btb-ghidra-graph-shards
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create stable, bounded JSON shards with complete pseudocode
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv, hashlib, io, json, pathlib, tarfile
+          root=pathlib.Path('analysis/ghidra_main_exe')
+          target=pathlib.Path('analysis/ghidra_graph_shards')
+          target.mkdir(parents=True,exist_ok=True)
+          with (root/'functions.csv').open(newline='',encoding='utf-8') as f:
+              rows=list(csv.DictReader(f))
+          manifest=json.loads((root/'manifest.json').read_text())
+          assert len(rows)==manifest['function_count']==615
+          assert manifest['decompiled_count']==615 and manifest['failed_count']==0
+          for stale in target.glob('shard-*.json'):
+              stale.unlink()
+          shards=[];group=[];size=0
+          for r in rows:
+              text=(root/'functions'/r['file']).read_text(encoding='utf-8')
+              record={'address':r['address'], 'name':r['name'],
+                'body_bytes':int(r['body_bytes']),
+                'caller_count':int(r['callers']),
+                'callee_count':int(r['callees']),
+                'source_text':text,
+                'text_sha256':hashlib.sha256(text.encode('utf-8')).hexdigest(),
+                'file':r['file']}
+              record_size=len(json.dumps(record,ensure_ascii=False).encode('utf-8'))
+              if group and size+record_size>48000:
+                  shards.append(group);group=[];size=0
+              group.append(record);size+=record_size
+          if group:shards.append(group)
+          totals=[]
+          for i,group in enumerate(shards):
+              filename=target/('shard-%03d.json'%i)
+              filename.write_text(json.dumps(group,ensure_ascii=False,separators=(',',':'))+'\n',encoding='utf-8')
+              totals.append({'file':filename.name,'functions':len(group),'first':group[0]['address'],
+                             'last':group[-1]['address'],'bytes':filename.stat().st_size})
+          (target/'shards.json').write_text(json.dumps({'source_sha256':manifest['expected_exe_sha256'],
+              'function_count':len(rows),'shard_count':len(shards),'shards':totals},indent=2)+'\n')
+          assert sum(x['functions'] for x in totals)==615
+          print('Built',len(shards),'full-text shards for',len(rows),'functions')
+          PY
+      - name: Commit derived graph ingestion data to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add analysis/ghidra_graph_shards
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Retain address-indexed full pseudocode graph-import shards"
+          git pull --rebase origin main
+          git push origin HEAD:main
