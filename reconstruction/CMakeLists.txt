@@ -659,3 +659,11 @@ add_executable(btb_retail_crt_batch70_tests
 target_include_directories(btb_retail_crt_batch70_tests PRIVATE include)
 btb_require_cpp26(btb_retail_crt_batch70_tests PRIVATE)
 add_test(NAME retail_crt_batch70 COMMAND btb_retail_crt_batch70_tests)
+
+# Source-evidence architecture registry. This is *metadata* for 200 original
+# functions; neither an ABI-faithful compiler output nor a C++ body inventory.
+add_executable(btb_original_architecture_map_tests
+    tests/original_architecture_map_test.cpp)
+target_include_directories(btb_original_architecture_map_tests PRIVATE include)
+btb_require_cpp26(btb_original_architecture_map_tests PRIVATE)
+add_test(NAME original_architecture_map COMMAND btb_original_architecture_map_tests)
