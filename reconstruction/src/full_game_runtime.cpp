@@ -225,6 +225,14 @@ void GameRoot::consume_pregame_action(
 
 GameFrame GameRoot::advance(const ActivityFrameInput& input) {
     GameFrame result;
+    // The original shared Yes/No screen owns the modal while unresolved.
+    // Once the physical UI reports a completed choice, release that overlay
+    // before 68-state dispatch and deliver the choice to the activity on
+    // this same frame. Otherwise every subsequent frame is intercepted and
+    // the activity never receives its confirmed result.
+    if (input.confirmation_resolved) {
+        globals_.dispatcher.generic_yes_no_active = false;
+    }
     const auto dispatch = game_flow::dispatch_step(globals_.dispatcher);
     result.dispatch = dispatch;
 
