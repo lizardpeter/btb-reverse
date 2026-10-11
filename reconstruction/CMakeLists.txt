@@ -683,3 +683,24 @@ add_executable(btb_original_architecture_615_tests
 target_include_directories(btb_original_architecture_615_tests PRIVATE include)
 btb_require_cpp26(btb_original_architecture_615_tests PRIVATE)
 add_test(NAME original_architecture_615 COMMAND btb_original_architecture_615_tests)
+
+
+# Fireworks original-file adapter: integrates the 18-cell retail sequence,
+# the 33-region editor and binary firedata1..5 save files with GameRoot.
+# Bink show and certificate presentation remain explicitly host-owned.
+add_library(btb_full_game_fireworks_source
+    src/full_game_fireworks.cpp
+)
+target_include_directories(btb_full_game_fireworks_source PUBLIC include)
+btb_require_cpp26(btb_full_game_fireworks_source PUBLIC)
+target_link_libraries(btb_full_game_fireworks_source PUBLIC
+    btb_fireworks btb_full_game_root_source
+)
+add_executable(btb_full_game_fireworks_source_tests
+    tests/full_game_fireworks_source_test.cpp
+)
+target_link_libraries(btb_full_game_fireworks_source_tests PRIVATE
+    btb_full_game_fireworks_source
+)
+add_test(NAME full_game_fireworks_source
+    COMMAND btb_full_game_fireworks_source_tests)
