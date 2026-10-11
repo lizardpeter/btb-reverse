@@ -132,87 +132,59 @@ Sequence::Sequence() {
 }
 
 bool Sequence::in_bounds(std::size_t row, std::size_t column) const noexcept {
-    return row < kTimelineRows && column < kTimelineColumns;
+    return original_grid_.in_bounds(row, column);
 }
 
 bool Sequence::empty(std::size_t row, std::size_t column) const noexcept {
-    return in_bounds(row, column) && !slots_[index(row, column)].has_value();
+    return original_grid_.empty(row, column);
 }
 
 std::optional<FireworkType> Sequence::at(
     std::size_t row,
     std::size_t column) const noexcept {
-    if (!in_bounds(row, column)) {
-        return std::nullopt;
-    }
-    return slots_[index(row, column)];
+    return original_grid_.at(row, column);
 }
 
 bool Sequence::can_place(
     std::size_t row,
     std::size_t column,
-    FireworkType /*type*/) const noexcept {
-    return empty(row, column);
+    FireworkType type) const noexcept {
+    return original_grid_.can_place(row, column, type);
 }
 
 bool Sequence::validate_placement(
     std::size_t row,
     std::size_t column,
     FireworkType type) const noexcept {
-    return can_place(row, column, type);
+    return original_grid_.can_place(row, column, type);
 }
 
 bool Sequence::commit_placement(
     std::size_t row,
     std::size_t column,
     FireworkType type) {
-    if (!can_place(row, column, type)) {
-        return false;
-    }
-    slots_[index(row, column)] = type;
-    return true;
+    return original_grid_.place(row, column, type, true);
 }
 
 bool Sequence::replace(
     std::size_t row,
     std::size_t column,
     FireworkType type) {
-    if (!in_bounds(row, column)) {
-        return false;
-    }
-
-    // The editor's placement-region handler removes an existing type before
-    // the release/commit path validates the current selection.
-    slots_[index(row, column)].reset();
-    return commit_placement(row, column, type);
+    return original_grid_.replace(row, column, type);
 }
 
 std::optional<FireworkType> Sequence::remove(
     std::size_t row,
     std::size_t column) noexcept {
-    if (!in_bounds(row, column)) {
-        return std::nullopt;
-    }
-    auto& slot = slots_[index(row, column)];
-    const auto old = slot;
-    slot.reset();
-    return old;
+    return original_grid_.remove(row, column);
 }
 
 void Sequence::clear() noexcept {
-    for (auto& slot : slots_) {
-        slot.reset();
-    }
+    original_grid_.clear();
 }
 
 std::size_t Sequence::occupied_count() const noexcept {
-    std::size_t count = 0;
-    for (const auto& slot : slots_) {
-        if (slot) {
-            ++count;
-        }
-    }
-    return count;
+    return original_grid_.occupied_count();
 }
 
 bool Sequence::full() const noexcept {

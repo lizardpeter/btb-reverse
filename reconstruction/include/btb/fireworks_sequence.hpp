@@ -1,6 +1,7 @@
 #pragma once
 
 #include "btb/fireworks_layout.hpp"
+#include "btb/fireworks_retail_core.hpp"
 
 #include <array>
 #include <cstddef>
@@ -331,9 +332,24 @@ class Sequence {
 public:
     Sequence();
 
-    [[nodiscard]] const std::array<std::optional<FireworkType>, kTimelineSlots>&
+    // Compatibility view for existing rendering code. The sole owning
+    // storage is the actual 18-cell retail int32_t grid below.
+    [[nodiscard]] std::array<std::optional<FireworkType>, kTimelineSlots>
     slots() const noexcept {
-        return slots_;
+        std::array<std::optional<FireworkType>, kTimelineSlots> values{};
+        for (std::size_t row = 0; row < kTimelineRows; ++row)
+            for (std::size_t col = 0; col < kTimelineColumns; ++col)
+                values[index(row, col)] = at(row, col);
+        return values;
+    }
+
+    // Exact original firedata1..5 representation. A failed import leaves
+    // the existing sequence and active authoring session unchanged.
+    [[nodiscard]] RetailGrid retail_grid() const noexcept {
+        return original_grid_.raw();
+    }
+    [[nodiscard]] bool load_retail_grid(const RetailGrid& bytes) noexcept {
+        return original_grid_.load(bytes);
     }
 
     [[nodiscard]] static constexpr std::size_t index(
@@ -387,7 +403,7 @@ public:
         std::size_t column) const;
 
 private:
-    std::array<std::optional<FireworkType>, kTimelineSlots> slots_{};
+    OriginalFireworkGrid original_grid_{};
 };
 
 // Applies one exact scheduler step to the authored sequence and the first-free

@@ -73,6 +73,14 @@ add_executable(btb_fireworks_sequence_tests
 target_link_libraries(btb_fireworks_sequence_tests PRIVATE btb_fireworks)
 add_test(NAME fireworks_sequence COMMAND btb_fireworks_sequence_tests)
 
+# Original SHA-256-verified Fireworks grid is now the live Sequence storage:
+# test native editor decisions, binary firedata roundtrip and playback events.
+add_executable(btb_fireworks_retail_integration_tests
+    tests/fireworks_retail_integration_test.cpp
+)
+target_link_libraries(btb_fireworks_retail_integration_tests PRIVATE btb_fireworks)
+add_test(NAME fireworks_retail_integration COMMAND btb_fireworks_retail_integration_tests)
+
 add_executable(btb_fireworks_certificate_tests
     tests/fireworks_certificate_test.cpp
 )
