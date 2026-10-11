@@ -76,6 +76,8 @@ void AudioEffectPlanner::populate_retail_filename_records() noexcept {
 }
 
 void AudioEffectPlanner::reset() noexcept {
+    deferred_park_voice_id_=-1;
+    deferred_park_context_=0;
     manager_ = {};
     sound::initialize_retail_metadata(manager_);
     // Reset transient playback slots, not the installed WAV catalog.
@@ -96,6 +98,33 @@ std::string AudioEffectPlanner::sound_file(int sound_id) const {
         return {};
     }
     return "Data/sound/" + record->filename;
+}
+
+AudioFramePlan AudioEffectPlanner::plan_park_designer_voice(
+    std::int32_t sound_id,std::int32_t context,
+    ManagedSoundObservation observed) {
+
+    const bool any_playing=sound::any_managed_sound_playing(
+        manager_,observed.playing);
+    if(any_playing && context!=0 && deferred_park_voice_id_==-1) {
+        deferred_park_voice_id_=sound_id;
+        deferred_park_context_=context;
+    }
+    return plan({{
+        AudioOperation::ManagedSoundId,{},sound_id,50,1,true
+    }},observed);
+}
+
+AudioEffectPlanner::PlayAgainPlan AudioEffectPlanner::plan_play_again_transition(
+    ManagedSoundObservation observed) {
+
+    PlayAgainPlan result;
+    result.audio=plan({
+        {AudioOperation::StopBackingTrack},
+        {AudioOperation::StopManagedSounds},
+        {AudioOperation::ManagedSoundId,{},573,50,1,true}
+    },observed);
+    return result;
 }
 
 AudioFramePlan AudioEffectPlanner::plan_help_voice(

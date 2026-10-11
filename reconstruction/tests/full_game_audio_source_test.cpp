@@ -182,4 +182,39 @@ int main() {
     assert(finish.operations[0].kind==SoundEffectKind::StopRewindManagedSlot);
     assert(finish.operations[0].slot==0);
     assert(reaper.manager().state(0)==btb::sound::SlotState::Stopped);
+    // 00410F70: source Park Designer voice always attempts priority 50,
+    // class 1 with input-interruptible marker; defers first followup when
+    // an actual managed voice is already playing.
+    AudioEffectPlanner park;
+    std::istringstream park_catalog(
+        "first.wav 510\n"
+        "second.wav 511\n"
+        "playagain.wav 573\n");
+    assert(park.load_catalog(park_catalog).success);
+    const auto started=park.plan_park_designer_voice(510,0,{});
+    assert(started.managed_results[0].status==1);
+    assert(park.manager().input_interruptible[0]==1);
+    assert(park.deferred_park_voice_id()==-1);
+    ManagedSoundObservation park_observed{};
+    park_observed.playing[0]=true;
+    const auto deferred=park.plan_park_designer_voice(
+        511,77,park_observed);
+    assert(park.deferred_park_voice_id()==511);
+    assert(park.deferred_park_context()==77);
+    assert(deferred.managed_results.size()==1);
+    // 0042CFD0 PlayAgain transition has screen blit/latch flags and
+    // emits stop backing music, stop-all-managed and voice573 in order.
+    const auto play_again=park.plan_play_again_transition(park_observed);
+    assert(play_again.blit_movie_to_backbuffer);
+    assert(play_again.set_play_again_latch);
+    assert(play_again.audio.operations.size()>=4);
+    assert(play_again.audio.operations[0].kind==
+           SoundEffectKind::StopBackingWav);
+    assert(play_again.audio.operations[1].kind==
+           SoundEffectKind::StopRewindManagedSlot);
+    bool found_573=false;
+    for(const auto& effect:play_again.audio.operations)
+        if(effect.sound_id==573)found_573=true;
+    assert(found_573);
+
 }

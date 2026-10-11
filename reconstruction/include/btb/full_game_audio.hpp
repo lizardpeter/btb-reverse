@@ -114,6 +114,31 @@ public:
         bool stop_existing_sounds,
         ManagedSoundObservation observed);
 
+    // 00410F70: original Park Designer voice defers the first requested
+    // followup only when a managed sound is already playing and context!=0.
+    // The voice itself is played with priority 50/class 1, and its managed
+    // slot is marked input-interruptible. Device observations are mandatory.
+    [[nodiscard]] AudioFramePlan plan_park_designer_voice(
+        std::int32_t sound_id,std::int32_t context,
+        ManagedSoundObservation observed);
+    [[nodiscard]] std::int32_t deferred_park_voice_id() const noexcept {
+        return deferred_park_voice_id_;
+    }
+    [[nodiscard]] std::int32_t deferred_park_context() const noexcept {
+        return deferred_park_context_;
+    }
+
+    // 0042CFD0: movie surface blit and UI latch are host actions, while
+    // music stop, StopAllManagedSounds, voice 573 priority50/class1 and
+    // input-interruptible marker are emitted through the real audio planner.
+    struct PlayAgainPlan {
+        AudioFramePlan audio{};
+        bool blit_movie_to_backbuffer{true};
+        bool set_play_again_latch{true};
+    };
+    [[nodiscard]] PlayAgainPlan plan_play_again_transition(
+        ManagedSoundObservation observed);
+
     // Model the original 0x00402B? managed-slot reap pass on a new frame.
     // Actual buffer-group Stop/Rewind calls must be issued from the returned
     // plan, and stopped slots remain cached for replay until reused.
@@ -126,6 +151,8 @@ private:
     void populate_retail_filename_records() noexcept;
     [[nodiscard]] std::string sound_file(int sound_id) const;
 
+    std::int32_t deferred_park_voice_id_{-1};
+    std::int32_t deferred_park_context_{};
     SoundCatalog catalog_{};
     sound::RetailSoundManager32 manager_{};
 };
