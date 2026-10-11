@@ -1,0 +1,58 @@
+{
+  "original_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "source": "reconstruction/src/park_designer_scene.cpp",
+  "header": "reconstruction/include/btb/park_designer_scene.hpp",
+  "test": "reconstruction/tests/park_designer_scene_test.cpp",
+  "stage": "source_written",
+  "limitations": "Source-level C++26 semantic implementations tested on original data layouts; the Windows executable does not yet dispatch Park Designer through this provider. Draw plans depend on native pre-sorted record pointer order and original DirectDraw resources. Native x86 ABI and retail differential parity not certified.",
+  "functions": [
+    {
+      "address": "0x0040D1D0",
+      "symbol": "ApplyParkDesignerSeason",
+      "role": "season resource switching and palette/scene selection",
+      "ghidra": "analysis/ghidra_main_exe/functions/0040D1D0.c"
+    },
+    {
+      "address": "0x0040D2E0",
+      "symbol": "FindTopmostParkDesignerObjectAtCursor",
+      "role": "reverse sorted-order pick + polygon test",
+      "ghidra": "analysis/ghidra_main_exe/functions/0040D2E0.c"
+    },
+    {
+      "address": "0x0040D470",
+      "symbol": "DrawParkDesignerToolbarAndHover",
+      "role": "strict hover bounds, managed voice, highlight",
+      "ghidra": "analysis/ghidra_main_exe/functions/0040D470.c"
+    },
+    {
+      "address": "0x0040D900",
+      "symbol": "UpdateAndDrawParkDesignerFountain",
+      "role": "native animation tick with fountain source rectangle",
+      "ghidra": "analysis/ghidra_main_exe/functions/0040D900.c"
+    },
+    {
+      "address": "0x0040DA60",
+      "symbol": "DrawSortedParkDesignerObjects",
+      "role": "sorted object family dispatch plan",
+      "ghidra": "analysis/ghidra_main_exe/functions/0040DA60.c"
+    },
+    {
+      "address": "0x0040DB50",
+      "symbol": "DrawParkDesignerActivity",
+      "role": "scene background, sorted objects, overlay draw order",
+      "ghidra": "analysis/ghidra_main_exe/functions/0040DB50.c"
+    },
+    {
+      "address": "0x0040DFF0",
+      "symbol": "CanPlaceParkDesignerObjectWithoutOverlap",
+      "role": "nine-sample collision including destructive side effects",
+      "ghidra": "analysis/ghidra_main_exe/functions/0040DFF0.c"
+    },
+    {
+      "address": "0x0040E2B0",
+      "symbol": "CompactParkDesignerObjectRecordFamilies",
+      "role": "400-record family compaction with original global cursor updates",
+      "ghidra": "analysis/ghidra_main_exe/functions/0040E2B0.c"
+    }
+  ]
+}
