@@ -7,3 +7,5 @@ address,stage,cpp_source,validation_test,evidence,notes
 0x00404470,source_written,reconstruction/src/dsutil_group_runtime.cpp,reconstruction/tests/dsutil_group_runtime_test.cpp,docs/dsutil-group-runtime.md,Native reset all buffer cursors to zero OR HRESULTs
 0x004044B0,source_written,reconstruction/src/dsutil_group_runtime.cpp,reconstruction/tests/dsutil_group_runtime_test.cpp,docs/dsutil-group-runtime.md,Native bit0 playback query ignores HRESULT and skips null buffers
 0x00402C90,source_written,reconstruction/src/full_game_audio.cpp,reconstruction/tests/full_game_audio_source_test.cpp,docs/sound-system.md,StopAllManagedSounds now tests IsSoundIdPlaying via sound-ID reverse map and observed playback; ignores cached nonplaying sound slots
+0x00402C60,source_written,reconstruction/include/btb/sound_manager.hpp,reconstruction/tests/sound_manager_test.cpp,docs/sound-system.md,Native reverse sound-ID slot mapping and observed playback test; invalid retail metadata guarded
+0x00402C20,source_written,reconstruction/include/btb/sound_manager.hpp,reconstruction/tests/sound_manager_test.cpp,docs/sound-system.md,Native first-playing-sound scan over 80 assigned IDs

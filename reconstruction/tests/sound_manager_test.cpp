@@ -8,6 +8,31 @@
 using namespace btb::sound;
 
 int main() {
+    // 0x00402C60 IsSoundIdPlaying and 0x00402C20 AnyManagedSoundPlaying
+    // follow the reverse sound-ID mapping, not a cached allocation flag.
+    RetailSoundManager32 reverse{};
+    initialize_retail_metadata(reverse);
+    std::array<bool,kManagedSlotCount> observed{};
+    assert(!is_sound_id_playing(reverse, 510, observed));
+    assert(!any_managed_sound_playing(reverse, observed));
+    reverse.sound_id_by_slot[7] = 510;
+    reverse.slot_by_sound_id[510] = 7;
+    reverse.buffer_group_ptr32[7] = 0x1234U;
+    assert(!is_sound_id_playing(reverse, 510, observed));
+    observed[7] = true;
+    assert(is_sound_id_playing(reverse, 510, observed));
+    assert(any_managed_sound_playing(reverse, observed));
+    assert(!is_sound_id_playing(reverse, 509, observed));
+    assert(!is_sound_id_playing(reverse, -1, observed));
+    assert(!is_sound_id_playing(reverse, 1100, observed));
+    reverse.buffer_group_ptr32[7] = 0;
+    assert(!is_sound_id_playing(reverse, 510, observed));
+    assert(!any_managed_sound_playing(reverse, observed));
+    reverse.buffer_group_ptr32[7] = 1;
+    reverse.slot_by_sound_id[510] = static_cast<std::int8_t>(-1);
+    assert(!is_sound_id_playing(reverse, 510, observed));
+    assert(!any_managed_sound_playing(reverse, observed));
+
     static_assert(kManagedSlotCount == 80);
     static_assert(kSoundCatalogCount == 1100);
     static_assert(kFilenameRecordBytes == 20);

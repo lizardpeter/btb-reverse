@@ -135,6 +135,40 @@ static_assert(offsetof(RetailSoundManager32, filename_by_sound_id) == 0x1018);
 static_assert(offsetof(RetailSoundManager32, catalog_metadata) == 0x6608);
 static_assert(sizeof(RetailSoundManager32) == kRetailSoundManagerBytes);
 
+// Exact 0x00402C60: resolve a requested sound ID to its signed 8-bit
+// reverse-mapped slot and query that group's native status. The caller
+// provides real observed DSBSTATUS_PLAYING bits; this does not predict audio.
+// Retail does not bounds-check IDs or corrupt slot indices. The source-level
+// reconstruction refuses invalid host metadata rather than reading out of
+// bounds, while preserving valid retail behavior.
+[[nodiscard]] constexpr bool is_sound_id_playing(
+    const RetailSoundManager32& manager,
+    std::int32_t sound_id,
+    const std::array<bool,kManagedSlotCount>& observed_playing) noexcept {
+
+    const auto slot = manager.mapped_slot(sound_id);
+    if (slot < 0 || slot >= static_cast<int>(kManagedSlotCount)) {
+        return false;
+    }
+    const auto index = static_cast<std::size_t>(slot);
+    return manager.buffer_group_ptr32[index] != 0 && observed_playing[index];
+}
+
+// Exact 0x00402C20: iterate original 80-slot sound_id_by_slot array and
+// return 1 on first playing sound; do not infer activity from allocated buffers.
+[[nodiscard]] constexpr bool any_managed_sound_playing(
+    const RetailSoundManager32& manager,
+    const std::array<bool,kManagedSlotCount>& observed_playing) noexcept {
+
+    for (std::size_t i = 0; i < kManagedSlotCount; ++i) {
+        if (is_sound_id_playing(
+                manager, manager.sound_id_by_slot[i], observed_playing)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 struct AcquireSlotChoice {
     std::int32_t slot{-1};
     bool requires_release{false};

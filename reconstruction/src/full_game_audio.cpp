@@ -140,18 +140,12 @@ AudioFramePlan AudioEffectPlanner::plan(
             // says are playing. A cached stopped sound is NOT stopped again.
             for (std::size_t i = 0; i < sound::kManagedSlotCount; ++i) {
                 const int id = manager_.sound_id_by_slot[i];
-                const int mapped = manager_.mapped_slot(id);
-                // The source has no invalid-ID guard; avoid an out-of-bounds
-                // access for invalid host metadata without inventing a voice.
-                if (mapped < 0 ||
-                    mapped >= static_cast<int>(sound::kManagedSlotCount)) {
+                if (!sound::is_sound_id_playing(
+                        manager_, id, observed.playing)) {
                     continue;
                 }
-                const auto mapped_index = static_cast<std::size_t>(mapped);
-                if (!manager_.buffer_group_ptr32[mapped_index] ||
-                    !observed.playing[mapped_index]) {
-                    continue;
-                }
+                const auto mapped_index =
+                    static_cast<std::size_t>(manager_.mapped_slot(id));
                 static_cast<void>(sound::stop_slot_metadata(manager_, i));
                 observed.playing[mapped_index] = false;
                 frame.operations.push_back({
