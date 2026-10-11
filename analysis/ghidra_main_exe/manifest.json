@@ -1,0 +1,16 @@
+{
+  "callgraph_edges": 1846, 
+  "decompiled_count": 615, 
+  "expected_exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05", 
+  "expected_exe_size": 311296, 
+  "failed_count": 0, 
+  "function_count": 615, 
+  "image_base": "00400000", 
+  "known_functions_created": 16, 
+  "known_names_applied": 290, 
+  "known_names_failed": 0, 
+  "note": "Coverage counts reflect Ghidra-discovered functions, not full program semantics or recompilable C++.", 
+  "processor": "x86:LE:32:default", 
+  "program_name": "Bob the Builder - Bob Builds a Park.exe", 
+  "source": "Bob the Builder: Bob Builds a Park (Windows 2002) main PE32"
+}
