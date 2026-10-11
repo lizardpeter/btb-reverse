@@ -600,3 +600,12 @@ target_include_directories(btb_retail_leaf_runtime_tests PRIVATE include)
 btb_require_cpp26(btb_retail_leaf_runtime_tests PRIVATE)
 target_link_libraries(btb_retail_leaf_runtime_tests PRIVATE btb_printing_system)
 add_test(NAME retail_leaf_runtime COMMAND btb_retail_leaf_runtime_tests)
+
+# Shared original runtime, graphics data, audio, UI, activity placement,
+# and Bink contracts: compile in Linux full-project CI.
+add_executable(btb_retail_shared_runtime_tests
+    tests/retail_shared_runtime_test.cpp
+)
+target_include_directories(btb_retail_shared_runtime_tests PRIVATE include)
+btb_require_cpp26(btb_retail_shared_runtime_tests PRIVATE)
+add_test(NAME retail_shared_runtime COMMAND btb_retail_shared_runtime_tests)
