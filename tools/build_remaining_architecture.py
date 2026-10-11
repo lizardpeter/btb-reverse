@@ -78,19 +78,16 @@ def mapping_inputs() -> tuple[list[dict], list[str], list[str], dict]:
     final = file_selection(FINAL)
     reviewed_rows = common.read_csv(REVIEWED)
     reviewed = {common.normalize(r["address"]): r for r in reviewed_rows}
-    if len(previous) != 200 or len(final) != 224 or len(reviewed) != 191:
-        raise ValueError("Expected cohorts: 200 previous, 224 final, 191 reviewed")
-    if set(previous) & set(final) or set(reviewed) & (set(previous) | set(final)):
+    # Frozen architecture cohorts are independent of changing C++ coverage.
+    initial_source = set(by_address) - set(previous) - set(final)
+    if len(previous) != 200 or len(final) != 224 or len(initial_source) != 191:
+        raise ValueError("Expected frozen 191/200/224 mapping cohorts")
+    if set(previous) & set(final):
         raise ValueError("Architecture mapping cohorts overlap")
-    all_mapped = set(previous) | set(final) | set(reviewed)
-    if set(by_address) != all_mapped:
-        missing = set(by_address) - all_mapped
-        excess = all_mapped - set(by_address)
-        raise ValueError("Unmapped or invalid functions: " + str((missing, excess)))
-    # Every final address was previously unreviewed, rather than using a
-    # reviewed symbol to artificially reach 224 new mappings.
-    if any(x in reviewed or x in previous for x in final):
-        raise ValueError("Final cohort contains an already mapped function")
+    if len(reviewed) != len(reviewed_rows):
+        raise ValueError("Duplicate reviewed function address")
+    if not initial_source.issubset(reviewed) or not set(reviewed).issubset(by_address):
+        raise ValueError("Reviewed source inventory omitted baseline or added unknown address")
     return functions, previous, final, reviewed
 
 
@@ -120,9 +117,9 @@ def build():
             original["name"], module, common.prototype(source))
         globs, assets, warnings, uncertain, arrays = common.evidence(source)
         prototype = common.prototype(source)
-        cohort = ("previous_source_written" if addr in reviewed else
-                  "architecture_batch_200" if addr in previous_set else
-                  "architecture_batch_224")
+        cohort = ("architecture_batch_200" if addr in previous_set else
+                  "architecture_batch_224" if addr in final_set else
+                  "previous_source_written")
         source_record = reviewed.get(addr, {})
         for global_address in globs:
             xrefs[global_address].add(addr)
@@ -267,7 +264,7 @@ def build():
         "- Original DAT global references and their cross-module sharing are indexed.",
         "- Candidate class/module owners and the original call prototype are labeled tentative.",
         "- Original pseudocode SHA-256 hashes are recorded to detect corpus drift.",
-        "- Existing 191 C++ source mappings and test links are preserved in the full map.",
+        "- The original 191 source mappings remain preserved; newly reconstructed C++ models are tracked separately.",
         "",
         "## Runtime categories (name-derived, not guaranteed compiler provenance)",
         "",
@@ -291,8 +288,9 @@ def build():
         "## Reconstruction boundary",
         "",
         "615/615 architecture-mapped does not mean 615/615 rewritten in C++.",
-        "Existing source-written functions remain 191; 424 others have only",
-        "architecture evidence. Recover runtime layouts, identify import thunks,",
+        f"Current source-written models: {summary615['source_written']}; remaining: {summary615['architecture_only']}.",
+        "Frozen architecture cohorts are independent of reconstruction status.",
+        "Recover runtime layouts, identify import thunks,",
         "and integrate original gameplay functions before claiming fidelity.",
         "",
     ])
@@ -303,9 +301,12 @@ def build():
         "",
         "Each original function belongs to exactly one evidence cohort:",
         "",
-        "- 191 previously mapped to source-written C++ behavioral models.",
-        "- 200 from the first architecture-only pass.",
-        "- 224 from the final architecture-only pass (statically linked runtime).",
+        "- 191 functions formed the initial source-written baseline.",
+        "- 200 functions were originally architecture-only in the first pass.",
+        "- 224 functions were originally architecture-only in the final pass.",
+        "",
+        f"Current status: {summary615['source_written']} source-written models and "
+        f"{summary615['architecture_only']} architecture-only functions.",
         "",
         "The full inventory keeps these statuses separate; no source-written",
         "function was promoted to behavior-verified by architecture analysis.",
