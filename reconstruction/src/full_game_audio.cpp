@@ -134,14 +134,26 @@ AudioFramePlan AudioEffectPlanner::plan(
             break;
 
         case AudioOperation::StopManagedSounds:
-            // 0x00402C90 walks all 80 available groups; a stopped slot
-            // stays in the manager cache, ready for replay.
+            // Exact 0x00402C90: walk sound_id_by_slot[80], ask
+            // IsSoundIdPlaying(sound_id) through the reverse ID->slot map,
+            // and stop only voices which the actual DirectSound observation
+            // says are playing. A cached stopped sound is NOT stopped again.
             for (std::size_t i = 0; i < sound::kManagedSlotCount; ++i) {
-                if (!manager_.buffer_group_ptr32[i]) {
+                const int id = manager_.sound_id_by_slot[i];
+                const int mapped = manager_.mapped_slot(id);
+                // The source has no invalid-ID guard; avoid an out-of-bounds
+                // access for invalid host metadata without inventing a voice.
+                if (mapped < 0 ||
+                    mapped >= static_cast<int>(sound::kManagedSlotCount)) {
+                    continue;
+                }
+                const auto mapped_index = static_cast<std::size_t>(mapped);
+                if (!manager_.buffer_group_ptr32[mapped_index] ||
+                    !observed.playing[mapped_index]) {
                     continue;
                 }
                 static_cast<void>(sound::stop_slot_metadata(manager_, i));
-                observed.playing[i] = false;
+                observed.playing[mapped_index] = false;
                 frame.operations.push_back({
                     SoundEffectKind::StopRewindManagedSlot,
                     static_cast<int>(i)

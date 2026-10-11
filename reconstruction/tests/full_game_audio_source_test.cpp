@@ -74,15 +74,23 @@ int main() {
     assert(refused.managed_results[0].rejected_by_exclusive_blocker);
     assert(refused.operations.empty());
 
-    // StopAllManagedSounds retains buffer slots for later replay.
+    // 0x00402C90 must only stop *playing* groups. Cached stopped groups
+    // remain untouched. Here slot 1 plays while slot 0 is allocated/stopped.
     const auto stop = planner.plan({{
         AudioOperation::StopManagedSounds
     }}, exclusive);
-    assert(stop.operations.size() == 2);
+    assert(stop.operations.size() == 1);
     assert(stop.operations[0].kind ==
            SoundEffectKind::StopRewindManagedSlot);
-    assert(stop.operations[1].kind ==
-           SoundEffectKind::StopRewindManagedSlot);
+    assert(stop.operations[0].slot == 1);
+    assert(planner.manager().buffer_group_ptr32[0] != 0);
+    assert(planner.manager().buffer_group_ptr32[1] != 0);
+    assert(planner.manager().state(1) == btb::sound::SlotState::Stopped);
+    // Repeating StopAll against nonplaying buffers must emit no extra stop.
+    const auto stopped_again = planner.plan({{
+        AudioOperation::StopManagedSounds
+    }}, {});
+    assert(stopped_again.operations.empty());
     const auto replay = planner.plan(first, {});
     assert(replay.managed_results[0].status == 1);
     assert(replay.operations.size() == 1);

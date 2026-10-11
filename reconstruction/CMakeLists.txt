@@ -551,3 +551,14 @@ btb_require_cpp26(btb_dsutil_group_runtime PUBLIC)
 add_executable(btb_dsutil_group_runtime_tests tests/dsutil_group_runtime_test.cpp)
 target_link_libraries(btb_dsutil_group_runtime_tests PRIVATE btb_dsutil_group_runtime)
 add_test(NAME dsutil_group_runtime COMMAND btb_dsutil_group_runtime_tests)
+
+# Compile and test the previously source-only native audio planner.
+# This also validates 0x00402C90 StopAllManagedSounds against recovered
+# IsSoundIdPlaying / StopSoundSlot semantics.
+add_library(btb_full_game_audio_source src/full_game_audio.cpp)
+target_include_directories(btb_full_game_audio_source PUBLIC include)
+btb_require_cpp26(btb_full_game_audio_source PUBLIC)
+target_link_libraries(btb_full_game_audio_source PUBLIC btb_sound_manager)
+add_executable(btb_full_game_audio_source_tests tests/full_game_audio_source_test.cpp)
+target_link_libraries(btb_full_game_audio_source_tests PRIVATE btb_full_game_audio_source)
+add_test(NAME full_game_audio_source COMMAND btb_full_game_audio_source_tests)
