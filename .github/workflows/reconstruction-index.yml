@@ -49,6 +49,7 @@ jobs:
       - name: Run registry C++ tests
         run: ctest --test-dir build/reconstruction -R "^original_function_registry$" --output-on-failure
       - name: Commit reviewed status report and dependency queue
+        if: github.ref == 'refs/heads/main'
         shell: bash
         run: |
           set -euo pipefail
