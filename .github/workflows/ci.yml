@@ -20,6 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Regenerate evidence-indexed original-function registry
+        run: python tools/build_reconstruction_index.py
       - name: Install C++26 compiler
         run: |
           sudo apt-get update
@@ -37,6 +42,11 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Regenerate evidence-indexed original-function registry
+        run: python tools/build_reconstruction_index.py
       - name: Configure C++26 Windows game
         run: cmake -S reconstruction -B build/reconstruction-win -G "Visual Studio 18 2026" -A x64
       - name: Build game and integrated regression
