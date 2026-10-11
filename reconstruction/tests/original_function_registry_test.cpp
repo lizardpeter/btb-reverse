@@ -20,7 +20,7 @@ int main() {
     assert(dinosaur != nullptr);
     assert(dinosaur->name == std::string_view{"LoadDinoLevelData"});
     assert(dinosaur->subsystem == OriginalSubsystem::Dinosaur);
-    assert(dinosaur->stage == ReconstructionStage::Unreviewed);
+    assert(dinosaur->stage == ReconstructionStage::SourceWritten);
 
     std::size_t reviewed = 0;
     for (std::size_t i = 0; i < kOriginalFunctions.size(); ++i) {
