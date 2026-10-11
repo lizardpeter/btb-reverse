@@ -22,7 +22,17 @@ constexpr std::size_t source_written_count() {
 int main() {
     static_assert(btb::evidence::kOriginalArchitecture615.size()==615);
     static_assert(unique_address_inventory());
-    static_assert(source_written_count()==191);
+    // This is cumulative implementation progress, not a frozen cohort size.
+    static_assert(source_written_count()>=232);
+    constexpr auto& mapped=btb::evidence::kOriginalArchitecture615;
+    constexpr auto mapped_at=[](std::uint32_t address) constexpr {
+        for(const auto& entry:btb::evidence::kOriginalArchitecture615)
+            if(entry.address==address)return entry.has_source_mapping;
+        return false;
+    };
+    static_assert(mapped_at(0x0040D5B0U)); // Park Designer collision/sort batch
+    static_assert(mapped_at(0x00436640U)); // 64-bit CRT multiplication batch
+    (void)mapped;
     std::size_t runtime_functions=0;
     std::size_t prototypes_with_thiscall=0;
     for(const auto& f:btb::evidence::kOriginalArchitecture615) {
