@@ -24,6 +24,7 @@ class FinalArchitectureTests(unittest.TestCase):
             cls.outputs[builder.ARCH / "architecture_224.csv"])))
         cls.summary = json.loads(
             cls.outputs[builder.ARCH / "architecture_615_summary.json"])
+        cls.reviewed_count = len(builder.common.read_csv(builder.REVIEWED))
 
     def test_exact_disjoint_coverage(self):
         self.assertEqual(len(self.full), 615)
@@ -39,14 +40,16 @@ class FinalArchitectureTests(unittest.TestCase):
             },
         )
         self.assertEqual(self.summary["architecture_mapped"], 615)
-        self.assertEqual(self.summary["source_written"], 191)
-        self.assertEqual(self.summary["architecture_only"], 424)
+        self.assertEqual(self.summary["source_written"], self.reviewed_count)
+        self.assertEqual(self.summary["architecture_only"], 615 - self.reviewed_count)
 
     def test_final_224_are_runtime_only(self):
         self.assertTrue(all(
             r["module_candidate"] == "static_runtime" for r in self.final))
+        # Later C++ reconstruction must not change original architecture cohort.
         self.assertTrue(all(
-            r["source_stage"] == "unreviewed" for r in self.final))
+            r["source_stage"] in ("unreviewed", "source_written")
+            for r in self.final))
         self.assertTrue(all(
             r["mapping_cohort"] == "architecture_batch_224" for r in self.final))
 
@@ -62,7 +65,7 @@ class FinalArchitectureTests(unittest.TestCase):
 
     def test_source_reconstruction_stages_preserved(self):
         mapped = [r for r in self.full if r["source_stage"] == "source_written"]
-        self.assertEqual(len(mapped), 191)
+        self.assertEqual(len(mapped), self.reviewed_count)
         self.assertTrue(all(r["explicit_cpp_source"] for r in mapped))
         self.assertTrue(all(r["cpp_validation_test"] for r in mapped))
         self.assertEqual(

@@ -38,6 +38,7 @@ jobs:
           python tools/build_remaining_architecture.py --check
           python -m unittest discover -s tools/tests -p "test_build_remaining_architecture.py" -v
       - name: Commit generated architecture artifacts
+        if: github.ref == 'refs/heads/main'
         shell: bash
         run: |
           set -euo pipefail
