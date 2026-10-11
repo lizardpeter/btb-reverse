@@ -1,0 +1,57 @@
+name: Validate final 224 and unified 615 architecture functions
+
+on:
+  push:
+    paths:
+      - .github/workflows/architecture-final.yml
+      - tools/build_remaining_architecture.py
+      - tools/build_architecture_map.py
+      - tools/tests/test_build_remaining_architecture.py
+      - analysis/reconstruction/architecture_224_selection.csv
+      - analysis/reconstruction/architecture_200_selection.csv
+      - analysis/reconstruction/reviewed_functions.csv
+      - analysis/ghidra_main_exe/**
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: btb-final-architecture-map
+  cancel-in-progress: false
+
+jobs:
+  map-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generate final and full Ghidra architecture inventories
+        run: python tools/build_remaining_architecture.py
+      - name: Verify provenance and disjoint cohort invariants
+        run: |
+          python tools/build_remaining_architecture.py --check
+          python -m unittest discover -s tools/tests -p "test_build_remaining_architecture.py" -v
+      - name: Commit generated architecture artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add analysis/reconstruction/architecture_224.csv \
+                  analysis/reconstruction/architecture_224_summary.json \
+                  analysis/reconstruction/architecture_615.csv \
+                  analysis/reconstruction/architecture_615_summary.json \
+                  analysis/reconstruction/architecture_615_globals.json \
+                  docs/architecture-final-224.md \
+                  docs/architecture-615-functions.md \
+                  reconstruction/include/btb/original_architecture_615.hpp
+          if git diff --cached --quiet; then echo "No architecture output changes"; exit 0; fi
+          git commit -m "Generate final 224 and complete 615-function architecture evidence maps"
+          git pull --rebase origin main
+          git push origin HEAD:main

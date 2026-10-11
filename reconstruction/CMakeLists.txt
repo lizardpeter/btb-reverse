@@ -667,3 +667,11 @@ add_executable(btb_original_architecture_map_tests
 target_include_directories(btb_original_architecture_map_tests PRIVATE include)
 btb_require_cpp26(btb_original_architecture_map_tests PRIVATE)
 add_test(NAME original_architecture_map COMMAND btb_original_architecture_map_tests)
+
+# Entire 615-function Ghidra architecture map, including the final 224 CRT
+# functions. Metadata test only; no implied C++ behavioral reconstruction.
+add_executable(btb_original_architecture_615_tests
+    tests/original_architecture_615_test.cpp)
+target_include_directories(btb_original_architecture_615_tests PRIVATE include)
+btb_require_cpp26(btb_original_architecture_615_tests PRIVATE)
+add_test(NAME original_architecture_615 COMMAND btb_original_architecture_615_tests)
