@@ -1,0 +1,72 @@
+name: Commit full BTB per-function Ghidra corpus
+
+on:
+  push:
+    paths:
+      - analysis/ghidra_import/btb_full_corpus.tar.gz
+      - .github/workflows/ghidra-corpus-import.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: btb-ghidra-corpus-commit
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Extract indexed per-function pseudocode (never source EXE)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCHIVE=analysis/ghidra_import/btb_full_corpus.tar.gz
+          test -s "$ARCHIVE"
+          mkdir -p analysis/ghidra_main_exe
+          python3 - <<'PY'
+          import tarfile, pathlib
+          p=pathlib.Path('analysis/ghidra_import/btb_full_corpus.tar.gz')
+          out=pathlib.Path('analysis/ghidra_main_exe')
+          with tarfile.open(p, 'r:gz') as archive:
+              for member in archive.getmembers():
+                  relative=pathlib.PurePosixPath(member.name)
+                  if not relative.parts or relative.is_absolute() or '..' in relative.parts or not member.isfile():
+                      raise RuntimeError('Unexpected path in decompilation corpus: '+member.name)
+                  if not (relative.parts[0]=='functions' or relative.name in ('manifest.json','functions.csv','callgraph.csv','failures.csv','known_symbol_failures.csv','external_symbols.csv')):
+                      raise RuntimeError('Unexpected archive entry: '+member.name)
+              archive.extractall(out, filter='data')
+          import json, csv
+          m=json.loads((out/'manifest.json').read_text())
+          assert m['expected_exe_sha256']=='c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05'
+          assert m['expected_exe_size']==311296
+          with (out/'functions.csv').open(newline='') as f:
+              rows=list(csv.DictReader(f))
+          assert len(rows)==m['function_count'] and m['function_count']>0
+          assert len(list((out/'functions').glob('*.c')))==m['function_count']
+          assert sum(x['decompiled']=='1' for x in rows)==m['decompiled_count']
+          assert m['decompiled_count']+m['failed_count']==m['function_count']
+          print('Validated functions:',m['function_count'],'decompiled:',m['decompiled_count'])
+          PY
+          if find analysis/ghidra_main_exe -type f \( -iname '*.exe' -o -iname '*.dll' -o -iname '*.bin' \) | grep -q .; then
+            echo 'Refusing to commit original proprietary binary' >&2; exit 1
+          fi
+      - name: Commit permanently to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add analysis/ghidra_main_exe
+          if git diff --cached --quiet; then
+            echo 'Corpus already current'
+            exit 0
+          fi
+          git commit -m "Import verified full-game Ghidra pseudocode corpus by function address"
+          git pull --rebase origin main
+          git push origin HEAD:main
