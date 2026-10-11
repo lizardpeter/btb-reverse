@@ -172,7 +172,7 @@ int main() {
     restart_bink_movie(movie,goto_frame);
     assert(goto_calls==1&&last_movie==movie);
     assert(last_frame==1&&last_flags==0);
-    close_bink_movie(movie,close);
+    close_bink_movie(movie,close_movie);
     assert(close_calls==1&&last_movie==movie);
 
     // 00415D30 x87-length semantic model (host rounding may differ).
