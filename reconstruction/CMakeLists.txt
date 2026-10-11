@@ -727,3 +727,19 @@ target_include_directories(btb_retail_source_batch_32_tests PRIVATE include)
 btb_require_cpp26(btb_retail_source_batch_32_tests PRIVATE)
 add_test(NAME retail_source_batch_32
     COMMAND btb_retail_source_batch_32_tests)
+
+
+# Retail Park Designer scene closure: 8 interconnected original functions.
+# Use the exact 400 x 76-byte native save layout and verified polygon parity.
+add_library(btb_park_designer_scene
+    src/park_designer_scene.cpp
+)
+target_include_directories(btb_park_designer_scene PUBLIC include)
+btb_require_cpp26(btb_park_designer_scene PUBLIC)
+add_executable(btb_park_designer_scene_tests
+    tests/park_designer_scene_test.cpp
+)
+target_link_libraries(btb_park_designer_scene_tests PRIVATE
+    btb_park_designer_scene
+)
+add_test(NAME park_designer_scene COMMAND btb_park_designer_scene_tests)
