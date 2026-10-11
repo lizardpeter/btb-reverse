@@ -1,20 +1,20 @@
 address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,notes,pseudocode,direct_callers,internal_callees,external_callees,unresolved_callees,scc_group
 0x00401000,PlayHelpVoice,shared_platform,source_written,reconstruction/src/full_game_audio.cpp,reconstruction/tests/full_game_audio_source_test.cpp,docs/retail-runtime-closure-batch.md,PlayHelpVoice reconstructed source semantics and tested; original x86 parity and ABI not certified,analysis/ghidra_main_exe/functions/00401000.c,2,2,0,1,0
-0x00401030,LoadHelpInfo,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00401030.c,1,3,0,2,1
+0x00401030,LoadHelpInfo,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00401030.c,1,3,0,1,1
 0x004011B0,EnterContextualHelpMode,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004011B0.c,1,1,0,0,2
 0x00401700,UpdateContextualHelpMode,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00401700.c,1,4,0,0,3
 0x00401E20,CreateMainGameWindow,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00401E20.c,1,0,9,0,4
 0x00401F80,InitializeDisplayForGameWindow,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,InitializeDisplayForGameWindow source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00401F80.c,1,1,0,1,5
-0x00401FA0,CreateOrResetDisplayManager,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00401FA0.c,3,7,4,4,6
-0x004020A0,DestroyDisplayManager,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,DestroyDisplayManager source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/004020A0.c,1,2,0,1,7
-0x004020D0,MainWindowProc,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004020D0.c,0,10,6,3,8
-0x00402440,RunActiveGameFrame,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00402440.c,1,12,4,7,9
+0x00401FA0,CreateOrResetDisplayManager,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00401FA0.c,3,7,4,2,6
+0x004020A0,DestroyDisplayManager,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,DestroyDisplayManager source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/004020A0.c,1,2,0,0,7
+0x004020D0,MainWindowProc,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004020D0.c,0,10,6,2,8
+0x00402440,RunActiveGameFrame,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00402440.c,1,12,4,6,9
 0x00402600,PresentGameFrame,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,PresentGameFrame source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00402600.c,1,1,0,0,10
 0x00402620,RestoreAllDirectDrawSurfaces,shared_platform,source_written,reconstruction/include/btb/retail_runtime_closure.hpp,reconstruction/tests/retail_runtime_closure_test.cpp,docs/retail-runtime-closure-batch.md,RestoreAllDirectDrawSurfaces reconstructed source semantics and tested; original x86 parity and ABI not certified,analysis/ghidra_main_exe/functions/00402620.c,1,0,0,0,11
-0x00402640,FullscreenSystemKeyHook,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00402640.c,0,0,2,0,12
-0x00402700,WinMain,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00402700.c,1,23,17,16,13
+0x00402640,FullscreenSystemKeyHook,shared_platform,source_written,reconstruction/include/btb/retail_game_batch70.hpp,reconstruction/tests/retail_game_batch70_test.cpp,docs/batch-71-genuine-functions.md,FullscreenSystemKeyHook | game-semantics | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00402640.c,0,0,2,0,12
+0x00402700,WinMain,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00402700.c,1,23,17,12,13
 0x00402AF0,NoOpLegacyHook,shared_platform,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 00402AF0 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/00402AF0.c,22,0,0,0,14
-0x00402B00,SoundManagerConstructor,shared_platform,source_written,reconstruction/src/full_game_audio.cpp,reconstruction/tests/full_game_audio_source_test.cpp,docs/retail-activity-closure-batch.md,SoundManagerConstructor source state machine model with native provider callbacks and regression coverage; retail ABI parity unverified,analysis/ghidra_main_exe/functions/00402B00.c,1,3,0,2,15
+0x00402B00,SoundManagerConstructor,shared_platform,source_written,reconstruction/src/full_game_audio.cpp,reconstruction/tests/full_game_audio_source_test.cpp,docs/retail-activity-closure-batch.md,SoundManagerConstructor source state machine model with native provider callbacks and regression coverage; retail ABI parity unverified,analysis/ghidra_main_exe/functions/00402B00.c,1,3,0,1,15
 0x00402BC0,ReleaseSoundSlot,shared_platform,source_written,reconstruction/include/btb/retail_shared_runtime.hpp,reconstruction/tests/retail_shared_runtime_test.cpp,docs/shared-runtime-reconstruction-batch.md,ReleaseSoundSlot Ghidra-source-derived host-neutral semantics with C++ test; not retail ABI parity,analysis/ghidra_main_exe/functions/00402BC0.c,1,0,0,0,16
 0x00402C20,AnyManagedSoundPlaying,shared_platform,source_written,reconstruction/include/btb/sound_manager.hpp,reconstruction/tests/sound_manager_test.cpp,docs/sound-system.md,Native first-playing-sound scan over 80 assigned IDs,analysis/ghidra_main_exe/functions/00402C20.c,21,1,0,0,17
 0x00402C60,IsSoundIdPlaying,shared_platform,source_written,reconstruction/include/btb/sound_manager.hpp,reconstruction/tests/sound_manager_test.cpp,docs/sound-system.md,Native reverse sound-ID slot mapping and observed playback test; invalid retail metadata guarded,analysis/ghidra_main_exe/functions/00402C60.c,12,1,0,0,18
@@ -36,7 +36,7 @@ address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,not
 0x004036E0,MarkRegisteredSurfaceColorKeyed,shared_platform,source_written,reconstruction/include/btb/bitmap_registry.hpp,reconstruction/tests/bitmap_registry_test.cpp,docs/graphics-system.md,Recovered mark-surface-keyed state mutation; not independently parity-tested against retail,analysis/ghidra_main_exe/functions/004036E0.c,23,0,0,0,34
 0x00403720,UnregisterBitmapSurface,shared_platform,source_written,reconstruction/include/btb/bitmap_registry.hpp,reconstruction/tests/bitmap_registry_test.cpp,docs/graphics-system.md,Recovered surface removal behavior preserving high-water index,analysis/ghidra_main_exe/functions/00403720.c,23,0,0,0,35
 0x00403770,RegisterBitmapSurface,shared_platform,source_written,reconstruction/src/bitmap_registry.cpp,reconstruction/tests/bitmap_registry_test.cpp,docs/graphics-system.md,Recovered registry insertion model; adds explicit overflow guard to avoid retail out-of-bounds,analysis/ghidra_main_exe/functions/00403770.c,25,0,0,0,36
-0x00403830,ReloadRegisteredBitmapSurfaces,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00403830.c,1,2,0,1,37
+0x00403830,ReloadRegisteredBitmapSurfaces,shared_platform,source_written,reconstruction/include/btb/retail_game_batch70.hpp,reconstruction/tests/retail_game_batch70_test.cpp,docs/batch-71-genuine-functions.md,ReloadRegisteredBitmapSurfaces | game-semantics | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00403830.c,1,2,0,1,37
 0x004038D0,LoadBitmapToDirectDrawSurface,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004038D0.c,26,3,3,2,38
 0x00403A70,FUN_00403a70,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00403A70.c,1,0,2,0,39
 0x00403B70,SetSurfaceTransparencyColorKey,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,SetSurfaceTransparencyColorKey source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00403B70.c,23,2,0,1,40
@@ -44,29 +44,29 @@ address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,not
 0x00403BC0,CSoundManager_Destructor,shared_platform,source_written,reconstruction/include/btb/retail_shared_runtime.hpp,reconstruction/tests/retail_shared_runtime_test.cpp,docs/shared-runtime-reconstruction-batch.md,CSoundManager_Destructor Ghidra-source-derived host-neutral semantics with C++ test; not retail ABI parity,analysis/ghidra_main_exe/functions/00403BC0.c,1,0,0,0,42
 0x00403BE0,CSoundManager_Initialize,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,CSoundManager_Initialize source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00403BE0.c,1,2,0,2,43
 0x00403C40,CSoundManager_SetPrimaryBufferFormat,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00403C40.c,1,0,0,0,44
-0x00403D20,CSoundManager_Create,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00403D20.c,7,7,0,4,45
-0x00403FF0,CSound_Constructor,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00403FF0.c,1,2,0,2,46
-0x00404070,CSound_ScalarDeletingDestructor,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,CSound_ScalarDeletingDestructor source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00404070.c,0,2,0,1,47
-0x00404090,CSound_Destructor,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,CSound_Destructor source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00404090.c,1,2,0,1,48
+0x00403D20,CSoundManager_Create,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00403D20.c,7,7,0,2,45
+0x00403FF0,CSound_Constructor,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00403FF0.c,1,2,0,1,46
+0x00404070,CSound_ScalarDeletingDestructor,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,CSound_ScalarDeletingDestructor source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00404070.c,0,2,0,0,47
+0x00404090,CSound_Destructor,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,CSound_Destructor source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00404090.c,1,2,0,0,48
 0x00404100,CSound_FillBufferWithSound,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00404100.c,2,3,0,1,49
 0x00404270,CSound_RestoreBuffer,shared_platform,source_written,reconstruction/include/btb/retail_activity_closure.hpp,reconstruction/tests/retail_activity_closure_test.cpp,docs/retail-activity-closure-batch.md,CSound_RestoreBuffer source state machine model with native provider callbacks and regression coverage; retail ABI parity unverified,analysis/ghidra_main_exe/functions/00404270.c,2,0,1,0,50
-0x004042F0,CSound_GetFreeBuffer,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,CSound_GetFreeBuffer source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/004042F0.c,1,1,0,1,51
+0x004042F0,CSound_GetFreeBuffer,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,CSound_GetFreeBuffer source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/004042F0.c,1,1,0,0,51
 0x00404360,CSound_Play,shared_platform,source_written,reconstruction/include/btb/retail_activity_closure.hpp,reconstruction/tests/retail_activity_closure_test.cpp,docs/retail-activity-closure-batch.md,CSound_Play source state machine model with native provider callbacks and regression coverage; retail ABI parity unverified,analysis/ghidra_main_exe/functions/00404360.c,14,4,0,1,52
 0x004043F0,CSound_SetVolume,shared_platform,source_written,reconstruction/include/btb/retail_shared_runtime.hpp,reconstruction/tests/retail_shared_runtime_test.cpp,docs/shared-runtime-reconstruction-batch.md,CSound_SetVolume Ghidra-source-derived host-neutral semantics with C++ test; not retail ABI parity,analysis/ghidra_main_exe/functions/004043F0.c,1,0,0,0,53
 0x00404430,CSound_Stop,shared_platform,source_written,reconstruction/src/dsutil_group_runtime.cpp,reconstruction/tests/dsutil_group_runtime_test.cpp,docs/dsutil-group-runtime.md,Native Stop HRESULT OR and no-short-circuit policy; mock DirectSound callback tests,analysis/ghidra_main_exe/functions/00404430.c,21,0,0,0,54
 0x00404470,CSound_Reset,shared_platform,source_written,reconstruction/src/dsutil_group_runtime.cpp,reconstruction/tests/dsutil_group_runtime_test.cpp,docs/dsutil-group-runtime.md,Native reset all buffer cursors to zero OR HRESULTs,analysis/ghidra_main_exe/functions/00404470.c,7,0,0,0,55
 0x004044B0,CSound_IsSoundPlaying,shared_platform,source_written,reconstruction/src/dsutil_group_runtime.cpp,reconstruction/tests/dsutil_group_runtime_test.cpp,docs/dsutil-group-runtime.md,Native bit0 playback query ignores HRESULT and skips null buffers,analysis/ghidra_main_exe/functions/004044B0.c,6,0,0,0,56
 0x00404510,CWaveFile_Constructor,shared_platform,source_written,reconstruction/include/btb/retail_shared_runtime.hpp,reconstruction/tests/retail_shared_runtime_test.cpp,docs/shared-runtime-reconstruction-batch.md,CWaveFile_Constructor Ghidra-source-derived host-neutral semantics with C++ test; not retail ABI parity,analysis/ghidra_main_exe/functions/00404510.c,1,0,0,0,57
-0x00404530,CWaveFile_Destructor,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,CWaveFile_Destructor source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00404530.c,2,2,0,2,58
-0x00404560,CWaveFile_Open,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00404560.c,1,5,6,4,59
-0x00404750,CWaveFile_ReadMMIO,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00404750.c,1,2,3,2,60
+0x00404530,CWaveFile_Destructor,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,CWaveFile_Destructor source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00404530.c,2,2,0,1,58
+0x00404560,CWaveFile_Open,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00404560.c,1,5,6,2,59
+0x00404750,CWaveFile_ReadMMIO,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00404750.c,1,2,3,0,60
 0x004048E0,CWaveFile_GetSize,shared_platform,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 004048E0 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/004048E0.c,1,0,0,0,61
 0x004048F0,CWaveFile_ResetFile,shared_platform,source_written,reconstruction/include/btb/retail_activity_closure.hpp,reconstruction/tests/retail_activity_closure_test.cpp,docs/retail-activity-closure-batch.md,CWaveFile_ResetFile source state machine model with native provider callbacks and regression coverage; retail ABI parity unverified,analysis/ghidra_main_exe/functions/004048F0.c,2,0,4,0,62
 0x004049B0,CWaveFile_Read,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004049B0.c,1,0,3,0,63
 0x00404B30,CWaveFile_Close,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00404B30.c,1,0,6,0,64
 0x00404C60,FUN_00404c60,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00404C60.c,1,0,3,0,65
 0x00404DD0,BitmapPrinterConstructor,shared_platform,source_written,reconstruction/include/btb/retail_shared_runtime.hpp,reconstruction/tests/retail_shared_runtime_test.cpp,docs/shared-runtime-reconstruction-batch.md,BitmapPrinterConstructor Ghidra-source-derived host-neutral semantics with C++ test; not retail ABI parity,analysis/ghidra_main_exe/functions/00404DD0.c,1,0,0,0,66
-0x00404E10,BitmapPrinterDestructor,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,BitmapPrinterDestructor source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00404E10.c,2,1,0,1,67
+0x00404E10,BitmapPrinterDestructor,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,BitmapPrinterDestructor source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00404E10.c,2,1,0,0,67
 0x00404E30,BitmapPrinterSetBitmap,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00404E30.c,0,4,1,4,68
 0x00404F90,BitmapPrinterRenderToDC,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00404F90.c,0,6,0,5,69
 0x00405140,BitmapPrinterPrintDocument,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00405140.c,0,6,4,5,70
@@ -77,42 +77,42 @@ address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,not
 0x00405490,BitmapPrinterComputeTargetRect,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00405490.c,0,1,2,1,75
 0x004056C0,MapClippedPrintRectToSource,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004056C0.c,0,1,1,1,76
 0x004057E0,BitmapPrinterStretchDIBToPrinter,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004057E0.c,0,5,6,4,77
-0x00405C40,BitmapPrinterImportDDB,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00405C40.c,0,8,6,7,78
-0x00405EE0,BitmapPrinterImportDIBSection,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00405EE0.c,0,6,5,6,79
-0x00406110,FUN_00406110,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,FUN_00406110 source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00406110.c,15,1,0,1,80
-0x00406150,MsvcStringAssignSubstring,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406150.c,9,10,0,7,81
-0x00406350,MsvcStringTidy,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,MsvcStringTidy source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00406350.c,15,1,0,1,82
+0x00405C40,BitmapPrinterImportDDB,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00405C40.c,0,8,6,5,78
+0x00405EE0,BitmapPrinterImportDIBSection,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00405EE0.c,0,6,5,4,79
+0x00406110,FUN_00406110,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,FUN_00406110 source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00406110.c,15,1,0,0,80
+0x00406150,MsvcStringAssignSubstring,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406150.c,9,10,0,6,81
+0x00406350,MsvcStringTidy,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,MsvcStringTidy source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00406350.c,15,1,0,0,82
 0x004063A0,MsvcStringAssignBuffer,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004063A0.c,5,3,0,2,81
 0x00406440,MsvcStringSetEnd,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,MsvcStringSetEnd source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00406440.c,2,0,0,0,83
-0x00406460,MsvcStringGrow,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406460.c,9,3,0,3,81
-0x00406580,FUN_00406580,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406580.c,1,2,0,2,84
-0x00406600,FUN_00406600,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406600.c,0,2,0,2,85
+0x00406460,MsvcStringGrow,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406460.c,9,3,0,2,81
+0x00406580,FUN_00406580,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406580.c,1,2,0,0,84
+0x00406600,FUN_00406600,shared_platform,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,RetailScalarDeletingException | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00406600.c,0,2,0,1,85
 0x00406620,FUN_00406620,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406620.c,0,7,0,5,86
 0x00406780,FUN_00406780,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,FUN_00406780 source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00406780.c,1,0,0,0,87
-0x00406790,MsvcStringAllocateCopyBuffer,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406790.c,4,2,0,2,88
-0x004067E9,Catch@004067e9,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004067E9.c,0,1,0,1,89
-0x00406810,FUN_00406810,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406810.c,1,1,0,1,90
+0x00406790,MsvcStringAllocateCopyBuffer,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406790.c,4,2,0,1,88
+0x004067E9,Catch@004067e9,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004067E9.c,0,1,0,0,89
+0x00406810,FUN_00406810,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406810.c,1,1,0,0,90
 0x004068A0,MsvcStringDetachSharedBuffer,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004068A0.c,2,3,0,2,81
 0x00406970,BitmapPrinterGetDocumentName,shared_platform,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 00406970 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/00406970.c,0,0,0,0,91
 0x00406980,BitmapPrinterGetTargetRect,shared_platform,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 00406980 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/00406980.c,0,0,0,0,92
 0x004069B0,BitmapPrinterGetScaleMode,shared_platform,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 004069B0 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/004069B0.c,0,0,0,0,93
-0x004069C0,LoadCreditsSlideshow,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004069C0.c,1,7,2,3,94
+0x004069C0,LoadCreditsSlideshow,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004069C0.c,1,7,2,2,94
 0x00406AD0,UpdateCreditsSlideshow,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406AD0.c,1,2,2,0,95
-0x00406C00,AbortForRemovedRetailCD,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406C00.c,4,6,3,3,96
-0x00406CB0,FUN_00406cb0,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406CB0.c,1,4,3,4,97
-0x00406E10,OpenGameDataFileWithCDFallback,shared_platform,source_written,reconstruction/include/btb/retail_media_game_closure.hpp,reconstruction/tests/retail_media_game_closure_test.cpp,docs/batch-35-original-functions.md,OpenGameDataFileWithCDFallback source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00406E10.c,28,2,0,2,98
-0x00406EB0,LoadHelpWavTable,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406EB0.c,1,4,0,2,99
-0x00406F60,LoadNumUiHotAreaTable,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406F60.c,1,4,0,2,100
-0x00406FD0,LoadUiHotAreas,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406FD0.c,1,4,0,2,101
-0x00407100,LoadUiHotAreaReplacements,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00407100.c,1,5,0,3,102
-0x00407330,LoadUiBitmapNames,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00407330.c,1,4,0,2,103
-0x00407390,LoadOptionsConfig,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00407390.c,1,4,0,2,104
-0x00407430,LoadPlayAgainOverlayData,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00407430.c,1,4,0,2,105
-0x004074F0,LoadQuitConfirmationData,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004074F0.c,1,4,0,2,106
-0x00407770,LoadVideoSequence,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00407770.c,1,4,0,2,107
-0x004077F0,LoadBinkWalkthroughTable,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004077F0.c,1,4,0,2,108
-0x00407870,LoadStartupAndCompletionMovies,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00407870.c,1,4,0,2,109
-0x00407920,LoadGlobalDataTables,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00407920.c,1,11,0,11,110
+0x00406C00,AbortForRemovedRetailCD,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406C00.c,4,6,3,2,96
+0x00406CB0,FUN_00406cb0,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406CB0.c,1,4,3,3,97
+0x00406E10,OpenGameDataFileWithCDFallback,shared_platform,source_written,reconstruction/include/btb/retail_media_game_closure.hpp,reconstruction/tests/retail_media_game_closure_test.cpp,docs/batch-35-original-functions.md,OpenGameDataFileWithCDFallback source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00406E10.c,28,2,0,1,98
+0x00406EB0,LoadHelpWavTable,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406EB0.c,1,4,0,1,99
+0x00406F60,LoadNumUiHotAreaTable,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406F60.c,1,4,0,1,100
+0x00406FD0,LoadUiHotAreas,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00406FD0.c,1,4,0,1,101
+0x00407100,LoadUiHotAreaReplacements,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00407100.c,1,5,0,1,102
+0x00407330,LoadUiBitmapNames,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00407330.c,1,4,0,1,103
+0x00407390,LoadOptionsConfig,shared_platform,source_written,reconstruction/include/btb/retail_game_batch70.hpp,reconstruction/tests/retail_game_batch70_test.cpp,docs/batch-71-genuine-functions.md,LoadOptionsConfig | game-semantics | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00407390.c,1,4,0,1,104
+0x00407430,LoadPlayAgainOverlayData,shared_platform,source_written,reconstruction/include/btb/retail_game_batch70.hpp,reconstruction/tests/retail_game_batch70_test.cpp,docs/batch-71-genuine-functions.md,LoadPlayAgainOverlayData | game-semantics | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00407430.c,1,4,0,1,105
+0x004074F0,LoadQuitConfirmationData,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004074F0.c,1,4,0,1,106
+0x00407770,LoadVideoSequence,shared_platform,source_written,reconstruction/include/btb/retail_game_batch70.hpp,reconstruction/tests/retail_game_batch70_test.cpp,docs/batch-71-genuine-functions.md,LoadVideoSequence | game-semantics | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00407770.c,1,4,0,1,107
+0x004077F0,LoadBinkWalkthroughTable,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004077F0.c,1,4,0,1,108
+0x00407870,LoadStartupAndCompletionMovies,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00407870.c,1,4,0,1,109
+0x00407920,LoadGlobalDataTables,shared_platform,source_written,reconstruction/include/btb/retail_game_batch70.hpp,reconstruction/tests/retail_game_batch70_test.cpp,docs/batch-71-genuine-functions.md,LoadGlobalDataTables | game-semantics | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00407920.c,1,11,0,8,110
 0x00407960,BeginLoadingCursorAnimation,shared_platform,source_written,reconstruction/include/btb/retail_shared_runtime.hpp,reconstruction/tests/retail_shared_runtime_test.cpp,docs/shared-runtime-reconstruction-batch.md,BeginLoadingCursorAnimation Ghidra-source-derived host-neutral semantics with C++ test; not retail ABI parity,analysis/ghidra_main_exe/functions/00407960.c,2,2,0,0,111
 0x004079C0,EndLoadingCursorAnimation,shared_platform,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 004079C0 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/004079C0.c,2,0,0,0,112
 0x004079E0,UpdateLoadingCursorAnimation,shared_platform,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 004079E0 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/004079E0.c,2,1,0,1,113
@@ -141,21 +141,21 @@ address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,not
 0x00409210,ApplyGlobalBinkVolume,shared_platform,source_written,reconstruction/include/btb/retail_media_game_closure.hpp,reconstruction/tests/retail_media_game_closure_test.cpp,docs/batch-35-original-functions.md,ApplyGlobalBinkVolume source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00409210.c,4,1,1,1,136
 0x00409260,PauseGlobalBinkMovie,shared_platform,source_written,reconstruction/include/btb/retail_shared_runtime.hpp,reconstruction/tests/retail_shared_runtime_test.cpp,docs/shared-runtime-reconstruction-batch.md,PauseGlobalBinkMovie Ghidra-source-derived host-neutral semantics with C++ test; not retail ABI parity,analysis/ghidra_main_exe/functions/00409260.c,1,1,2,0,137
 0x004092A0,ResumeGlobalBinkMovie,shared_platform,source_written,reconstruction/include/btb/retail_shared_runtime.hpp,reconstruction/tests/retail_shared_runtime_test.cpp,docs/shared-runtime-reconstruction-batch.md,ResumeGlobalBinkMovie Ghidra-source-derived host-neutral semantics with C++ test; not retail ABI parity,analysis/ghidra_main_exe/functions/004092A0.c,5,2,1,0,138
-0x004092D0,FUN_004092d0,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004092D0.c,1,3,1,1,139
-0x00409390,ShutdownDirectSound8,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,ShutdownDirectSound8 source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00409390.c,2,2,0,1,140
+0x004092D0,FUN_004092d0,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/004092D0.c,1,3,1,0,139
+0x00409390,ShutdownDirectSound8,shared_platform,source_written,reconstruction/include/btb/retail_system_closure.hpp,reconstruction/tests/retail_system_closure_test.cpp,docs/batch-35-original-functions.md,ShutdownDirectSound8 source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00409390.c,2,2,0,0,140
 0x004093C0,ApplyGlobalGameVolume,shared_platform,source_written,reconstruction/include/btb/retail_media_game_closure.hpp,reconstruction/tests/retail_media_game_closure_test.cpp,docs/batch-35-original-functions.md,ApplyGlobalGameVolume source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/004093C0.c,7,4,0,0,141
-0x00409460,ExportBackBufferToPrintBitmap,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00409460.c,1,5,0,5,142
-0x00409730,ExportAndPrintGameImage,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00409730.c,3,7,7,5,143
+0x00409460,ExportBackBufferToPrintBitmap,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00409460.c,1,5,0,2,142
+0x00409730,ExportAndPrintGameImage,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00409730.c,3,7,7,2,143
 0x00409990,DrawDinoActivity,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00409990.c,1,1,0,1,144
 0x00409C60,IsDinoCursorNearPoint,shared_platform,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 00409C60 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/00409C60.c,1,0,0,0,145
 0x00409CA0,IsDinoCursorInsideRect,shared_platform,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 00409CA0 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/00409CA0.c,4,0,0,0,146
-0x00409CD0,UpdateDinoPrintButton,shared_platform,unreviewed,,,,,analysis/ghidra_main_exe/functions/00409CD0.c,1,3,0,2,147
-0x00409E00,UpdateDinoActivity,dinosaur,unreviewed,,,,,analysis/ghidra_main_exe/functions/00409E00.c,1,16,0,6,148
-0x0040A440,LoadDinoLevelData,dinosaur,source_written,reconstruction/src/dino_level.cpp,reconstruction/tests/dino_level_test.cpp,docs/dino-activity.md,Recovered data parser semantic model with stricter host validation; not a compiled original ABI function,analysis/ghidra_main_exe/functions/0040A440.c,1,4,0,3,149
+0x00409CD0,UpdateDinoPrintButton,shared_platform,source_written,reconstruction/include/btb/retail_game_batch70.hpp,reconstruction/tests/retail_game_batch70_test.cpp,docs/batch-71-genuine-functions.md,UpdateDinoPrintButton | game-semantics | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00409CD0.c,1,3,0,2,147
+0x00409E00,UpdateDinoActivity,dinosaur,unreviewed,,,,,analysis/ghidra_main_exe/functions/00409E00.c,1,16,0,4,148
+0x0040A440,LoadDinoLevelData,dinosaur,source_written,reconstruction/src/dino_level.cpp,reconstruction/tests/dino_level_test.cpp,docs/dino-activity.md,Recovered data parser semantic model with stricter host validation; not a compiled original ABI function,analysis/ghidra_main_exe/functions/0040A440.c,1,4,0,2,149
 0x0040A530,UnloadDinoActivityResources,dinosaur,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040A530.c,2,3,0,0,150
 0x0040A670,InitializeDinoActivity,dinosaur,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040A670.c,1,7,0,2,151
-0x0040AC90,SaveParkDesignerData,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040AC90.c,1,3,0,3,152
-0x0040AEA0,LoadParkDesignerData,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040AEA0.c,1,6,0,5,153
+0x0040AC90,SaveParkDesignerData,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040AC90.c,1,3,0,2,152
+0x0040AEA0,LoadParkDesignerData,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040AEA0.c,1,6,0,3,153
 0x0040B190,UnloadParkDesignerActivityResources,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040B190.c,1,3,0,1,154
 0x0040B7E0,InitializeParkDesignerActivity,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040B7E0.c,1,6,0,2,155
 0x0040D1D0,ApplyParkDesignerSeason,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040D1D0.c,2,0,0,0,156
@@ -165,9 +165,9 @@ address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,not
 0x0040D5B0,CompareParkDesignerObjectsForDraw,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040D5B0.c,0,0,0,0,160
 0x0040D780,CompareParkDesignerObjectsBySortLayer,park_designer,source_written,reconstruction/include/btb/retail_shared_runtime.hpp,reconstruction/tests/retail_shared_runtime_test.cpp,docs/shared-runtime-reconstruction-batch.md,CompareParkDesignerObjectsBySortLayer Ghidra-source-derived host-neutral semantics with C++ test; not retail ABI parity,analysis/ghidra_main_exe/functions/0040D780.c,0,0,0,0,161
 0x0040D7D0,DrawParkDesignerSegmentedPondSurface,park_designer,source_written,reconstruction/include/btb/retail_activity_closure.hpp,reconstruction/tests/retail_activity_closure_test.cpp,docs/retail-activity-closure-batch.md,DrawParkDesignerSegmentedPondSurface source state machine model with native provider callbacks and regression coverage; retail ABI parity unverified,analysis/ghidra_main_exe/functions/0040D7D0.c,1,1,0,1,162
-0x0040D870,DrawParkDesignerPondSurfaceSegment,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040D870.c,1,1,0,1,163
+0x0040D870,DrawParkDesignerPondSurfaceSegment,park_designer,source_written,reconstruction/include/btb/retail_game_batch70.hpp,reconstruction/tests/retail_game_batch70_test.cpp,docs/batch-71-genuine-functions.md,DrawParkDesignerPondSurfaceSegment | game-semantics | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0040D870.c,1,1,0,1,163
 0x0040D900,UpdateAndDrawParkDesignerFountain,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040D900.c,1,1,0,1,164
-0x0040DA60,DrawSortedParkDesignerObjects,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040DA60.c,1,4,0,3,165
+0x0040DA60,DrawSortedParkDesignerObjects,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040DA60.c,1,4,0,2,165
 0x0040DB50,DrawParkDesignerActivity,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040DB50.c,2,2,0,2,166
 0x0040DBE0,RefreshParkDesignerObjectGeometry,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040DBE0.c,1,0,0,0,167
 0x0040DC90,ClearPondPrimaryObjectsBySelector,park_designer,source_written,reconstruction/include/btb/retail_shared_runtime.hpp,reconstruction/tests/retail_shared_runtime_test.cpp,docs/shared-runtime-reconstruction-batch.md,ClearPondPrimaryObjectsBySelector Ghidra-source-derived host-neutral semantics with C++ test; not retail ABI parity,analysis/ghidra_main_exe/functions/0040DC90.c,1,0,0,0,168
@@ -176,9 +176,9 @@ address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,not
 0x0040DD50,ParkDesignerRectanglesDoNotOverlapBySamplePoints,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040DD50.c,1,1,0,0,171
 0x0040DFF0,CanPlaceParkDesignerObjectWithoutOverlap,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040DFF0.c,1,1,0,1,172
 0x0040E2B0,CompactParkDesignerObjectRecordFamilies,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040E2B0.c,1,0,0,0,173
-0x0040E3E0,FinishParkDesignerObjectDrag,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040E3E0.c,1,1,0,0,174
-0x0040E440,UpdateParkDesignerEditorInteraction,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040E440.c,1,25,0,11,175
-0x00410D10,UpdateParkDesignerActivity,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/00410D10.c,1,12,0,6,176
+0x0040E3E0,FinishParkDesignerObjectDrag,park_designer,source_written,reconstruction/include/btb/retail_game_batch70.hpp,reconstruction/tests/retail_game_batch70_test.cpp,docs/batch-71-genuine-functions.md,FinishParkDesignerObjectDrag | game-semantics | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0040E3E0.c,1,1,0,0,174
+0x0040E440,UpdateParkDesignerEditorInteraction,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/0040E440.c,1,25,0,9,175
+0x00410D10,UpdateParkDesignerActivity,park_designer,unreviewed,,,,,analysis/ghidra_main_exe/functions/00410D10.c,1,12,0,5,176
 0x00410F70,PlayInputInterruptibleParkDesignerVoice,park_designer,source_written,reconstruction/src/full_game_audio.cpp,reconstruction/tests/full_game_audio_source_test.cpp,docs/batch-35-original-functions.md,PlayInputInterruptibleParkDesignerVoice source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00410F70.c,2,2,0,1,177
 0x00410FD0,CanPlaceFireworkGridItem,fireworks,source_written,reconstruction/include/btb/retail_shared_runtime.hpp,reconstruction/tests/retail_shared_runtime_test.cpp,docs/shared-runtime-reconstruction-batch.md,CanPlaceFireworkGridItem Ghidra-source-derived host-neutral semantics with C++ test; not retail ABI parity,analysis/ghidra_main_exe/functions/00410FD0.c,2,0,0,0,178
 0x00411010,PlaceFireworkGridItem,fireworks,source_written,reconstruction/include/btb/retail_runtime_closure.hpp,reconstruction/tests/retail_runtime_closure_test.cpp,docs/retail-runtime-closure-batch.md,PlaceFireworkGridItem reconstructed source semantics and tested; original x86 parity and ABI not certified,analysis/ghidra_main_exe/functions/00411010.c,2,1,0,0,179
@@ -186,143 +186,143 @@ address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,not
 0x004110E0,UnloadFireworksEditorResources,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/004110E0.c,2,1,0,0,181
 0x004111C0,UnloadFireworkMovieBank,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/004111C0.c,2,3,0,1,182
 0x004112A0,LoadFireworksEditorResources,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/004112A0.c,2,4,0,1,183
-0x004115C0,LoadFireworkMovieBank,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/004115C0.c,1,10,0,5,184
-0x00411B10,SaveFireworksLayoutAndUnloadResources,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/00411B10.c,1,7,0,5,185
-0x00411C80,InitializeFireworksActivity,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/00411C80.c,1,12,0,7,186
-0x004126F0,HitTestFireworksEditorRegions,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/004126F0.c,1,3,0,2,187
+0x004115C0,LoadFireworkMovieBank,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/004115C0.c,1,10,0,4,184
+0x00411B10,SaveFireworksLayoutAndUnloadResources,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/00411B10.c,1,7,0,4,185
+0x00411C80,InitializeFireworksActivity,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/00411C80.c,1,12,0,5,186
+0x004126F0,HitTestFireworksEditorRegions,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/004126F0.c,1,3,0,1,187
 0x00412B50,DecodeSelectedFireworkGridCell,fireworks,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 00412B50 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/00412B50.c,3,0,0,0,188
 0x00412B80,DeleteFireworkAtSelectedRegion,fireworks,source_written,reconstruction/include/btb/retail_runtime_closure.hpp,reconstruction/tests/retail_runtime_closure_test.cpp,docs/retail-runtime-closure-batch.md,DeleteFireworkAtSelectedRegion reconstructed source semantics and tested; original x86 parity and ABI not certified,analysis/ghidra_main_exe/functions/00412B80.c,1,2,0,0,189
-0x00412BD0,BeginFireworksEditorAction,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/00412BD0.c,1,9,0,3,190
-0x00412D50,CompleteFireworksEditorAction,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/00412D50.c,1,5,0,2,191
+0x00412BD0,BeginFireworksEditorAction,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/00412BD0.c,1,9,0,2,190
+0x00412D50,CompleteFireworksEditorAction,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/00412D50.c,1,5,0,1,191
 0x00412E50,DrawFireworksEditor,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/00412E50.c,2,6,0,4,192
 0x00413420,FileTimeDeltaMilliseconds,fireworks,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 00413420 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/00413420.c,1,0,0,0,193
-0x00413450,UpdateFireworksShowPlayback,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/00413450.c,1,11,2,3,194
-0x004138A0,DrawFireworksCertificateScreen,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/004138A0.c,1,5,0,3,195
+0x00413450,UpdateFireworksShowPlayback,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/00413450.c,1,11,2,2,194
+0x004138A0,DrawFireworksCertificateScreen,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/004138A0.c,1,5,0,2,195
 0x00413B60,UpdateFireworksEditorControls,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/00413B60.c,1,6,0,2,196
-0x00413F10,UpdateFireworksActivity,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/00413F10.c,1,29,2,14,197
+0x00413F10,UpdateFireworksActivity,fireworks,unreviewed,,,,,analysis/ghidra_main_exe/functions/00413F10.c,1,29,2,13,197
 0x00414410,UnloadGolfActivityResources,unclassified,unreviewed,,,,,analysis/ghidra_main_exe/functions/00414410.c,1,3,0,0,198
 0x004145F0,InitializeGolfActivity,golf,unreviewed,,,,,analysis/ghidra_main_exe/functions/004145F0.c,1,5,0,2,199
 0x00414A30,VectorFromDegreesAndMagnitude,golf,source_written,reconstruction/include/btb/retail_runtime_closure.hpp,reconstruction/tests/retail_runtime_closure_test.cpp,docs/retail-runtime-closure-batch.md,VectorFromDegreesAndMagnitude reconstructed source semantics and tested; original x86 parity and ABI not certified,analysis/ghidra_main_exe/functions/00414A30.c,2,0,0,0,200
-0x00414A60,DrawGolfActivity,golf,unreviewed,,,,,analysis/ghidra_main_exe/functions/00414A60.c,1,3,0,2,201
-0x00415080,UpdateGolfGameplay,golf,unreviewed,,,,,analysis/ghidra_main_exe/functions/00415080.c,1,5,0,3,202
+0x00414A60,DrawGolfActivity,golf,unreviewed,,,,,analysis/ghidra_main_exe/functions/00414A60.c,1,3,0,1,201
+0x00415080,UpdateGolfGameplay,golf,unreviewed,,,,,analysis/ghidra_main_exe/functions/00415080.c,1,5,0,2,202
 0x00415830,UpdateGolfActivity,golf,unreviewed,,,,,analysis/ghidra_main_exe/functions/00415830.c,1,9,0,4,203
-0x004159F0,LoadGolfData,golf,unreviewed,,,,,analysis/ghidra_main_exe/functions/004159F0.c,1,3,0,2,204
-0x00415CB0,LoadHerdingCoordinateData,golf,unreviewed,,,,,analysis/ghidra_main_exe/functions/00415CB0.c,1,3,0,2,205
+0x004159F0,LoadGolfData,golf,unreviewed,,,,,analysis/ghidra_main_exe/functions/004159F0.c,1,3,0,1,204
+0x00415CB0,LoadHerdingCoordinateData,golf,source_written,reconstruction/include/btb/retail_game_batch70.hpp,reconstruction/tests/retail_game_batch70_test.cpp,docs/batch-71-genuine-functions.md,LoadHerdingCoordinateData | game-semantics | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00415CB0.c,1,3,0,1,205
 0x00415D30,DistanceBetweenIntegerPoints,golf,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 00415D30 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/00415D30.c,16,0,0,0,206
 0x00415D70,AngleBetweenIntegerPointsDegrees,golf,unreviewed,,,,,analysis/ghidra_main_exe/functions/00415D70.c,9,1,0,1,207
 0x00415E50,BlitColorKeyedSurfaceClipped,golf,unreviewed,,,,,analysis/ghidra_main_exe/functions/00415E50.c,13,0,0,0,208
 0x00416310,CompareHerdingEntitiesByDepth,golf,source_written,reconstruction/include/btb/retail_shared_runtime.hpp,reconstruction/tests/retail_shared_runtime_test.cpp,docs/shared-runtime-reconstruction-batch.md,CompareHerdingEntitiesByDepth Ghidra-source-derived host-neutral semantics with C++ test; not retail ABI parity,analysis/ghidra_main_exe/functions/00416310.c,0,0,0,0,209
 0x00416370,DrawHerdingActivity,golf,unreviewed,,,,,analysis/ghidra_main_exe/functions/00416370.c,1,3,0,3,210
 0x004169A0,AnyRectCornerInsideRect,golf,source_written,reconstruction/include/btb/retail_media_game_closure.hpp,reconstruction/tests/retail_media_game_closure_test.cpp,docs/batch-35-original-functions.md,AnyRectCornerInsideRect source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/004169A0.c,2,0,0,0,211
-0x00416A30,UpdateHerdingAnimal,golf,unreviewed,,,,,analysis/ghidra_main_exe/functions/00416A30.c,1,8,0,4,212
-0x004182B0,UpdateHerdingActivity,herding,unreviewed,,,,,analysis/ghidra_main_exe/functions/004182B0.c,1,15,0,7,213
+0x00416A30,UpdateHerdingAnimal,golf,unreviewed,,,,,analysis/ghidra_main_exe/functions/00416A30.c,1,8,0,3,212
+0x004182B0,UpdateHerdingActivity,herding,unreviewed,,,,,analysis/ghidra_main_exe/functions/004182B0.c,1,15,0,6,213
 0x00419390,UnloadHerdingActivityResources,herding,unreviewed,,,,,analysis/ghidra_main_exe/functions/00419390.c,1,2,0,0,214
-0x00419600,InitializeHerdingActivity,herding,unreviewed,,,,,analysis/ghidra_main_exe/functions/00419600.c,1,8,0,4,215
+0x00419600,InitializeHerdingActivity,herding,unreviewed,,,,,analysis/ghidra_main_exe/functions/00419600.c,1,8,0,2,215
 0x0041A390,UnloadMazeActivityResources,herding,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041A390.c,2,2,0,0,216
-0x0041A4E0,LoadMazeData,herding,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041A4E0.c,1,4,0,3,217
+0x0041A4E0,LoadMazeData,herding,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041A4E0.c,1,4,0,2,217
 0x0041A700,Divide64BitDeltaByTenMillion,herding,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 0041A700 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/0041A700.c,7,1,0,1,218
-0x0041A730,InitializeMazeActivity,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041A730.c,1,9,2,4,219
+0x0041A730,InitializeMazeActivity,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041A730.c,1,9,2,3,219
 0x0041AE90,FloatAbs,maze,source_written,reconstruction/include/btb/retail_runtime_closure.hpp,reconstruction/tests/retail_runtime_closure_test.cpp,docs/retail-runtime-closure-batch.md,FloatAbs reconstructed source semantics and tested; original x86 parity and ABI not certified,analysis/ghidra_main_exe/functions/0041AE90.c,2,0,0,0,220
 0x0041AEB0,DebounceMazeDirectionalInput,maze,source_written,reconstruction/include/btb/retail_activity_closure.hpp,reconstruction/tests/retail_activity_closure_test.cpp,docs/retail-activity-closure-batch.md,DebounceMazeDirectionalInput source state machine model with native provider callbacks and regression coverage; retail ABI parity unverified,analysis/ghidra_main_exe/functions/0041AEB0.c,1,0,0,0,221
 0x0041AF60,ComputeMazePlayerInputDirection,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041AF60.c,1,5,0,2,222
 0x0041B140,UpdateMazePlayerMovement,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041B140.c,1,4,0,3,223
 0x0041BF80,DrawMazeTimer,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041BF80.c,2,2,2,1,224
-0x0041C110,DrawMazeActivity,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041C110.c,1,5,0,5,225
+0x0041C110,DrawMazeActivity,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041C110.c,1,5,0,4,225
 0x0041C710,DrawMazeScreenTransition,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041C710.c,1,1,0,1,226
 0x0041C9F0,SearchMazePathRecursive,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041C9F0.c,2,3,0,1,227
 0x0041CBE0,FindMazeShortestPath,maze,source_written,reconstruction/include/btb/retail_media_game_closure.hpp,reconstruction/tests/retail_media_game_closure_test.cpp,docs/batch-35-original-functions.md,FindMazeShortestPath source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/0041CBE0.c,1,1,0,1,228
 0x0041CC20,MoveMazeActorTowardNode,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041CC20.c,1,3,0,2,229
-0x0041CCB0,UpdateMazeSpudNPC,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041CCB0.c,1,7,0,5,230
+0x0041CCB0,UpdateMazeSpudNPC,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041CCB0.c,1,7,0,4,230
 0x0041D4D0,UpdateMazeActivity,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041D4D0.c,1,16,2,6,231
-0x0041D7C0,LoadGrandOpeningMachineData,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041D7C0.c,1,3,0,2,232
-0x0041D920,SaveAndUnloadBobsBandActivity,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041D920.c,1,5,0,3,233
-0x0041DB20,InitializeBobsBandActivity,bobs_band,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041DB20.c,1,11,0,7,234
-0x0041F090,DrawGrandOpeningCompositionAndMachines,bobs_band,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041F090.c,3,2,0,2,235
+0x0041D7C0,LoadGrandOpeningMachineData,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041D7C0.c,1,3,0,1,232
+0x0041D920,SaveAndUnloadBobsBandActivity,maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041D920.c,1,5,0,2,233
+0x0041DB20,InitializeBobsBandActivity,bobs_band,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041DB20.c,1,11,0,6,234
+0x0041F090,DrawGrandOpeningCompositionAndMachines,bobs_band,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041F090.c,3,2,0,1,235
 0x0041F3A0,CanPlaceGrandOpeningEvent,bobs_band,source_written,reconstruction/include/btb/retail_shared_runtime.hpp,reconstruction/tests/retail_shared_runtime_test.cpp,docs/shared-runtime-reconstruction-batch.md,CanPlaceGrandOpeningEvent Ghidra-source-derived host-neutral semantics with C++ test; not retail ABI parity,analysis/ghidra_main_exe/functions/0041F3A0.c,2,0,0,0,236
 0x0041F3F0,DecodeBobsBandGridCell,bobs_band,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 0041F3F0 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/0041F3F0.c,2,0,0,0,237
 0x0041F430,RemoveGrandOpeningEventAtCell,bobs_band,source_written,reconstruction/include/btb/retail_runtime_closure.hpp,reconstruction/tests/retail_runtime_closure_test.cpp,docs/retail-runtime-closure-batch.md,RemoveGrandOpeningEventAtCell reconstructed source semantics and tested; original x86 parity and ABI not certified,analysis/ghidra_main_exe/functions/0041F430.c,2,1,0,0,238
-0x0041F4B0,PlaceGrandOpeningEvent,bobs_band,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041F4B0.c,1,2,0,0,239
-0x0041F550,UpdateBobsBandBrickCursorAndDelete,bobs_band,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041F550.c,1,5,0,1,240
+0x0041F4B0,PlaceGrandOpeningEvent,bobs_band,source_written,reconstruction/include/btb/retail_game_batch70.hpp,reconstruction/tests/retail_game_batch70_test.cpp,docs/batch-71-genuine-functions.md,PlaceGrandOpeningEvent | game-semantics | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0041F4B0.c,1,2,0,0,239
+0x0041F550,UpdateBobsBandBrickCursorAndDelete,bobs_band,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041F550.c,1,5,0,0,240
 0x0041F6E0,HandleBobsBandEditorAction,bobs_band,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041F6E0.c,1,4,0,0,241
-0x0041F820,UpdateGrandOpeningToolbar,bobs_band,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041F820.c,1,10,0,3,242
+0x0041F820,UpdateGrandOpeningToolbar,bobs_band,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041F820.c,1,10,0,2,242
 0x0041FB90,HitTestBobsBandRegions,bobs_band,source_written,reconstruction/include/btb/retail_activity_closure.hpp,reconstruction/tests/retail_activity_closure_test.cpp,docs/retail-activity-closure-batch.md,HitTestBobsBandRegions source state machine model with native provider callbacks and regression coverage; retail ABI parity unverified,analysis/ghidra_main_exe/functions/0041FB90.c,1,0,0,0,243
 0x0041FC60,FileTimeDeltaCentiseconds,bobs_band,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 0041FC60 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/0041FC60.c,2,0,0,0,244
 0x0041FC90,PlayAndDrawGrandOpeningComposition,bobs_band,unreviewed,,,,,analysis/ghidra_main_exe/functions/0041FC90.c,1,7,2,2,245
 0x00420030,UpdateBobsBandActivity,bobs_band,unreviewed,,,,,analysis/ghidra_main_exe/functions/00420030.c,1,18,2,8,246
 0x00420360,UnloadSpudMazeActivityResources,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00420360.c,1,2,0,0,247
-0x00420560,LoadSpudMazeData,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00420560.c,1,4,0,3,248
-0x004207E0,InitializeSpudMazeActivity,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/004207E0.c,1,9,2,4,249
+0x00420560,LoadSpudMazeData,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00420560.c,1,4,0,2,248
+0x004207E0,InitializeSpudMazeActivity,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/004207E0.c,1,9,2,3,249
 0x004211A0,ComputeSpudMazeBobInputDirection,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/004211A0.c,1,4,0,2,250
-0x00421360,UpdateSpudMazeBobMovement,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00421360.c,1,7,0,5,251
+0x00421360,UpdateSpudMazeBobMovement,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00421360.c,1,7,0,4,251
 0x00422400,UpdateSpudMazeBobAnimation,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00422400.c,1,0,0,0,252
 0x004225E0,UpdatePilchardAnimation,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/004225E0.c,1,0,0,0,253
-0x00422760,MaybePlayRandomSpudVoice,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00422760.c,1,3,0,2,254
-0x004227F0,DrawAndUpdateSpudMazeScene,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/004227F0.c,1,6,2,5,255
+0x00422760,MaybePlayRandomSpudVoice,spud_maze,source_written,reconstruction/include/btb/retail_game_batch70.hpp,reconstruction/tests/retail_game_batch70_test.cpp,docs/batch-71-genuine-functions.md,MaybePlayRandomSpudVoice | game-semantics | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00422760.c,1,3,0,1,254
+0x004227F0,DrawAndUpdateSpudMazeScene,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/004227F0.c,1,6,2,4,255
 0x00422DD0,DrawSpudMazeScreenTransition,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00422DD0.c,1,0,0,0,256
 0x00423030,SearchShortestSpudMazeGraphPath,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00423030.c,2,3,0,1,257
 0x00423220,BuildShortestSpudMazeGraphPath,spud_maze,source_written,reconstruction/include/btb/retail_media_game_closure.hpp,reconstruction/tests/retail_media_game_closure_test.cpp,docs/batch-35-original-functions.md,BuildShortestSpudMazeGraphPath source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00423220.c,1,1,0,1,258
 0x00423260,DistanceFromActorToCurrentScreenNode,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00423260.c,2,2,0,1,259
 0x004232B0,MovePilchardTowardGraphNode,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/004232B0.c,1,3,0,2,260
-0x00423470,HandlePilchardCollisionAndHammerDrop,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00423470.c,1,5,0,3,261
+0x00423470,HandlePilchardCollisionAndHammerDrop,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00423470.c,1,5,0,2,261
 0x00423610,ResetPilchardSpawnDelay,spud_maze,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 00423610 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/00423610.c,1,0,0,0,262
-0x00423630,UpdateSpudMazePilchard,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00423630.c,1,6,0,5,263
-0x00423BE0,UpdateSpudMazeMrBentleyNarrationSequence,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00423BE0.c,1,4,0,2,264
+0x00423630,UpdateSpudMazePilchard,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00423630.c,1,6,0,4,263
+0x00423BE0,UpdateSpudMazeMrBentleyNarrationSequence,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00423BE0.c,1,4,0,1,264
 0x00423F40,UpdateSpudMazeActivity,spud_maze,unreviewed,,,,,analysis/ghidra_main_exe/functions/00423F40.c,1,12,0,7,265
 0x00424100,UnloadSpudSkateActivityResources,spud_skate,unreviewed,,,,,analysis/ghidra_main_exe/functions/00424100.c,1,3,0,1,266
-0x00424230,LoadSpudSkateTimingData,spud_skate,unreviewed,,,,,analysis/ghidra_main_exe/functions/00424230.c,1,3,0,2,267
-0x00424360,InitializeSpudSkateActivity,spud_skate,unreviewed,,,,,analysis/ghidra_main_exe/functions/00424360.c,1,12,0,7,268
-0x00424690,UpdateAndDrawSpudSkatePlayback,spud_skate,unreviewed,,,,,analysis/ghidra_main_exe/functions/00424690.c,1,6,3,2,269
+0x00424230,LoadSpudSkateTimingData,spud_skate,unreviewed,,,,,analysis/ghidra_main_exe/functions/00424230.c,1,3,0,1,267
+0x00424360,InitializeSpudSkateActivity,spud_skate,unreviewed,,,,,analysis/ghidra_main_exe/functions/00424360.c,1,12,0,5,268
+0x00424690,UpdateAndDrawSpudSkatePlayback,spud_skate,unreviewed,,,,,analysis/ghidra_main_exe/functions/00424690.c,1,6,3,1,269
 0x00424C80,SeekAndDecodeBinkToExactFrame,spud_skate,source_written,reconstruction/include/btb/retail_activity_closure.hpp,reconstruction/tests/retail_activity_closure_test.cpp,docs/retail-activity-closure-batch.md,SeekAndDecodeBinkToExactFrame source state machine model with native provider callbacks and regression coverage; retail ABI parity unverified,analysis/ghidra_main_exe/functions/00424C80.c,1,0,6,0,270
 0x00424D10,UpdateSpudSkateActivity,spud_skate,unreviewed,,,,,analysis/ghidra_main_exe/functions/00424D10.c,1,8,0,4,271
-0x00424E20,LoadSquirrelData,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/00424E20.c,1,3,0,2,272
+0x00424E20,LoadSquirrelData,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/00424E20.c,1,3,0,1,272
 0x00424F00,UnloadSquirrelActivityResources,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/00424F00.c,1,3,0,0,273
-0x00425160,InitializeSquirrelActivity,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/00425160.c,1,8,0,4,274
+0x00425160,InitializeSquirrelActivity,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/00425160.c,1,8,0,3,274
 0x00425780,UpdateAndDrawSquirrelLevelTransition,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/00425780.c,1,0,0,0,275
 0x00425980,BuildSquirrelFrameRect,squirrel,source_written,reconstruction/include/btb/retail_shared_runtime.hpp,reconstruction/tests/retail_shared_runtime_test.cpp,docs/shared-runtime-reconstruction-batch.md,BuildSquirrelFrameRect Ghidra-source-derived host-neutral semantics with C++ test; not retail ABI parity,analysis/ghidra_main_exe/functions/00425980.c,1,0,0,0,276
 0x004259D0,SelectSquirrelPlacementMotionProfile,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/004259D0.c,1,0,0,0,277
-0x00425F40,UpdateAndDrawSquirrelRunAssembly,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/00425F40.c,1,3,0,2,278
-0x004267B0,DrawAndUpdateSquirrelActivityScene,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/004267B0.c,1,5,0,3,279
-0x00426F30,GenerateSquirrelConveyorChoices,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/00426F30.c,2,1,0,1,280
-0x00427270,StepSquirrelPlacementActorTowardTarget,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/00427270.c,1,0,0,0,281
+0x00425F40,UpdateAndDrawSquirrelRunAssembly,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/00425F40.c,1,3,0,1,278
+0x004267B0,DrawAndUpdateSquirrelActivityScene,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/004267B0.c,1,5,0,2,279
+0x00426F30,GenerateSquirrelConveyorChoices,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/00426F30.c,2,1,0,0,280
+0x00427270,StepSquirrelPlacementActorTowardTarget,squirrel,source_written,reconstruction/include/btb/retail_game_batch70.hpp,reconstruction/tests/retail_game_batch70_test.cpp,docs/batch-71-genuine-functions.md,StepSquirrelPlacementActorTowardTarget | game-semantics | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00427270.c,1,0,0,0,281
 0x00427320,UpdateSquirrelConveyorSlideCycle,squirrel,source_written,reconstruction/include/btb/retail_activity_closure.hpp,reconstruction/tests/retail_activity_closure_test.cpp,docs/retail-activity-closure-batch.md,UpdateSquirrelConveyorSlideCycle source state machine model with native provider callbacks and regression coverage; retail ABI parity unverified,analysis/ghidra_main_exe/functions/00427320.c,1,1,0,1,282
-0x004273F0,UpdateSquirrelPlacementInteraction,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/004273F0.c,1,4,0,3,283
-0x004279F0,UpdateSquirrelActivity,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/004279F0.c,1,13,0,6,284
-0x00427C30,UpdateProgressScreen,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/00427C30.c,1,6,0,3,285
+0x004273F0,UpdateSquirrelPlacementInteraction,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/004273F0.c,1,4,0,1,283
+0x004279F0,UpdateSquirrelActivity,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/004279F0.c,1,13,0,5,284
+0x00427C30,UpdateProgressScreen,squirrel,unreviewed,,,,,analysis/ghidra_main_exe/functions/00427C30.c,1,6,0,2,285
 0x00428010,PlayActivityMusicByIndex,shared_activity,source_written,reconstruction/include/btb/retail_media_game_closure.hpp,reconstruction/tests/retail_media_game_closure_test.cpp,docs/batch-35-original-functions.md,PlayActivityMusicByIndex source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00428010.c,10,3,0,1,286
 0x004280A0,StopActivityMusic,shared_activity,source_written,reconstruction/include/btb/retail_shared_runtime.hpp,reconstruction/tests/retail_shared_runtime_test.cpp,docs/shared-runtime-reconstruction-batch.md,StopActivityMusic Ghidra-source-derived host-neutral semantics with C++ test; not retail ABI parity,analysis/ghidra_main_exe/functions/004280A0.c,8,1,0,0,287
 0x004280D0,CloseWalkthroughMovie,shared_activity,source_written,reconstruction/include/btb/retail_media_game_closure.hpp,reconstruction/tests/retail_media_game_closure_test.cpp,docs/batch-35-original-functions.md,CloseWalkthroughMovie source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/004280D0.c,1,3,0,1,288
-0x00428120,UpdateWalkthroughMovie,shared_activity,unreviewed,,,,,analysis/ghidra_main_exe/functions/00428120.c,1,4,0,2,289
-0x004281D0,OpenWalkthroughMovie,shared_activity,unreviewed,,,,,analysis/ghidra_main_exe/functions/004281D0.c,1,6,0,4,290
+0x00428120,UpdateWalkthroughMovie,shared_activity,source_written,reconstruction/include/btb/retail_game_batch70.hpp,reconstruction/tests/retail_game_batch70_test.cpp,docs/batch-71-genuine-functions.md,UpdateWalkthroughMovie | game-semantics | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00428120.c,1,4,0,2,289
+0x004281D0,OpenWalkthroughMovie,shared_activity,unreviewed,,,,,analysis/ghidra_main_exe/functions/004281D0.c,1,6,0,3,290
 0x004282C0,UpdateHelpButtonController,shared_activity,unreviewed,,,,,analysis/ghidra_main_exe/functions/004282C0.c,4,4,0,1,291
 0x00428470,UpdateGenericHelpHoverVoice,shared_activity,source_written,reconstruction/include/btb/retail_media_game_closure.hpp,reconstruction/tests/retail_media_game_closure_test.cpp,docs/batch-35-original-functions.md,UpdateGenericHelpHoverVoice source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/00428470.c,4,1,0,1,292
 0x00428520,PointInPolygon,shared_activity,source_written,reconstruction/include/btb/retail_point_in_polygon.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 00428520 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/00428520.c,5,0,0,0,293
 0x00428600,UpdateGenericUIScreenInteraction,shared_activity,unreviewed,,,,,analysis/ghidra_main_exe/functions/00428600.c,1,11,0,2,294
-0x00428E30,DrawGenericUIScreen,shared_activity,unreviewed,,,,,analysis/ghidra_main_exe/functions/00428E30.c,1,0,0,0,295
+0x00428E30,DrawGenericUIScreen,shared_activity,source_written,reconstruction/include/btb/retail_game_batch70.hpp,reconstruction/tests/retail_game_batch70_test.cpp,docs/batch-71-genuine-functions.md,DrawGenericUIScreen | game-semantics | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00428E30.c,1,0,0,0,295
 0x00428ED0,UnloadGenericUIScreenResources,shared_activity,unreviewed,,,,,analysis/ghidra_main_exe/functions/00428ED0.c,1,2,0,0,296
-0x00429150,LoadGenericUIScreenResources,shared_activity,unreviewed,,,,,analysis/ghidra_main_exe/functions/00429150.c,1,9,0,3,297
+0x00429150,LoadGenericUIScreenResources,shared_activity,unreviewed,,,,,analysis/ghidra_main_exe/functions/00429150.c,1,9,0,2,297
 0x004294D0,PointInRectInclusive,shared_activity,source_written,reconstruction/include/btb/retail_leaf_runtime.hpp,reconstruction/tests/retail_leaf_runtime_test.cpp,docs/retail-leaf-function-batch.md,Evidence mapped from Ghidra address 004294D0 and exercised by C++26 regression tests; host-neutral model not proven retail ABI parity,analysis/ghidra_main_exe/functions/004294D0.c,3,0,0,0,298
 0x00429500,UpdatePlayAgainPrompt,shared_activity,unreviewed,,,,,analysis/ghidra_main_exe/functions/00429500.c,1,4,0,0,299
 0x00429800,UpdateOptionsOverlay,shared_activity,unreviewed,,,,,analysis/ghidra_main_exe/functions/00429800.c,1,9,0,2,300
-0x00429AA0,UpdateQuitConfirmationOverlay,shared_activity,unreviewed,,,,,analysis/ghidra_main_exe/functions/00429AA0.c,1,6,0,2,301
+0x00429AA0,UpdateQuitConfirmationOverlay,shared_activity,unreviewed,,,,,analysis/ghidra_main_exe/functions/00429AA0.c,1,6,0,1,301
 0x00429C90,UpdateYesNoConfirmationOverlay,shared_activity,unreviewed,,,,,analysis/ghidra_main_exe/functions/00429C90.c,1,8,0,4,302
 0x00429FE0,UpdateLeaveActivityConfirmation,shared_activity,unreviewed,,,,,analysis/ghidra_main_exe/functions/00429FE0.c,1,3,0,1,303
 0x0042A1A0,UpdateStartupVideoSequence,shared_activity,source_written,reconstruction/include/btb/retail_media_game_closure.hpp,reconstruction/tests/retail_media_game_closure_test.cpp,docs/batch-35-original-functions.md,UpdateStartupVideoSequence source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/0042A1A0.c,1,2,0,1,304
 0x0042A240,UpdateSceneSetMovie,shared_activity,source_written,reconstruction/include/btb/retail_media_game_closure.hpp,reconstruction/tests/retail_media_game_closure_test.cpp,docs/batch-35-original-functions.md,UpdateSceneSetMovie source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/0042A240.c,1,2,0,1,305
-0x0042A2C0,RunMainGameFlow,game_flow,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042A2C0.c,2,65,0,43,306
+0x0042A2C0,RunMainGameFlow,game_flow,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042A2C0.c,2,65,0,41,306
 0x0042CFD0,PreparePlayAgainTransition,profiles_and_ui,source_written,reconstruction/src/full_game_audio.cpp,reconstruction/tests/full_game_audio_source_test.cpp,docs/batch-35-original-functions.md,PreparePlayAgainTransition source control-flow model with compiled host-callback tests; native ABI and retail behavioral parity not certified,analysis/ghidra_main_exe/functions/0042CFD0.c,10,3,0,1,307
-0x0042D060,SaveAndUnloadPlayerProfiles,profiles_and_ui,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042D060.c,1,5,0,4,308
-0x0042D270,InitializeAndLoadPlayerProfiles,profiles_and_ui,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042D270.c,1,9,0,5,309
+0x0042D060,SaveAndUnloadPlayerProfiles,profiles_and_ui,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042D060.c,1,5,0,3,308
+0x0042D270,InitializeAndLoadPlayerProfiles,profiles_and_ui,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042D270.c,1,9,0,3,309
 0x0042DB70,DrawEnterNamePopup,profiles_and_ui,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042DB70.c,2,0,0,0,310
 0x0042DCC0,UpdateEnterNamePopup,profiles_and_ui,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042DCC0.c,1,5,0,2,311
-0x0042E110,UpdatePlayerProfileScreen,profiles_and_ui,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042E110.c,1,16,0,6,312
+0x0042E110,UpdatePlayerProfileScreen,profiles_and_ui,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042E110.c,1,16,0,4,312
 0x0042EAD0,DirectDrawCreateEx,profiles_and_ui,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042EAD0.c,2,0,0,0,313
 0x0042FB50,DirectInput8Create,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FB50.c,1,0,0,0,314
 0x0042FB56,Ordinal_11,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FB56.c,1,0,0,0,315
-0x0042FB5C,PrintDlgA,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FB5C.c,1,0,0,0,316
+0x0042FB5C,PrintDlgA,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,PrintDlgAThunk | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0042FB5C.c,1,0,0,0,316
 0x0042FB62,crt_fclose,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FB62.c,36,4,0,4,317
-0x0042FBB8,crt_fscanf,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FBB8.c,26,1,0,1,318
-0x0042FBCE,operator_new,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FBCE.c,15,1,0,1,319
-0x0042FBDC,FUN_0042fbdc,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FBDC.c,32,1,0,1,320
+0x0042FBB8,crt_fscanf,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,RetailFscanf | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0042FBB8.c,26,1,0,1,318
+0x0042FBCE,operator_new,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,RetailOperatorNew | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0042FBCE.c,15,1,0,0,319
+0x0042FBDC,FUN_0042fbdc,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,OperatorDeleteProxy | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0042FBDC.c,32,1,0,1,320
 0x0042FBE7,FUN_0042fbe7,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FBE7.c,1,0,0,0,321
 0x0042FC1B,FUN_0042fc1b,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FC1B.c,2,0,0,0,322
 0x0042FC22,FUN_0042fc22,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FC22.c,1,0,0,0,323
@@ -334,24 +334,24 @@ address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,not
 0x0042FDDB,FUN_0042fddb,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FDDB.c,0,2,0,2,329
 0x0042FE50,FUN_0042fe50,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FE50.c,2,1,0,1,330
 0x0042FECC,__global_unwind2,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FECC.c,0,1,0,1,331
-0x0042FF0E,__local_unwind2,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FF0E.c,1,1,0,1,332
+0x0042FF0E,__local_unwind2,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FF0E.c,1,1,0,0,332
 0x0042FF76,__abnormal_termination,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FF76.c,1,0,0,0,333
-0x0042FF99,__NLG_Notify1,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FF99.c,1,0,0,0,334
-0x0042FFA2,FUN_0042ffa2,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FFA2.c,1,0,0,0,335
-0x0042FFBA,FUN_0042ffba,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FFBA.c,1,0,0,0,336
-0x0042FFC4,FUN_0042ffc4,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FFC4.c,37,0,0,0,337
+0x0042FF99,__NLG_Notify1,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,NLGNotify1 | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0042FF99.c,1,0,0,0,334
+0x0042FFA2,FUN_0042ffa2,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,NLGNotifyFromStack | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0042FFA2.c,1,0,0,0,335
+0x0042FFBA,FUN_0042ffba,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,RetailSrand | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0042FFBA.c,1,0,0,0,336
+0x0042FFC4,FUN_0042ffc4,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,RetailRand | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0042FFC4.c,37,0,0,0,337
 0x0042FFE2,FUN_0042ffe2,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0042FFE2.c,1,1,3,1,338
 0x004300BE,FUN_004300be,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004300BE.c,1,2,4,2,339
 0x00430144,crt_sprintf,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430144.c,7,2,0,2,340
 0x00430196,FUN_00430196,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430196.c,1,3,0,3,341
 0x004301AE,FUN_004301ae,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004301AE.c,1,0,0,0,342
 0x004302A0,_strncpy,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004302A0.c,2,0,0,0,343
-0x0043039E,FUN_0043039e,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043039E.c,0,2,0,2,344
-0x004303BA,FUN_004303ba,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004303BA.c,8,3,0,3,345
-0x004303F7,FUN_004303f7,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004303F7.c,2,3,0,3,346
-0x00430441,~exception,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430441.c,24,1,0,1,347
-0x00430464,FUN_00430464,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430464.c,1,1,0,1,348
-0x00430479,FUN_00430479,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430479.c,0,2,0,2,349
+0x0043039E,FUN_0043039e,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043039E.c,0,2,0,0,344
+0x004303BA,FUN_004303ba,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004303BA.c,8,3,0,2,345
+0x004303F7,FUN_004303f7,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004303F7.c,2,3,0,2,346
+0x00430441,~exception,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,RetailExceptionDestructor | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00430441.c,24,1,0,0,347
+0x00430464,FUN_00430464,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,RetailTypeInfoDestructor | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00430464.c,1,1,0,1,348
+0x00430479,FUN_00430479,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430479.c,0,2,0,0,349
 0x00430495,__CxxThrowException@8,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430495.c,13,0,1,0,350
 0x004304D0,__ftol,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004304D0.c,27,0,0,0,351
 0x00430500,FUN_00430500,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430500.c,6,0,0,0,352
@@ -361,20 +361,20 @@ address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,not
 0x00430884,FUN_00430884,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430884.c,2,1,3,1,356
 0x0043091D,FUN_0043091d,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043091D.c,2,0,0,0,357
 0x00430937,FUN_00430937,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430937.c,7,3,0,3,358
-0x00430A1F,FUN_00430a1f,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430A1F.c,1,2,0,2,359
-0x00430A3F,crt_fopen,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430A3F.c,12,1,0,1,360
+0x00430A1F,FUN_00430a1f,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,RetailFopenInternal | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00430A1F.c,1,2,0,2,359
+0x00430A3F,crt_fopen,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,RetailFopen | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00430A3F.c,12,1,0,0,360
 0x00430A52,FUN_00430a52,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430A52.c,4,4,0,4,361
-0x00430B5C,FUN_00430b5c,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430B5C.c,2,2,0,2,362
-0x00430CB0,FUN_00430cb0,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430CB0.c,1,1,0,1,363
-0x00430CFE,FUN_00430cfe,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430CFE.c,2,0,0,0,364
+0x00430B5C,FUN_00430b5c,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430B5C.c,2,2,0,1,362
+0x00430CB0,FUN_00430cb0,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430CB0.c,1,1,0,0,363
+0x00430CFE,FUN_00430cfe,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,RetailSwapSourceBytes | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00430CFE.c,2,0,0,0,364
 0x00430D2A,FUN_00430d2a,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430D2A.c,15,4,1,4,365
-0x00430D93,_malloc,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430D93.c,17,1,0,1,366
-0x00430DA5,__nh_malloc,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430DA5.c,2,2,0,2,367
+0x00430D93,_malloc,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,RetailMalloc | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00430D93.c,17,1,0,0,366
+0x00430DA5,__nh_malloc,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,RetailNhMalloc | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00430DA5.c,2,2,0,2,367
 0x00430DD1,FUN_00430dd1,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430DD1.c,1,2,1,2,368
 0x00430E50,_strncmp,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430E50.c,3,0,0,0,369
 0x00430E90,__aulldiv,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430E90.c,2,0,0,0,370
 0x00430F00,FUN_00430f00,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430F00.c,6,0,0,0,371
-0x00430F2F,FUN_00430f2f,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430F2F.c,1,1,0,1,372
+0x00430F2F,FUN_00430f2f,static_runtime,source_written,reconstruction/include/btb/retail_crt_batch70.hpp,reconstruction/tests/retail_crt_batch70_test.cpp,docs/batch-71-genuine-functions.md,RetailItoa | msvc-runtime-import | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/00430F2F.c,1,1,0,1,372
 0x00430F5C,FUN_00430f5c,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430F5C.c,1,0,0,0,373
 0x00430FB8,FUN_00430fb8,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430FB8.c,1,3,0,3,374
 0x00430FEA,entry,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00430FEA.c,0,11,4,11,375
@@ -401,7 +401,7 @@ address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,not
 0x00432371,FUN_00432371,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00432371.c,1,8,0,8,395
 0x00432535,FUN_00432535,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00432535.c,2,1,0,1,396
 0x0043259C,FUN_0043259c,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043259C.c,1,0,0,0,397
-0x004325C0,__CallSettingFrame@12,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004325C0.c,2,1,0,1,398
+0x004325C0,__CallSettingFrame@12,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004325C0.c,2,1,0,0,398
 0x0043260C,FUN_0043260c,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043260C.c,3,1,0,1,399
 0x00432662,FUN_00432662,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00432662.c,5,1,0,1,400
 0x004326B8,FUN_004326b8,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004326B8.c,1,2,0,2,401
@@ -436,7 +436,7 @@ address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,not
 0x00433961,FUN_00433961,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00433961.c,3,2,2,2,430
 0x00433B60,FUN_00433b60,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00433B60.c,4,0,0,0,431
 0x00433E95,FUN_00433e95,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00433E95.c,1,1,0,1,432
-0x00434005,FUN_00434005,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00434005.c,1,1,0,1,433
+0x00434005,FUN_00434005,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00434005.c,1,1,0,0,433
 0x0043407D,FUN_0043407d,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043407D.c,4,2,2,2,434
 0x0043422A,FUN_0043422a,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043422A.c,1,0,1,0,435
 0x00434257,FUN_00434257,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00434257.c,1,6,3,6,436
@@ -458,20 +458,20 @@ address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,not
 0x00435567,FUN_00435567,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00435567.c,1,0,0,0,452
 0x00435610,FUN_00435610,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00435610.c,3,0,0,0,453
 0x00435630,__aullrem,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00435630.c,1,0,0,0,454
-0x004356A5,FUN_004356a5,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004356A5.c,1,2,0,2,455
+0x004356A5,FUN_004356a5,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004356A5.c,1,2,0,1,455
 0x00435732,FUN_00435732,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00435732.c,1,1,0,1,456
 0x0043576F,FUN_0043576f,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043576F.c,1,1,1,1,457
 0x004358B0,FUN_004358b0,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004358B0.c,1,0,0,0,458
 0x004358F3,FUN_004358f3,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004358F3.c,1,2,0,2,459
-0x0043594B,FUN_0043594b,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043594B.c,1,6,0,6,460
-0x00435A04,FUN_00435a04,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00435A04.c,1,4,1,4,461
+0x0043594B,FUN_0043594b,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043594B.c,1,6,0,5,460
+0x00435A04,FUN_00435a04,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00435A04.c,1,4,1,3,461
 0x00435A9D,FUN_00435a9d,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00435A9D.c,1,0,0,0,462
-0x00435C51,FUN_00435c51,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00435C51.c,1,3,5,3,463
-0x00435D83,FUN_00435d83,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00435D83.c,1,2,4,2,464
+0x00435C51,FUN_00435c51,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00435C51.c,1,3,5,2,463
+0x00435D83,FUN_00435d83,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00435D83.c,1,2,4,1,464
 0x00435FF5,FUN_00435ff5,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00435FF5.c,0,1,0,1,465
 0x00436010,FUN_00436010,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00436010.c,2,1,0,1,466
 0x00436049,FUN_00436049,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00436049.c,4,5,3,5,467
-0x0043619C,FUN_0043619c,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043619C.c,1,1,0,1,468
+0x0043619C,FUN_0043619c,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043619C.c,1,1,0,0,468
 0x00436231,FUN_00436231,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00436231.c,1,0,1,0,469
 0x004362A8,FUN_004362a8,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004362A8.c,1,0,1,0,470
 0x00436322,FUN_00436322,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00436322.c,4,0,0,0,471
@@ -488,7 +488,7 @@ address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,not
 0x00436745,FUN_00436745,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00436745.c,2,0,1,0,482
 0x0043675D,FUN_0043675d,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043675D.c,1,3,0,3,483
 0x00436774,FUN_00436774,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00436774.c,1,1,0,1,484
-0x00436789,FUN_00436789,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00436789.c,1,8,2,8,485
+0x00436789,FUN_00436789,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00436789.c,1,8,2,7,485
 0x004369E7,FUN_004369e7,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004369E7.c,1,1,0,1,486
 0x00436B93,FUN_00436b93,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00436B93.c,1,0,0,0,487
 0x00436CD3,FUN_00436cd3,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00436CD3.c,1,4,1,4,488
@@ -499,7 +499,7 @@ address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,not
 0x00437097,FUN_00437097,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00437097.c,3,1,0,1,493
 0x004370B3,FUN_004370b3,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004370B3.c,4,2,4,2,494
 0x004372D7,FUN_004372d7,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004372D7.c,5,2,2,2,495
-0x00437371,FUN_00437371,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00437371.c,3,1,0,1,496
+0x00437371,FUN_00437371,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00437371.c,3,1,0,0,496
 0x004373B5,FUN_004373b5,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004373B5.c,2,0,0,0,497
 0x004373DB,FUN_004373db,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004373DB.c,1,0,1,0,498
 0x00437443,FUN_00437443,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00437443.c,1,2,0,2,499
@@ -547,70 +547,70 @@ address,symbol,subsystem_tentative,stage,cpp_source,validation_test,evidence,not
 0x004390CC,FUN_004390cc,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004390CC.c,1,6,2,6,541
 0x00439212,FUN_00439212,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439212.c,1,2,0,2,542
 0x004392DE,__mbsnbicoll,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004392DE.c,2,1,0,1,543
-0x0043931D,FUN_0043931d,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043931D.c,2,2,1,2,544
+0x0043931D,FUN_0043931d,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043931D.c,2,2,1,1,544
 0x0043938B,FUN_0043938b,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043938B.c,2,3,0,3,545
 0x004395AB,FUN_004395ab,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/004395AB.c,2,1,0,1,546
 0x00439627,FUN_00439627,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439627.c,1,0,0,0,547
 0x0043969D,FUN_0043969d,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043969D.c,1,2,4,2,548
 0x0043991A,FUN_0043991a,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043991A.c,2,0,0,0,549
-0x00439945,FUN_00439945,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439945.c,1,9,1,9,544
+0x00439945,FUN_00439945,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439945.c,1,9,1,8,544
 0x00439ACC,FUN_00439acc,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439ACC.c,1,1,0,1,550
-0x00439B24,FUN_00439b24,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439B24.c,1,3,0,3,551
-0x00439B8B,FUN_00439b8b,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439B8B.c,1,12,2,12,552
+0x00439B24,FUN_00439b24,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439B24.c,1,3,0,2,551
+0x00439B8B,FUN_00439b8b,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439B8B.c,1,12,2,11,552
 0x00439E2B,FUN_00439e2b,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439E2B.c,1,1,0,1,553
-0x00439E9E,FUN_00439e9e,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439E9E.c,1,3,0,3,554
+0x00439E9E,FUN_00439e9e,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439E9E.c,1,3,0,2,554
 0x00439EC9,FUN_00439ec9,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439EC9.c,4,6,0,5,81
 0x00439F23,FUN_00439f23,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439F23.c,2,4,0,3,81
 0x00439F94,FUN_00439f94,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439F94.c,0,2,0,2,555
-0x00439FB1,FUN_00439fb1,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439FB1.c,1,3,0,2,556
-0x00439FEE,FUN_00439fee,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439FEE.c,0,2,0,2,557
+0x00439FB1,FUN_00439fb1,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439FB1.c,1,3,0,1,556
+0x00439FEE,FUN_00439fee,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/00439FEE.c,0,2,0,1,557
 0x0043A00A,FUN_0043a00a,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A00A.c,3,4,0,3,558
-0x0043A067,FUN_0043a067,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A067.c,0,3,0,2,559
+0x0043A067,FUN_0043a067,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A067.c,0,3,0,1,559
 0x0043A0A4,FUN_0043a0a4,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A0A4.c,0,2,0,2,560
 0x0043A0DD,FUN_0043a0dd,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A0DD.c,1,1,0,1,561
 0x0043A0F5,FUN_0043a0f5,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A0F5.c,2,6,0,5,81
-0x0043A14F,FUN_0043a14f,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A14F.c,0,3,0,2,562
+0x0043A14F,FUN_0043a14f,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A14F.c,0,3,0,1,562
 0x0043A18C,FUN_0043a18c,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A18C.c,0,2,0,2,563
 0x0043A1C5,FUN_0043a1c5,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A1C5.c,1,1,0,1,564
 0x0043A220,RtlUnwind,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A220.c,2,0,0,0,565
 0x0043A228,FUN_0043a228,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A228.c,7,0,0,0,566
 0x0043A2F5,FUN_0043a2f5,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A2F5.c,0,2,1,2,567
-0x0043A360,Unwind@0043a360,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A360.c,0,1,0,1,568
-0x0043A380,Unwind@0043a380,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A380.c,0,1,0,1,569
-0x0043A38E,Unwind@0043a38e,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A38E.c,0,1,0,1,570
-0x0043A3B0,Unwind@0043a3b0,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A3B0.c,0,1,0,0,571
-0x0043A3B8,Unwind@0043a3b8,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A3B8.c,0,1,0,1,572
-0x0043A3D0,Unwind@0043a3d0,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A3D0.c,0,1,0,0,573
-0x0043A3D8,Unwind@0043a3d8,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A3D8.c,0,1,0,1,574
-0x0043A3E0,Unwind@0043a3e0,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A3E0.c,0,1,0,0,575
-0x0043A3E8,Unwind@0043a3e8,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A3E8.c,0,1,0,1,576
-0x0043A400,Unwind@0043a400,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A400.c,0,1,0,0,577
-0x0043A408,Unwind@0043a408,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A408.c,0,1,0,1,578
-0x0043A410,Unwind@0043a410,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A410.c,0,1,0,0,579
-0x0043A418,Unwind@0043a418,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A418.c,0,1,0,1,580
-0x0043A430,Unwind@0043a430,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A430.c,0,1,0,0,581
-0x0043A438,Unwind@0043a438,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A438.c,0,1,0,1,582
-0x0043A450,Unwind@0043a450,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A450.c,0,1,0,0,583
-0x0043A45B,Unwind@0043a45b,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A45B.c,0,1,0,1,584
-0x0043A466,Unwind@0043a466,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A466.c,0,1,0,0,585
-0x0043A471,Unwind@0043a471,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A471.c,0,1,0,1,586
-0x0043A47C,Unwind@0043a47c,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A47C.c,0,1,0,0,587
-0x0043A487,Unwind@0043a487,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A487.c,0,1,0,1,588
-0x0043A492,Unwind@0043a492,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A492.c,0,1,0,0,589
-0x0043A49D,Unwind@0043a49d,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A49D.c,0,1,0,1,590
-0x0043A4C0,Unwind@0043a4c0,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A4C0.c,0,1,0,0,591
-0x0043A4C8,Unwind@0043a4c8,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A4C8.c,0,1,0,1,592
-0x0043A4D0,Unwind@0043a4d0,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A4D0.c,0,1,0,0,593
-0x0043A4D8,Unwind@0043a4d8,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A4D8.c,0,1,0,1,594
-0x0043A4F0,Unwind@0043a4f0,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A4F0.c,0,1,0,0,595
-0x0043A4FB,Unwind@0043a4fb,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A4FB.c,0,1,0,1,596
-0x0043A510,Unwind@0043a510,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A510.c,0,1,0,1,597
-0x0043A540,Unwind@0043a540,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A540.c,0,1,0,1,598
-0x0043A560,Unwind@0043a560,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A560.c,0,1,0,0,599
-0x0043A578,Unwind@0043a578,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A578.c,0,1,0,0,600
-0x0043A58C,Unwind@0043a58c,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A58C.c,0,1,0,1,601
-0x0043A5A0,Unwind@0043a5a0,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A5A0.c,0,1,0,1,602
-0x0043A5B4,Unwind@0043a5b4,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A5B4.c,0,1,0,1,603
-0x0043A5C8,Unwind@0043a5c8,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A5C8.c,0,1,0,1,604
-0x0043A5DC,Unwind@0043a5dc,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A5DC.c,0,1,0,0,605
-0x0043A5F0,Unwind@0043a5f0,static_runtime,unreviewed,,,,,analysis/ghidra_main_exe/functions/0043A5F0.c,0,1,0,1,606
+0x0043A360,Unwind@0043a360,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A360 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A360.c,0,1,0,0,568
+0x0043A380,Unwind@0043a380,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A380 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A380.c,0,1,0,0,569
+0x0043A38E,Unwind@0043a38e,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A38E | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A38E.c,0,1,0,0,570
+0x0043A3B0,Unwind@0043a3b0,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A3B0 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A3B0.c,0,1,0,0,571
+0x0043A3B8,Unwind@0043a3b8,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A3B8 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A3B8.c,0,1,0,0,572
+0x0043A3D0,Unwind@0043a3d0,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A3D0 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A3D0.c,0,1,0,0,573
+0x0043A3D8,Unwind@0043a3d8,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A3D8 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A3D8.c,0,1,0,0,574
+0x0043A3E0,Unwind@0043a3e0,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A3E0 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A3E0.c,0,1,0,0,575
+0x0043A3E8,Unwind@0043a3e8,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A3E8 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A3E8.c,0,1,0,0,576
+0x0043A400,Unwind@0043a400,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A400 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A400.c,0,1,0,0,577
+0x0043A408,Unwind@0043a408,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A408 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A408.c,0,1,0,0,578
+0x0043A410,Unwind@0043a410,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A410 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A410.c,0,1,0,0,579
+0x0043A418,Unwind@0043a418,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A418 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A418.c,0,1,0,0,580
+0x0043A430,Unwind@0043a430,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A430 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A430.c,0,1,0,0,581
+0x0043A438,Unwind@0043a438,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A438 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A438.c,0,1,0,0,582
+0x0043A450,Unwind@0043a450,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A450 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A450.c,0,1,0,0,583
+0x0043A45B,Unwind@0043a45b,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A45B | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A45B.c,0,1,0,0,584
+0x0043A466,Unwind@0043a466,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A466 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A466.c,0,1,0,0,585
+0x0043A471,Unwind@0043a471,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A471 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A471.c,0,1,0,0,586
+0x0043A47C,Unwind@0043a47c,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A47C | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A47C.c,0,1,0,0,587
+0x0043A487,Unwind@0043a487,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A487 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A487.c,0,1,0,0,588
+0x0043A492,Unwind@0043a492,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A492 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A492.c,0,1,0,0,589
+0x0043A49D,Unwind@0043a49d,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A49D | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A49D.c,0,1,0,0,590
+0x0043A4C0,Unwind@0043a4c0,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A4C0 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A4C0.c,0,1,0,0,591
+0x0043A4C8,Unwind@0043a4c8,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A4C8 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A4C8.c,0,1,0,0,592
+0x0043A4D0,Unwind@0043a4d0,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A4D0 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A4D0.c,0,1,0,0,593
+0x0043A4D8,Unwind@0043a4d8,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A4D8 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A4D8.c,0,1,0,0,594
+0x0043A4F0,Unwind@0043a4f0,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A4F0 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A4F0.c,0,1,0,0,595
+0x0043A4FB,Unwind@0043a4fb,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A4FB | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A4FB.c,0,1,0,0,596
+0x0043A510,Unwind@0043a510,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A510 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A510.c,0,1,0,0,597
+0x0043A540,Unwind@0043a540,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A540 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A540.c,0,1,0,0,598
+0x0043A560,Unwind@0043a560,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A560 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A560.c,0,1,0,0,599
+0x0043A578,Unwind@0043a578,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A578 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A578.c,0,1,0,0,600
+0x0043A58C,Unwind@0043a58c,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A58C | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A58C.c,0,1,0,0,601
+0x0043A5A0,Unwind@0043a5a0,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A5A0 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A5A0.c,0,1,0,0,602
+0x0043A5B4,Unwind@0043a5b4,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A5B4 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A5B4.c,0,1,0,0,603
+0x0043A5C8,Unwind@0043a5c8,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A5C8 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A5C8.c,0,1,0,0,604
+0x0043A5DC,Unwind@0043a5dc,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A5DC | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A5DC.c,0,1,0,0,605
+0x0043A5F0,Unwind@0043a5f0,static_runtime,source_written,reconstruction/include/btb/retail_unwind_entrypoints.hpp,reconstruction/tests/retail_unwind_entrypoints_test.cpp,docs/batch-71-genuine-functions.md,Unwind_0043A5F0 | msvc-eh-cleanup | compiled source semantics and regression tests; retail execution ABI parity not certified,analysis/ghidra_main_exe/functions/0043A5F0.c,0,1,0,0,606
