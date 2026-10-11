@@ -1,0 +1,30 @@
+name: Export verified Ghidra toolchain
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/ghidra-toolchain.yml
+
+permissions:
+  contents: read
+
+jobs:
+  ghidra-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Download Ghidra 11.4.2 from official NSA release
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 5 --output ghidra.zip \
+            https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_11.4.2_build/ghidra_11.4.2_PUBLIC_20250826.zip
+          echo '795a02076af16257bd6f3f4736c4fc152ce9ff1f95df35cd47e2adc086e037a6  ghidra.zip' | sha256sum -c -
+      - name: Preserve toolchain for offline headless analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghidra-11.4.2-public-verified
+          path: ghidra.zip
+          retention-days: 1
+          compression-level: 0
