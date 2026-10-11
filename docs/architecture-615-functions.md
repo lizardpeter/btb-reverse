@@ -4,9 +4,11 @@ Original executable SHA-256: c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd
 
 Each original function belongs to exactly one evidence cohort:
 
-- 191 previously mapped to source-written C++ behavioral models.
-- 200 from the first architecture-only pass.
-- 224 from the final architecture-only pass (statically linked runtime).
+- 191 functions formed the initial source-written baseline.
+- 200 functions were originally architecture-only in the first pass.
+- 224 functions were originally architecture-only in the final pass.
+
+Current status: 232 source-written models and 383 architecture-only functions.
 
 The full inventory keeps these statuses separate; no source-written
 function was promoted to behavior-verified by architecture analysis.

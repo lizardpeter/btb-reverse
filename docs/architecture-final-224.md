@@ -13,7 +13,7 @@ Original executable SHA-256: c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd
 - Original DAT global references and their cross-module sharing are indexed.
 - Candidate class/module owners and the original call prototype are labeled tentative.
 - Original pseudocode SHA-256 hashes are recorded to detect corpus drift.
-- Existing 191 C++ source mappings and test links are preserved in the full map.
+- The original 191 source mappings remain preserved; newly reconstructed C++ models are tracked separately.
 
 ## Runtime categories (name-derived, not guaranteed compiler provenance)
 
@@ -35,6 +35,7 @@ Original executable SHA-256: c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd
 ## Reconstruction boundary
 
 615/615 architecture-mapped does not mean 615/615 rewritten in C++.
-Existing source-written functions remain 191; 424 others have only
-architecture evidence. Recover runtime layouts, identify import thunks,
+Current source-written models: 232; remaining: 383.
+Frozen architecture cohorts are independent of reconstruction status.
+Recover runtime layouts, identify import thunks,
 and integrate original gameplay functions before claiming fidelity.
