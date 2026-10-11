@@ -20,6 +20,12 @@ class ArchitectureMapTests(unittest.TestCase):
         self.assertEqual(warnings, 1)
         self.assertIn("extraout_", uncertainty)
 
+    def test_ghidra_blank_line_signature(self):
+        sample = "undefined4 __thiscall PlayManagedSoundById(void *this,int id)\n\n{\n  return 1;\n}"
+        prototype = m.prototype(sample)
+        self.assertIn("__thiscall PlayManagedSoundById", prototype)
+        self.assertEqual(m.module("00414410"), "golf")
+
     def test_class_is_only_a_candidate(self):
         name, reason, confidence = m.owner("CSound_Play", "shared_platform", "void CSound_Play()")
         self.assertEqual(name, "CSound")

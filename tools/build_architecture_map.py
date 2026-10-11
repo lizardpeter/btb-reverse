@@ -21,7 +21,7 @@ SOURCE_SHA = "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05"
 RANGES = [
     ("shared_platform", 0x401000, 0x409dff), ("dinosaur", 0x409e00, 0x40ac8f),
     ("park_designer", 0x40ac90, 0x410fcf), ("fireworks", 0x410fd0, 0x41440f),
-    ("golf", 0x4145f0, 0x417fff), ("herding", 0x418000, 0x41a72f),
+    ("golf", 0x414410, 0x417fff), ("herding", 0x418000, 0x41a72f),
     ("maze", 0x41a730, 0x41db1f), ("bobs_band", 0x41db20, 0x420324),
     ("spud_maze", 0x420360, 0x4240ff), ("spud_skate", 0x424100, 0x424e1f),
     ("squirrel", 0x424e20, 0x42800f), ("shared_activity", 0x428010, 0x42a2bf),
@@ -114,7 +114,7 @@ def evidence(source):
 
 def prototype(source):
     match = re.search(
-        r"(?:^|\n)[ \t]*([^\n;{}]{1,240}\([^\n;{}]*\))[ \t]*\n[ \t]*\{",
+        r"(?m)^[ \t]*([^\n;{}]{1,240}\([^\n;{}]*\))[ \t]*(?:\n[ \t]*){1,3}\{",
         source, re.M)
     return " ".join(match.group(1).split()) if match else "UNRESOLVED"
 
