@@ -23,13 +23,13 @@ int main() {
     static_assert(addresses_are_unique());
     static_assert(architecture[0].address == 0x00402cf0U);
     static_assert(architecture[0].original_thiscall);
-    static_assert(architecture[0].caller_count > 40);
+    static_assert(architecture[0].callers > 40);
     static_assert(architecture[0].module_candidate == "shared_platform");
     // This test verifies mapping metadata ONLY, not recovered implementation.
     std::size_t direct_callers = 0;
     std::size_t observed_globals = 0;
     for (const auto& row : architecture) {
-        assert(!row.original_symbol.empty());
+        assert(!row.symbol.empty());
         assert(!row.module_candidate.empty());
         assert(!row.cpp_owner_candidate.empty());
         assert(row.address >= 0x00400000U);
