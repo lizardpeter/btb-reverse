@@ -632,3 +632,10 @@ add_executable(btb_retail_media_game_closure_tests
 target_include_directories(btb_retail_media_game_closure_tests PRIVATE include)
 btb_require_cpp26(btb_retail_media_game_closure_tests PRIVATE)
 add_test(NAME retail_media_game_closure COMMAND btb_retail_media_game_closure_tests)
+
+# Ghidra-sourced activity and low-level WinMM/DirectSound/Bink closures.
+add_executable(btb_retail_activity_closure_tests
+    tests/retail_activity_closure_test.cpp)
+target_include_directories(btb_retail_activity_closure_tests PRIVATE include)
+btb_require_cpp26(btb_retail_activity_closure_tests PRIVATE)
+add_test(NAME retail_activity_closure COMMAND btb_retail_activity_closure_tests)
