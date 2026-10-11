@@ -96,7 +96,7 @@ High-confidence fields:
 | `+0x04` | top/world Y |
 | `+0x08` | right bound |
 | `+0x0C` | bottom bound |
-| `+0x10` | 32-bit DirectDraw surface pointer |
+| `+0x10` | 32-bit surface/geometry field; `0x0040DFF0` reads it as a `-1` sentinel or geometry-table index; treating it as a DirectDraw pointer in every code path is not established |
 | `+0x1C` | object code/type |
 | `+0x20` | object subcode |
 | `+0x24` | enabled/active flag |
@@ -109,12 +109,12 @@ High-confidence fields:
 
 The formerly unresolved record dwords are now closed as far as this executable uses them:
 
-- `+0x14` and `+0x18` are **opaque persisted dwords with no Park Designer runtime reader/writer**. They survive raw save/load and whole-record compaction copies, but no gameplay/render path consumes them.
+- `+0x14` / `+0x18` are **alternate collision X/Y origins** in the original `0x0040DFF0` path for code-300/category-0 objects stored in slots 200..299. The Ghidra access is `piVar3[1]` / `piVar3[2]`, where `piVar3` points at record offset `+0x10`. These two values are also persisted and copied as part of the 76-byte record.
 - `+0x40` is a **visual frame / Pond segment index**. Pond auxiliary drawing uses it as a source-strip index; object-code-7 fountain animation uses it as the current animation frame.
 - `+0x44` is the **fountain animation phase**.
 - `+0x48` is the **fountain frame countdown**, initialized and reset to 9.
 
-The source structure names these roles explicitly while preserving the two truly opaque persisted dwords byte-for-byte.
+The source structure names these evidence-backed roles and preserves the original 76-byte record layout. Previously calling `+0x14/+0x18` unused was incorrect.
 
 ### Record-index families
 
