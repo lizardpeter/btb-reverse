@@ -6,6 +6,19 @@
 using namespace btb::grand_opening;
 
 int main() {
+    // Original machine spans verified directly in the retail PE32 image.
+    static_assert(kRetailMachineDurations.size() == 10);
+    for (std::size_t i = 0; i < kRetailMachineDurations.size(); ++i)
+        assert(kRetailMachineDurations[i] == (i % 2 == 0 ? 1 : 2));
+    assert(machine_span(static_cast<MachineType>(-1)) == 0);
+    assert(machine_span(static_cast<MachineType>(10)) == 0);
+    Composition invalid_guard{};
+    assert(!can_place_event(invalid_guard, 0, 0,
+                           static_cast<MachineType>(10)));
+    assert(!place_event(invalid_guard, 0, 0,
+                        static_cast<MachineType>(10)));
+    assert(invalid_guard.cells[0][0] == kEmptyCell);
+
     static_assert(kCompositionCellCount == 120);
     static_assert(kCompositionSaveBytes == 480);
     static_assert(kTimelineStepMilliseconds == 1000);

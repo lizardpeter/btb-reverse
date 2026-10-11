@@ -70,7 +70,8 @@ bool can_place_event(
     std::size_t step,
     MachineType type) noexcept {
 
-    if (row >= kPitchRowCount || step >= kTimelineStepCount) {
+    if (row >= kPitchRowCount || step >= kTimelineStepCount ||
+        !is_machine_type(static_cast<std::int32_t>(type))) {
         return false;
     }
 

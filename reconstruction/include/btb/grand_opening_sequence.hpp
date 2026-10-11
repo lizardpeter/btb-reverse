@@ -144,8 +144,18 @@ enum class ActivityState : std::int32_t {
     return "";
 }
 
+// Actual 10 little-endian dwords at retail VA 0x00444BE8, on-disk
+// offset 0x44BE8, extracted from the SHA-256 authenticated executable.
+// The older parity formula happened to agree for valid machine types,
+// but this table is the literal source representation of DAT_00444BE8.
+inline constexpr std::array<std::int32_t, kMachineCount>
+kRetailMachineDurations{{1, 2, 1, 2, 1, 2, 1, 2, 1, 2}};
+
 [[nodiscard]] constexpr std::int32_t machine_span(MachineType type) noexcept {
-    return (static_cast<std::int32_t>(type) & 1) == 0 ? 1 : 2;
+    const auto id = static_cast<std::int32_t>(type);
+    return is_machine_type(id)
+        ? kRetailMachineDurations[static_cast<std::size_t>(id)]
+        : 0;
 }
 
 [[nodiscard]] constexpr std::int32_t wav_suffix_for_pitch_row(
