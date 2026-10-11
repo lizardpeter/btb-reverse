@@ -474,6 +474,15 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
     }
 
     result.effects = drivers_[index]->advance(effective_input);
+    // A provider can have a valid registered ActivityDriver yet still lack a
+    // required original subsystem (for example the Fireworks Bink bank).
+    // Fail BEFORE applying progress, transitions, audio or save/unload.
+    // Otherwise a partially reconstructed frame is exposed as successful.
+    if (result.effects.fatal_error) {
+        result.kind = FrameKind::ActivityFailed;
+        result.error = *result.effects.fatal_error;
+        return result;
+    }
     result.kind = FrameKind::ActivityUpdated;
 
     if (result.effects.save_and_unload &&
