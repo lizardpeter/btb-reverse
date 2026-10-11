@@ -1,1 +1,5 @@
 address,stage,cpp_source,validation_test,evidence,notes
+0x004036E0,source_written,reconstruction/include/btb/bitmap_registry.hpp,reconstruction/tests/bitmap_registry_test.cpp,docs/graphics-system.md,Recovered mark-surface-keyed state mutation; not independently parity-tested against retail
+0x00403720,source_written,reconstruction/include/btb/bitmap_registry.hpp,reconstruction/tests/bitmap_registry_test.cpp,docs/graphics-system.md,Recovered surface removal behavior preserving high-water index
+0x00403770,source_written,reconstruction/src/bitmap_registry.cpp,reconstruction/tests/bitmap_registry_test.cpp,docs/graphics-system.md,Recovered registry insertion model; adds explicit overflow guard to avoid retail out-of-bounds
+0x0040A440,source_written,reconstruction/src/dino_level.cpp,reconstruction/tests/dino_level_test.cpp,docs/dino-activity.md,Recovered data parser semantic model with stricter host validation; not a compiled original ABI function

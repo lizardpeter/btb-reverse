@@ -236,6 +236,7 @@ def run(check: bool) -> None:
     queue_fields = ["rank", "score"] + status_fields
     ordered = sorted(statuses, key=lambda x: (
         x["stage"] in ("behavior_verified", "compiles", "source_written"),
+        x["subsystem_tentative"] == "static_runtime",
         x["unresolved_callees"] != 0,
         -score(x), x["address"]))
     queue = [{"rank": i + 1, "score": score(item), **item} for i, item in enumerate(ordered)]
