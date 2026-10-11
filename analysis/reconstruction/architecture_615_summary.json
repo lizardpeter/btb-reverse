@@ -1,0 +1,39 @@
+{
+  "architecture_mapped": 615,
+  "architecture_only": 424,
+  "cohort_counts": {
+    "architecture_batch_200": 200,
+    "architecture_batch_224": 224,
+    "previous_source_written": 191
+  },
+  "cpp_bodies_reconstructed_this_batch": 0,
+  "ghidra_original_function_count": 615,
+  "globals_referenced_across_modules": 342,
+  "globals_used_by_multiple_functions": 909,
+  "indirect_call_edges": "not_measured",
+  "module_counts": {
+    "bobs_band": 13,
+    "dinosaur": 4,
+    "fireworks": 20,
+    "game_flow": 1,
+    "golf": 15,
+    "herding": 6,
+    "maze": 15,
+    "park_designer": 26,
+    "profiles_and_ui": 7,
+    "shared_activity": 20,
+    "shared_platform": 151,
+    "spud_maze": 19,
+    "spud_skate": 6,
+    "squirrel": 14,
+    "static_runtime": 298
+  },
+  "observed_original_direct_call_edges": 1846,
+  "original_exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "original_function_global_reference_edges": 4253,
+  "original_global_addresses": 1815,
+  "owner_notes": "Tentative module and class candidates, not proven layouts",
+  "prototype_notes": "Ghidra prototype, not original C++ signature",
+  "source_fingerprint_sha256_validated": 615,
+  "source_written": 191
+}
