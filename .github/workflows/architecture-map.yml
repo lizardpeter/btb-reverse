@@ -1,0 +1,47 @@
+name: Validate 200 original architecture mappings
+on:
+  push:
+    paths:
+      - .github/workflows/architecture-map.yml
+      - tools/build_architecture_map.py
+      - tools/tests/test_build_architecture_map.py
+      - analysis/reconstruction/architecture_200_selection.csv
+      - analysis/ghidra_main_exe/**
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: btb-architecture-map
+  cancel-in-progress: false
+jobs:
+  architecture-map:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generate evidence-backed architecture map
+        run: python tools/build_architecture_map.py
+      - name: Validate 200 source-specific mappings
+        run: |
+          python tools/build_architecture_map.py --check
+          python -m unittest discover -s tools/tests -p "test_build_architecture_map.py" -v
+      - name: Commit generated architecture evidence and C++ metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add analysis/reconstruction/architecture_200.csv \
+                  analysis/reconstruction/architecture_global_xrefs.json \
+                  analysis/reconstruction/architecture_200_summary.json \
+                  docs/architecture-200-functions.md \
+                  reconstruction/include/btb/original_architecture_map.hpp
+          if git diff --cached --quiet; then echo "No mapping changes"; exit 0; fi
+          git commit -m "Generate checked architecture evidence for 200 original functions"
+          git pull --rebase origin main
+          git push origin HEAD:main
