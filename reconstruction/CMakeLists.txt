@@ -609,3 +609,12 @@ add_executable(btb_retail_shared_runtime_tests
 target_include_directories(btb_retail_shared_runtime_tests PRIVATE include)
 btb_require_cpp26(btb_retail_shared_runtime_tests PRIVATE)
 add_test(NAME retail_shared_runtime COMMAND btb_retail_shared_runtime_tests)
+
+# Real reconstructed fireworks / DirectDraw and float arithmetic helpers.
+# Tests verify source semantics; hardware calls are supplied by callbacks.
+add_executable(btb_retail_runtime_closure_tests
+    tests/retail_runtime_closure_test.cpp
+)
+target_include_directories(btb_retail_runtime_closure_tests PRIVATE include)
+btb_require_cpp26(btb_retail_runtime_closure_tests PRIVATE)
+add_test(NAME retail_runtime_closure COMMAND btb_retail_runtime_closure_tests)

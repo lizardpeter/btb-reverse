@@ -98,6 +98,22 @@ std::string AudioEffectPlanner::sound_file(int sound_id) const {
     return "Data/sound/" + record->filename;
 }
 
+AudioFramePlan AudioEffectPlanner::plan_help_voice(
+    std::int32_t sound_id,
+    bool stop_existing_sounds,
+    ManagedSoundObservation observed) {
+
+    std::vector<Audio> requests;
+    requests.reserve(stop_existing_sounds ? 2U : 1U);
+    if (stop_existing_sounds) {
+        requests.push_back({AudioOperation::StopManagedSounds});
+    }
+    requests.push_back({
+        AudioOperation::ManagedSoundId, {}, sound_id, 50, 2
+    });
+    return plan(requests, observed);
+}
+
 AudioFramePlan AudioEffectPlanner::plan(
     const std::vector<Audio>& requests,
     ManagedSoundObservation observed) {

@@ -106,6 +106,14 @@ public:
         const std::vector<Audio>& requests,
         ManagedSoundObservation observed);
 
+    // Original 0x00401000 PlayHelpVoice: optional StopAllManagedSounds,
+    // then PlayManagedSoundById(sound_id, priority 50, arbitration class 2).
+    // Use real device observations; do not fabricate a playing voice.
+    [[nodiscard]] AudioFramePlan plan_help_voice(
+        std::int32_t sound_id,
+        bool stop_existing_sounds,
+        ManagedSoundObservation observed);
+
     // Model the original 0x00402B? managed-slot reap pass on a new frame.
     // Actual buffer-group Stop/Rewind calls must be issued from the returned
     // plan, and stopped slots remain cached for replay until reused.

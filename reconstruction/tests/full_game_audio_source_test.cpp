@@ -140,4 +140,46 @@ int main() {
     assert(interrupted.operations[0].kind ==
            SoundEffectKind::StopRewindManagedSlot);
     assert(interrupted.operations[0].slot == 0);
+
+    // 0x00401000 uses priority 50 / arbitration class 2, with an optional
+    // StopAllManagedSounds BEFORE trying the new voice.
+    AudioEffectPlanner help;
+    std::istringstream help_catalog(
+        "voice0.wav 510\n"
+        "voice1.wav 511\n");
+    assert(help.load_catalog(help_catalog).success);
+    const auto base_voice = help.plan_help_voice(510,false,{});
+    assert(base_voice.managed_results.size()==1);
+    assert(base_voice.managed_results[0].status==1);
+    assert(base_voice.operations.size()==3);
+    assert(base_voice.operations[0].kind==SoundEffectKind::LoadManagedWav);
+    assert(base_voice.operations[0].sound_id==510);
+    ManagedSoundObservation observed_voice{};
+    observed_voice.playing[0]=true;
+    const auto replace_voice = help.plan_help_voice(
+        511,true,observed_voice);
+    assert(replace_voice.operations.size()==4);
+    assert(replace_voice.operations[0].kind==
+           SoundEffectKind::StopRewindManagedSlot);
+    assert(replace_voice.operations[0].slot==0);
+    assert(replace_voice.operations[1].kind==
+           SoundEffectKind::LoadManagedWav);
+    assert(replace_voice.operations[1].sound_id==511);
+    assert(replace_voice.managed_results[0].status==1);
+    assert(help.manager().state(0)==btb::sound::SlotState::Stopped);
+    // 00402F60 reap keeps an active group running until it really stops,
+    // then stops and rewinds it. Source models are wired to planner.reap.
+    AudioEffectPlanner reaper;
+    std::istringstream reap_catalog("voice.wav 510\n");
+    assert(reaper.load_catalog(reap_catalog).success);
+    assert(reaper.plan_help_voice(510,false,{}).managed_results[0].status==1);
+    ManagedSoundObservation still_playing{};
+    still_playing.playing[0]=true;
+    assert(reaper.reap(still_playing,false,false).operations.empty());
+    ManagedSoundObservation ended{};
+    const auto finish=reaper.reap(ended,false,false);
+    assert(finish.operations.size()==1);
+    assert(finish.operations[0].kind==SoundEffectKind::StopRewindManagedSlot);
+    assert(finish.operations[0].slot==0);
+    assert(reaper.manager().state(0)==btb::sound::SlotState::Stopped);
 }
