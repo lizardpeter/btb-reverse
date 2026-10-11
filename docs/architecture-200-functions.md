@@ -26,15 +26,14 @@ Original EXE SHA-256: c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff
 | fireworks | 14 |
 | maze | 12 |
 | squirrel | 11 |
+| golf | 10 |
 | shared_activity | 10 |
-| golf | 9 |
 | bobs_band | 7 |
 | profiles_and_ui | 6 |
 | herding | 5 |
 | spud_skate | 5 |
 | dinosaur | 3 |
 | game_flow | 1 |
-| unclassified | 1 |
 
 ## Highest-call-impact original functions still requiring C++ reconstruction
 

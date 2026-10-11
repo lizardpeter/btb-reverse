@@ -309,8 +309,7 @@
       "shared_platform",
       "spud_maze",
       "spud_skate",
-      "squirrel",
-      "unclassified"
+      "squirrel"
     ],
     "cross_module": true,
     "type_status": "unresolved",
@@ -390,14 +389,14 @@
       "dinosaur",
       "fireworks",
       "game_flow",
+      "golf",
       "herding",
       "maze",
       "park_designer",
       "shared_activity",
       "spud_maze",
       "spud_skate",
-      "squirrel",
-      "unclassified"
+      "squirrel"
     ],
     "cross_module": true,
     "type_status": "unresolved",
@@ -2466,8 +2465,7 @@
     "modules": [
       "golf",
       "shared_platform",
-      "spud_skate",
-      "unclassified"
+      "spud_skate"
     ],
     "cross_module": true,
     "type_status": "unresolved",
@@ -5443,10 +5441,9 @@
     ],
     "selected_function_count": 3,
     "modules": [
-      "golf",
-      "unclassified"
+      "golf"
     ],
-    "cross_module": true,
+    "cross_module": false,
     "type_status": "unresolved",
     "read_write_status": "not_inferred"
   },
@@ -5594,10 +5591,9 @@
     ],
     "selected_function_count": 3,
     "modules": [
-      "golf",
-      "unclassified"
+      "golf"
     ],
-    "cross_module": true,
+    "cross_module": false,
     "type_status": "unresolved",
     "read_write_status": "not_inferred"
   },
@@ -5610,10 +5606,9 @@
     ],
     "selected_function_count": 3,
     "modules": [
-      "golf",
-      "unclassified"
+      "golf"
     ],
-    "cross_module": true,
+    "cross_module": false,
     "type_status": "unresolved",
     "read_write_status": "not_inferred"
   },
@@ -5626,10 +5621,9 @@
     ],
     "selected_function_count": 3,
     "modules": [
-      "golf",
-      "unclassified"
+      "golf"
     ],
-    "cross_module": true,
+    "cross_module": false,
     "type_status": "unresolved",
     "read_write_status": "not_inferred"
   },
@@ -5642,10 +5636,9 @@
     ],
     "selected_function_count": 3,
     "modules": [
-      "golf",
-      "unclassified"
+      "golf"
     ],
-    "cross_module": true,
+    "cross_module": false,
     "type_status": "unresolved",
     "read_write_status": "not_inferred"
   },
@@ -5658,10 +5651,9 @@
     ],
     "selected_function_count": 3,
     "modules": [
-      "golf",
-      "unclassified"
+      "golf"
     ],
-    "cross_module": true,
+    "cross_module": false,
     "type_status": "unresolved",
     "read_write_status": "not_inferred"
   },
@@ -5674,10 +5666,9 @@
     ],
     "selected_function_count": 3,
     "modules": [
-      "golf",
-      "unclassified"
+      "golf"
     ],
-    "cross_module": true,
+    "cross_module": false,
     "type_status": "unresolved",
     "read_write_status": "not_inferred"
   },
@@ -5690,10 +5681,9 @@
     ],
     "selected_function_count": 3,
     "modules": [
-      "golf",
-      "unclassified"
+      "golf"
     ],
-    "cross_module": true,
+    "cross_module": false,
     "type_status": "unresolved",
     "read_write_status": "not_inferred"
   },
@@ -5706,10 +5696,9 @@
     ],
     "selected_function_count": 3,
     "modules": [
-      "golf",
-      "unclassified"
+      "golf"
     ],
-    "cross_module": true,
+    "cross_module": false,
     "type_status": "unresolved",
     "read_write_status": "not_inferred"
   },
@@ -5722,10 +5711,9 @@
     ],
     "selected_function_count": 3,
     "modules": [
-      "golf",
-      "unclassified"
+      "golf"
     ],
-    "cross_module": true,
+    "cross_module": false,
     "type_status": "unresolved",
     "read_write_status": "not_inferred"
   },
@@ -5738,10 +5726,9 @@
     ],
     "selected_function_count": 3,
     "modules": [
-      "golf",
-      "unclassified"
+      "golf"
     ],
-    "cross_module": true,
+    "cross_module": false,
     "type_status": "unresolved",
     "read_write_status": "not_inferred"
   },
@@ -10515,10 +10502,9 @@
     ],
     "selected_function_count": 2,
     "modules": [
-      "golf",
-      "unclassified"
+      "golf"
     ],
-    "cross_module": true,
+    "cross_module": false,
     "type_status": "unresolved",
     "read_write_status": "not_inferred"
   },
