@@ -41,7 +41,7 @@ inline constexpr std::array<OriginalFunction, 615> kOriginalFunctions{{
     {0x00402BC0U, "ReleaseSoundSlot", OriginalSubsystem::SharedPlatform, ReconstructionStage::Unreviewed, 82U, 1U, 0U},
     {0x00402C20U, "AnyManagedSoundPlaying", OriginalSubsystem::SharedPlatform, ReconstructionStage::Unreviewed, 49U, 21U, 1U},
     {0x00402C60U, "IsSoundIdPlaying", OriginalSubsystem::SharedPlatform, ReconstructionStage::Unreviewed, 44U, 12U, 1U},
-    {0x00402C90U, "StopAllManagedSounds", OriginalSubsystem::SharedPlatform, ReconstructionStage::Unreviewed, 48U, 25U, 2U},
+    {0x00402C90U, "StopAllManagedSounds", OriginalSubsystem::SharedPlatform, ReconstructionStage::SourceWritten, 48U, 25U, 2U},
     {0x00402CC0U, "StopSoundSlot", OriginalSubsystem::SharedPlatform, ReconstructionStage::Unreviewed, 40U, 3U, 2U},
     {0x00402CF0U, "PlayManagedSoundById", OriginalSubsystem::SharedPlatform, ReconstructionStage::Unreviewed, 278U, 47U, 4U},
     {0x00402E10U, "AcquireAndPlaySound", OriginalSubsystem::SharedPlatform, ReconstructionStage::Unreviewed, 333U, 1U, 5U},
