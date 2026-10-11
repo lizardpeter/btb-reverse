@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "meaning": "Inventory of Ghidra-discovered functions; not source reconstruction coverage.",
+  "ghidra_function_count": 615,
+  "ghidra_decompiled_count": 615,
+  "reviewed_overlay_rows": 0,
+  "stage_counts": {
+    "unreviewed": 615,
+    "under_analysis": 0,
+    "source_written": 0,
+    "compiles": 0,
+    "behavior_verified": 0
+  },
+  "tentative_subsystem_counts": {
+    "bobs_band": 13,
+    "dinosaur": 4,
+    "fireworks": 20,
+    "game_flow": 1,
+    "golf": 14,
+    "herding": 6,
+    "maze": 15,
+    "park_designer": 26,
+    "profiles_and_ui": 7,
+    "shared_activity": 20,
+    "shared_platform": 151,
+    "spud_maze": 19,
+    "spud_skate": 6,
+    "squirrel": 14,
+    "static_runtime": 298,
+    "unclassified": 1
+  },
+  "direct_internal_edges": 1550,
+  "direct_external_edges": 296,
+  "strongly_connected_groups": 607,
+  "recursive_groups": 5,
+  "scc_method": "Tarjan over verified direct calls; group IDs sorted by address."
+}
