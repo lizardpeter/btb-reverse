@@ -83,9 +83,9 @@ struct RetailObjectRecord32 {
     std::int32_t top{};                 // +0x04
     std::int32_t right{};               // +0x08
     std::int32_t bottom{};              // +0x0C
-    std::uint32_t surface_ptr32{};      // +0x10
-    std::int32_t unused_persisted_14{}; // +0x14 (no runtime reader/writer; raw save/copy only)
-    std::int32_t unused_persisted_18{}; // +0x18 (no runtime reader/writer; raw save/copy only)
+    std::uint32_t surface_ptr32{};      // +0x10; -1 or geometry-table selector in 0040DFF0; pointer identity unproven
+    std::int32_t special_collision_origin_x{}; // +0x14; alternative X used by 0040DFF0 code-300 collision
+    std::int32_t special_collision_origin_y{}; // +0x18; alternative Y used by 0040DFF0 code-300 collision
     std::int32_t object_code{};         // +0x1C
     std::int32_t object_subcode{};      // +0x20
     std::int32_t enabled_or_active{};   // +0x24
@@ -105,8 +105,8 @@ static_assert(offsetof(RetailObjectRecord32, object_code) == 0x1C);
 static_assert(offsetof(RetailObjectRecord32, record_index) == 0x34);
 static_assert(offsetof(RetailObjectRecord32, bound_category) == 0x38);
 static_assert(offsetof(RetailObjectRecord32, bound_variant) == 0x3C);
-static_assert(offsetof(RetailObjectRecord32, unused_persisted_14) == 0x14);
-static_assert(offsetof(RetailObjectRecord32, unused_persisted_18) == 0x18);
+static_assert(offsetof(RetailObjectRecord32, special_collision_origin_x) == 0x14);
+static_assert(offsetof(RetailObjectRecord32, special_collision_origin_y) == 0x18);
 static_assert(offsetof(RetailObjectRecord32, visual_frame_or_segment) == 0x40);
 static_assert(offsetof(RetailObjectRecord32, fountain_phase) == 0x44);
 static_assert(offsetof(RetailObjectRecord32, fountain_frame_countdown) == 0x48);

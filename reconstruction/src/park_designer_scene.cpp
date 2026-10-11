@@ -29,8 +29,8 @@ namespace {
     // rect-offset table; division/modulo by 5 reconstructs the same index.
     if(o.surface_ptr32>=geometry.size())return std::nullopt;
     const auto offset=geometry[o.surface_ptr32];
-    const auto origin_x=secondary_origin?o.unused_persisted_14:o.left;
-    const auto origin_y=secondary_origin?o.unused_persisted_18:o.top;
+    const auto origin_x=secondary_origin?o.special_collision_origin_x:o.left;
+    const auto origin_y=secondary_origin?o.special_collision_origin_y:o.top;
     return Rect{origin_x+offset.left,origin_y+offset.top,
                 origin_x+offset.right,origin_y+offset.bottom};
 }

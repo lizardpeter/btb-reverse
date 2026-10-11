@@ -118,7 +118,7 @@ int main() {
     band.bound_category=0;
     band.surface_ptr32=0;
     band.left=1;band.top=1;
-    band.unused_persisted_14=50;band.unused_persisted_18=50;
+    band.special_collision_origin_x=50;band.special_collision_origin_y=50;
     const std::array<Rect,1> offsets{{{0,0,20,20}}};
     placed=evaluate_placement(state,55,55,5,5,0,-1,offsets);
     assert(!placed.permitted&&!placed.invalid_geometry);

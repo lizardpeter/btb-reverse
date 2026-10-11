@@ -61,8 +61,8 @@ int main() {
     static_assert(static_cast<std::size_t>(
         TrailingStateIndex::Season) == 27);
 
-    static_assert(offsetof(RetailObjectRecord32, unused_persisted_14) == 0x14);
-    static_assert(offsetof(RetailObjectRecord32, unused_persisted_18) == 0x18);
+    static_assert(offsetof(RetailObjectRecord32, special_collision_origin_x) == 0x14);
+    static_assert(offsetof(RetailObjectRecord32, special_collision_origin_y) == 0x18);
     static_assert(offsetof(RetailObjectRecord32, visual_frame_or_segment) == 0x40);
     static_assert(offsetof(RetailObjectRecord32, fountain_phase) == 0x44);
     static_assert(offsetof(RetailObjectRecord32, fountain_frame_countdown) == 0x48);
