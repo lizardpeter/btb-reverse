@@ -319,7 +319,7 @@ def build():
         "Next step: actual C++ class and field-layout recovery with cross-game",
         "behavior integration and original-executable differential validation.",
         "",
-    ])
+    ]
     return {
         ARCH / "architecture_224.csv": common.write_csv(COLS, final_rows),
         ARCH / "architecture_615.csv": common.write_csv(COLS, rows),
