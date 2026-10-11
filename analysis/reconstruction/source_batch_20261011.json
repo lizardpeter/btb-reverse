@@ -1,0 +1,46 @@
+{
+  "base_commit": "b80539ea4dac5f9d59e43184cb391c8b5ab6d805",
+  "original_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "source": "reconstruction/include/btb/retail_source_batch_20261011.hpp",
+  "validation": "reconstruction/tests/retail_source_batch_20261011_test.cpp",
+  "stage": "source_written",
+  "notes": "Host-neutral source-level behavioral models compiled/tested in C++26; native x86 ABI and retail differential parity not certified. Original function-status index remains a frozen prior snapshot pending full deterministic regeneration.",
+  "addresses": [
+    {
+      "address": "0x0040D5B0",
+      "name": "CompareParkDesignerObjectsForDraw"
+    },
+    {
+      "address": "0x0040DD50",
+      "name": "ParkDesignerRectanglesDoNotOverlapBySamplePoints"
+    },
+    {
+      "address": "0x00422400",
+      "name": "UpdateSpudMazeBobAnimation"
+    },
+    {
+      "address": "0x004225E0",
+      "name": "UpdatePilchardAnimation"
+    },
+    {
+      "address": "0x004302A0",
+      "name": "_strncpy"
+    },
+    {
+      "address": "0x00430E50",
+      "name": "_strncmp"
+    },
+    {
+      "address": "0x00430E90",
+      "name": "__aulldiv"
+    },
+    {
+      "address": "0x00433150",
+      "name": "FUN_00433150"
+    },
+    {
+      "address": "0x0043315D",
+      "name": "FUN_0043315d"
+    }
+  ]
+}

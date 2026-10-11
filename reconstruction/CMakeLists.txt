@@ -704,3 +704,15 @@ target_link_libraries(btb_full_game_fireworks_source_tests PRIVATE
 )
 add_test(NAME full_game_fireworks_source
     COMMAND btb_full_game_fireworks_source_tests)
+
+
+# Source-backed batch: 9 additional retail PE32 function semantics.
+# Park Designer sorting/collision; Spud Maze Bob/Pilchard animation;
+# MSVC string/division; little-endian 4/8-byte cursor reads.
+add_executable(btb_retail_source_batch_20261011_tests
+    tests/retail_source_batch_20261011_test.cpp
+)
+target_include_directories(btb_retail_source_batch_20261011_tests PRIVATE include)
+btb_require_cpp26(btb_retail_source_batch_20261011_tests PRIVATE)
+add_test(NAME retail_source_batch_20261011
+    COMMAND btb_retail_source_batch_20261011_tests)
