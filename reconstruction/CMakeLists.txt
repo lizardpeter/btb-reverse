@@ -639,3 +639,23 @@ add_executable(btb_retail_activity_closure_tests
 target_include_directories(btb_retail_activity_closure_tests PRIVATE include)
 btb_require_cpp26(btb_retail_activity_closure_tests PRIVATE)
 add_test(NAME retail_activity_closure COMMAND btb_retail_activity_closure_tests)
+
+# Batch: 39 MSVC exception cleanups, 15 game control routines, and
+# 17 native CRT/import functions. Independent C++26 behavioral tests.
+add_executable(btb_retail_unwind_entrypoints_tests
+    tests/retail_unwind_entrypoints_test.cpp)
+target_include_directories(btb_retail_unwind_entrypoints_tests PRIVATE include)
+btb_require_cpp26(btb_retail_unwind_entrypoints_tests PRIVATE)
+add_test(NAME retail_unwind_entrypoints COMMAND btb_retail_unwind_entrypoints_tests)
+
+add_executable(btb_retail_game_batch70_tests
+    tests/retail_game_batch70_test.cpp)
+target_include_directories(btb_retail_game_batch70_tests PRIVATE include)
+btb_require_cpp26(btb_retail_game_batch70_tests PRIVATE)
+add_test(NAME retail_game_batch70 COMMAND btb_retail_game_batch70_tests)
+
+add_executable(btb_retail_crt_batch70_tests
+    tests/retail_crt_batch70_test.cpp)
+target_include_directories(btb_retail_crt_batch70_tests PRIVATE include)
+btb_require_cpp26(btb_retail_crt_batch70_tests PRIVATE)
+add_test(NAME retail_crt_batch70 COMMAND btb_retail_crt_batch70_tests)
