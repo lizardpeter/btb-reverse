@@ -1,0 +1,65 @@
+name: Reconstruct 615-function index and compile registry
+
+on:
+  push:
+    paths:
+      - .github/workflows/reconstruction-index.yml
+      - tools/build_reconstruction_index.py
+      - tools/tests/test_build_reconstruction_index.py
+      - analysis/ghidra_main_exe/**
+      - analysis/reconstruction/reviewed_functions.csv
+      - reconstruction/CMakeLists.txt
+      - reconstruction/tests/original_function_registry_test.cpp
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: btb-whole-program-index
+  cancel-in-progress: false
+
+jobs:
+  reconstruction-registry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generate the complete evidence-indexed registry
+        run: python tools/build_reconstruction_index.py
+      - name: Verify metadata and source provenance
+        run: |
+          python tools/build_reconstruction_index.py --check
+          python -m unittest discover -s tools/tests -p "test_*.py" -v
+      - name: Install C++26 compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-14
+      - name: Configure reconstructed source project
+        env:
+          CXX: g++-14
+        run: cmake -S reconstruction -B build/reconstruction
+      - name: Compile 615-function constexpr registry
+        run: cmake --build build/reconstruction --target btb_original_function_registry_tests --parallel 2
+      - name: Run registry C++ tests
+        run: ctest --test-dir build/reconstruction -R "^original_function_registry$" --output-on-failure
+      - name: Commit reviewed status report and dependency queue
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add analysis/reconstruction/function_status.csv \
+                  analysis/reconstruction/work_queue.csv \
+                  analysis/reconstruction/dependency_groups.json \
+                  analysis/reconstruction/summary.json \
+                  reconstruction/include/btb/original_function_registry.hpp
+          if git diff --cached --quiet; then echo "Generated inventory unchanged"; exit 0; fi
+          git commit -m "Generate validated 615-function C++26 reconstruction registry"
+          git pull --rebase origin main
+          git push origin HEAD:main

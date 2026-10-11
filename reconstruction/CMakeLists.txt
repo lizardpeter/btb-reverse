@@ -535,3 +535,11 @@ add_executable(btb_game_session_tests
 btb_require_cpp26(btb_game_session_tests PRIVATE)
 target_link_libraries(btb_game_session_tests PRIVATE btb_game_session)
 add_test(NAME game_session COMMAND btb_game_session_tests)
+
+# Original-executable identity registry. This target does not link Ghidra pseudocode.
+add_executable(btb_original_function_registry_tests
+    tests/original_function_registry_test.cpp
+)
+target_include_directories(btb_original_function_registry_tests PRIVATE include)
+btb_require_cpp26(btb_original_function_registry_tests PRIVATE)
+add_test(NAME original_function_registry COMMAND btb_original_function_registry_tests)
