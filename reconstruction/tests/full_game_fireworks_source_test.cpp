@@ -145,6 +145,18 @@ int main() {
     root.set_outer_state(btb::game_flow::State::FireworksInit);
     assert(root.advance({}).kind == FrameKind::ActivityInitialized);
     assert(live->sequence().at(0,0) == FireworkType::LargeRed);
+
+    // Source Play sets internal state 14. Without the authenticated Bink
+    // provider the NEXT frame must fail at the GameRoot boundary, not
+    // return a successful activity frame or silently skip to results.
+    const auto play = root.advance(click(320,440));
+    assert(play.kind == FrameKind::ActivityUpdated);
+    assert(live->editor().internal_state ==
+           btb::fireworks::InternalState::PreShowMovieSetup);
+    const auto unsupported = root.advance({});
+    assert(unsupported.kind == FrameKind::ActivityFailed);
+    assert(unsupported.error.find("Bink") != std::string::npos);
+    assert(!unsupported.effects.save_and_unload);
     assert(root.unload_current(error));
 
     // Corrupt saves fail initialization rather than being repaired or
