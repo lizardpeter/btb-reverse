@@ -562,3 +562,31 @@ target_link_libraries(btb_full_game_audio_source PUBLIC btb_sound_manager)
 add_executable(btb_full_game_audio_source_tests tests/full_game_audio_source_test.cpp)
 target_link_libraries(btb_full_game_audio_source_tests PRIVATE btb_full_game_audio_source)
 add_test(NAME full_game_audio_source COMMAND btb_full_game_audio_source_tests)
+
+
+# Compile and test the real source-level 68-state, ten-activity GameRoot and
+# original five-profile persistence, not a fabricated game coordinator.
+# This target is independent of the Windows-only DirectDraw/DirectSound host.
+add_library(btb_full_game_root_source
+    src/full_game_runtime.cpp
+    src/full_game_profiles.cpp
+)
+target_include_directories(btb_full_game_root_source PUBLIC include)
+btb_require_cpp26(btb_full_game_root_source PUBLIC)
+target_link_libraries(btb_full_game_root_source PUBLIC
+    btb_player_profiles btb_player_progress
+)
+add_executable(btb_full_game_runtime_source_tests
+    tests/full_game_runtime_source_test.cpp
+)
+target_link_libraries(btb_full_game_runtime_source_tests PRIVATE
+    btb_full_game_root_source
+)
+add_test(NAME full_game_runtime_source COMMAND btb_full_game_runtime_source_tests)
+add_executable(btb_full_game_profiles_source_tests
+    tests/full_game_profiles_source_test.cpp
+)
+target_link_libraries(btb_full_game_profiles_source_tests PRIVATE
+    btb_full_game_root_source
+)
+add_test(NAME full_game_profiles_source COMMAND btb_full_game_profiles_source_tests)
