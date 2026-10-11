@@ -1,0 +1,201 @@
+{
+  "original_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "source": "reconstruction/include/btb/retail_source_batch_32.hpp",
+  "test": "reconstruction/tests/retail_source_batch_32_test.cpp",
+  "source_stage": "source_written",
+  "validation_limitations": "Typed C++26 function semantics and regression tests only; original x86 ABI and retail differential validation not certified. Callback-based WinAPI/SEH/CRT delegates require native provider integration.",
+  "functions": [
+    {
+      "address": "0x00433630",
+      "symbol": "FUN_00433630",
+      "role": "MSVC zero-terminated string copy",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00433630.c"
+    },
+    {
+      "address": "0x004377BA",
+      "symbol": "FUN_004377ba",
+      "role": "Clear 96-bit triple",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/004377BA.c"
+    },
+    {
+      "address": "0x0043779F",
+      "symbol": "FUN_0043779f",
+      "role": "Copy 96-bit triple",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/0043779F.c"
+    },
+    {
+      "address": "0x004377C6",
+      "symbol": "FUN_004377c6",
+      "role": "Test 96-bit zero",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/004377C6.c"
+    },
+    {
+      "address": "0x004387C7",
+      "symbol": "FUN_004387c7",
+      "role": "Unsigned add carry",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/004387C7.c"
+    },
+    {
+      "address": "0x00438846",
+      "symbol": "FUN_00438846",
+      "role": "96-bit left shift",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00438846.c"
+    },
+    {
+      "address": "0x00438874",
+      "symbol": "FUN_00438874",
+      "role": "96-bit right shift",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00438874.c"
+    },
+    {
+      "address": "0x00437674",
+      "symbol": "FUN_00437674",
+      "role": "96-bit bit-window test",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00437674.c"
+    },
+    {
+      "address": "0x004376BD",
+      "symbol": "FUN_004376bd",
+      "role": "96-bit masked increment",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/004376BD.c"
+    },
+    {
+      "address": "0x004387E8",
+      "symbol": "___add_12",
+      "role": "96-bit addition",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/004387E8.c"
+    },
+    {
+      "address": "0x00436640",
+      "symbol": "__allmul",
+      "role": "MSVC 64-bit multiply",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00436640.c"
+    },
+    {
+      "address": "0x00436680",
+      "symbol": "__allshl",
+      "role": "MSVC 64-bit left shift",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00436680.c"
+    },
+    {
+      "address": "0x00436540",
+      "symbol": "_memset",
+      "role": "MSVC memset",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00436540.c"
+    },
+    {
+      "address": "0x0043991A",
+      "symbol": "FUN_0043991a",
+      "role": "Bounded string length",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/0043991A.c"
+    },
+    {
+      "address": "0x00439E9E",
+      "symbol": "FUN_00439e9e",
+      "role": "Heap string duplicate",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00439E9E.c"
+    },
+    {
+      "address": "0x00436EB6",
+      "symbol": "FUN_00436eb6",
+      "role": "Runtime code mapping",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00436EB6.c"
+    },
+    {
+      "address": "0x00436745",
+      "symbol": "FUN_00436745",
+      "role": "WinAPI code pointer validation",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00436745.c"
+    },
+    {
+      "address": "0x0043670D",
+      "symbol": "FUN_0043670d",
+      "role": "WinAPI readable range validation",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/0043670D.c"
+    },
+    {
+      "address": "0x00436729",
+      "symbol": "FUN_00436729",
+      "role": "WinAPI writable range validation",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00436729.c"
+    },
+    {
+      "address": "0x00438241",
+      "symbol": "FUN_00438241",
+      "role": "Character class table check",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00438241.c"
+    },
+    {
+      "address": "0x00434444",
+      "symbol": "FUN_00434444",
+      "role": "20-byte allocation header region search",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00434444.c"
+    },
+    {
+      "address": "0x0043091D",
+      "symbol": "FUN_0043091d",
+      "role": "Initializer table invocation",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/0043091D.c"
+    },
+    {
+      "address": "0x00431D8A",
+      "symbol": "FUN_00431d8a",
+      "role": "EOF suppress forwarding",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00431D8A.c"
+    },
+    {
+      "address": "0x004330B2",
+      "symbol": "FUN_004330b2",
+      "role": "Buffered write byte",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/004330B2.c"
+    },
+    {
+      "address": "0x004330E7",
+      "symbol": "FUN_004330e7",
+      "role": "Repeat buffer write",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/004330E7.c"
+    },
+    {
+      "address": "0x00435FF5",
+      "symbol": "FUN_00435ff5",
+      "role": "SEH unwind forwarding",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00435FF5.c"
+    },
+    {
+      "address": "0x0043A0DD",
+      "symbol": "FUN_0043a0dd",
+      "role": "CRT constructor/vtable A",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/0043A0DD.c"
+    },
+    {
+      "address": "0x0043A1C5",
+      "symbol": "FUN_0043a1c5",
+      "role": "CRT constructor/vtable B",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/0043A1C5.c"
+    },
+    {
+      "address": "0x004379DA",
+      "symbol": "FUN_004379da",
+      "role": "Decode using table A",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/004379DA.c"
+    },
+    {
+      "address": "0x004379F0",
+      "symbol": "FUN_004379f0",
+      "role": "Decode using table B",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/004379F0.c"
+    },
+    {
+      "address": "0x00437EB3",
+      "symbol": "FUN_00437eb3",
+      "role": "Decoder forwarding with zero",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00437EB3.c"
+    },
+    {
+      "address": "0x00437478",
+      "symbol": "FUN_00437478",
+      "role": "Masked FPU control forwarder",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00437478.c"
+    }
+  ]
+}
