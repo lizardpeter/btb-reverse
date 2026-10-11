@@ -1,0 +1,28 @@
+name: Package Ghidra analysis scripts
+
+on:
+  push:
+    paths:
+      - .github/workflows/ghidra-source-package.yml
+      - ghidra/ExportFullHeadless.py
+      - ghidra/known_symbols.csv
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pack exact committed scripts and symbol labels
+        run: |
+          mkdir -p staging
+          cp ghidra/ExportFullHeadless.py ghidra/known_symbols.csv staging/
+          tar -C staging -czf btb-ghidra-scripts.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: btb-ghidra-scripts
+          path: btb-ghidra-scripts.tar.gz
+          retention-days: 7
