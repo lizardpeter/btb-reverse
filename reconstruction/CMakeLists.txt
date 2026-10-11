@@ -716,3 +716,14 @@ target_include_directories(btb_retail_source_batch_20261011_tests PRIVATE includ
 btb_require_cpp26(btb_retail_source_batch_20261011_tests PRIVATE)
 add_test(NAME retail_source_batch_20261011
     COMMAND btb_retail_source_batch_20261011_tests)
+
+
+# 32 additional source-backed original runtime functions (96-bit arithmetic,
+# MSVC CRT, string handling, and native callback wrappers).
+add_executable(btb_retail_source_batch_32_tests
+    tests/retail_source_batch_32_test.cpp
+)
+target_include_directories(btb_retail_source_batch_32_tests PRIVATE include)
+btb_require_cpp26(btb_retail_source_batch_32_tests PRIVATE)
+add_test(NAME retail_source_batch_32
+    COMMAND btb_retail_source_batch_32_tests)
