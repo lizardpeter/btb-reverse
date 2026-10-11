@@ -543,3 +543,11 @@ add_executable(btb_original_function_registry_tests
 target_include_directories(btb_original_function_registry_tests PRIVATE include)
 btb_require_cpp26(btb_original_function_registry_tests PRIVATE)
 add_test(NAME original_function_registry COMMAND btb_original_function_registry_tests)
+
+# Native low-level CSound semantics recovered from 00404430/70/B0.
+add_library(btb_dsutil_group_runtime src/dsutil_group_runtime.cpp)
+target_include_directories(btb_dsutil_group_runtime PUBLIC include)
+btb_require_cpp26(btb_dsutil_group_runtime PUBLIC)
+add_executable(btb_dsutil_group_runtime_tests tests/dsutil_group_runtime_test.cpp)
+target_link_libraries(btb_dsutil_group_runtime_tests PRIVATE btb_dsutil_group_runtime)
+add_test(NAME dsutil_group_runtime COMMAND btb_dsutil_group_runtime_tests)
