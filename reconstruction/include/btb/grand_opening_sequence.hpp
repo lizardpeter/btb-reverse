@@ -148,7 +148,7 @@ enum class ActivityState : std::int32_t {
 // offset 0x44BE8, extracted from the SHA-256 authenticated executable.
 // The older parity formula happened to agree for valid machine types,
 // but this table is the literal source representation of DAT_00444BE8.
-inline constexpr std::array<std::int32_t, kMachineCount>
+inline constexpr std::array<std::int32_t, 10>
 kRetailMachineDurations{{1, 2, 1, 2, 1, 2, 1, 2, 1, 2}};
 
 [[nodiscard]] constexpr std::int32_t machine_span(MachineType type) noexcept {
