@@ -87,6 +87,7 @@ int main(){
 
     // Independent shutdown flag has priority over editor, and sets state 4.
     LoopState exit{};
+    for(auto& object:exit.save.objects)object.object_code=-1;
     exit.shutdown_requested=true;exit.outro_stage=2;
     f=advance_park_designer_loop(exit,{},draw,edit);
     assert(f.completed&&!f.mark_park_progress&&f.return_to_activity_select);
