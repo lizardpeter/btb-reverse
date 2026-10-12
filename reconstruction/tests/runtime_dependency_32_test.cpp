@@ -102,7 +102,7 @@ int main(){
     assert(flush_count==2);
     flush_count=0;
     assert(flush_all(streams,0,[&](File*){++flush_count;return -1;})==-1);
-    assert(flush_count==1);
+    assert(flush_count==2); // Both 0x83 and 0x82 have output flag 0x02
 
     // 00430FB8 stream scan lock/unlock
     events.clear();
