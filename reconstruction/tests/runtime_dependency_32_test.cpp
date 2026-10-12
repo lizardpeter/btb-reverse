@@ -181,8 +181,8 @@ int main(){
     assert(events=="ACB");
 
     // 004332B4 two modes of CRT floating-result assignment
-    const auto two=assign_float_result(true,[]{return std::array<U32,2>{2,3};},{});
-    assert(two[0]==2&&two[1]==3);
+    const auto two_word_result=assign_float_result(true,[]{return std::array<U32,2>{2,3};},{});
+    assert(two_word_result[0]==2&&two_word_result[1]==3);
     const auto one_word=assign_float_result(false,{},[]{return 19U;});
     assert(one_word[0]==19&&one_word[1]==0);
 
