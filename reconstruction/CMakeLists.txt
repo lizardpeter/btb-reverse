@@ -840,3 +840,15 @@ target_link_libraries(btb_gameplay_data_batch_20_tests PRIVATE
     btb_fireworks btb_grand_opening btb_front_end_ui_data
     btb_golf btb_spud_skate btb_squirrel btb_maze btb_spud_maze)
 add_test(NAME gameplay_data_batch_20 COMMAND btb_gameplay_data_batch_20_tests)
+
+
+# Original function batch: 10 gameplay/editor and UI/transition functions.
+# Retains native COM/audio/movie effects as explicit host operations while
+# C++ models execute retail branch and state behavior. The Bob's Band
+# composition implementation is directly linked; no fake project stubs.
+add_executable(btb_gameplay_control_batch_10_tests
+    tests/gameplay_control_batch_10_test.cpp
+    src/bobs_band.cpp)
+target_include_directories(btb_gameplay_control_batch_10_tests PRIVATE include)
+btb_require_cpp26(btb_gameplay_control_batch_10_tests PRIVATE)
+add_test(NAME gameplay_control_batch_10 COMMAND btb_gameplay_control_batch_10_tests)

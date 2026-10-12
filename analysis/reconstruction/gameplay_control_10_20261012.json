@@ -1,0 +1,79 @@
+{
+  "source_exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "batch_size": 10,
+  "source_written_in_this_batch": 10,
+  "validation": "reconstruction/tests/gameplay_control_batch_10_test.cpp",
+  "limits": "Native DirectDraw COM blits, DirectSound and Bink calls represented by explicit host operation plans; exact retail-equivalent native execution and x86 calling conventions not asserted. Caller-supplied polygon/hit-rectangle resources needed for some routines.",
+  "functions": [
+    {
+      "address": "0x00413F10",
+      "name": "UpdateFireworksActivity",
+      "source": "reconstruction/include/btb/gameplay_control_batch_10.hpp",
+      "role": "main Fireworks editor/movie/show/completion state transitions",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00413F10.c"
+    },
+    {
+      "address": "0x0041F6E0",
+      "name": "HandleBobsBandEditorAction",
+      "source": "reconstruction/include/btb/gameplay_control_batch_10.hpp",
+      "role": "Bob's Band editor palette/gridded erase including continuation-owner resolution",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/0041F6E0.c"
+    },
+    {
+      "address": "0x0041F550",
+      "name": "UpdateBobsBandBrickCursorAndDelete",
+      "source": "reconstruction/include/btb/gameplay_control_batch_10.hpp",
+      "role": "Bob's Band selected palette, note replacement and cancel cursor semantics",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/0041F550.c"
+    },
+    {
+      "address": "0x004282C0",
+      "name": "UpdateHelpButtonController",
+      "source": "reconstruction/include/btb/gameplay_control_batch_10.hpp",
+      "role": "20-slot sound halt, help hover and button activation",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/004282C0.c"
+    },
+    {
+      "address": "0x00429FE0",
+      "name": "UpdateLeaveActivityConfirmation",
+      "source": "reconstruction/include/btb/gameplay_control_batch_10.hpp",
+      "role": "confirmation click and restoration/leave state",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00429FE0.c"
+    },
+    {
+      "address": "0x00429500",
+      "name": "UpdatePlayAgainPrompt",
+      "source": "reconstruction/include/btb/gameplay_control_batch_10.hpp",
+      "role": "six source screen hit regions and post-game context routing",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00429500.c"
+    },
+    {
+      "address": "0x00422DD0",
+      "name": "DrawSpudMazeScreenTransition",
+      "source": "reconstruction/include/btb/gameplay_presentation_batch_10.hpp",
+      "role": "original Spud Maze west/east slide frame source rectangles and speed",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00422DD0.c"
+    },
+    {
+      "address": "0x00425780",
+      "name": "UpdateAndDrawSquirrelLevelTransition",
+      "source": "reconstruction/include/btb/gameplay_presentation_batch_10.hpp",
+      "role": "Squirrel level transition, speed, reset and border blits",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00425780.c"
+    },
+    {
+      "address": "0x0041BF80",
+      "name": "DrawMazeTimer",
+      "source": "reconstruction/include/btb/gameplay_presentation_batch_10.hpp",
+      "role": "source timer delta, clock correction, HUD token layout",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/0041BF80.c"
+    },
+    {
+      "address": "0x004138A0",
+      "name": "DrawFireworksCertificateScreen",
+      "source": "reconstruction/include/btb/gameplay_presentation_batch_10.hpp",
+      "role": "name glyph center, rank tile, print button and hover voice",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/004138A0.c"
+    }
+  ]
+}
