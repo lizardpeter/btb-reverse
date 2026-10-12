@@ -812,3 +812,16 @@ target_link_libraries(btb_retail_game_lifecycle_15_tests PRIVATE
     btb_retail_game_lifecycle_15)
 add_test(NAME retail_game_lifecycle_15
     COMMAND btb_retail_game_lifecycle_15_tests)
+
+
+# Batch source-model reconstruction of 0041D4D0/00423F40 activity dispatch,
+# 004211A0 Spud Maze directional input and 00423470 collision/drop. Shared
+# Maze input, motion, transition, shortest-path and Spud Maze path models are
+# explicitly linked and exercised in the combined gameplay regression.
+add_executable(btb_maze_spud_frame_batch_tests
+    tests/maze_spud_frame_batch_test.cpp)
+target_include_directories(btb_maze_spud_frame_batch_tests PRIVATE include)
+btb_require_cpp26(btb_maze_spud_frame_batch_tests PRIVATE)
+target_link_libraries(btb_maze_spud_frame_batch_tests PRIVATE
+    btb_maze btb_spud_maze)
+add_test(NAME maze_spud_frame_batch COMMAND btb_maze_spud_frame_batch_tests)

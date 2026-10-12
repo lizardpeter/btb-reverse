@@ -1,0 +1,87 @@
+{
+  "original_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "batch_count": 10,
+  "fidelity": "C++26 source-level models; external DirectDraw, DirectSound, native Bink/time and random callers must be connected for executable parity. These functions have independent and combined CTest coverage but are NOT binary/ABI-verified original recompiled code.",
+  "functions": [
+    {
+      "address": "0x00415D70",
+      "symbol": "AngleBetweenIntegerPointsDegrees",
+      "source": "reconstruction/src/maze_input.cpp",
+      "test": "reconstruction/tests/maze_input_test.cpp",
+      "behavior": "Original manual-quadrant x87 angle helper; zero-X 9999 ratio artifact.",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00415D70.c"
+    },
+    {
+      "address": "0x0041AF60",
+      "symbol": "ComputeMazePlayerInputDirection",
+      "source": "reconstruction/src/maze_input.cpp",
+      "test": "reconstruction/tests/maze_input_test.cpp",
+      "behavior": "Mouse/keyboard mode switch and shared 3-sample directional debounce.",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/0041AF60.c"
+    },
+    {
+      "address": "0x0041C710",
+      "symbol": "DrawMazeScreenTransition",
+      "source": "reconstruction/src/maze_transition.cpp",
+      "test": "reconstruction/tests/maze_transition_test.cpp",
+      "behavior": "Original 640x480 left/right source-rectangle slide and acceleration.",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/0041C710.c"
+    },
+    {
+      "address": "0x0041C9F0",
+      "symbol": "SearchMazePathRecursive",
+      "source": "reconstruction/src/maze_runtime.cpp",
+      "test": "reconstruction/tests/maze_runtime_test.cpp",
+      "behavior": "Cycle-avoiding depth-first shortest-path search, 13-slot candidate capacity.",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/0041C9F0.c"
+    },
+    {
+      "address": "0x0041CC20",
+      "symbol": "MoveMazeActorTowardNode",
+      "source": "reconstruction/src/maze_motion.cpp",
+      "test": "reconstruction/tests/maze_motion_test.cpp",
+      "behavior": "Original angle-based float movement toward original node coordinates.",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/0041CC20.c"
+    },
+    {
+      "address": "0x00423030",
+      "symbol": "SearchShortestSpudMazeGraphPath",
+      "source": "reconstruction/src/spud_maze_runtime.cpp",
+      "test": "reconstruction/tests/spud_maze_runtime_test.cpp",
+      "behavior": "Cycle-avoiding shortest-route search using 20-node path limit.",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00423030.c"
+    },
+    {
+      "address": "0x0041D4D0",
+      "symbol": "UpdateMazeActivity",
+      "source": "reconstruction/include/btb/maze_spud_frame_batch.hpp",
+      "test": "reconstruction/tests/maze_spud_frame_batch_test.cpp",
+      "behavior": "Frame update branches, outcome voice phases, native music, player/NPC calls, teardown.",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/0041D4D0.c"
+    },
+    {
+      "address": "0x00423F40",
+      "symbol": "UpdateSpudMazeActivity",
+      "source": "reconstruction/include/btb/maze_spud_frame_batch.hpp",
+      "test": "reconstruction/tests/maze_spud_frame_batch_test.cpp",
+      "behavior": "Repair complete narration gate, play-again, music and Pilchard dispatch.",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00423F40.c"
+    },
+    {
+      "address": "0x004211A0",
+      "symbol": "ComputeSpudMazeBobInputDirection",
+      "source": "reconstruction/include/btb/maze_spud_frame_batch.hpp",
+      "test": "reconstruction/tests/maze_spud_frame_batch_test.cpp",
+      "behavior": "Distinct mouse/keyboard handling, Y +50, thresholds and no Maze debounce.",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/004211A0.c"
+    },
+    {
+      "address": "0x00423470",
+      "symbol": "HandlePilchardCollisionAndHammerDrop",
+      "source": "reconstruction/include/btb/maze_spud_frame_batch.hpp",
+      "test": "reconstruction/tests/maze_spud_frame_batch_test.cpp",
+      "behavior": "Contact radius/cooldown, original hammer drop, managed reaction sounds and random retry service.",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00423470.c"
+    }
+  ]
+}
