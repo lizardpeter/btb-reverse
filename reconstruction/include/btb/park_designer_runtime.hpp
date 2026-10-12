@@ -3,6 +3,7 @@
 #include "btb/park_designer_data.hpp"
 
 #include <cstdint>
+#include <optional>
 
 namespace btb::park_designer {
 

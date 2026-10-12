@@ -1,0 +1,24 @@
+{
+  "original_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "source_written": [
+    {
+      "address": "0x00410D10",
+      "symbol": "UpdateParkDesignerActivity",
+      "source": "reconstruction/src/park_designer_activity_loop.cpp",
+      "test": "reconstruction/tests/park_designer_activity_loop_test.cpp",
+      "host_integration": "reconstruction/src/full_game_park_designer.cpp",
+      "host_test": "reconstruction/tests/full_game_park_designer_source_test.cpp",
+      "stage": "source_written"
+    }
+  ],
+  "partial_editor": {
+    "address": "0x0040E440",
+    "symbol": "UpdateParkDesignerEditorInteraction",
+    "stage": "partial_unreviewed",
+    "source": "reconstruction/include/btb/park_designer_editor_control_slice.hpp",
+    "test": "reconstruction/tests/park_designer_editor_control_slice_test.cpp",
+    "coverage": "Source-backed control indices 5,6,7,8,9,10,11 and View toolbar actions 0,1,2,3 only. Original placement, drag, screen renderer, and cursor surface logic not closed. Do not count as full-function source."
+  },
+  "limitations": "Full 68-state native host supports adapter wiring in C++ but must install real original retail native bitmap/editor/audio provider. This is source-level control and save integration, not playable retail parity or original x86 ABI.",
+  "output_save_bytes": 30512
+}
