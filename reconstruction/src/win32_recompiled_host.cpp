@@ -307,7 +307,7 @@ int run_recompiled_native_game(
     cls.cbSize=sizeof(cls);
     cls.hInstance=instance;
     cls.lpfnWndProc=native_window_proc;
-    cls.hCursor=LoadCursorW(nullptr,IDC_ARROW);
+    cls.hCursor=LoadCursorW(nullptr,MAKEINTRESOURCEW(32512));
     cls.lpszClassName=L"BTBRetailNativeCxx";
     if(!RegisterClassExW(&cls))return 1;
     RECT size{0,0,640,480};
