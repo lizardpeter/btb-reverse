@@ -873,3 +873,20 @@ add_executable(btb_shared_ui_native_9_tests
 target_include_directories(btb_shared_ui_native_9_tests PRIVATE include)
 btb_require_cpp26(btb_shared_ui_native_9_tests PRIVATE)
 add_test(NAME shared_ui_native_9 COMMAND btb_shared_ui_native_9_tests)
+
+
+# Twelve original function bodies across game activities and their shared
+# native platform services. Source-level state/operation validation is NOT
+# retail x86 ABI, true DirectDraw/DirectSound/Bink end-to-end equivalence.
+add_executable(btb_retail_service_batch_8_tests
+    tests/retail_service_batch_8_test.cpp)
+target_include_directories(btb_retail_service_batch_8_tests PRIVATE include)
+btb_require_cpp26(btb_retail_service_batch_8_tests PRIVATE)
+add_test(NAME retail_service_batch_8 COMMAND btb_retail_service_batch_8_tests)
+
+add_executable(btb_native_gameplay_batch_6_tests
+    tests/native_gameplay_batch_6_test.cpp
+    src/bobs_band.cpp)
+target_include_directories(btb_native_gameplay_batch_6_tests PRIVATE include)
+btb_require_cpp26(btb_native_gameplay_batch_6_tests PRIVATE)
+add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
