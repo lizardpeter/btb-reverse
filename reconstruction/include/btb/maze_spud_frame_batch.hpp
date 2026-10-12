@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <string>
 #include <vector>
 
 namespace btb::maze_spud_batch {
@@ -35,6 +36,7 @@ struct Frame {
     std::vector<Effect> effects{};
     I32 return_value{};
     bool transitioned{};
+    std::string error{};
     void put(Op op,I32 arg=0,I32 priority=0,I32 arbitration=0) {
         effects.push_back({op,arg,priority,arbitration});
     }
@@ -301,6 +303,7 @@ struct CollisionInput {
     float max_bob_animation{};
     std::uint32_t random_speech_roll{};
     std::uint32_t random_pilchard_roll{};
+    std::function<std::uint32_t()> reroll_bob_voice{};
     bool bob_reaction_audio_playing{};
     bool pilchard_reaction_audio_playing{};
 };
@@ -315,16 +318,22 @@ struct CollisionInput {
     out.return_value=1;
     if(!s.hammer_held||s.collision_already_active||
        s.bob_animation>=in.max_bob_animation)return out;
+    I32 sound=696+static_cast<I32>(in.random_speech_roll%6U);
+    // 00423470 rerolls using the original rand() function until the
+    // newly chosen Bob sound differs from the previous sample. Never
+    // invent a new random draw or misrepresent a coincident repeat.
+    for(int retries=0;sound==s.last_bob_sound;++retries) {
+        if(!in.reroll_bob_voice||retries>=64) {
+            out.error="original Pilchard collision Bob voice RNG unavailable";
+            out.return_value=0;
+            return out;
+        }
+        sound=696+static_cast<I32>(in.reroll_bob_voice()%6U);
+    }
     s.hammer=spud_maze::make_hammer_drop(
         in.bob_x,in.bob_y,s.bob_direction,s.current_screen);
     s.hammer_held=false;s.hammer_dropped=true;s.cooldown=500;
     out.put(Op::DropHammer,s.hammer.x,s.hammer.y);
-    I32 sound=696+static_cast<I32>(in.random_speech_roll%6U);
-    if(sound==s.last_bob_sound) {
-        // Native retry loop requires a fresh random sample until different.
-        // Callers must supply a second roll; do not silently synthesize one.
-        sound=696+static_cast<I32>((in.random_speech_roll+1U)%6U);
-    }
     s.last_bob_sound=sound;
     out.put(Op::PlayManagedSound,sound,50,1);
     if(!in.bob_reaction_audio_playing&&!in.pilchard_reaction_audio_playing)
