@@ -775,3 +775,13 @@ target_link_libraries(btb_full_game_park_designer_source_tests PRIVATE
     btb_full_game_park_designer_source)
 add_test(NAME full_game_park_designer_source
     COMMAND btb_full_game_park_designer_source_tests)
+
+
+# Verified toolbar / View mode slices of central editor 0x0040E440.
+# PARTIAL ONLY: does not promote the 10,433-byte whole function to completed.
+add_executable(btb_park_designer_editor_control_slice_tests
+    tests/park_designer_editor_control_slice_test.cpp)
+target_include_directories(btb_park_designer_editor_control_slice_tests PRIVATE include)
+btb_require_cpp26(btb_park_designer_editor_control_slice_tests PRIVATE)
+add_test(NAME park_designer_editor_control_slice
+    COMMAND btb_park_designer_editor_control_slice_tests)
