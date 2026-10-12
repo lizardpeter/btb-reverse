@@ -141,6 +141,7 @@ ActivityFrameOutput ActivitySelectDriver::advance(
     const ActivityFrameInput& input) {
 
     ActivityFrameOutput out;
+    if (backdrop_) out.draws.push_back(*backdrop_);
     if (!initialized_) {
         return out;
     }
