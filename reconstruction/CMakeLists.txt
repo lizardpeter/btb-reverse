@@ -924,6 +924,7 @@ add_library(btb_recompiled_core STATIC
     src/bobs_band_animation.cpp
     src/bobs_band_persistence.cpp
     src/recompiled_core_smoke.cpp
+    src/recompiled_gameplay_integration.cpp
 )
 target_include_directories(btb_recompiled_core PUBLIC include)
 btb_require_cpp26(btb_recompiled_core PUBLIC)
