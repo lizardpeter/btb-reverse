@@ -65,3 +65,28 @@ jobs:
           name: btb-game-win64-preview
           path: build/reconstruction-win/Release/btb_game.exe
           if-no-files-found: error
+
+
+  integrated-game-windows-x86:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Regenerate original function registry
+        run: python tools/build_reconstruction_index.py
+      - name: Generate 615-function architecture evidence
+        run: python tools/build_remaining_architecture.py
+      - name: Configure original 32-bit Windows executable
+        run: cmake -S reconstruction -B build/reconstruction-x86 -G "Visual Studio 18 2026" -A Win32
+      - name: Build x86 game and real Win32 COM providers
+        run: cmake --build build/reconstruction-x86 --config Release --target btb_game btb_original_win32_platform_link_tests --parallel
+      - name: Verify x86 native graphics/audio/Bink provider linkage
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_win32_platform_link$"
+      - name: Upload actual x86 compiled game image
+        uses: actions/upload-artifact@v4
+        with:
+          name: btb-game-win32-x86-link-preview
+          path: build/reconstruction-x86/Release/btb_game.exe
+          if-no-files-found: error
