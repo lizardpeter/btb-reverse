@@ -15,14 +15,14 @@ static bool has(const Plan& p,Kind k,I32 arg){
 }
 int main(){
     // 00429150 and 00428ED0 resource ownership from *original* UI table.
-    front_end::ReplacementScreen authored{};
-    front_end::ReplacementRecord first{};
+    btb::front_end::ReplacementScreen authored{};
+    btb::front_end::ReplacementRecord first{};
     first.hover_bitmap_base="UI/hover";
     first.secondary_bitmap_base="UI/pressed";
     first.hover_frame_count=2;
     first.secondary_frame_count=1;
     authored.records.push_back(first);
-    front_end::ReplacementRecord second{};
+    btb::front_end::ReplacementRecord second{};
     second.hover_frame_count=1;second.secondary_frame_count=0;
     authored.records.push_back(second);
     UiScreen screen{};screen.index=1;
