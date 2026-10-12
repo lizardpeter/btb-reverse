@@ -7,6 +7,7 @@
 #include "btb/full_game_bobs_band.hpp"
 #include "btb/full_game_park_designer.hpp"
 #include "btb/full_game_generic_ui.hpp"
+#include "btb/full_game_pregame_resources.hpp"
 #include "btb/full_game_startup_movies.hpp"
 #include "btb/full_game_walkthrough_catalog.hpp"
 #include "btb/full_game_ui_bitmaps.hpp"
@@ -116,6 +117,56 @@ struct Host {
             return false;
         }
         game.install_activity_select(std::move(chooser));
+
+        // All ten original pregame states have independently recovered
+        // bitmap names, walkthrough indexes, and back/start action maps.
+        // The separate source-backed Bink service currently rejects movie
+        // requests, but game logic is no longer blocked by missing UI drivers.
+        for(const auto& entry:kRetailPregamePairs){
+            const auto index=static_cast<std::size_t>(entry.screen);
+            auto driver=make_original_pregame_screen_driver(
+                catalog,bitmaps,entry.setup,0,
+                std::vector<int>(catalog.counts[index],0));
+            if(!driver || !game.install_pregame_front_end_pair(
+                   entry.setup,std::move(driver))){
+                out_error="retail pregame screen could not be bound";
+                return false;
+            }
+        }
+
+        // Four source-confirmed subgame choice screens and three replay
+        // screens use different bitmap-table offsets from their UI enum IDs.
+        // Preserve the original names and never substitute a generic menu.
+        struct MenuBackdrop {
+            game_flow::State setup;
+            std::size_t background;
+        };
+        constexpr std::array<MenuBackdrop,7> menu_backdrops{{
+            {game_flow::State::DinoChooserSetup,8},
+            {game_flow::State::MusicChooserSetup,22},
+            {game_flow::State::SpudChooserSetup,9},
+            {game_flow::State::AdventureChooserSetup,12},
+            {game_flow::State::PlayAgainYesNoSetup,19},
+            {game_flow::State::PlayAgainDifficultySetup,20},
+            {game_flow::State::FireworksReplayChoiceSetup,21},
+        }};
+        for(const auto& mapping:menu_backdrops){
+            const auto* spec=generic_front_end_pair_for_state(
+                mapping.setup);
+            if(!spec){
+                out_error="original chooser state not in recovered registry";
+                return false;
+            }
+            const auto index=static_cast<std::size_t>(spec->screen);
+            auto driver=std::make_unique<GenericUiScreenDriver>(
+                catalog,spec->screen,std::vector<int>(catalog.counts[index],0));
+            if(!driver->configure_backdrop(bitmaps,mapping.background) ||
+               !game.install_generic_front_end_pair(
+                   mapping.setup,std::move(driver))){
+                out_error="original chooser bitmap mapping failed";
+                return false;
+            }
+        }
 
         // One set of original activity drivers, not cloned effect models.
         // Other activities are deliberately not registered until their
