@@ -201,7 +201,7 @@ inline constexpr std::array<OriginalFunction, 615> kOriginalFunctions{{
     {0x0040E2B0U, "CompactParkDesignerObjectRecordFamilies", OriginalSubsystem::ParkDesigner, ReconstructionStage::SourceWritten, 294U, 1U, 0U},
     {0x0040E3E0U, "FinishParkDesignerObjectDrag", OriginalSubsystem::ParkDesigner, ReconstructionStage::SourceWritten, 84U, 1U, 1U},
     {0x0040E440U, "UpdateParkDesignerEditorInteraction", OriginalSubsystem::ParkDesigner, ReconstructionStage::Unreviewed, 10433U, 1U, 25U},
-    {0x00410D10U, "UpdateParkDesignerActivity", OriginalSubsystem::ParkDesigner, ReconstructionStage::Unreviewed, 603U, 1U, 12U},
+    {0x00410D10U, "UpdateParkDesignerActivity", OriginalSubsystem::ParkDesigner, ReconstructionStage::SourceWritten, 603U, 1U, 12U},
     {0x00410F70U, "PlayInputInterruptibleParkDesignerVoice", OriginalSubsystem::ParkDesigner, ReconstructionStage::SourceWritten, 90U, 2U, 2U},
     {0x00410FD0U, "CanPlaceFireworkGridItem", OriginalSubsystem::Fireworks, ReconstructionStage::SourceWritten, 63U, 2U, 0U},
     {0x00411010U, "PlaceFireworkGridItem", OriginalSubsystem::Fireworks, ReconstructionStage::SourceWritten, 109U, 2U, 1U},
