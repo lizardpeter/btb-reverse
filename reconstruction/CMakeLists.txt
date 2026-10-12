@@ -969,6 +969,7 @@ if(WIN32)
         src/win32_original_directsound.cpp
         src/win32_original_bink_exports.cpp
         src/win32_original_game_device.cpp
+        src/win32_original_platform_link.cpp
     )
     target_include_directories(btb_original_win32_platform PUBLIC include)
     btb_require_cpp26(btb_original_win32_platform PUBLIC)
