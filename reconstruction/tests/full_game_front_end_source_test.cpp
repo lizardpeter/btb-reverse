@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -65,8 +66,20 @@ int main() {
 
     GameRoot game;
     assert(game.select_profile(0));
-    game.install_activity_select(std::make_unique<ActivitySelectDriver>(
-        catalog, std::vector<int>(10,0)));
+    // Native DirectDraw7 uses source slot 2 of the separate 23-entry
+    // uiBitmapName.txt table for original Activity Select background.
+    std::ostringstream retail_bitmaps;
+    for(int i=0;i<23;++i)
+        retail_bitmaps << "Data/ui/authored" << i << ".bmp\n";
+    retail_bitmaps << "END.bmp\n";
+    OriginalUiBitmapCatalog bitmaps;
+    std::string bitmap_error;
+    std::istringstream bitmap_stream(retail_bitmaps.str());
+    assert(bitmaps.read(bitmap_stream,bitmap_error));
+    auto chooser=std::make_unique<ActivitySelectDriver>(
+        catalog,std::vector<int>(10,0));
+    assert(chooser->configure_backdrop(bitmaps,2));
+    game.install_activity_select(std::move(chooser));
     game.set_outer_state(State::ActivitySelectSetup);
 
     auto initialized=game.advance({});
@@ -81,6 +94,10 @@ int main() {
     firework.click_pulse = true;
     auto armed = game.advance(firework);
     assert(armed.kind == FrameKind::FrontEndUpdated);
+    assert(armed.effects.draws.size()==1);
+    assert(armed.effects.draws[0].source_asset==
+           "Data/ui/authored2.bmp");
+    assert(!armed.effects.draws[0].color_keyed);
     // The locked special hover uses the native ASH_WEN_09 sound id 65.
     assert(!armed.effects.audio.empty());
     assert(armed.effects.audio[0].sound_id == 65);
