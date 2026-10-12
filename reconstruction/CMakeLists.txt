@@ -863,3 +863,13 @@ add_executable(btb_runtime_dependency_32_tests
 target_include_directories(btb_runtime_dependency_32_tests PRIVATE include)
 btb_require_cpp26(btb_runtime_dependency_32_tests PRIVATE)
 add_test(NAME runtime_dependency_32 COMMAND btb_runtime_dependency_32_tests)
+
+
+# Game-facing shared UI operations: eight complete Ghidra-source models
+# + one explicitly partial SaveAndUnloadPlayerProfiles mapping (not
+# promoted to source_written until source stream-mode evidence is resolved).
+add_executable(btb_shared_ui_native_9_tests
+    tests/shared_ui_native_9_test.cpp)
+target_include_directories(btb_shared_ui_native_9_tests PRIVATE include)
+btb_require_cpp26(btb_shared_ui_native_9_tests PRIVATE)
+add_test(NAME shared_ui_native_9 COMMAND btb_shared_ui_native_9_tests)
