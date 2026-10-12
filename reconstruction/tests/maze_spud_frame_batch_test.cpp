@@ -22,7 +22,7 @@ int main() {
     Maze m{};
     auto out=update_maze(m,{});
     assert(out.return_value==0&&m.shared_activity_latch==1);
-    assert(out.effects.size()==4);
+    assert(out.effects.size()==5);
     assert(out.effects[0].op==Op::EnableInput);
     assert(out.effects[1].op==Op::StartAmbientSound);
     assert(out.effects[2].op==Op::UpdatePlayer);
