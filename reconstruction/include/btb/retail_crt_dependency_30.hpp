@@ -252,13 +252,13 @@ inline void install_conversion_functions(
 // 00433118: repeated 004330B2 putc, stop the instant output total==-1.
 // Character is taken as signed byte then cast to int in native wrapper;
 // putc only writes low 8 bits.
-using WriteByte=void (*)(U32,U32&,void*);
+using WriteByte=void (*)(U32,I32&,void*);
 inline void write_string_bytes(
     const char* text,I32 count,I32& output_total,
     WriteByte write,void* ctx) {
     for(I32 i=0;i<count;++i) {
         if(write)write(static_cast<U8>(text[i]),
-                       *reinterpret_cast<U32*>(&output_total),ctx);
+                       output_total,ctx);
         if(output_total==-1)return;
     }
 }
