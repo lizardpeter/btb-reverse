@@ -768,7 +768,7 @@ add_library(btb_full_game_park_designer_source
 target_include_directories(btb_full_game_park_designer_source PUBLIC include)
 btb_require_cpp26(btb_full_game_park_designer_source PUBLIC)
 target_link_libraries(btb_full_game_park_designer_source PUBLIC
-    btb_full_game_root_source btb_park_designer_activity_loop)
+    btb_full_game_root_source btb_retail_game_lifecycle_15 btb_park_designer_activity_loop)
 add_executable(btb_full_game_park_designer_source_tests
     tests/full_game_park_designer_source_test.cpp)
 target_link_libraries(btb_full_game_park_designer_source_tests PRIVATE
