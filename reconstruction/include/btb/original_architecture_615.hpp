@@ -194,7 +194,7 @@ inline constexpr std::array<OriginalArchitecture615,615> kOriginalArchitecture61
   {0x0040e2b0U,"CompactParkDesignerObjectRecordFamilies","park_designer","ParkDesignerModule",1,7,true,false},
   {0x0040e3e0U,"FinishParkDesignerObjectDrag","park_designer","ParkDesignerModule",1,4,true,false},
   {0x0040e440U,"UpdateParkDesignerEditorInteraction","park_designer","ParkDesignerModule",1,121,false,false},
-  {0x00410d10U,"UpdateParkDesignerActivity","park_designer","ParkDesignerModule",1,37,false,false},
+  {0x00410d10U,"UpdateParkDesignerActivity","park_designer","ParkDesignerModule",1,37,true,false},
   {0x00410f70U,"PlayInputInterruptibleParkDesignerVoice","park_designer","ParkDesignerModule",2,3,true,false},
   {0x00410fd0U,"CanPlaceFireworkGridItem","fireworks","FireworksModule",2,2,true,false},
   {0x00411010U,"PlaceFireworkGridItem","fireworks","FireworksModule",2,2,true,false},
