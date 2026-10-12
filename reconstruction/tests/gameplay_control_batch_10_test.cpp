@@ -18,10 +18,10 @@ int main(){
   // 00413F10: verify all eleven original Fireworks activity branches.
   FireState fire{};
   fire.grid[0]=3;fire.grid_reset_requested=true;
+  fire.intro_pending=true;
   auto f=update_fireworks(fire);
   assert(fire.grid[0]==-1&&count(f,Op::ResetCursor)==1);
   assert(count(f,Op::DrawFireEditor)==1);
-  fire.intro_pending=true;f=update_fireworks(fire);
   assert(has(f,Op::StartMusic,4)&&has(f,Op::ManagedVoice,861));
   assert(!fire.intro_pending);
   f=update_fireworks(fire);
