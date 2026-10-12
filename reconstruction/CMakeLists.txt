@@ -825,3 +825,17 @@ btb_require_cpp26(btb_maze_spud_frame_batch_tests PRIVATE)
 target_link_libraries(btb_maze_spud_frame_batch_tests PRIVATE
     btb_maze btb_spud_maze)
 add_test(NAME maze_spud_frame_batch COMMAND btb_maze_spud_frame_batch_tests)
+
+
+# 20 original-game-function throughput batch. Eleven newly recovered native
+# gameplay/data procedures + nine earlier, explicitly validated parsers.
+# The original PE32 resource/DirectDraw/Bink/DirectSound effects remain host
+# callbacks; passing this test does not imply retail binary/ABI parity.
+add_executable(btb_gameplay_data_batch_20_tests
+    tests/gameplay_data_batch_20_test.cpp)
+target_include_directories(btb_gameplay_data_batch_20_tests PRIVATE include)
+btb_require_cpp26(btb_gameplay_data_batch_20_tests PRIVATE)
+target_link_libraries(btb_gameplay_data_batch_20_tests PRIVATE
+    btb_fireworks btb_grand_opening btb_front_end_ui_data
+    btb_golf btb_spud_skate btb_squirrel btb_maze btb_spud_maze)
+add_test(NAME gameplay_data_batch_20 COMMAND btb_gameplay_data_batch_20_tests)
