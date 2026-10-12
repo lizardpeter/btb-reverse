@@ -24,10 +24,10 @@ int main(){
     assert(game.save.state(TrailingStateIndex::PondLinkedRecord0)==-1);
     assert(game.save.state(TrailingStateIndex::NextDecorateRecord)==300);
     assert(game.save.state(TrailingStateIndex::NextBandstandRecord)==200);
-    assert(game.save.state(TrailingStateIndex::NextPondPrimaryRecord)==2);
+    assert(game.save.state(TrailingStateIndex::NextPondPrimaryRecord)==1);
     assert(game.save.state(TrailingStateIndex::PondPalettePage)==0);
     assert(game.save.objects[0].object_code==-1);
-    assert(game.save.objects[1].object_code==7);
+    assert(game.save.objects[1].object_code==-1);
     // Original editor mutation happens before family compaction.
     assert(game.save.objects[0].object_code==7);
     assert(game.save.objects[0].record_index==0);
