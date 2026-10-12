@@ -971,12 +971,15 @@ if(WIN32)
         src/win32_original_bink_exports.cpp
         src/win32_original_game_device.cpp
         src/win32_original_platform_link.cpp
+        src/win32_recompiled_host.cpp
     )
     target_include_directories(btb_original_win32_platform PUBLIC include)
     btb_require_cpp26(btb_original_win32_platform PUBLIC)
     target_link_libraries(btb_original_win32_platform PUBLIC
         btb_recompiled_core ddraw dxguid dsound winmm ole32 gdi32 user32)
     target_link_libraries(btb_game PRIVATE btb_original_win32_platform)
+
+    target_link_libraries(btb_game PRIVATE shell32)
 
     add_executable(btb_original_win32_platform_link_tests
         tests/original_win32_platform_link_test.cpp)
