@@ -1,0 +1,138 @@
+{
+  "original_exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "batch_count": 32,
+  "stage": "source_written",
+  "source": "reconstruction/include/btb/runtime_dependency_32.hpp",
+  "tests": "reconstruction/tests/runtime_dependency_32_test.cpp",
+  "fidelity": "Typed portable C++26 source-level original function branch/data/effect models. Native Windows SEH, I/O, heap, floating point and WinAPI delegated to explicit providers. No direct PE32 ABI or retail differential parity claim; full game link still incomplete.",
+  "functions": [
+    {
+      "address": "0x00430196",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430196.c"
+    },
+    {
+      "address": "0x00436010",
+      "ghidra": "analysis/ghidra_main_exe/functions/00436010.c"
+    },
+    {
+      "address": "0x004310E0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004310E0.c"
+    },
+    {
+      "address": "0x00431105",
+      "ghidra": "analysis/ghidra_main_exe/functions/00431105.c"
+    },
+    {
+      "address": "0x004331CB",
+      "ghidra": "analysis/ghidra_main_exe/functions/004331CB.c"
+    },
+    {
+      "address": "0x00433596",
+      "ghidra": "analysis/ghidra_main_exe/functions/00433596.c"
+    },
+    {
+      "address": "0x00436EE9",
+      "ghidra": "analysis/ghidra_main_exe/functions/00436EE9.c"
+    },
+    {
+      "address": "0x00436E6C",
+      "ghidra": "analysis/ghidra_main_exe/functions/00436E6C.c"
+    },
+    {
+      "address": "0x004311DC",
+      "ghidra": "analysis/ghidra_main_exe/functions/004311DC.c"
+    },
+    {
+      "address": "0x0042FB62",
+      "ghidra": "analysis/ghidra_main_exe/functions/0042FB62.c"
+    },
+    {
+      "address": "0x00431207",
+      "ghidra": "analysis/ghidra_main_exe/functions/00431207.c"
+    },
+    {
+      "address": "0x004312A7",
+      "ghidra": "analysis/ghidra_main_exe/functions/004312A7.c"
+    },
+    {
+      "address": "0x00430FB8",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430FB8.c"
+    },
+    {
+      "address": "0x00430CB0",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430CB0.c"
+    },
+    {
+      "address": "0x004392DE",
+      "ghidra": "analysis/ghidra_main_exe/functions/004392DE.c"
+    },
+    {
+      "address": "0x00439ACC",
+      "ghidra": "analysis/ghidra_main_exe/functions/00439ACC.c"
+    },
+    {
+      "address": "0x004343FC",
+      "ghidra": "analysis/ghidra_main_exe/functions/004343FC.c"
+    },
+    {
+      "address": "0x0043439F",
+      "ghidra": "analysis/ghidra_main_exe/functions/0043439F.c"
+    },
+    {
+      "address": "0x00437371",
+      "ghidra": "analysis/ghidra_main_exe/functions/00437371.c"
+    },
+    {
+      "address": "0x004351F6",
+      "ghidra": "analysis/ghidra_main_exe/functions/004351F6.c"
+    },
+    {
+      "address": "0x004358F3",
+      "ghidra": "analysis/ghidra_main_exe/functions/004358F3.c"
+    },
+    {
+      "address": "0x004325C0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004325C0.c"
+    },
+    {
+      "address": "0x004332B4",
+      "ghidra": "analysis/ghidra_main_exe/functions/004332B4.c"
+    },
+    {
+      "address": "0x00430F5C",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430F5C.c"
+    },
+    {
+      "address": "0x00433720",
+      "ghidra": "analysis/ghidra_main_exe/functions/00433720.c"
+    },
+    {
+      "address": "0x004337A0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004337A0.c"
+    },
+    {
+      "address": "0x004381B0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004381B0.c"
+    },
+    {
+      "address": "0x00439E2B",
+      "ghidra": "analysis/ghidra_main_exe/functions/00439E2B.c"
+    },
+    {
+      "address": "0x0043277A",
+      "ghidra": "analysis/ghidra_main_exe/functions/0043277A.c"
+    },
+    {
+      "address": "0x00439B24",
+      "ghidra": "analysis/ghidra_main_exe/functions/00439B24.c"
+    },
+    {
+      "address": "0x004373DB",
+      "ghidra": "analysis/ghidra_main_exe/functions/004373DB.c"
+    },
+    {
+      "address": "0x0043748E",
+      "ghidra": "analysis/ghidra_main_exe/functions/0043748E.c"
+    }
+  ]
+}
