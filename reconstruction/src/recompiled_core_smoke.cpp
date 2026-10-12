@@ -99,7 +99,7 @@ bool verify_linked_recompiled_core() {
         !sound::any_managed_sound_playing(audio.manager(),observed)) {
         return false;
     }
-    return true;
+    return verify_integrated_activity_fixtures();
 }
 
 } // namespace btb::full_game
