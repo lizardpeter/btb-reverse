@@ -909,6 +909,7 @@ add_library(btb_recompiled_core STATIC
     src/golf_activity.cpp
     src/full_game_herding.cpp
     src/full_game_herding_event_simulation.cpp
+    src/herding_behavior_bridge.cpp
     src/full_game_herding_presentation.cpp
     src/full_game_front_end.cpp
     src/full_game_generic_ui.cpp
@@ -959,3 +960,62 @@ if(NOT WIN32)
     add_test(NAME recompiled_game_executable_link
         COMMAND btb_game --recompiled-smoke)
 endif()
+
+# Compiles previously orphaned original native Windows implementations as part
+# of the REAL Windows game executable, not just behavior-plan tests.
+if(WIN32)
+    add_library(btb_original_win32_platform STATIC
+        src/win32_original_directdraw.cpp
+        src/win32_original_directsound.cpp
+        src/win32_original_bink_exports.cpp
+        src/win32_original_game_device.cpp
+    )
+    target_include_directories(btb_original_win32_platform PUBLIC include)
+    btb_require_cpp26(btb_original_win32_platform PUBLIC)
+    target_link_libraries(btb_original_win32_platform PUBLIC
+        btb_recompiled_core ddraw dxguid dsound winmm ole32 gdi32 user32)
+    target_link_libraries(btb_game PRIVATE btb_original_win32_platform)
+
+    add_executable(btb_original_win32_platform_link_tests
+        tests/original_win32_platform_link_test.cpp)
+    target_link_libraries(btb_original_win32_platform_link_tests
+        PRIVATE btb_original_win32_platform)
+    btb_require_cpp26(btb_original_win32_platform_link_tests PRIVATE)
+    add_test(NAME original_win32_platform_link
+        COMMAND btb_original_win32_platform_link_tests)
+endif()
+
+# Fail configuration if any production .cpp is silently left out of the
+# build, as happened previously to the Golf and Herding source files.
+file(GLOB BTB_PRODUCTION_CPP CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+get_property(BTB_BUILD_TARGETS DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+set(BTB_ATTACHED_CPP)
+foreach(btb_target IN LISTS BTB_BUILD_TARGETS)
+    get_target_property(btb_sources "${btb_target}" SOURCES)
+    if(NOT btb_sources)
+        continue()
+    endif()
+    foreach(btb_source IN LISTS btb_sources)
+        # Generator expressions denote usage requirements, not .cpp paths.
+        if(btb_source MATCHES "[$]<")
+            continue()
+        endif()
+        get_filename_component(btb_absolute "${btb_source}" ABSOLUTE
+            BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+        if(btb_absolute MATCHES "/src/[^/]+[.]cpp$")
+            list(APPEND BTB_ATTACHED_CPP "${btb_absolute}")
+        endif()
+    endforeach()
+endforeach()
+list(REMOVE_DUPLICATES BTB_ATTACHED_CPP)
+foreach(btb_source IN LISTS BTB_PRODUCTION_CPP)
+    if(NOT WIN32 AND btb_source MATCHES "/win32_original_")
+        continue()
+    endif()
+    if(NOT btb_source IN_LIST BTB_ATTACHED_CPP)
+        message(FATAL_ERROR
+            "Uncompiled original game source: ${btb_source}. "
+            "Add it to a CMake target so the compiler can find errors.")
+    endif()
+endforeach()
