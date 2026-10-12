@@ -785,3 +785,13 @@ target_include_directories(btb_park_designer_editor_control_slice_tests PRIVATE 
 btb_require_cpp26(btb_park_designer_editor_control_slice_tests PRIVATE)
 add_test(NAME park_designer_editor_control_slice
     COMMAND btb_park_designer_editor_control_slice_tests)
+
+
+# Throughput batch: 30 authentic MSVC 2003 CRT/function-pointer wrappers,
+# stream/character operations, status-table and exception source semantics.
+# Source-level models only; native x86 ABI/OS callbacks remain host-owned.
+add_executable(btb_retail_crt_dependency_30_tests
+    tests/retail_crt_dependency_30_test.cpp)
+target_include_directories(btb_retail_crt_dependency_30_tests PRIVATE include)
+btb_require_cpp26(btb_retail_crt_dependency_30_tests PRIVATE)
+add_test(NAME retail_crt_dependency_30 COMMAND btb_retail_crt_dependency_30_tests)

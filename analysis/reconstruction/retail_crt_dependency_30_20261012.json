@@ -1,0 +1,189 @@
+{
+  "original_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "stage": "source_written",
+  "source": "reconstruction/include/btb/retail_crt_dependency_30.hpp",
+  "test": "reconstruction/tests/retail_crt_dependency_30_test.cpp",
+  "native_limits": "Typed portable state and callback behavior per Ghidra original function. Direct native CRT/FPU/x86 SEH ABI still requires verification and linking to original game. Some imported side effects are forwarded via injected original provider; this does not establish retail differential parity.",
+  "functions": [
+    {
+      "address": "0x00430862",
+      "symbol": "FUN_00430862",
+      "behavior": "exit delegate with cleanup flag 0",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430862.c"
+    },
+    {
+      "address": "0x00430873",
+      "symbol": "__exit",
+      "behavior": "exit delegate with cleanup flag 1",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430873.c"
+    },
+    {
+      "address": "0x00438230",
+      "symbol": "FUN_00438230",
+      "behavior": "character class category 4 forwarding",
+      "ghidra": "analysis/ghidra_main_exe/functions/00438230.c"
+    },
+    {
+      "address": "0x0043317B",
+      "symbol": "FUN_0043317b",
+      "behavior": "floating precision mask forwarding",
+      "ghidra": "analysis/ghidra_main_exe/functions/0043317B.c"
+    },
+    {
+      "address": "0x00436774",
+      "symbol": "FUN_00436774",
+      "behavior": "one time runtime initializer",
+      "ghidra": "analysis/ghidra_main_exe/functions/00436774.c"
+    },
+    {
+      "address": "0x00437097",
+      "symbol": "FUN_00437097",
+      "behavior": "one time -3 initialization",
+      "ghidra": "analysis/ghidra_main_exe/functions/00437097.c"
+    },
+    {
+      "address": "0x0043675D",
+      "symbol": "FUN_0043675d",
+      "behavior": "three step fatal error",
+      "ghidra": "analysis/ghidra_main_exe/functions/0043675D.c"
+    },
+    {
+      "address": "0x00431D70",
+      "symbol": "FUN_00431d70",
+      "behavior": "buffered input with refill",
+      "ghidra": "analysis/ghidra_main_exe/functions/00431D70.c"
+    },
+    {
+      "address": "0x00435610",
+      "symbol": "FUN_00435610",
+      "behavior": "optional predicate to bool",
+      "ghidra": "analysis/ghidra_main_exe/functions/00435610.c"
+    },
+    {
+      "address": "0x0043039E",
+      "symbol": "FUN_0043039e",
+      "behavior": "exception deleting destructor",
+      "ghidra": "analysis/ghidra_main_exe/functions/0043039E.c"
+    },
+    {
+      "address": "0x00430479",
+      "symbol": "FUN_00430479",
+      "behavior": "auxiliary deleting destructor",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430479.c"
+    },
+    {
+      "address": "0x00439FEE",
+      "symbol": "FUN_00439fee",
+      "behavior": "format deleting destructor",
+      "ghidra": "analysis/ghidra_main_exe/functions/00439FEE.c"
+    },
+    {
+      "address": "0x00439F94",
+      "symbol": "FUN_00439f94",
+      "behavior": "throw exception type A",
+      "ghidra": "analysis/ghidra_main_exe/functions/00439F94.c"
+    },
+    {
+      "address": "0x0043A0A4",
+      "symbol": "FUN_0043a0a4",
+      "behavior": "throw exception type B",
+      "ghidra": "analysis/ghidra_main_exe/functions/0043A0A4.c"
+    },
+    {
+      "address": "0x0043A18C",
+      "symbol": "FUN_0043a18c",
+      "behavior": "throw exception type C",
+      "ghidra": "analysis/ghidra_main_exe/functions/0043A18C.c"
+    },
+    {
+      "address": "0x00431DA1",
+      "symbol": "FUN_00431da1",
+      "behavior": "consume input while class matches",
+      "ghidra": "analysis/ghidra_main_exe/functions/00431DA1.c"
+    },
+    {
+      "address": "0x0043360A",
+      "symbol": "FUN_0043360a",
+      "behavior": "overlapping zero-terminated string shift",
+      "ghidra": "analysis/ghidra_main_exe/functions/0043360A.c"
+    },
+    {
+      "address": "0x004373B5",
+      "symbol": "FUN_004373b5",
+      "behavior": "file handle table bit40",
+      "ghidra": "analysis/ghidra_main_exe/functions/004373B5.c"
+    },
+    {
+      "address": "0x0043356F",
+      "symbol": "FUN_0043356f",
+      "behavior": "scoped conversion global flag",
+      "ghidra": "analysis/ghidra_main_exe/functions/0043356F.c"
+    },
+    {
+      "address": "0x00436598",
+      "symbol": "FUN_00436598",
+      "behavior": "character class bit8",
+      "ghidra": "analysis/ghidra_main_exe/functions/00436598.c"
+    },
+    {
+      "address": "0x00437A06",
+      "symbol": "FUN_00437a06",
+      "behavior": "first conversion table wrapper",
+      "ghidra": "analysis/ghidra_main_exe/functions/00437A06.c"
+    },
+    {
+      "address": "0x00437A33",
+      "symbol": "FUN_00437a33",
+      "behavior": "second conversion table wrapper",
+      "ghidra": "analysis/ghidra_main_exe/functions/00437A33.c"
+    },
+    {
+      "address": "0x00437443",
+      "symbol": "FUN_00437443",
+      "behavior": "read modify write x87 control word",
+      "ghidra": "analysis/ghidra_main_exe/functions/00437443.c"
+    },
+    {
+      "address": "0x00431D39",
+      "symbol": "FUN_00431d39",
+      "behavior": "hex-style character folding",
+      "ghidra": "analysis/ghidra_main_exe/functions/00431D39.c"
+    },
+    {
+      "address": "0x004301AE",
+      "symbol": "FUN_004301ae",
+      "behavior": "initialize formatting function dispatch slots",
+      "ghidra": "analysis/ghidra_main_exe/functions/004301AE.c"
+    },
+    {
+      "address": "0x00433118",
+      "symbol": "FUN_00433118",
+      "behavior": "bounded output string bytes",
+      "ghidra": "analysis/ghidra_main_exe/functions/00433118.c"
+    },
+    {
+      "address": "0x00435732",
+      "symbol": "FUN_00435732",
+      "behavior": "reset buffered FILE state",
+      "ghidra": "analysis/ghidra_main_exe/functions/00435732.c"
+    },
+    {
+      "address": "0x00436322",
+      "symbol": "FUN_00436322",
+      "behavior": "lookup underlying native file handle",
+      "ghidra": "analysis/ghidra_main_exe/functions/00436322.c"
+    },
+    {
+      "address": "0x0043318D",
+      "symbol": "FUN_0043318d",
+      "behavior": "modular counter threshold",
+      "ghidra": "analysis/ghidra_main_exe/functions/0043318D.c"
+    },
+    {
+      "address": "0x004358B0",
+      "symbol": "FUN_004358b0",
+      "behavior": "search 3word runtime record table",
+      "ghidra": "analysis/ghidra_main_exe/functions/004358B0.c"
+    }
+  ]
+}
