@@ -28,7 +28,7 @@ int main(){
  Credits credits{};credits.slides={1,0,3};credits.interval_seconds=4;
  p=update_credits(credits,1,false);
  assert(count(p,Kind::BlitSurface)==1&&credits.index==0);
- p=update_credits(credits,8,false);
+ p=update_credits(credits,9,false);
  assert(credits.index==1&&has(p,Kind::BlitSurface,1));
  p=update_credits(credits,0,true);
  assert(credits.index==2&&has(p,Kind::BlitSurface,2));
