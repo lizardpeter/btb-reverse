@@ -1,0 +1,101 @@
+{
+  "original_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "source_header": "reconstruction/include/btb/retail_game_lifecycle_15.hpp",
+  "source_file": "reconstruction/src/retail_game_lifecycle_15.cpp",
+  "test": "reconstruction/tests/retail_game_lifecycle_15_test.cpp",
+  "integration": "reconstruction/src/full_game_park_designer.cpp",
+  "original_functions": [
+    {
+      "address": "0x004110E0",
+      "symbol": "UnloadFireworksEditorResources",
+      "role": "fireworks editor surface release: four fixed plus 12 indexed slots",
+      "evidence": "analysis/ghidra_main_exe/functions/004110E0.c"
+    },
+    {
+      "address": "0x004111C0",
+      "symbol": "UnloadFireworkMovieBank",
+      "role": "fireworks 23 movie handles, surface release, movie memory cleanup",
+      "evidence": "analysis/ghidra_main_exe/functions/004111C0.c"
+    },
+    {
+      "address": "0x0040A530",
+      "symbol": "UnloadDinoActivityResources",
+      "role": "dino sound, surface and music tear down",
+      "evidence": "analysis/ghidra_main_exe/functions/0040A530.c"
+    },
+    {
+      "address": "0x00419390",
+      "symbol": "UnloadHerdingActivityResources",
+      "role": "herding sound, surface and music tear down",
+      "evidence": "analysis/ghidra_main_exe/functions/00419390.c"
+    },
+    {
+      "address": "0x0041A390",
+      "symbol": "UnloadMazeActivityResources",
+      "role": "maze sound, surface, music and shared latch tear down",
+      "evidence": "analysis/ghidra_main_exe/functions/0041A390.c"
+    },
+    {
+      "address": "0x00414410",
+      "symbol": "UnloadGolfActivityResources",
+      "role": "golf sound, surface, cursor, music and input latch tear down",
+      "evidence": "analysis/ghidra_main_exe/functions/00414410.c"
+    },
+    {
+      "address": "0x00424100",
+      "symbol": "UnloadSpudSkateActivityResources",
+      "role": "Spud Skate Bink/movie buffers and native resource tear down",
+      "evidence": "analysis/ghidra_main_exe/functions/00424100.c"
+    },
+    {
+      "address": "0x00424F00",
+      "symbol": "UnloadSquirrelActivityResources",
+      "role": "squirrel sound, cursor, surface and music teardown",
+      "evidence": "analysis/ghidra_main_exe/functions/00424F00.c"
+    },
+    {
+      "address": "0x00420360",
+      "symbol": "UnloadSpudMazeActivityResources",
+      "role": "Spud Maze five authored surface families, sound and music",
+      "evidence": "analysis/ghidra_main_exe/functions/00420360.c"
+    },
+    {
+      "address": "0x0040AC90",
+      "symbol": "SaveParkDesignerData",
+      "role": "persist authentic 400x76-byte record table and 28 trailing int32 words",
+      "evidence": "analysis/ghidra_main_exe/functions/0040AC90.c"
+    },
+    {
+      "address": "0x0040AEA0",
+      "symbol": "LoadParkDesignerData",
+      "role": "parse all 60 original polygons and optional authentic binary save",
+      "evidence": "analysis/ghidra_main_exe/functions/0040AEA0.c"
+    },
+    {
+      "address": "0x0040DBE0",
+      "symbol": "RefreshParkDesignerObjectGeometry",
+      "role": "retail 6x124 object bounds and indexed depth after double surface query",
+      "evidence": "analysis/ghidra_main_exe/functions/0040DBE0.c"
+    },
+    {
+      "address": "0x00412BD0",
+      "symbol": "BeginFireworksEditorAction",
+      "role": "palette latch, managed audio, grid removal and delete/show transitions",
+      "evidence": "analysis/ghidra_main_exe/functions/00412BD0.c"
+    },
+    {
+      "address": "0x00412D50",
+      "symbol": "CompleteFireworksEditorAction",
+      "role": "selected type, actor row scheduling and conditional firework placement",
+      "evidence": "analysis/ghidra_main_exe/functions/00412D50.c"
+    },
+    {
+      "address": "0x00424D10",
+      "symbol": "UpdateSpudSkateActivity",
+      "role": "native state update, music activation and original teardown/exit order",
+      "evidence": "analysis/ghidra_main_exe/functions/00424D10.c"
+    }
+  ],
+  "fidelity_note": "Native resource operations are typed ordered operations for host execution. Original 32-bit Ghidra code and binary save semantics are modeled and cross-function tested. Asset/Bink/DirectDraw/DirectSound hosts, x86 ABI parity, and retail differential verification are separate incomplete tasks.",
+  "source_stage": "source_written"
+}
