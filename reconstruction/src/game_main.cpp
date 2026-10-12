@@ -1,4 +1,5 @@
 #include "btb/game_session.hpp"
+#include "btb/recompiled_core_smoke.hpp"
 
 #ifndef _WIN32
 #include <iostream>
@@ -7,6 +8,14 @@
 // Linux CI builds the exact same integrated session and gameplay libraries.
 // The actual window host is Win32; no substitute graphical host is claimed.
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string_view(argv[1]) == "--recompiled-smoke") {
+        if (!btb::full_game::verify_linked_recompiled_core()) {
+            std::cerr << "Recompiled core final-link smoke failed.\n";
+            return 3;
+        }
+        std::cout << "Recompiled GameRoot, activity drivers and shared sound manager linked and executed.\n";
+        return 0;
+    }
     btb::host::Session app;
     if (argc == 1 || (argc == 2 && std::string_view(argv[1]) == "--smoke")) {
         const auto dispatch = app.dispatcher();
@@ -37,7 +46,7 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    std::cerr << "Usage: btb_game [--smoke | --dino-level dino.txt]\n";
+    std::cerr << "Usage: btb_game [--smoke | --recompiled-smoke | --dino-level dino.txt]\n";
     return 2;
 }
 #endif
