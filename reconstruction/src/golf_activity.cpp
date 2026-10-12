@@ -121,6 +121,7 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
         }
         break;
     }
+    } // switch (state_): all original gameplay phases
     out.state = state_;
     out.ball = ball_;
     out.aim = aim_;

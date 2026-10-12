@@ -890,3 +890,72 @@ add_executable(btb_native_gameplay_batch_6_tests
 target_include_directories(btb_native_gameplay_batch_6_tests PRIVATE include)
 btb_require_cpp26(btb_native_gameplay_batch_6_tests PRIVATE)
 add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
+
+
+# ---------------------------------------------------------------
+# UNIFIED RECOMPILATION LINK MILESTONE
+# These formerly standalone native game sources are now one library linked
+# directly into btb_game. The program exercises the actual GameRoot, four
+# activity vtables and the ONE recovered 80-slot native sound manager.
+# This does not yet supply the original DirectDraw, DirectSound, Bink runtime,
+# remaining activities or verified original executable parity.
+# ---------------------------------------------------------------
+add_library(btb_recompiled_core STATIC
+    src/full_game_native_session.cpp
+    src/full_game_effect_pipeline.cpp
+    src/full_game_resources.cpp
+    src/full_game_bobs_band.cpp
+    src/full_game_golf.cpp
+    src/golf_activity.cpp
+    src/full_game_herding.cpp
+    src/full_game_herding_event_simulation.cpp
+    src/full_game_herding_presentation.cpp
+    src/full_game_front_end.cpp
+    src/full_game_generic_ui.cpp
+    src/full_game_startup_movies.cpp
+    src/full_game_walkthrough_catalog.cpp
+    src/full_game_ui_bitmaps.cpp
+    src/full_game_pregame_resources.cpp
+    src/original_asset_resolver.cpp
+    src/bobs_band.cpp
+    src/bobs_band_activity.cpp
+    src/bobs_band_data.cpp
+    src/bobs_band_animation.cpp
+    src/bobs_band_persistence.cpp
+    src/recompiled_core_smoke.cpp
+)
+target_include_directories(btb_recompiled_core PUBLIC include)
+btb_require_cpp26(btb_recompiled_core PUBLIC)
+target_link_libraries(btb_recompiled_core PUBLIC
+    btb_full_game_root_source
+    btb_full_game_audio_source
+    btb_full_game_fireworks_source
+    btb_full_game_park_designer_source
+    btb_sound_manager
+    btb_dino
+    btb_golf
+    btb_herding
+    btb_maze
+    btb_spud_maze
+    btb_spud_skate
+    btb_squirrel
+    btb_fireworks
+    btb_grand_opening
+    btb_front_end_ui_data
+    btb_park_designer
+    btb_bitmap_registry
+    btb_bink_system
+)
+
+# A true executable dependency: not merely separate source-model test bins.
+target_link_libraries(btb_game PRIVATE btb_recompiled_core)
+
+add_executable(btb_recompiled_core_link_tests
+    tests/recompiled_core_link_test.cpp)
+target_link_libraries(btb_recompiled_core_link_tests PRIVATE btb_recompiled_core)
+add_test(NAME recompiled_core_link COMMAND btb_recompiled_core_link_tests)
+
+if(NOT WIN32)
+    add_test(NAME recompiled_game_executable_link
+        COMMAND btb_game --recompiled-smoke)
+endif()
