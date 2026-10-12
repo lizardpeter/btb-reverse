@@ -1,4 +1,5 @@
 #include "btb/full_game_park_designer.hpp"
+#include "btb/retail_game_lifecycle_15.hpp"
 
 #include <exception>
 #include <fstream>
@@ -126,7 +127,10 @@ bool ParkDesignerDriver::unload(std::string& error) {
     try {
         std::ofstream file(profile_filename(),std::ios::binary|std::ios::trunc);
         if(!file){error="cannot open Park Designer save for writing";return false;}
-        park_designer::write_save(file,state_.save);
+        if(!game_batch_15::save_park_designer(state_.save,&file)) {
+            error="original SaveParkDesignerData failed to write 30512 bytes";
+            return false;
+        }
         file.flush();
         if(!file){error="failed to persist original 30512-byte Park Designer save";return false;}
     } catch(const std::exception& ex) {
