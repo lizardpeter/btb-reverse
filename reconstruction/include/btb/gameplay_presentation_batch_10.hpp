@@ -112,7 +112,14 @@ struct SquirrelSlideFrame{
   } else if(s.motion<1) {
     // This branch immediately jumps into the original speed ramp, without
     // altering scroll state.
-    s.speed=std::max(10,std::min(200,s.speed+1));
+    // Retail only increments speed while it is BELOW 10, rather than
+    // accelerating unconditionally. The incoming param controls the cap.
+    if(s.speed<10)++s.speed;
+    if(incoming_step_hint<s.speed)s.speed=incoming_step_hint;
+    if(s.speed<10)s.speed=10;
+    s.sprite_offsets+=s.speed;
+    out.draw_borders=true;
+    out.border_origins={{{0,0},{0,20},{620,20},{20,400}}};
     return out;
   }
   s.layer_index++;
@@ -126,8 +133,9 @@ struct SquirrelSlideFrame{
     s.next_actor_mode=1;s.idle_flag=true;out.completed=true;
   }
   out.draw_part=true;out.part_source_y=s.destination_y;
-  s.speed=std::max(10,std::min(200,s.speed+1));
-  if(s.speed>remainder)s.speed=std::max(10,remainder);
+  if(s.speed<10)++s.speed;
+  if(s.speed>remainder)s.speed=remainder;
+  if(s.speed<10)s.speed=10;
   s.sprite_offsets+=s.speed;
   out.draw_borders=true;
   out.border_origins={{{0,0},{0,20},{620,20},{20,400}}};
