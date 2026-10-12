@@ -7,6 +7,7 @@
 
 #include "btb/game_session.hpp"
 #include "btb/application_state.hpp"
+#include "btb/win32_original_platform_link.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -444,6 +445,10 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT message, WPARAM wp, LPARAM lp) {
 } // namespace
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
+    // Force actual native DirectDraw7/DirectSound8/Bink-loader implementations
+    // to link into this executable, not only a platform-only test program.
+    // This is a safe precondition probe; it does not claim movie playback.
+    if (!btb::full_game::verify_linked_win32_providers()) return 4;
     Host host;
     WNDCLASSEXW cls{};
     cls.cbSize = sizeof(cls);
