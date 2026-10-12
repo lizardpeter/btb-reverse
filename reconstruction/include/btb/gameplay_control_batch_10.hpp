@@ -294,6 +294,7 @@ struct Leave{
   bool button_hover{},mouse_press{};
   bool game_shutdown{};
   I32 selected_response{-1};
+  std::array<Rect,2> retail_buttons{};
 };
 [[nodiscard]] inline Plan update_leave_confirmation(Leave& s){
   Plan out{};
@@ -302,10 +303,11 @@ struct Leave{
     out.emit(Op::ResumeMovie);out.returns_early=true;return out;
   }
   out.emit(Op::DrawScene,0);out.emit(Op::DrawScene,1);
-  const std::array<Rect,2> buttons{{{220,260,305,316},{305,260,334,316}}};
+  // Both rectangles come from the native stack constants and UI backing
+  // table. Do not guess the partially recovered second rectangle.
   I32 hit=-1;
   for(I32 i=0;i<2;++i)
-    if(strict_inside(buttons[static_cast<std::size_t>(i)],s.cursor_x,s.cursor_y)){
+    if(strict_inside(s.retail_buttons[static_cast<std::size_t>(i)],s.cursor_x,s.cursor_y)){
       hit=i;break;
     }
   if(hit!=-1){
@@ -353,7 +355,7 @@ struct PlayAgain{
       if(s.selection!=i+1)break;
       s.selection=-1;
       if(i==5){out.returns_early=true;return out;}
-      s.phase=0;s.confirmed_context=i<2?2:i+1;
+      s.phase=0;s.confirmed_context=i==0||i==4?2:i+2;
       out.returns_early=true;return out;
     }
   }
