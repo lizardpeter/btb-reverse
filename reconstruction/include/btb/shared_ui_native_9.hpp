@@ -19,6 +19,7 @@
 namespace btb::shared_game_batch_9 {
 using I32=std::int32_t;
 using U32=std::uint32_t;
+using U8=std::uint8_t;
 enum class Kind : std::uint8_t {
     BeginLoading,EndLoading,LoadBitmap,RegisterBitmap,
     ColorKeyBitmap,UnregisterBitmap,ReleaseBitmap,StopAllManaged,
