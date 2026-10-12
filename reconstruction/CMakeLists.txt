@@ -795,3 +795,20 @@ add_executable(btb_retail_crt_dependency_30_tests
 target_include_directories(btb_retail_crt_dependency_30_tests PRIVATE include)
 btb_require_cpp26(btb_retail_crt_dependency_30_tests PRIVATE)
 add_test(NAME retail_crt_dependency_30 COMMAND btb_retail_crt_dependency_30_tests)
+
+
+# Retail 15-function native game lifecycle batch:
+# 9 original resource ownership functions; 3 Park Designer save/load/geometry;
+# 2 Fireworks editor input entrypoints; 1 Spud Skate state dispatcher.
+add_library(btb_retail_game_lifecycle_15
+    src/retail_game_lifecycle_15.cpp)
+target_include_directories(btb_retail_game_lifecycle_15 PUBLIC include)
+btb_require_cpp26(btb_retail_game_lifecycle_15 PUBLIC)
+target_link_libraries(btb_retail_game_lifecycle_15 PUBLIC
+    btb_park_designer)
+add_executable(btb_retail_game_lifecycle_15_tests
+    tests/retail_game_lifecycle_15_test.cpp)
+target_link_libraries(btb_retail_game_lifecycle_15_tests PRIVATE
+    btb_retail_game_lifecycle_15)
+add_test(NAME retail_game_lifecycle_15
+    COMMAND btb_retail_game_lifecycle_15_tests)
