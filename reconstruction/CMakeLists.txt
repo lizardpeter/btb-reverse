@@ -852,3 +852,14 @@ add_executable(btb_gameplay_control_batch_10_tests
 target_include_directories(btb_gameplay_control_batch_10_tests PRIVATE include)
 btb_require_cpp26(btb_gameplay_control_batch_10_tests PRIVATE)
 add_test(NAME gameplay_control_batch_10 COMMAND btb_gameplay_control_batch_10_tests)
+
+
+# High-throughput original 32-function MSVC 2003 / Win32 dependency batch.
+# Original DOS/PE32 Ghidra machine-code input, typed host-facing C++26
+# behaviors and their branch/effect-level unit tests. Native SEH/WinAPI and
+# byte-identical retail equivalence remain separate validation work.
+add_executable(btb_runtime_dependency_32_tests
+    tests/runtime_dependency_32_test.cpp)
+target_include_directories(btb_runtime_dependency_32_tests PRIVATE include)
+btb_require_cpp26(btb_runtime_dependency_32_tests PRIVATE)
+add_test(NAME runtime_dependency_32 COMMAND btb_runtime_dependency_32_tests)
