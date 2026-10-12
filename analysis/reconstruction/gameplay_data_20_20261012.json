@@ -1,0 +1,170 @@
+{
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "batch_total": 20,
+  "previously_implemented_and_tested": 9,
+  "new_source_models": 11,
+  "source_stage": "source_written",
+  "caveats": "C++ source models for original function input/output, state and order; C++ memory-safe guards and injected native effects are NOT faithful x86 calling conventions, byte-identical behavior or evidence of full executable integration.",
+  "functions": [
+    {
+      "address": "0x00424230",
+      "symbol": "LoadSpudSkateTimingData",
+      "source": "reconstruction/src/spud_skate_data.cpp",
+      "test": "reconstruction/tests/spud_skate_data_test.cpp",
+      "kind": "existing",
+      "original": "analysis/ghidra_main_exe/functions/00424230.c"
+    },
+    {
+      "address": "0x00424e20",
+      "symbol": "LoadSquirrelData",
+      "source": "reconstruction/src/squirrel_data.cpp",
+      "test": "reconstruction/tests/squirrel_data_test.cpp",
+      "kind": "existing",
+      "original": "analysis/ghidra_main_exe/functions/00424e20.c"
+    },
+    {
+      "address": "0x004159f0",
+      "symbol": "LoadGolfData",
+      "source": "reconstruction/src/golf_data.cpp",
+      "test": "reconstruction/tests/golf_data_test.cpp",
+      "kind": "existing",
+      "original": "analysis/ghidra_main_exe/functions/004159f0.c"
+    },
+    {
+      "address": "0x00420560",
+      "symbol": "LoadSpudMazeData",
+      "source": "reconstruction/src/spud_maze_data.cpp",
+      "test": "reconstruction/tests/spud_maze_data_test.cpp",
+      "kind": "existing",
+      "original": "analysis/ghidra_main_exe/functions/00420560.c"
+    },
+    {
+      "address": "0x0041a4e0",
+      "symbol": "LoadMazeData",
+      "source": "reconstruction/src/maze_data.cpp",
+      "test": "reconstruction/tests/maze_data_test.cpp",
+      "kind": "existing",
+      "original": "analysis/ghidra_main_exe/functions/0041a4e0.c"
+    },
+    {
+      "address": "0x0041d7c0",
+      "symbol": "LoadGrandOpeningMachineData",
+      "source": "reconstruction/src/bobs_band_data.cpp",
+      "test": "reconstruction/tests/bobs_band_source_test.cpp",
+      "kind": "existing",
+      "original": "analysis/ghidra_main_exe/functions/0041d7c0.c"
+    },
+    {
+      "address": "0x00406f60",
+      "symbol": "LoadNumUiHotAreaTable",
+      "source": "reconstruction/src/front_end_ui_data.cpp",
+      "test": "reconstruction/tests/front_end_ui_data_test.cpp",
+      "kind": "existing",
+      "original": "analysis/ghidra_main_exe/functions/00406f60.c"
+    },
+    {
+      "address": "0x00406fd0",
+      "symbol": "LoadUiHotAreas",
+      "source": "reconstruction/src/front_end_ui_data.cpp",
+      "test": "reconstruction/tests/front_end_ui_data_test.cpp",
+      "kind": "existing",
+      "original": "analysis/ghidra_main_exe/functions/00406fd0.c"
+    },
+    {
+      "address": "0x00407100",
+      "symbol": "LoadUiHotAreaReplacements",
+      "source": "reconstruction/src/front_end_ui_data.cpp",
+      "test": "reconstruction/tests/front_end_ui_data_test.cpp",
+      "kind": "existing",
+      "original": "analysis/ghidra_main_exe/functions/00407100.c"
+    },
+    {
+      "address": "0x00415830",
+      "symbol": "UpdateGolfActivity",
+      "source": "reconstruction/include/btb/gameplay_data_batch_20.hpp",
+      "test": "reconstruction/tests/gameplay_data_batch_20_test.cpp",
+      "kind": "new",
+      "original": "analysis/ghidra_main_exe/functions/00415830.c"
+    },
+    {
+      "address": "0x004279f0",
+      "symbol": "UpdateSquirrelActivity",
+      "source": "reconstruction/include/btb/gameplay_data_batch_20.hpp",
+      "test": "reconstruction/tests/gameplay_data_batch_20_test.cpp",
+      "kind": "new",
+      "original": "analysis/ghidra_main_exe/functions/004279f0.c"
+    },
+    {
+      "address": "0x00420030",
+      "symbol": "UpdateBobsBandActivity",
+      "source": "reconstruction/include/btb/gameplay_data_batch_20.hpp",
+      "test": "reconstruction/tests/gameplay_data_batch_20_test.cpp",
+      "kind": "new",
+      "original": "analysis/ghidra_main_exe/functions/00420030.c"
+    },
+    {
+      "address": "0x00407330",
+      "symbol": "LoadUiBitmapNames",
+      "source": "reconstruction/include/btb/gameplay_data_batch_20.hpp",
+      "test": "reconstruction/tests/gameplay_data_batch_20_test.cpp",
+      "kind": "new",
+      "original": "analysis/ghidra_main_exe/functions/00407330.c"
+    },
+    {
+      "address": "0x00407870",
+      "symbol": "LoadStartupAndCompletionMovies",
+      "source": "reconstruction/include/btb/gameplay_data_batch_20.hpp",
+      "test": "reconstruction/tests/gameplay_data_batch_20_test.cpp",
+      "kind": "new",
+      "original": "analysis/ghidra_main_exe/functions/00407870.c"
+    },
+    {
+      "address": "0x004077f0",
+      "symbol": "LoadBinkWalkthroughTable",
+      "source": "reconstruction/include/btb/gameplay_data_batch_20.hpp",
+      "test": "reconstruction/tests/gameplay_data_batch_20_test.cpp",
+      "kind": "new",
+      "original": "analysis/ghidra_main_exe/functions/004077f0.c"
+    },
+    {
+      "address": "0x00406eb0",
+      "symbol": "LoadHelpWavTable",
+      "source": "reconstruction/include/btb/gameplay_data_batch_20.hpp",
+      "test": "reconstruction/tests/gameplay_data_batch_20_test.cpp",
+      "kind": "new",
+      "original": "analysis/ghidra_main_exe/functions/00406eb0.c"
+    },
+    {
+      "address": "0x004069c0",
+      "symbol": "LoadCreditsSlideshow",
+      "source": "reconstruction/include/btb/gameplay_data_batch_20.hpp",
+      "test": "reconstruction/tests/gameplay_data_batch_20_test.cpp",
+      "kind": "new",
+      "original": "analysis/ghidra_main_exe/functions/004069c0.c"
+    },
+    {
+      "address": "0x00411b10",
+      "symbol": "SaveFireworksLayoutAndUnloadResources",
+      "source": "reconstruction/include/btb/gameplay_data_batch_20.hpp",
+      "test": "reconstruction/tests/gameplay_data_batch_20_test.cpp",
+      "kind": "new",
+      "original": "analysis/ghidra_main_exe/functions/00411b10.c"
+    },
+    {
+      "address": "0x0041d920",
+      "symbol": "SaveAndUnloadBobsBandActivity",
+      "source": "reconstruction/include/btb/gameplay_data_batch_20.hpp",
+      "test": "reconstruction/tests/gameplay_data_batch_20_test.cpp",
+      "kind": "new",
+      "original": "analysis/ghidra_main_exe/functions/0041d920.c"
+    },
+    {
+      "address": "0x00423260",
+      "symbol": "DistanceFromActorToCurrentScreenNode",
+      "source": "reconstruction/include/btb/gameplay_data_batch_20.hpp",
+      "test": "reconstruction/tests/gameplay_data_batch_20_test.cpp",
+      "kind": "new",
+      "original": "analysis/ghidra_main_exe/functions/00423260.c"
+    }
+  ]
+}
