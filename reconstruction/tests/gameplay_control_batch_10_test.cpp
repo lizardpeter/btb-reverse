@@ -175,6 +175,11 @@ int main(){
   for(int i=0;i<200&&!squirrel_frame.completed;++i)
     squirrel_frame=update_squirrel_slide(regular,0);
   assert(squirrel_frame.completed&&regular.level_index==1);
+  SquirrelSlide dormant{};
+  dormant.phase=0;dormant.motion=0;dormant.speed=10;
+  squirrel_frame=update_squirrel_slide(dormant,0);
+  assert(!squirrel_frame.draw_part&&squirrel_frame.draw_borders);
+  assert(dormant.speed==10&&dormant.sprite_offsets==10);
 
   // 0041BF80 source time is seconds from Windows 64-bit timestamp delta;
   // 20 px spacing, 250 px row rollover, 25 completed/empty bar cells.
