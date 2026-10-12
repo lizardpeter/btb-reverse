@@ -832,7 +832,8 @@ add_test(NAME maze_spud_frame_batch COMMAND btb_maze_spud_frame_batch_tests)
 # The original PE32 resource/DirectDraw/Bink/DirectSound effects remain host
 # callbacks; passing this test does not imply retail binary/ABI parity.
 add_executable(btb_gameplay_data_batch_20_tests
-    tests/gameplay_data_batch_20_test.cpp)
+    tests/gameplay_data_batch_20_test.cpp
+    src/bobs_band.cpp)
 target_include_directories(btb_gameplay_data_batch_20_tests PRIVATE include)
 btb_require_cpp26(btb_gameplay_data_batch_20_tests PRIVATE)
 target_link_libraries(btb_gameplay_data_batch_20_tests PRIVATE
