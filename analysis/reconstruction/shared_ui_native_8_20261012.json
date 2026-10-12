@@ -1,0 +1,56 @@
+{
+  "source_exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "complete_source_models": 8,
+  "partial_source_models": 1,
+  "source": "reconstruction/include/btb/shared_ui_native_9.hpp",
+  "test": "reconstruction/tests/shared_ui_native_9_test.cpp",
+  "stage_limitations": "The eight source models reconstruct original branching/state changes and native callback ordering; underlying DirectDraw/DirectSound/Bink/OS dispatchers and original 32-bit ABI remain separate incomplete work. The ninth 0042D060 SaveAndUnloadPlayerProfiles model is explicitly partial and remains unreviewed due an unresolved source-backed file-mode/00430FB8 input-scanning ambiguity.",
+  "functions": [
+    {
+      "address": "0x00429150",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00429150.c",
+      "stage": "source_written"
+    },
+    {
+      "address": "0x00428ED0",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00428ED0.c",
+      "stage": "source_written"
+    },
+    {
+      "address": "0x00429800",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00429800.c",
+      "stage": "source_written"
+    },
+    {
+      "address": "0x00429AA0",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00429AA0.c",
+      "stage": "source_written"
+    },
+    {
+      "address": "0x00429C90",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00429C90.c",
+      "stage": "source_written"
+    },
+    {
+      "address": "0x0042DB70",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/0042DB70.c",
+      "stage": "source_written"
+    },
+    {
+      "address": "0x00423BE0",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/00423BE0.c",
+      "stage": "source_written"
+    },
+    {
+      "address": "0x004281D0",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/004281D0.c",
+      "stage": "source_written"
+    },
+    {
+      "address": "0x0042D060",
+      "original_pseudocode": "analysis/ghidra_main_exe/functions/0042D060.c",
+      "stage": "unreviewed",
+      "reason": "Partial surface release and profile operation sequencing only; actual fopen mode and callsite of 00430FB8 require authoritative disassembly validation before promotion"
+    }
+  ]
+}
