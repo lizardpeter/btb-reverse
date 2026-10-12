@@ -743,3 +743,35 @@ target_link_libraries(btb_park_designer_scene_tests PRIVATE
     btb_park_designer_scene
 )
 add_test(NAME park_designer_scene COMMAND btb_park_designer_scene_tests)
+
+
+# Original 00410D10 Park Designer outer loop and game dispatcher adapter.
+# 0040E440 full editor, DirectDraw bitmap mapping and native music providers
+# remain explicit dependencies rather than counterfeit reconstructed hosts.
+add_library(btb_park_designer_activity_loop
+    src/park_designer_activity_loop.cpp
+)
+target_include_directories(btb_park_designer_activity_loop PUBLIC include)
+btb_require_cpp26(btb_park_designer_activity_loop PUBLIC)
+target_link_libraries(btb_park_designer_activity_loop PUBLIC
+    btb_park_designer_scene btb_park_designer)
+
+add_executable(btb_park_designer_activity_loop_tests
+    tests/park_designer_activity_loop_test.cpp)
+target_link_libraries(btb_park_designer_activity_loop_tests PRIVATE
+    btb_park_designer_activity_loop)
+add_test(NAME park_designer_activity_loop
+    COMMAND btb_park_designer_activity_loop_tests)
+
+add_library(btb_full_game_park_designer_source
+    src/full_game_park_designer.cpp)
+target_include_directories(btb_full_game_park_designer_source PUBLIC include)
+btb_require_cpp26(btb_full_game_park_designer_source PUBLIC)
+target_link_libraries(btb_full_game_park_designer_source PUBLIC
+    btb_full_game_root_source btb_park_designer_activity_loop)
+add_executable(btb_full_game_park_designer_source_tests
+    tests/full_game_park_designer_source_test.cpp)
+target_link_libraries(btb_full_game_park_designer_source_tests PRIVATE
+    btb_full_game_park_designer_source)
+add_test(NAME full_game_park_designer_source
+    COMMAND btb_full_game_park_designer_source_tests)
