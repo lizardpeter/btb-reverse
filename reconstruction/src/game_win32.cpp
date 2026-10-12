@@ -4,9 +4,12 @@
 #define NOMINMAX
 #include <windows.h>
 #include <commdlg.h>
+#include <shellapi.h>
+#include <cwchar>
 
 #include "btb/game_session.hpp"
 #include "btb/application_state.hpp"
+#include "btb/win32_recompiled_host.hpp"
 #include "btb/win32_original_platform_link.hpp"
 
 #include <algorithm>
@@ -445,6 +448,24 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT message, WPARAM wp, LPARAM lp) {
 } // namespace
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
+    // Explicit opt-in: retains the earlier Dinosaur-only preview for default
+    // launches, but allows the unified recovered GameRoot to own a real
+    // DirectDraw7/DirectSound8 window against original installed assets.
+    int argument_count=0;
+    LPWSTR* arguments=CommandLineToArgvW(GetCommandLineW(),&argument_count);
+    if(arguments){
+        const bool native=argument_count==3 &&
+            std::wcscmp(arguments[1],L"--native-original")==0;
+        const std::filesystem::path installed=
+            native ? std::filesystem::path(arguments[2])
+                   : std::filesystem::path{};
+        LocalFree(arguments);
+        if(native){
+            if(!btb::full_game::verify_linked_win32_providers())return 4;
+            return btb::full_game::run_recompiled_native_game(
+                instance,installed,show);
+        }
+    }
     // Force actual native DirectDraw7/DirectSound8/Bink-loader implementations
     // to link into this executable, not only a platform-only test program.
     // This is a safe precondition probe; it does not claim movie playback.
