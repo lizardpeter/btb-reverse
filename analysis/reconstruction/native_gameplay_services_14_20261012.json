@@ -1,0 +1,108 @@
+{
+  "batch": "native_gameplay_and_retail_services_14_20261012",
+  "source_exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "original_function_count": 14,
+  "source_model_stage": "source_written",
+  "testing": "Two C++26 regression suites, plus existing repository CI",
+  "fidelity": "These are original pseudocode-derived C++26 state/effect models with native I/O, image, Bink/DirectDraw/DirectSound calls represented by host effects. They are NOT verified native executable equivalents, not bit-identical and not evidence that all 14 are wired into the playable game. Some Ghidra pseudocode contains unresolved register or parameter calls requiring later machine-code parity.",
+  "functions": [
+    {
+      "address": "0x00407B60",
+      "original": "analysis/ghidra_main_exe/functions/00407B60.c",
+      "source": "reconstruction/include/btb/retail_service_batch_8.hpp",
+      "test": "reconstruction/tests/retail_service_batch_8_test.cpp",
+      "category": "shared-platform"
+    },
+    {
+      "address": "0x00406AD0",
+      "original": "analysis/ghidra_main_exe/functions/00406AD0.c",
+      "source": "reconstruction/include/btb/retail_service_batch_8.hpp",
+      "test": "reconstruction/tests/retail_service_batch_8_test.cpp",
+      "category": "shared-platform"
+    },
+    {
+      "address": "0x00408F70",
+      "original": "analysis/ghidra_main_exe/functions/00408F70.c",
+      "source": "reconstruction/include/btb/retail_service_batch_8.hpp",
+      "test": "reconstruction/tests/retail_service_batch_8_test.cpp",
+      "category": "shared-platform"
+    },
+    {
+      "address": "0x004090D0",
+      "original": "analysis/ghidra_main_exe/functions/004090D0.c",
+      "source": "reconstruction/include/btb/retail_service_batch_8.hpp",
+      "test": "reconstruction/tests/retail_service_batch_8_test.cpp",
+      "category": "shared-platform"
+    },
+    {
+      "address": "0x004092D0",
+      "original": "analysis/ghidra_main_exe/functions/004092D0.c",
+      "source": "reconstruction/include/btb/retail_service_batch_8.hpp",
+      "test": "reconstruction/tests/retail_service_batch_8_test.cpp",
+      "category": "shared-platform"
+    },
+    {
+      "address": "0x00402E10",
+      "original": "analysis/ghidra_main_exe/functions/00402E10.c",
+      "source": "reconstruction/include/btb/retail_service_batch_8.hpp",
+      "test": "reconstruction/tests/retail_service_batch_8_test.cpp",
+      "category": "shared-platform"
+    },
+    {
+      "address": "0x00402CF0",
+      "original": "analysis/ghidra_main_exe/functions/00402CF0.c",
+      "source": "reconstruction/include/btb/retail_service_batch_8.hpp",
+      "test": "reconstruction/tests/retail_service_batch_8_test.cpp",
+      "category": "shared-platform"
+    },
+    {
+      "address": "0x00405380",
+      "original": "analysis/ghidra_main_exe/functions/00405380.c",
+      "source": "reconstruction/include/btb/retail_service_batch_8.hpp",
+      "test": "reconstruction/tests/retail_service_batch_8_test.cpp",
+      "category": "shared-platform"
+    },
+    {
+      "address": "0x004145F0",
+      "original": "analysis/ghidra_main_exe/functions/004145F0.c",
+      "source": "reconstruction/include/btb/native_gameplay_batch_6.hpp",
+      "test": "reconstruction/tests/native_gameplay_batch_6_test.cpp",
+      "category": "gameplay"
+    },
+    {
+      "address": "0x00424360",
+      "original": "analysis/ghidra_main_exe/functions/00424360.c",
+      "source": "reconstruction/include/btb/native_gameplay_batch_6.hpp",
+      "test": "reconstruction/tests/native_gameplay_batch_6_test.cpp",
+      "category": "gameplay"
+    },
+    {
+      "address": "0x0041F820",
+      "original": "analysis/ghidra_main_exe/functions/0041F820.c",
+      "source": "reconstruction/include/btb/native_gameplay_batch_6.hpp",
+      "test": "reconstruction/tests/native_gameplay_batch_6_test.cpp",
+      "category": "gameplay"
+    },
+    {
+      "address": "0x0041FC90",
+      "original": "analysis/ghidra_main_exe/functions/0041FC90.c",
+      "source": "reconstruction/include/btb/native_gameplay_batch_6.hpp",
+      "test": "reconstruction/tests/native_gameplay_batch_6_test.cpp",
+      "category": "gameplay"
+    },
+    {
+      "address": "0x00413B60",
+      "original": "analysis/ghidra_main_exe/functions/00413B60.c",
+      "source": "reconstruction/include/btb/native_gameplay_batch_6.hpp",
+      "test": "reconstruction/tests/native_gameplay_batch_6_test.cpp",
+      "category": "gameplay"
+    },
+    {
+      "address": "0x0041F090",
+      "original": "analysis/ghidra_main_exe/functions/0041F090.c",
+      "source": "reconstruction/include/btb/native_gameplay_batch_6.hpp",
+      "test": "reconstruction/tests/native_gameplay_batch_6_test.cpp",
+      "category": "gameplay"
+    }
+  ]
+}
