@@ -71,7 +71,7 @@ int main(){
     File f{5,0x8b,9,123,456,777};
     std::vector<U32> freed;
     assert(free_crt_buffer(f,[&](U32 p){freed.push_back(p);}));
-    assert(f.ptr==0||f.pointer==0); // portable buffer pointer zero
+    assert(f.pointer==0); // portable buffer pointer zero
     assert(f.base==0&&f.count==0&&(f.flags&8)==0);
     assert((freed==std::vector<U32>{456}));
     File skip{1,0x42,7,8,9,10};
