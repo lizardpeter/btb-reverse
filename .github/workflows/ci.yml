@@ -1,5 +1,11 @@
 name: repo-checks
 
+# Compile only the newest commit on each branch. Bulk reconstruction pushes
+# otherwise launch several competing x86/x64/Linux compilers unnecessarily.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
   pull_request:
