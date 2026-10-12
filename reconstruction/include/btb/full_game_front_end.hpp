@@ -3,6 +3,7 @@
 #include "btb/front_end_ui.hpp"
 #include "btb/front_end_ui_runtime.hpp"
 #include "btb/full_game_runtime.hpp"
+#include "btb/full_game_ui_bitmaps.hpp"
 
 #include <array>
 #include <filesystem>
@@ -54,6 +55,15 @@ public:
     [[nodiscard]] ActivityFrameOutput advance(
         const ActivityFrameInput& input) override;
 
+    // The original bitmap name table is independent of UI hit-area indices.
+    // This is the activity-select background source index chosen by retail
+    // outer state 0x04. Loading and blitting happen in native DirectDraw7.
+    [[nodiscard]] bool configure_backdrop(
+        const OriginalUiBitmapCatalog& bitmaps,std::size_t source_slot) {
+        backdrop_=bitmaps.backdrop(source_slot);
+        return backdrop_.has_value();
+    }
+
     [[nodiscard]] const front_end::GenericUiRuntimeState& ui_state()
         const noexcept { return ui_state_; }
     [[nodiscard]] const std::vector<front_end::ReplacementRuntimeState>&
@@ -69,6 +79,7 @@ private:
     std::vector<front_end::ReplacementRuntimeState> replacement_runtime_{};
     front_end::GenericUiRuntimeState ui_state_{};
     bool initialized_{};
+    std::optional<Draw> backdrop_{};
 };
 
 } // namespace btb::full_game
