@@ -17,7 +17,7 @@ int main(){
  btb::golf::Data data{};
  data.bob_position={100,200};data.ball_offset_from_bob_retail={11,12};
  auto p=initialize_golf(golf,data);
- assert(golf.ball==btb::golf::Vec2i{111,212});
+ assert((golf.ball==btb::golf::Vec2i{111,212}));
  assert(golf.difficulty_seeds[0]==5&&golf.difficulty_seeds[2]==9);
  assert(golf.course_state==5&&golf.intro_phase==1);
  assert(count(p,Op::LoadBitmap)==18);
