@@ -247,6 +247,12 @@ struct Band {
     } else if(s.state==9){
         f.emit(Command::BobsBandPerformance);
         f.emit(Command::BobsBandToolbar);
+        // Retail draws an additional play/stop overlay when region 0x16
+        // is hovered, and a click terminates playback immediately.
+        if(s.hit_region==22&&s.click_pulse){
+            f.emit(Command::StopBandLoop);
+            s.state=0;
+        }
         if(!s.loop_sound_playing)s.state=0;
     } else if(s.state==10){
         f.emit(Command::PreparePlayAgain);
@@ -386,7 +392,7 @@ struct ResourceState {
     for(U32 i=0;i<10;++i)s.bitmap(0x00512718U+4*i);
     s.bitmap(0x005125a8U);
     s.sound(0x004fc084U,0x004fc174U);
-    for(U32 i=0;i<16;++i)s.bitmap(0x0051276cU+i*4);
+    for(U32 i=0;i<8;++i)s.bitmap(0x0051276cU+i*4);
     for(U32 i=0;i<10;++i){
         s.bitmap(0x00512390U+i*4);s.bitmap(0x00512744U+i*4);
     }
