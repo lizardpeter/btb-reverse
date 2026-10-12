@@ -4,6 +4,8 @@
 #include "btb/full_game_bobs_band.hpp"
 #include "btb/full_game_fireworks.hpp"
 #include "btb/full_game_golf.hpp"
+#include "btb/full_game_herding.hpp"
+#include "btb/full_game_herding_event_simulation.hpp"
 #include "btb/full_game_park_designer.hpp"
 #include "btb/full_game_runtime.hpp"
 #include "btb/sound_manager.hpp"
@@ -44,6 +46,13 @@ bool verify_linked_recompiled_core() {
     root.install(ActivityId::ParkDesigner,
                  std::make_unique<ParkDesignerDriver>(
                      std::filesystem::path{},std::filesystem::path{}));
+    // Force the recovered Herding event/behavior implementation into the
+    // executable vtable closure. Its original continuous-motion provider
+    // is not available: this must still fail, not synthesize motion.
+    root.install(ActivityId::Herding,
+                 std::make_unique<HerdingDriver>(
+                     std::filesystem::path{},
+                     std::make_unique<HerdingEventSimulation>(nullptr),0));
 
     const auto rejected_missing_source = [&](ActivityId id) {
         const auto& entry=kActivities[static_cast<std::size_t>(id)];
@@ -58,7 +67,8 @@ bool verify_linked_recompiled_core() {
     if (!rejected_missing_source(ActivityId::Fireworks) ||
         !rejected_missing_source(ActivityId::Golf) ||
         !rejected_missing_source(ActivityId::BobsBand) ||
-        !rejected_missing_source(ActivityId::ParkDesigner)) {
+        !rejected_missing_source(ActivityId::ParkDesigner) ||
+        !rejected_missing_source(ActivityId::Herding)) {
         return false;
     }
 
