@@ -104,9 +104,9 @@ int main(){
  assert(count(p,Op::BlitNote)==0);
  // 00413B60 fireworks editor controls click and hover, 10 tick debounce
  FireControls fire{};
- fire.regions[0]={{{0,0,100,100}},27};
- fire.regions[1]={{{100,0,200,100}},26};
- fire.regions[2]={{{200,0,300,100}},25};
+ fire.regions[0]={btb::fireworks::Recti{0,0,100,100},27};
+ fire.regions[1]={btb::fireworks::Recti{100,0,200,100},26};
+ fire.regions[2]={btb::fireworks::Recti{200,0,300,100},25};
  fire.cursor_x=50;fire.cursor_y=40;
  p=update_firework_controls(fire);
  assert(has(p,Op::StartManagedVoice,881));
