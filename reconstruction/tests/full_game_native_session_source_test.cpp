@@ -21,6 +21,10 @@
 #include <vector>
 
 namespace {
+int report_failure(int code) {
+    std::fprintf(stderr,"native two-phase session regression failed: %d\n",code);
+    return code;
+}
 namespace fs=std::filesystem;
 using namespace btb::full_game;
 
@@ -309,23 +313,23 @@ int main() {
         const auto prepared=session.tick({},false,false,true);
         if(prepared.failure || prepared.submitted ||
            !prepared.ready_for_present || device.present_count!=0)
-            return 61;
+            return report_failure(61);
         std::string present_error;
         if(!session.present_prepared(present_error) ||
-           device.present_count!=1)return 62;
+           device.present_count!=1)return report_failure(62);
         // No double-present without another prepared game frame.
         if(session.present_prepared(present_error) ||
-           device.present_count!=1)return 63;
+           device.present_count!=1)return report_failure(63);
         const auto second=session.tick({},false,false,true);
         if(second.failure || !second.ready_for_present ||
-           second.submitted || device.present_count!=1)return 64;
+           second.submitted || device.present_count!=1)return report_failure(64);
         session.discard_prepared();
         // A cooperative-level retry drops only the prepared presentation,
         // not all subsequent game states or the entire game session.
         const auto third=session.tick({},false,false,true);
         if(third.failure||!third.ready_for_present||
            !session.present_prepared(present_error) ||
-           device.present_count!=2)return 65;
+           device.present_count!=2)return report_failure(65);
     }
     {
         GameRoot game;
@@ -340,10 +344,10 @@ int main() {
         };
         game.set_outer_state(State::GolfPregameSetup);
         const auto prepared=session.tick({},false,false,true);
-        if(prepared.failure || !prepared.ready_for_present)return 66;
+        if(prepared.failure || !prepared.ready_for_present)return report_failure(66);
         std::string present_error;
         if(session.present_prepared(present_error)||
-           !session.failed()||present_error.empty())return 67;
+           !session.failed()||present_error.empty())return report_failure(67);
     }
     {
         GameRoot game;
@@ -357,12 +361,12 @@ int main() {
         };
         game.set_outer_state(State::GolfPregameSetup);
         const auto prepared=session.tick({},false,false,true);
-        if(prepared.failure || !prepared.ready_for_present)return 68;
+        if(prepared.failure || !prepared.ready_for_present)return report_failure(68);
         const auto illegally_overlapping=session.tick({},false,false,true);
         if(!illegally_overlapping.failure ||
            illegally_overlapping.failure->stage!=
                PhysicalPresentationStage::Present ||
-           !session.failed())return 69;
+           !session.failed())return report_failure(69);
     }
     fs::remove_all(directory);
 }
