@@ -290,7 +290,7 @@ def build():
         "## Reconstruction boundary",
         "",
         "615/615 architecture-mapped does not mean 615/615 rewritten in C++.",
-        f"Current source-written models: {summary615['source_written']}; remaining: {summary615['architecture_only']}.",
+        f"Current source-written or compiled functions: {summary615['source_written']}; remaining: {summary615['architecture_only']}.",
         "Frozen architecture cohorts are independent of reconstruction status.",
         "Recover runtime layouts, identify import thunks,",
         "and integrate original gameplay functions before claiming fidelity.",
@@ -307,7 +307,7 @@ def build():
         "- 200 functions were originally architecture-only in the first pass.",
         "- 224 functions were originally architecture-only in the final pass.",
         "",
-        f"Current status: {summary615['source_written']} source-written models and "
+        f"Current status: {summary615['source_written']} source-written or compiled functions (3 at compile stage) and "
         f"{summary615['architecture_only']} architecture-only functions.",
         "",
         "The full inventory keeps these statuses separate; no source-written",
