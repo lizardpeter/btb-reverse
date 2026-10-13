@@ -1,0 +1,68 @@
+{
+  "count": 9,
+  "originals": [
+    {
+      "address": "0x004079E0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004079E0.c",
+      "cpp": "reconstruction/src/original_gameplay9.cpp"
+    },
+    {
+      "address": "0x00407A40",
+      "ghidra": "analysis/ghidra_main_exe/functions/00407A40.c",
+      "cpp": "reconstruction/src/original_gameplay9.cpp"
+    },
+    {
+      "address": "0x00408D80",
+      "ghidra": "analysis/ghidra_main_exe/functions/00408D80.c",
+      "cpp": "reconstruction/src/original_gameplay9.cpp"
+    },
+    {
+      "address": "0x00408EA0",
+      "ghidra": "analysis/ghidra_main_exe/functions/00408EA0.c",
+      "cpp": "reconstruction/src/original_gameplay9.cpp"
+    },
+    {
+      "address": "0x00411010",
+      "ghidra": "analysis/ghidra_main_exe/functions/00411010.c",
+      "cpp": "reconstruction/src/original_gameplay9.cpp"
+    },
+    {
+      "address": "0x00412B80",
+      "ghidra": "analysis/ghidra_main_exe/functions/00412B80.c",
+      "cpp": "reconstruction/src/original_gameplay9.cpp"
+    },
+    {
+      "address": "0x0041F430",
+      "ghidra": "analysis/ghidra_main_exe/functions/0041F430.c",
+      "cpp": "reconstruction/src/original_gameplay9.cpp"
+    },
+    {
+      "address": "0x00414A30",
+      "ghidra": "analysis/ghidra_main_exe/functions/00414A30.c",
+      "cpp": "reconstruction/src/original_gameplay9.cpp"
+    },
+    {
+      "address": "0x0041AE90",
+      "ghidra": "analysis/ghidra_main_exe/functions/0041AE90.c",
+      "cpp": "reconstruction/src/original_gameplay9.cpp"
+    }
+  ],
+  "functions": [
+    "UpdateLoadingCursorAnimation",
+    "DrawLoadingCursorAnimation",
+    "RestartBinkMovie",
+    "CloseBinkMovie",
+    "PlaceFireworkGridItem",
+    "DeleteFireworkAtSelectedRegion",
+    "RemoveGrandOpeningEventAtCell",
+    "VectorFromDegreesAndMagnitude",
+    "FloatAbs"
+  ],
+  "executable": "btb_game --recompiled-smoke",
+  "test": "original_gameplay9 on Linux Windows Win32/Win64 Release",
+  "limitations": [
+    "Original 32-bit x87 trigonometry precision and FloatAbs threshold need retail differential proof",
+    "Bink callbacks are source-level native operations, not an actual decoded movie",
+    "Not all live gameplay callsites are integrated"
+  ]
+}
