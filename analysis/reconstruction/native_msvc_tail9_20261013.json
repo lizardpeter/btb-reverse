@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "count": 9,
+  "functions": [
+    {
+      "address": "0x00436010",
+      "ghidra": "analysis/ghidra_main_exe/functions/00436010.c",
+      "compiled": "reconstruction/src/original_msvc_tail9.cpp",
+      "test": "reconstruction/tests/original_msvc_tail9_test.cpp"
+    },
+    {
+      "address": "0x004310E0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004310E0.c",
+      "compiled": "reconstruction/src/original_msvc_tail9.cpp",
+      "test": "reconstruction/tests/original_msvc_tail9_test.cpp"
+    },
+    {
+      "address": "0x00431105",
+      "ghidra": "analysis/ghidra_main_exe/functions/00431105.c",
+      "compiled": "reconstruction/src/original_msvc_tail9.cpp",
+      "test": "reconstruction/tests/original_msvc_tail9_test.cpp"
+    },
+    {
+      "address": "0x004331CB",
+      "ghidra": "analysis/ghidra_main_exe/functions/004331CB.c",
+      "compiled": "reconstruction/src/original_msvc_tail9.cpp",
+      "test": "reconstruction/tests/original_msvc_tail9_test.cpp"
+    },
+    {
+      "address": "0x004351F6",
+      "ghidra": "analysis/ghidra_main_exe/functions/004351F6.c",
+      "compiled": "reconstruction/src/original_msvc_tail9.cpp",
+      "test": "reconstruction/tests/original_msvc_tail9_test.cpp"
+    },
+    {
+      "address": "0x004325C0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004325C0.c",
+      "compiled": "reconstruction/src/original_msvc_tail9.cpp",
+      "test": "reconstruction/tests/original_msvc_tail9_test.cpp"
+    },
+    {
+      "address": "0x004332B4",
+      "ghidra": "analysis/ghidra_main_exe/functions/004332B4.c",
+      "compiled": "reconstruction/src/original_msvc_tail9.cpp",
+      "test": "reconstruction/tests/original_msvc_tail9_test.cpp"
+    },
+    {
+      "address": "0x00439B24",
+      "ghidra": "analysis/ghidra_main_exe/functions/00439B24.c",
+      "compiled": "reconstruction/src/original_msvc_tail9.cpp",
+      "test": "reconstruction/tests/original_msvc_tail9_test.cpp"
+    },
+    {
+      "address": "0x004373DB",
+      "ghidra": "analysis/ghidra_main_exe/functions/004373DB.c",
+      "compiled": "reconstruction/src/original_msvc_tail9.cpp",
+      "test": "reconstruction/tests/original_msvc_tail9_test.cpp"
+    }
+  ],
+  "coverage": [
+    "Runtime fatal/processor warnings and exit reporting",
+    "Kernel32 processor feature fallback",
+    "Heap slot release/reclaim threshold",
+    "Exit frame notification and cleanup ordering",
+    "MSVC float result routing",
+    "Environment duplication failure semantics",
+    "Unicode-to-MBCS conversion and errno behavior"
+  ],
+  "native_targets": [
+    "btb_recompiled_core",
+    "btb_game",
+    "original_msvc_tail9 Linux/Windows x86/x64 CTest"
+  ],
+  "limitations": [
+    "Original x86 CRT IAT callbacks and SEH still host-injected",
+    "No byte-level retail x86 differential verification"
+  ]
+}
