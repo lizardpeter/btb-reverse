@@ -1,0 +1,255 @@
+{
+  "schema_version": 1,
+  "kind": "direct native C++ MSVC2003 original-function batch",
+  "original_exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "function_count": 30,
+  "functions": [
+    {
+      "address": "0x00430862",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00430862.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00430873",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00430873.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00438230",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00438230.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x0043317B",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/0043317B.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00436774",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00436774.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00437097",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00437097.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x0043675D",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/0043675D.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00431D70",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00431D70.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00435610",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00435610.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x0043039E",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/0043039E.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00430479",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00430479.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00439FEE",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00439FEE.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00439F94",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00439F94.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x0043A0A4",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/0043A0A4.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x0043A18C",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/0043A18C.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00431DA1",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00431DA1.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x0043360A",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/0043360A.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x004373B5",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/004373B5.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x0043356F",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/0043356F.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00436598",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00436598.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00437A06",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00437A06.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00437A33",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00437A33.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00437443",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00437443.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00431D39",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00431D39.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x004301AE",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/004301AE.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00433118",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00433118.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00435732",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00435732.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00436322",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/00436322.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x0043318D",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/0043318D.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x004358B0",
+      "original_ghidra": "analysis/ghidra_main_exe/functions/004358B0.c",
+      "source": "reconstruction/src/original_msvc30.cpp",
+      "test": "reconstruction/tests/original_msvc30_test.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    }
+  ],
+  "compiled_as": [
+    "btb_recompiled_core",
+    "btb_game",
+    "btb_original_msvc30_tests"
+  ],
+  "runtime_reachability": "game --recompiled-smoke invokes verify_linked_recompiled_core -> verify_30_original_msvc_functions",
+  "non_equivalence": "Model replaces original CRT and IAT process-global operands with explicit modern C++ references and host-provided callbacks. Native x86 original calling convention and behavior against original retail exe not yet validated."
+}
