@@ -49,7 +49,7 @@ int main(){
     screen.records[0].secondary[0]=6;
     screen.records[0].hover_bitmap=7;
     screen.records[0].pressed_bitmap=8;
-    events=unbtb::original_shared8::load_generic_ui(screen);
+    events=btb::original_shared8::unload_generic_ui(screen);
     assert(count(events,Kind::UnregisterBitmap)==6);
     assert(count(events,Kind::ReleaseBitmap)==4);
     assert(events.effects.back().kind==Kind::StopAllManaged);
@@ -57,7 +57,7 @@ int main(){
     assert(screen.records[0].secondary[0]==0);
     assert(screen.original_loaded_count==4);
     UiScreen no_op{};no_op.index=12;
-    events=unbtb::original_shared8::load_generic_ui(no_op);
+    events=btb::original_shared8::unload_generic_ui(no_op);
     assert(events.effects.empty());
     UiScreen rejected{};rejected.index=1;
     authored.records[0].hover_frame_count=999;
