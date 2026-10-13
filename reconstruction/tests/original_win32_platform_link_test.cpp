@@ -1,5 +1,6 @@
 #include "btb/win32_original_platform_link.hpp"
 #include "btb/original_recompiled_bitmaps.hpp"
+#include "btb/win32_recompiled_graphics.hpp"
 #include <cstdio>
 
 int main() {
@@ -23,6 +24,16 @@ int main() {
     if(btb::original_win32::blit_color_keyed_surface_clipped(
            nullptr,nullptr,0,0,nullptr,0,0)
            !=DDERR_INVALIDPARAMS)return 5;
+    if(btb::original_win32::blt_fast_to_backbuffer(
+           nullptr,0,0,nullptr,nullptr,0)!=E_POINTER)return 6;
+    if(btb::original_win32::clear_backbuffer(nullptr,0)!=E_POINTER)return 7;
+    RECT destination{};
+    if(btb::original_win32::update_display_destination_rect(
+           nullptr,true,destination))return 8;
+    if(btb::original_win32::colorref_to_surface_pixel(
+           nullptr,RGB(255,0,255))!=0xffffffffU)return 9;
+    if(btb::original_win32::set_surface_transparency_color_key(
+           nullptr,RGB(255,0,255))!=DDERR_INVALIDPARAMS)return 10;
 #endif
     return 0;
 }
