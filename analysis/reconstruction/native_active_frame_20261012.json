@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "original_exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "address": "0x00402440",
+  "source": "analysis/ghidra_main_exe/functions/00402440.c",
+  "cpp": "reconstruction/src/original_active_frame.cpp",
+  "probe": "reconstruction/src/original_active_frame_probe.cpp",
+  "test": "reconstruction/tests/original_active_frame_test.cpp",
+  "production": "reconstruction/src/win32_recompiled_host.cpp::Host::step",
+  "changes": [
+    "101-call media check counter including skipped millisecond frames",
+    "millisecond clock gate",
+    "native bitmap reload and contextual-help reset state",
+    "explicit ReapFinishedSounds hook",
+    "game-flow advance/physical draw without premature present",
+    "native DirectDraw7 TestCooperativeLevel before final present",
+    "recoverable native busy HRESULT values 0x887600E1/0x88760245 and 10ms wait",
+    "mode reset on 0x8876024B through original 00401FA0",
+    "original lost-surface branch 0x887601C2",
+    "dedicated deferred NativeGameSession presentation/cancel path",
+    "Win32 window last activity timestamp shares original frame timestamp"
+  ],
+  "limitations": [
+    "Original disc label comparison not recovered; only opt-in native developer host explicitly waives CD check",
+    "Real DirectInput poll occurs through Win32 event delivery and not retail original API",
+    "ReapFinishedSounds currently happens during NativeGameDevice::observe after original control-flow callback; not exact operation order",
+    "Frame driver callbacks do not establish original x86 stack/ABI or behavioral parity",
+    "Original Bink and contextual-help services remain incomplete"
+  ]
+}

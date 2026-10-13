@@ -17,9 +17,15 @@ bool NativeGameSession::fail(
 NativeSessionFrame NativeGameSession::tick(
     ActivityFrameInput input,
     bool primary_input_pulse,
-    bool secondary_input_pulse) {
+    bool secondary_input_pulse,
+    bool defer_present) {
 
     NativeSessionFrame frame{};
+    if(pending_present_) {
+        fail(frame,PhysicalPresentationStage::Present,
+             "prior source frame was never presented or discarded");
+        return frame;
+    }
     if (failed_) {
         frame.failure = PhysicalPresentationError{
             PhysicalPresentationStage::GameAdvance,
@@ -166,6 +172,11 @@ NativeSessionFrame NativeGameSession::tick(
         fail(frame,PhysicalPresentationStage::SubmitDraw,error);
         return frame;
     }
+    if(defer_present) {
+        pending_present_=true;
+        frame.ready_for_present=true;
+        return frame;
+    }
     if (!device_.present(error)) {
         fail(frame,PhysicalPresentationStage::Present,error);
         return frame;
@@ -173,6 +184,20 @@ NativeSessionFrame NativeGameSession::tick(
 
     frame.submitted = true;
     return frame;
+}
+
+bool NativeGameSession::present_prepared(std::string& error) {
+    if(failed_ || !pending_present_) {
+        error="source frame has no valid deferred presentation";
+        return false;
+    }
+    pending_present_=false;
+    if(!device_.present(error)) {
+        failed_=true;
+        return false;
+    }
+    error.clear();
+    return true;
 }
 
 } // namespace btb::full_game

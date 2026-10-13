@@ -44,6 +44,9 @@ public:
         const std::vector<ResolvedDraw>& draw_stream,
         std::string& error);
     [[nodiscard]] bool present(std::string& error);
+    // Direct original 00402440 cooperative test and loss recovery.
+    [[nodiscard]] HRESULT cooperative_status() const noexcept;
+    [[nodiscard]] bool restore_for_frame(std::string& error);
     [[nodiscard]] HRESULT clear_retail_backbuffer(DWORD color) noexcept;
     void shutdown() noexcept;
 

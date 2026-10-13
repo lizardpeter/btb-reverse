@@ -330,6 +330,14 @@ bool Win32OriginalDirectDraw::render_ordered(
     return false;
 }
 
+HRESULT Win32OriginalDirectDraw::cooperative_status() const noexcept {
+    return draw_?draw_->TestCooperativeLevel():E_POINTER;
+}
+
+bool Win32OriginalDirectDraw::restore_for_frame(std::string& error) {
+    return initialized() && restore_lost_surfaces(error);
+}
+
 bool Win32OriginalDirectDraw::present(std::string& error) {
     if (!initialized()) {
         error="cannot present before original display initialization";
