@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "kind": "native_original_compilation_batch",
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "note": "25 non-inline typed C++ function definitions compiled into btb_recompiled_core and linked into btb_game. The actual game --recompiled-smoke calls every body; does not claim x86 ABI original global storage rebinding, full retail behavioral parity, or that unrelated source models are production ready. x86 and x64 Windows plus Linux CI required.",
+  "functions": [
+    {
+      "address": "0x00402AF0",
+      "name": "NoOpLegacyHook",
+      "original_source": "analysis/ghidra_main_exe/functions/00402AF0.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00407AC0",
+      "name": "ResetMouseBoundsToGameViewport",
+      "original_source": "analysis/ghidra_main_exe/functions/00407AC0.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00408440",
+      "name": "EnableInputProcessing",
+      "original_source": "analysis/ghidra_main_exe/functions/00408440.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00408450",
+      "name": "DisableInputProcessing",
+      "original_source": "analysis/ghidra_main_exe/functions/00408450.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00408430",
+      "name": "FUN_00408430",
+      "original_source": "analysis/ghidra_main_exe/functions/00408430.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00407A70",
+      "name": "SetCursorHotspotOffset",
+      "original_source": "analysis/ghidra_main_exe/functions/00407A70.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00407A90",
+      "name": "ClearCursorHotspotAndClampNonnegative",
+      "original_source": "analysis/ghidra_main_exe/functions/00407A90.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x004079C0",
+      "name": "EndLoadingCursorAnimation",
+      "original_source": "analysis/ghidra_main_exe/functions/004079C0.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00409CA0",
+      "name": "IsDinoCursorInsideRect",
+      "original_source": "analysis/ghidra_main_exe/functions/00409CA0.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00409C60",
+      "name": "IsDinoCursorNearPoint",
+      "original_source": "analysis/ghidra_main_exe/functions/00409C60.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x0040DD20",
+      "name": "PointInsideRectExclusive",
+      "original_source": "analysis/ghidra_main_exe/functions/0040DD20.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x004294D0",
+      "name": "PointInRectInclusive",
+      "original_source": "analysis/ghidra_main_exe/functions/004294D0.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00413420",
+      "name": "FileTimeDeltaMilliseconds",
+      "original_source": "analysis/ghidra_main_exe/functions/00413420.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x0041FC60",
+      "name": "FileTimeDeltaCentiseconds",
+      "original_source": "analysis/ghidra_main_exe/functions/0041FC60.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x0041A700",
+      "name": "Divide64BitDeltaByTenMillion",
+      "original_source": "analysis/ghidra_main_exe/functions/0041A700.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00412B50",
+      "name": "DecodeSelectedFireworkGridCell",
+      "original_source": "analysis/ghidra_main_exe/functions/00412B50.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x0041F3F0",
+      "name": "DecodeBobsBandGridCell",
+      "original_source": "analysis/ghidra_main_exe/functions/0041F3F0.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00423610",
+      "name": "ResetPilchardSpawnDelay",
+      "original_source": "analysis/ghidra_main_exe/functions/00423610.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x004048E0",
+      "name": "CWaveFile_GetSize",
+      "original_source": "analysis/ghidra_main_exe/functions/004048E0.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00405330",
+      "name": "BitmapPrinterSetDocumentName",
+      "original_source": "analysis/ghidra_main_exe/functions/00405330.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00405350",
+      "name": "BitmapPrinterSetTargetRect",
+      "original_source": "analysis/ghidra_main_exe/functions/00405350.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00406970",
+      "name": "BitmapPrinterGetDocumentName",
+      "original_source": "analysis/ghidra_main_exe/functions/00406970.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00406980",
+      "name": "BitmapPrinterGetTargetRect",
+      "original_source": "analysis/ghidra_main_exe/functions/00406980.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x004069B0",
+      "name": "BitmapPrinterGetScaleMode",
+      "original_source": "analysis/ghidra_main_exe/functions/004069B0.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    },
+    {
+      "address": "0x00415D30",
+      "name": "DistanceBetweenIntegerPoints",
+      "original_source": "analysis/ghidra_main_exe/functions/00415D30.c",
+      "cpp_source": "reconstruction/src/original_leaf_batch_25.cpp",
+      "source_kind": "direct native C++ leaf body, original memory fields supplied as typed operands",
+      "test": "reconstruction/tests/original_leaf_batch_25_test.cpp"
+    }
+  ],
+  "build_targets": [
+    "btb_recompiled_core",
+    "btb_game",
+    "btb_original_leaf_batch_25_tests",
+    "btb_recompiled_core_link_tests"
+  ],
+  "game_executable_probe": "recompiled_core_smoke.cpp::verify_linked_recompiled_core -> original_leaf::verify_25_original_leaf_calls",
+  "stage_rules": {
+    "compiles": "Only after source, exact game binary object compilation, link smoke and x86/x64/Linux CI",
+    "behavior_verified": "No original PE32 differential execution yet"
+  }
+}

@@ -901,6 +901,7 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 # remaining activities or verified original executable parity.
 # ---------------------------------------------------------------
 add_library(btb_recompiled_core STATIC
+    src/original_leaf_batch_25.cpp
     src/full_game_native_session.cpp
     src/full_game_effect_pipeline.cpp
     src/full_game_resources.cpp
@@ -951,6 +952,12 @@ target_link_libraries(btb_recompiled_core PUBLIC
 
 # A true executable dependency: not merely separate source-model test bins.
 target_link_libraries(btb_game PRIVATE btb_recompiled_core)
+
+add_executable(btb_original_leaf_batch_25_tests
+    tests/original_leaf_batch_25_test.cpp)
+target_link_libraries(btb_original_leaf_batch_25_tests PRIVATE btb_recompiled_core)
+btb_require_cpp26(btb_original_leaf_batch_25_tests PRIVATE)
+add_test(NAME original_leaf_batch_25 COMMAND btb_original_leaf_batch_25_tests)
 
 add_executable(btb_recompiled_core_link_tests
     tests/recompiled_core_link_test.cpp)
