@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "original_binary_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "count": 6,
+  "functions": [
+    {
+      "address": "0x00413F10",
+      "ghidra": "analysis/ghidra_main_exe/functions/00413F10.c",
+      "implementation": "reconstruction/src/original_control6.cpp"
+    },
+    {
+      "address": "0x0041F6E0",
+      "ghidra": "analysis/ghidra_main_exe/functions/0041F6E0.c",
+      "implementation": "reconstruction/src/original_control6.cpp"
+    },
+    {
+      "address": "0x0041F550",
+      "ghidra": "analysis/ghidra_main_exe/functions/0041F550.c",
+      "implementation": "reconstruction/src/original_control6.cpp"
+    },
+    {
+      "address": "0x004282C0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004282C0.c",
+      "implementation": "reconstruction/src/original_control6.cpp"
+    },
+    {
+      "address": "0x00429FE0",
+      "ghidra": "analysis/ghidra_main_exe/functions/00429FE0.c",
+      "implementation": "reconstruction/src/original_control6.cpp"
+    },
+    {
+      "address": "0x00429500",
+      "ghidra": "analysis/ghidra_main_exe/functions/00429500.c",
+      "implementation": "reconstruction/src/original_control6.cpp"
+    }
+  ],
+  "original_gameplay": [
+    "Fireworks main activity frame and movie/voice state machine",
+    "Bob's Band palette/cell editor and delete transitions",
+    "Shared Help button hover and sound shutdown",
+    "Leave confirmation",
+    "Play Again selection"
+  ],
+  "tests": [
+    "Original control6 CTest on Linux Windows x86/x64 Release",
+    "Actual btb_game --recompiled-smoke validates native function bodies"
+  ],
+  "limits": [
+    "Actual audio and DirectDraw providers emitted as source-ordered effects, not yet byte-equivalent live calls",
+    "Original retail x86 ABI and behavioral parity not verified"
+  ]
+}
