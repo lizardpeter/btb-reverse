@@ -107,9 +107,9 @@ AcquireResult acquire_sound(ManagedBank& b,I32 id,I32 priority,I32 policy,bool n
 }
 
 // Original source-derived play_managed_sound.
-Plan play_managed_sound(ManagedBank& b,I32 id,I32 priority,I32 policy,bool success=true){
- Plan p{};if(!sound_available(b,id))return p;
- I32 slot=find_sound_slot(b,id);
+Plan play_managed_sound(ManagedBank& b,I32 id,I32 priority,I32 policy,bool success){
+ Plan p{};if(!original_services8::sound_available(b,id))return p;
+ I32 slot=original_services8::find_sound_slot(b,id);
  if(slot>=0&&b.slots[static_cast<std::size_t>(slot)].state==2){p.result=2;return p;}
  if(policy>0)for(I32 i=0;i<80;++i){
   auto& s=b.slots[static_cast<std::size_t>(i)];
