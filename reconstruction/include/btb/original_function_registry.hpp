@@ -30,7 +30,7 @@ inline constexpr std::array<OriginalFunction, 615> kOriginalFunctions{{
     {0x00401F80U, "InitializeDisplayForGameWindow", OriginalSubsystem::SharedPlatform, ReconstructionStage::Compiles, 30U, 1U, 1U},
     {0x00401FA0U, "CreateOrResetDisplayManager", OriginalSubsystem::SharedPlatform, ReconstructionStage::Compiles, 253U, 3U, 11U},
     {0x004020A0U, "DestroyDisplayManager", OriginalSubsystem::SharedPlatform, ReconstructionStage::SourceWritten, 39U, 1U, 2U},
-    {0x004020D0U, "MainWindowProc", OriginalSubsystem::SharedPlatform, ReconstructionStage::Unreviewed, 816U, 0U, 16U},
+    {0x004020D0U, "MainWindowProc", OriginalSubsystem::SharedPlatform, ReconstructionStage::Compiles, 816U, 0U, 16U},
     {0x00402440U, "RunActiveGameFrame", OriginalSubsystem::SharedPlatform, ReconstructionStage::Unreviewed, 443U, 1U, 16U},
     {0x00402600U, "PresentGameFrame", OriginalSubsystem::SharedPlatform, ReconstructionStage::Compiles, 22U, 1U, 1U},
     {0x00402620U, "RestoreAllDirectDrawSurfaces", OriginalSubsystem::SharedPlatform, ReconstructionStage::Compiles, 25U, 1U, 0U},
