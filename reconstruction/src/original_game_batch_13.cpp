@@ -163,7 +163,7 @@ bool verify_13_original_game_calls() noexcept {
     if(pond[0].primary_type!=-1||pond[1].primary_type!=5||
        globals.value_005079fc!=-1)return false;
     const HerdingSortEntry a{0,0,20,20}, b{0,0,5,5};
-    return compare_herding_depth(a,b)==-1 &&
-           compare_herding_depth(HerdingSortEntry{15,0,0,0},b)==-1;
+    return btb::original_game13::compare_herding_depth(a,b)==-1 &&
+           btb::original_game13::compare_herding_depth(HerdingSortEntry{15,0,0,0},b)==-1;
 }
 }
