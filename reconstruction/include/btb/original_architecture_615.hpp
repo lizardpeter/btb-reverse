@@ -21,7 +21,7 @@ inline constexpr std::array<OriginalArchitecture615,615> kOriginalArchitecture61
   {0x00401700U,"UpdateContextualHelpMode","shared_platform","SharedPlatformModule",1,32,false,false},
   {0x00401e20U,"CreateMainGameWindow","shared_platform","SharedPlatformModule",1,1,false,false},
   {0x00401f80U,"InitializeDisplayForGameWindow","shared_platform","SharedPlatformModule",1,1,true,false},
-  {0x00401fa0U,"CreateOrResetDisplayManager","shared_platform","SharedPlatformModule",3,1,false,false},
+  {0x00401fa0U,"CreateOrResetDisplayManager","shared_platform","SharedPlatformModule",3,1,true,false},
   {0x004020a0U,"DestroyDisplayManager","shared_platform","SharedPlatformModule",1,1,true,false},
   {0x004020d0U,"MainWindowProc","shared_platform","SharedPlatformModule",0,14,false,false},
   {0x00402440U,"RunActiveGameFrame","shared_platform","SharedPlatformModule",1,14,false,false},
