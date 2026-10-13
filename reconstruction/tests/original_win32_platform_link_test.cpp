@@ -1,6 +1,7 @@
 #include "btb/win32_original_platform_link.hpp"
 #include "btb/original_recompiled_bitmaps.hpp"
 #include "btb/win32_recompiled_graphics.hpp"
+#include "btb/win32_native_bitmap_registry.hpp"
 #include <cstdio>
 
 int main() {
@@ -34,6 +35,21 @@ int main() {
            nullptr,RGB(255,0,255))!=0xffffffffU)return 9;
     if(btb::original_win32::set_surface_transparency_color_key(
            nullptr,RGB(255,0,255))!=DDERR_INVALIDPARAMS)return 10;
+    btb::original_win32::NativeBitmapRegistry registry;
+    IDirectDrawSurface7* original_surface=nullptr;
+    if(!registry.register_surface_reference(
+           &original_surface,"image.bmp"))return 11;
+    if(registry.high_water_count()!=1)return 12;
+    if(!registry.mark_registered_surface_color_keyed(
+           &original_surface))return 13;
+    if(!registry.unregister_surface_reference(&original_surface))return 14;
+    if(registry.high_water_count()!=1)return 15;
+    if(!registry.register_surface_reference(
+           &original_surface,"replacement.bmp"))return 16;
+    if(registry.high_water_count()!=1)return 17;
+    if(registry.reload_registered_surfaces(nullptr))return 18;
+    if(registry.reload_in_progress())return 19;
+    if(!registry.unregister_surface_reference(&original_surface))return 20;
 #endif
     return 0;
 }

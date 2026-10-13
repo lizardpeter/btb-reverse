@@ -20,8 +20,10 @@
 
 #include "btb/full_game_resources.hpp"
 #include "btb/display_manager.hpp"
+#include "btb/win32_native_bitmap_registry.hpp"
 
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -70,6 +72,8 @@ private:
     IDirectDrawSurface7* backbuffer_{};
     IDirectDrawClipper* clipper_{};
     std::unordered_map<std::wstring,OriginalSurface> images_{};
+    std::unique_ptr<original_win32::NativeBitmapRegistry> registry_{
+        std::make_unique<original_win32::NativeBitmapRegistry>()};
     std::vector<ResolvedDraw> previous_frame_{};
     bool surface_lost_during_draw_{};
 };
