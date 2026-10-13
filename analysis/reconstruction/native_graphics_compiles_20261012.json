@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "note": "Five native C++ Windows functions dispatch real DirectDraw7/GDI operations, with release-mode link checks and executable callers. Registry marking in 00403B70 remains a missing retail side effect; exact calling convention and original x86 differential parity are NOT established. Linux cannot execute the Windows provider; both Windows architectures must pass CI.",
+  "functions": [
+    {
+      "address": "0x00403500",
+      "name": "BltFastToBackBuffer",
+      "cpp_function": "btb::original_win32::blt_fast_to_backbuffer",
+      "original_source": "analysis/ghidra_main_exe/functions/00403500.c"
+    },
+    {
+      "address": "0x00403540",
+      "name": "ClearBackBuffer",
+      "cpp_function": "btb::original_win32::clear_backbuffer",
+      "original_source": "analysis/ghidra_main_exe/functions/00403540.c"
+    },
+    {
+      "address": "0x00403590",
+      "name": "UpdateDisplayDestinationRect",
+      "cpp_function": "btb::original_win32::update_display_destination_rect",
+      "original_source": "analysis/ghidra_main_exe/functions/00403590.c"
+    },
+    {
+      "address": "0x00403A70",
+      "name": "FUN_00403a70",
+      "cpp_function": "btb::original_win32::colorref_to_surface_pixel",
+      "original_source": "analysis/ghidra_main_exe/functions/00403A70.c"
+    },
+    {
+      "address": "0x00403B70",
+      "name": "SetSurfaceTransparencyColorKey",
+      "cpp_function": "btb::original_win32::set_surface_transparency_color_key",
+      "original_source": "analysis/ghidra_main_exe/functions/00403B70.c"
+    }
+  ],
+  "cpp_source": "reconstruction/src/win32_recompiled_graphics.cpp",
+  "api_header": "reconstruction/include/btb/win32_recompiled_graphics.hpp",
+  "native_caller": "reconstruction/src/win32_original_directdraw.cpp",
+  "native_test": "reconstruction/tests/original_win32_platform_link_test.cpp",
+  "build_targets": [
+    "btb_original_win32_platform",
+    "btb_game",
+    "btb_original_win32_platform_link_tests"
+  ],
+  "stages": {
+    "compiles": "Windows x86 and x64 CI required; compiled and linked native providers rather than source-effect models",
+    "behavior_verified": "0 retail differential trace confirmations"
+  }
+}

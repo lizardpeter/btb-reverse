@@ -2,6 +2,7 @@
 #include "btb/bitmap_registry.hpp"
 #include "btb/full_game_blt_clip.hpp"
 #include "btb/original_recompiled_bitmaps.hpp"
+#include "btb/win32_recompiled_graphics.hpp"
 
 #if defined(_WIN32)
 #include <cstdint>
@@ -157,24 +158,13 @@ bool Win32OriginalDirectDraw::load_bitmap(
         return false;
     }
 
-    // 004036E0 MarkSurfaceColorKeyed is the bitmap-registry operation
-    // following 004038D0. Keep its magenta value derived from native
-    // pixel masks rather than synthesizing ARGB transparency.
-    DDPIXELFORMAT pf{};
-    pf.dwSize=sizeof(pf);
-    auto status=loaded.surface->GetPixelFormat(&pf);
-    if(FAILED(status)||!(pf.dwFlags&DDPF_RGB)){
-        loaded.surface->Release();
-        error="original bitmap surface has unknown DirectDraw RGB masks";
-        return false;
-    }
-    DDCOLORKEY key{};
-    key.dwColorSpaceLowValue=pf.dwRBitMask|pf.dwBBitMask;
-    key.dwColorSpaceHighValue=key.dwColorSpaceLowValue;
-    status=loaded.surface->SetColorKey(DDCKEY_SRCBLT,&key);
+    // Native 00403B70 invokes original 00403A70 pixel-format conversion
+    // before DirectDraw7::SetColorKey. Registry marking is not wired here yet.
+    const auto status=original_win32::set_surface_transparency_color_key(
+        loaded.surface,RGB(255,0,255));
     if(FAILED(status)){
         loaded.surface->Release();
-        error=hresult_description("004036E0 native magenta color key",status);
+        error=hresult_description("00403B70 native magenta color key",status);
         return false;
     }
     out={loaded.surface,loaded.width,loaded.height};
@@ -229,18 +219,16 @@ bool Win32OriginalDirectDraw::blit(
         clipped.destination.right,clipped.destination.bottom
     };
 
-    DWORD flags=DDBLT_WAIT;
-    if (requested.original.color_keyed) {
-        flags|=DDBLT_KEYSRC;
-    }
-    // 00415E50 handles original keyed sprites through an actual
-    // DirectDraw7::Blt call. Other draw modes retain their own real blit.
+    // 00415E50 is the keyed path; 00403500 is a direct BltFast
+    // COM dispatch for unkeyed, preclipped original sprite surfaces.
     const HRESULT hr=requested.original.color_keyed
         ? original_win32::blit_color_keyed_surface_clipped(
             backbuffer_,it->second.surface,dest.left,dest.top,
             &src,0,0)
-        : backbuffer_->Blt(
-            &dest,it->second.surface,&src,flags,nullptr);
+        : original_win32::blt_fast_to_backbuffer(
+            backbuffer_,static_cast<DWORD>(dest.left),
+            static_cast<DWORD>(dest.top),it->second.surface,
+            &src,DDBLTFAST_WAIT);
     if (hr==DDERR_SURFACELOST) {
         surface_lost_during_draw_=true;
         error="DirectDraw surface lost during original sprite blit";
@@ -278,11 +266,12 @@ bool Win32OriginalDirectDraw::render_ordered(
     // retry would omit earlier blits whose pixels were lost on Restore.
     for (int attempt=0;attempt<2;++attempt) {
         surface_lost_during_draw_=false;
-        DDBLTFX clear{};
-        clear.dwSize=sizeof(clear);
-        clear.dwFillColor=0;
-        const auto hr=backbuffer_->Blt(
-            nullptr,nullptr,nullptr,DDBLT_COLORFILL|DDBLT_WAIT,&clear);
+        // 00403540 issues the original native DDBLT_COLORFILL.
+        auto hr=original_win32::clear_backbuffer(backbuffer_,0);
+        // The original operation omits DDBLT_WAIT. Retry busy frames
+        // without changing the recovered operation's flag contract.
+        for(int spin=0;spin<32&&hr==DDERR_WASSTILLDRAWING;++spin)
+            hr=original_win32::clear_backbuffer(backbuffer_,0);
         if (hr==DDERR_SURFACELOST) {
             surface_lost_during_draw_=true;
             error="DirectDraw backbuffer lost during clear";
@@ -323,12 +312,8 @@ bool Win32OriginalDirectDraw::present(std::string& error) {
             return primary_->Flip(nullptr,DDFLIP_WAIT);
         }
         RECT dest{};
-        if (!GetClientRect(hwnd_,&dest)) return E_FAIL;
-        POINT top_left{dest.left,dest.top};
-        POINT bottom_right{dest.right,dest.bottom};
-        if (!ClientToScreen(hwnd_,&top_left) ||
-            !ClientToScreen(hwnd_,&bottom_right)) return E_FAIL;
-        dest={top_left.x,top_left.y,bottom_right.x,bottom_right.y};
+        if (!original_win32::update_display_destination_rect(
+                hwnd_,true,dest)) return E_FAIL;
         return primary_->Blt(&dest,backbuffer_,nullptr,DDBLT_WAIT,nullptr);
     };
 
