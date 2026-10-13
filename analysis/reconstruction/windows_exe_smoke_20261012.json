@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "goal": "Test original-function core through actual Windows PE executable, not stand-alone callback mock",
+  "entrypoint": "reconstruction/src/game_win32.cpp::wWinMain(--recompiled-smoke)",
+  "dispatch": "btb::full_game::verify_linked_recompiled_core",
+  "build_targets": [
+    "btb_game Win32 x86 Release",
+    "btb_game Win64 Release",
+    "btb_game Linux"
+  ],
+  "tests": [
+    "recompiled_game_executable_link Linux",
+    "recompiled_game_executable_link Win32 Release",
+    "recompiled_game_executable_link Win64 Release"
+  ],
+  "note": "A successful test proves native link/run and recovered-function smoke under both Windows ABIs, not original PE32 behavioral parity or full gameplay."
+}

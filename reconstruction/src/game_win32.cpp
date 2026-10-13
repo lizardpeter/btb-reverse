@@ -11,6 +11,7 @@
 #include "btb/application_state.hpp"
 #include "btb/win32_recompiled_host.hpp"
 #include "btb/win32_original_platform_link.hpp"
+#include "btb/recompiled_core_smoke.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -454,12 +455,20 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     int argument_count=0;
     LPWSTR* arguments=CommandLineToArgvW(GetCommandLineW(),&argument_count);
     if(arguments){
+        const bool smoke=argument_count==2 &&
+            std::wcscmp(arguments[1],L"--recompiled-smoke")==0;
         const bool native=argument_count==3 &&
             std::wcscmp(arguments[1],L"--native-original")==0;
         const std::filesystem::path installed=
             native ? std::filesystem::path(arguments[2])
                    : std::filesystem::path{};
         LocalFree(arguments);
+        if(smoke){
+            // The Windows GUI-subsystem game also runs the same complete
+            // source-linked GameRoot, activity and 129-function core probe.
+            // Never create a window or require graphics during this mode.
+            return btb::full_game::verify_linked_recompiled_core()?0:3;
+        }
         if(native){
             if(!btb::full_game::verify_linked_win32_providers())return 4;
             return btb::full_game::run_recompiled_native_game(
