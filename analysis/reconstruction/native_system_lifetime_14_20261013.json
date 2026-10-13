@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "count": 14,
+  "originals": [
+    {
+      "address": "0x00402FF0",
+      "original_source": "analysis/ghidra_main_exe/functions/00402FF0.c",
+      "cpp": "reconstruction/src/original_system14.cpp",
+      "test": "reconstruction/tests/original_system14_test.cpp"
+    },
+    {
+      "address": "0x00402FE0",
+      "original_source": "analysis/ghidra_main_exe/functions/00402FE0.c",
+      "cpp": "reconstruction/src/original_system14.cpp",
+      "test": "reconstruction/tests/original_system14_test.cpp"
+    },
+    {
+      "address": "0x004020A0",
+      "original_source": "analysis/ghidra_main_exe/functions/004020A0.c",
+      "cpp": "reconstruction/src/original_system14.cpp",
+      "test": "reconstruction/tests/original_system14_test.cpp"
+    },
+    {
+      "address": "0x00404E10",
+      "original_source": "analysis/ghidra_main_exe/functions/00404E10.c",
+      "cpp": "reconstruction/src/original_system14.cpp",
+      "test": "reconstruction/tests/original_system14_test.cpp"
+    },
+    {
+      "address": "0x00404530",
+      "original_source": "analysis/ghidra_main_exe/functions/00404530.c",
+      "cpp": "reconstruction/src/original_system14.cpp",
+      "test": "reconstruction/tests/original_system14_test.cpp"
+    },
+    {
+      "address": "0x00409390",
+      "original_source": "analysis/ghidra_main_exe/functions/00409390.c",
+      "cpp": "reconstruction/src/original_system14.cpp",
+      "test": "reconstruction/tests/original_system14_test.cpp"
+    },
+    {
+      "address": "0x00403BE0",
+      "original_source": "analysis/ghidra_main_exe/functions/00403BE0.c",
+      "cpp": "reconstruction/src/original_system14.cpp",
+      "test": "reconstruction/tests/original_system14_test.cpp"
+    },
+    {
+      "address": "0x00404070",
+      "original_source": "analysis/ghidra_main_exe/functions/00404070.c",
+      "cpp": "reconstruction/src/original_system14.cpp",
+      "test": "reconstruction/tests/original_system14_test.cpp"
+    },
+    {
+      "address": "0x00404090",
+      "original_source": "analysis/ghidra_main_exe/functions/00404090.c",
+      "cpp": "reconstruction/src/original_system14.cpp",
+      "test": "reconstruction/tests/original_system14_test.cpp"
+    },
+    {
+      "address": "0x004042F0",
+      "original_source": "analysis/ghidra_main_exe/functions/004042F0.c",
+      "cpp": "reconstruction/src/original_system14.cpp",
+      "test": "reconstruction/tests/original_system14_test.cpp"
+    },
+    {
+      "address": "0x00406780",
+      "original_source": "analysis/ghidra_main_exe/functions/00406780.c",
+      "cpp": "reconstruction/src/original_system14.cpp",
+      "test": "reconstruction/tests/original_system14_test.cpp"
+    },
+    {
+      "address": "0x00406440",
+      "original_source": "analysis/ghidra_main_exe/functions/00406440.c",
+      "cpp": "reconstruction/src/original_system14.cpp",
+      "test": "reconstruction/tests/original_system14_test.cpp"
+    },
+    {
+      "address": "0x00406110",
+      "original_source": "analysis/ghidra_main_exe/functions/00406110.c",
+      "cpp": "reconstruction/src/original_system14.cpp",
+      "test": "reconstruction/tests/original_system14_test.cpp"
+    },
+    {
+      "address": "0x00406350",
+      "original_source": "analysis/ghidra_main_exe/functions/00406350.c",
+      "cpp": "reconstruction/src/original_system14.cpp",
+      "test": "reconstruction/tests/original_system14_test.cpp"
+    }
+  ],
+  "internal_connections": [
+    "00402FE0 -> 00402FF0 native resource destructor",
+    "00406110 -> 00406350 native MSVC string rep tidy"
+  ],
+  "native_subsystems": [
+    "DirectDraw7 resource destruction and cooperative level",
+    "DirectSound8 manager and sound destructor",
+    "CWaveFile destructor and bitmap printer allocation",
+    "MSVC string copy-on-write refcount lifetime"
+  ],
+  "limits": [
+    "Host pointer and native Release callbacks represent x86 heap and COM objects",
+    "The original x86 binary ABI and retail behavior are not differentially verified",
+    "Original Windows app provider integration beyond game executable linkage pending"
+  ]
+}
