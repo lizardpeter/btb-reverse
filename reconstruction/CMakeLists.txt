@@ -914,6 +914,8 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 # remaining activities or verified original executable parity.
 # ---------------------------------------------------------------
 add_library(btb_recompiled_core STATIC
+    src/original_gameplay9.cpp
+    src/original_gameplay9_probe.cpp
     src/original_gameplay11.cpp
     src/original_gameplay11_probe.cpp
     src/original_shared11.cpp
@@ -1104,6 +1106,12 @@ add_executable(btb_original_gameplay11_tests
 target_link_libraries(btb_original_gameplay11_tests PRIVATE btb_recompiled_core)
 btb_require_cpp26(btb_original_gameplay11_tests PRIVATE)
 add_test(NAME original_gameplay11 COMMAND btb_original_gameplay11_tests)
+
+add_executable(btb_original_gameplay9_tests
+    tests/original_gameplay9_test.cpp)
+target_link_libraries(btb_original_gameplay9_tests PRIVATE btb_recompiled_core)
+btb_require_cpp26(btb_original_gameplay9_tests PRIVATE)
+add_test(NAME original_gameplay9 COMMAND btb_original_gameplay9_tests)
 
 add_executable(btb_recompiled_core_link_tests
     tests/recompiled_core_link_test.cpp)
