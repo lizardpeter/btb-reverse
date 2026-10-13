@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "count": 8,
+  "functions": [
+    {
+      "address": "0x00407B60",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00407B60.c",
+      "cpp": "reconstruction/src/original_services8.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00406AD0",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00406AD0.c",
+      "cpp": "reconstruction/src/original_services8.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00408F70",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00408F70.c",
+      "cpp": "reconstruction/src/original_services8.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x004090D0",
+      "pseudocode": "analysis/ghidra_main_exe/functions/004090D0.c",
+      "cpp": "reconstruction/src/original_services8.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x004092D0",
+      "pseudocode": "analysis/ghidra_main_exe/functions/004092D0.c",
+      "cpp": "reconstruction/src/original_services8.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00402E10",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00402E10.c",
+      "cpp": "reconstruction/src/original_services8.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00402CF0",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00402CF0.c",
+      "cpp": "reconstruction/src/original_services8.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00405380",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00405380.c",
+      "cpp": "reconstruction/src/original_services8.cpp",
+      "stage": "compiles"
+    }
+  ],
+  "direct_original_callgraph": [
+    "00402CF0 PlayManagedSoundById -> 00402E10 AcquireAndPlaySound"
+  ],
+  "tests": [
+    "btb_game --recompiled-smoke Linux Windows x86 Windows x64",
+    "dedicated CTest original_services8 Linux Windows x86 Windows x64"
+  ],
+  "limitations": [
+    "Bink COM and DirectSound calls are currently typed effect models not live original ABI calls",
+    "No retail x86 behavioral parity established"
+  ]
+}
