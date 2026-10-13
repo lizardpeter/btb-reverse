@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "original_pe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "count": 9,
+  "addresses": [
+    "0x00436010",
+    "0x004310E0",
+    "0x00431105",
+    "0x004331CB",
+    "0x004351F6",
+    "0x004325C0",
+    "0x004332B4",
+    "0x00439B24",
+    "0x004373DB"
+  ],
+  "source_pseudocode": [
+    "analysis/ghidra_main_exe/functions/00436010.c",
+    "analysis/ghidra_main_exe/functions/004310E0.c",
+    "analysis/ghidra_main_exe/functions/00431105.c",
+    "analysis/ghidra_main_exe/functions/004331CB.c",
+    "analysis/ghidra_main_exe/functions/004351F6.c",
+    "analysis/ghidra_main_exe/functions/004325C0.c",
+    "analysis/ghidra_main_exe/functions/004332B4.c",
+    "analysis/ghidra_main_exe/functions/00439B24.c",
+    "analysis/ghidra_main_exe/functions/004373DB.c"
+  ],
+  "out_of_line_cpp": "reconstruction/src/original_crt9.cpp",
+  "tests": [
+    "original_crt9 dedicated Linux/Win32/Win64 Release CTest",
+    "btb_game --recompiled-smoke"
+  ],
+  "coverage": [
+    "CRT processor warning and fatal paths",
+    "Win32 processor feature fallback",
+    "heap slot release page threshold",
+    "stack frame cleanup callbacks",
+    "floating result assignment",
+    "CRT environment duplication",
+    "wide character conversion/error reporting"
+  ],
+  "limits": [
+    "Host callbacks replace original CRT IAT operands and x86 process-global pointers",
+    "Retail behavioral and ABI parity unverified"
+  ]
+}
