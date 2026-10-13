@@ -1,4 +1,5 @@
 #include "btb/original_crt17.hpp"
+#include "btb/original_runtime5.hpp"
 #include <array>
 #include <cstring>
 namespace btb::original_crt17 {
@@ -73,6 +74,11 @@ bool verify_17_original_crt_functions() noexcept {
  if(retail_itoa(0xffffffffU,digits,16,format)!=digits ||
     digits[0]!='X'||g.negative||g.radix!=16U||
     g.format_calls!=2)return false;
+    // A genuine original callgraph edge: original 00430F2F itoa calls
+    // original 00430F5C formatting worker directly in this game image.
+    if(retail_itoa(26U,digits,16,
+         btb::original_runtime5::retail_write_radix)!=digits ||
+       std::strcmp(digits,"1a")!=0)return false;
  if(deleting_exception(buffer,1,destroy,release)!=buffer ||
     g.destroyed!=1||g.deletes!=4)return false;
  if(deleting_exception(buffer,0,destroy,release)!=buffer ||
