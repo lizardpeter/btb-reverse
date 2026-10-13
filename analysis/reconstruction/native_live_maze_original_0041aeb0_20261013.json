@@ -1,0 +1,12 @@
+{
+  "original": "0041AEB0",
+  "classification": "actual native gameplay integration; no new function counted",
+  "source": "reconstruction/src/original_activity9.cpp::debounce_maze_directions",
+  "caller": "reconstruction/src/maze_runtime.cpp::DirectionalDebounce::update",
+  "build": "btb_original_activity9_algorithms is now a common dependency of btb_maze and btb_recompiled_core",
+  "verified_by": "original_live_maze_debounce on Linux Windows x86 Windows x64 Release; existing maze_runtime game tests",
+  "limitations": [
+    "No retail runtime capture/differential parity",
+    "Input device IAT still requires actual DirectInput implementation"
+  ]
+}
