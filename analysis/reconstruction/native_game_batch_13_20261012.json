@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "note": "13 direct game and subsystem C++ bodies, linked into btb_recompiled_core and btb_game with executable smoke invocation and Windows x86/x64 Release CI. Original global references are typed host operands; not yet native x86 ABI or retail differential verification.",
+  "functions": [
+    {
+      "address": "0x00402FC0",
+      "name": "DisplayManagerConstructor",
+      "original_source": "analysis/ghidra_main_exe/functions/00402FC0.c",
+      "cpp_source": "reconstruction/src/original_game_batch_13.cpp",
+      "test": "reconstruction/tests/original_game_batch_13_test.cpp"
+    },
+    {
+      "address": "0x00404510",
+      "name": "CWaveFile_Constructor",
+      "original_source": "analysis/ghidra_main_exe/functions/00404510.c",
+      "cpp_source": "reconstruction/src/original_game_batch_13.cpp",
+      "test": "reconstruction/tests/original_game_batch_13_test.cpp"
+    },
+    {
+      "address": "0x00404DD0",
+      "name": "BitmapPrinterConstructor",
+      "original_source": "analysis/ghidra_main_exe/functions/00404DD0.c",
+      "cpp_source": "reconstruction/src/original_game_batch_13.cpp",
+      "test": "reconstruction/tests/original_game_batch_13_test.cpp"
+    },
+    {
+      "address": "0x00403BB0",
+      "name": "CSoundManager_Constructor",
+      "original_source": "analysis/ghidra_main_exe/functions/00403BB0.c",
+      "cpp_source": "reconstruction/src/original_game_batch_13.cpp",
+      "test": "reconstruction/tests/original_game_batch_13_test.cpp"
+    },
+    {
+      "address": "0x00425980",
+      "name": "BuildSquirrelFrameRect",
+      "original_source": "analysis/ghidra_main_exe/functions/00425980.c",
+      "cpp_source": "reconstruction/src/original_game_batch_13.cpp",
+      "test": "reconstruction/tests/original_game_batch_13_test.cpp"
+    },
+    {
+      "address": "0x0040D780",
+      "name": "CompareParkDesignerObjectsBySortLayer",
+      "original_source": "analysis/ghidra_main_exe/functions/0040D780.c",
+      "cpp_source": "reconstruction/src/original_game_batch_13.cpp",
+      "test": "reconstruction/tests/original_game_batch_13_test.cpp"
+    },
+    {
+      "address": "0x0041F3A0",
+      "name": "CanPlaceGrandOpeningEvent",
+      "original_source": "analysis/ghidra_main_exe/functions/0041F3A0.c",
+      "cpp_source": "reconstruction/src/original_game_batch_13.cpp",
+      "test": "reconstruction/tests/original_game_batch_13_test.cpp"
+    },
+    {
+      "address": "0x00410FD0",
+      "name": "CanPlaceFireworkGridItem",
+      "original_source": "analysis/ghidra_main_exe/functions/00410FD0.c",
+      "cpp_source": "reconstruction/src/original_game_batch_13.cpp",
+      "test": "reconstruction/tests/original_game_batch_13_test.cpp"
+    },
+    {
+      "address": "0x00411080",
+      "name": "RemoveFireworkGridItem",
+      "original_source": "analysis/ghidra_main_exe/functions/00411080.c",
+      "cpp_source": "reconstruction/src/original_game_batch_13.cpp",
+      "test": "reconstruction/tests/original_game_batch_13_test.cpp"
+    },
+    {
+      "address": "0x0040D420",
+      "name": "HitTestParkDesignerToolbar",
+      "original_source": "analysis/ghidra_main_exe/functions/0040D420.c",
+      "cpp_source": "reconstruction/src/original_game_batch_13.cpp",
+      "test": "reconstruction/tests/original_game_batch_13_test.cpp"
+    },
+    {
+      "address": "0x0040DCE0",
+      "name": "ClearBandstandObjectsByCategorySelector",
+      "original_source": "analysis/ghidra_main_exe/functions/0040DCE0.c",
+      "cpp_source": "reconstruction/src/original_game_batch_13.cpp",
+      "test": "reconstruction/tests/original_game_batch_13_test.cpp"
+    },
+    {
+      "address": "0x0040DC90",
+      "name": "ClearPondPrimaryObjectsBySelector",
+      "original_source": "analysis/ghidra_main_exe/functions/0040DC90.c",
+      "cpp_source": "reconstruction/src/original_game_batch_13.cpp",
+      "test": "reconstruction/tests/original_game_batch_13_test.cpp"
+    },
+    {
+      "address": "0x00416310",
+      "name": "CompareHerdingEntitiesByDepth",
+      "original_source": "analysis/ghidra_main_exe/functions/00416310.c",
+      "cpp_source": "reconstruction/src/original_game_batch_13.cpp",
+      "test": "reconstruction/tests/original_game_batch_13_test.cpp"
+    }
+  ],
+  "link_probe": "btb::full_game::verify_linked_recompiled_core invokes btb::original_game13::verify_13_original_game_calls",
+  "stage_rules": {
+    "compiles": "Native original .cpp source and test linked to btb_game after Windows/Linux CI",
+    "behavior_verified": "zero retail binary differential traces"
+  }
+}
