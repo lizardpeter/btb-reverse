@@ -14,6 +14,7 @@
 #include "btb/original_asset_resolver.hpp"
 #include "btb/native_input_pulse.hpp"
 #include "btb/win32_original_display_lifecycle.hpp"
+#include "btb/win32_original_main_window_proc.hpp"
 #include <algorithm>
 #include <array>
 #include <filesystem>
@@ -66,6 +67,7 @@ struct Host {
     int pointer_x{320},pointer_y{240};
     bool click_pulse{};
     bool running{};
+    original_win32::RetailWindowState retail_window{};
 
     explicit Host(fs::path original_root):root(std::move(original_root)) {}
 
@@ -257,6 +259,11 @@ LRESULT CALLBACK native_window_proc(
     auto* host=reinterpret_cast<Host*>(
         GetWindowLongPtrW(hwnd,GWLP_USERDATA));
     if(!host)return DefWindowProcW(hwnd,msg,wp,lp);
+    // Original 004020D0 is now on the genuine Win32 message path, before
+    // application-specific game activity and mouse input handling.
+    if(auto result=original_win32::main_window_proc_recompiled(
+           hwnd,msg,wp,lp,host->retail_window,host->graphics,host->error))
+        return *result;
     switch(msg){
     case WM_CREATE:{
         std::string error;

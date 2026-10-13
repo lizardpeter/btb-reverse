@@ -3,6 +3,7 @@
 #include "btb/win32_recompiled_graphics.hpp"
 #include "btb/win32_native_bitmap_registry.hpp"
 #include "btb/win32_original_display_lifecycle.hpp"
+#include "btb/win32_original_main_window_proc.hpp"
 #include <cstdio>
 
 int main() {
@@ -74,6 +75,39 @@ int main() {
            nullptr,btb::display::DisplayMode::Fullscreen,
            invalid_display,display_error)!=E_POINTER)return 27;
     if(display_error.empty() || invalid_display.initialized())return 28;
+    btb::original_win32::RetailWindowState state{};
+    if(btb::original_win32::main_window_proc_recompiled(
+           nullptr,WM_SYSKEYDOWN,VK_MENU,0,state,invalid_display,
+           display_error)!=std::optional<LRESULT>{0})return 29;
+    if(btb::original_win32::main_window_proc_recompiled(
+           nullptr,WM_SYSCOMMAND,SC_SCREENSAVE,0,state,invalid_display,
+           display_error)!=std::optional<LRESULT>{0})return 30;
+    if(btb::original_win32::main_window_proc_recompiled(
+           nullptr,WM_MOVE,0,0,state,invalid_display,
+           display_error)!=std::optional<LRESULT>{0})return 31;
+    if(btb::original_win32::main_window_proc_recompiled(
+           nullptr,WM_SIZE,SIZE_MINIMIZED,0,state,invalid_display,
+           display_error).has_value()||state.accepting_input)return 32;
+    if(btb::original_win32::main_window_proc_recompiled(
+           nullptr,WM_SIZE,SIZE_RESTORED,0,state,invalid_display,
+           display_error).has_value()||!state.accepting_input)return 33;
+    MINMAXINFO limits{};
+    if(btb::original_win32::main_window_proc_recompiled(
+           nullptr,WM_GETMINMAXINFO,0,reinterpret_cast<LPARAM>(&limits),
+           state,invalid_display,display_error)!=std::optional<LRESULT>{0}||
+           limits.ptMaxTrackSize.x<640||limits.ptMinTrackSize.y<480)
+        return 34;
+    if(btb::original_win32::main_window_proc_recompiled(
+           nullptr,WM_COMMAND,0x3E9,0,state,invalid_display,
+           display_error)!=std::optional<LRESULT>{0}||
+           state.outer_state!=1)return 35;
+    state.windowed=false;
+    if(btb::original_win32::main_window_proc_recompiled(
+           nullptr,WM_SETCURSOR,0,0,state,invalid_display,
+           display_error)!=std::optional<LRESULT>{1})return 36;
+    if(btb::original_win32::main_window_proc_recompiled(
+           nullptr,WM_DESTROY,0,0,state,invalid_display,
+           display_error).has_value()||state.outer_state!=3)return 37;
 #endif
     return 0;
 }
