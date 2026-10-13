@@ -75,6 +75,8 @@ jobs:
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_games_batch_14$"
       - name: Verify 30 original MSVC functions on Win64 Release
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_msvc30$"
+      - name: Execute actual Win64 game-core smoke through btb_game.exe
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^recompiled_game_executable_link$"
       - name: Upload source-only preview EXE
         uses: actions/upload-artifact@v4
         with:
@@ -110,6 +112,8 @@ jobs:
         run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_games_batch_14$"
       - name: Verify 30 original MSVC functions on Win32 Release
         run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_msvc30$"
+      - name: Execute actual Win32 x86 game-core smoke through btb_game.exe
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^recompiled_game_executable_link$"
       - name: Upload actual x86 compiled game image
         uses: actions/upload-artifact@v4
         with:

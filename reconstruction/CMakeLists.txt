@@ -993,10 +993,10 @@ add_executable(btb_recompiled_core_link_tests
 target_link_libraries(btb_recompiled_core_link_tests PRIVATE btb_recompiled_core)
 add_test(NAME recompiled_core_link COMMAND btb_recompiled_core_link_tests)
 
-if(NOT WIN32)
-    add_test(NAME recompiled_game_executable_link
-        COMMAND btb_game --recompiled-smoke)
-endif()
+# Test actual linked game executable on every supported platform,
+# including original x86 Windows (not only a library-linked test program).
+add_test(NAME recompiled_game_executable_link
+    COMMAND btb_game --recompiled-smoke)
 
 # Compiles previously orphaned original native Windows implementations as part
 # of the REAL Windows game executable, not just behavior-plan tests.
