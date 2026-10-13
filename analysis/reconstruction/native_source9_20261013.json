@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "source_binary_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "count": 9,
+  "functions": [
+    {
+      "address": "0x0040D5B0",
+      "ghidra": "analysis/ghidra_main_exe/functions/0040D5B0.c",
+      "compiled": "reconstruction/src/original_source9.cpp"
+    },
+    {
+      "address": "0x0040DD50",
+      "ghidra": "analysis/ghidra_main_exe/functions/0040DD50.c",
+      "compiled": "reconstruction/src/original_source9.cpp"
+    },
+    {
+      "address": "0x00422400",
+      "ghidra": "analysis/ghidra_main_exe/functions/00422400.c",
+      "compiled": "reconstruction/src/original_source9.cpp"
+    },
+    {
+      "address": "0x004225E0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004225E0.c",
+      "compiled": "reconstruction/src/original_source9.cpp"
+    },
+    {
+      "address": "0x004302A0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004302A0.c",
+      "compiled": "reconstruction/src/original_source9.cpp"
+    },
+    {
+      "address": "0x00430E50",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430E50.c",
+      "compiled": "reconstruction/src/original_source9.cpp"
+    },
+    {
+      "address": "0x00430E90",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430E90.c",
+      "compiled": "reconstruction/src/original_source9.cpp"
+    },
+    {
+      "address": "0x00433150",
+      "ghidra": "analysis/ghidra_main_exe/functions/00433150.c",
+      "compiled": "reconstruction/src/original_source9.cpp"
+    },
+    {
+      "address": "0x0043315D",
+      "ghidra": "analysis/ghidra_main_exe/functions/0043315D.c",
+      "compiled": "reconstruction/src/original_source9.cpp"
+    }
+  ],
+  "production_integration": "reconstruction/src/park_designer_scene.cpp now calls independent 0040DD50 for its three placement collision checks",
+  "targets": [
+    "btb_original_source9_algorithms",
+    "btb_park_designer_scene",
+    "btb_recompiled_core",
+    "btb_game"
+  ],
+  "tests": [
+    "original_source9 dedicated CTest Linux Windows x86/x64 Release",
+    "actual game executable --recompiled-smoke",
+    "1000 deterministic source-model comparisons for Park Designer collision and Spud/Pilchard animations"
+  ],
+  "limitations": [
+    "The compiled comparator is not yet wired to every active qsort provider",
+    "Spud/Pilchard animation bodies are compiled and tested but not yet connected to live PE32 globals",
+    "Source-model differential is not retail executable parity",
+    "MSVC original unaligned assembly instructions are represented by defined C++ byte extraction"
+  ]
+}

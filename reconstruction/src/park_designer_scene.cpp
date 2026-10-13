@@ -1,4 +1,5 @@
 #include "btb/park_designer_scene.hpp"
+#include "btb/original_source9.hpp"
 #include "btb/retail_point_in_polygon.hpp"
 
 #include <algorithm>
@@ -145,7 +146,7 @@ PlacementResult evaluate_placement(
         if(flag==1&&!special_decor&&(type<100||type>199)) {
             const auto rect=collision_rectangle(record,geometry,false);
             if(!rect){result.invalid_geometry=true;result.permitted=false;return result;}
-            if(!btb::retail_source_batch::park_rectangles_do_not_overlap_by_samples(
+            if(!btb::original_source9::park_no_sample_overlap(
                    x,y,width,height,*rect)&&type>399) {
                 record.object_code=-1;
                 result.invalidated_large_object_slots.push_back(i);
@@ -157,8 +158,7 @@ PlacementResult evaluate_placement(
         if(type==300&&record.bound_category==0&&i>=200&&i<300) {
             const auto rect=collision_rectangle(record,geometry,true);
             if(!rect){result.invalid_geometry=true;result.permitted=false;return result;}
-            result.permitted=btb::retail_source_batch::
-                park_rectangles_do_not_overlap_by_samples(
+            result.permitted=btb::original_source9::park_no_sample_overlap(
                     x,y,width,height,*rect);
         } else if(type==100) {
             const I32 variant=record.bound_variant;
@@ -169,8 +169,7 @@ PlacementResult evaluate_placement(
             const Rect pond{record.left,record.top,
                             record.left+kSpecialOffsets[idx],
                             record.top+kSpecialOffsets[idx+1]};
-            result.permitted=btb::retail_source_batch::
-                park_rectangles_do_not_overlap_by_samples(
+            result.permitted=btb::original_source9::park_no_sample_overlap(
                     x,y,width,height,pond);
         } else {
             continue;
