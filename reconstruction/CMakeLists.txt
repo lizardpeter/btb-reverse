@@ -969,6 +969,7 @@ if(WIN32)
         src/win32_original_directdraw.cpp
         src/original_recompiled_bitmaps.cpp
         src/win32_recompiled_graphics.cpp
+        src/win32_native_bitmap_registry.cpp
         src/win32_original_directsound.cpp
         src/win32_original_bink_exports.cpp
         src/win32_original_game_device.cpp

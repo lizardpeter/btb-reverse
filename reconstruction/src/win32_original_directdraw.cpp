@@ -32,6 +32,7 @@ Win32OriginalDirectDraw::~Win32OriginalDirectDraw() {
 
 void Win32OriginalDirectDraw::release_cached_bitmaps() noexcept {
     for (auto& [_,entry] : images_) {
+        (void)registry_->unregister_surface_reference(&entry.surface);
         release_surface(entry.surface);
     }
     images_.clear();
@@ -158,15 +159,8 @@ bool Win32OriginalDirectDraw::load_bitmap(
         return false;
     }
 
-    // Native 00403B70 invokes original 00403A70 pixel-format conversion
-    // before DirectDraw7::SetColorKey. Registry marking is not wired here yet.
-    const auto status=original_win32::set_surface_transparency_color_key(
-        loaded.surface,RGB(255,0,255));
-    if(FAILED(status)){
-        loaded.surface->Release();
-        error=hresult_description("00403B70 native magenta color key",status);
-        return false;
-    }
+    // Registration and keyed-flag changes occur after emplacement, so
+    // 00403770 receives the stable address of the cached surface pointer.
     out={loaded.surface,loaded.width,loaded.height};
     error.clear();
     return true;
@@ -187,6 +181,30 @@ bool Win32OriginalDirectDraw::blit(
             return false;
         }
         it=images_.emplace(key,loaded).first;
+        // This is a real original 00403770 table registration, not the
+        // earlier uint32-only source-effects representation.
+        const auto source_name=requested.source.absolute_path.string();
+        if(!registry_->register_surface_reference(
+                &it->second.surface,source_name)){
+            release_surface(it->second.surface);
+            images_.erase(it);
+            error="original 800-slot bitmap table cannot register source";
+            return false;
+        }
+        // 004036E0 keys the registered address, and 00403B70 does the
+        // native GDI/DirectDraw conversion and SetColorKey call.
+        (void)registry_->mark_registered_surface_color_keyed(
+            &it->second.surface);
+        const auto keyed=original_win32::set_surface_transparency_color_key(
+            it->second.surface,RGB(255,0,255));
+        if(FAILED(keyed)){
+            (void)registry_->unregister_surface_reference(
+                &it->second.surface);
+            release_surface(it->second.surface);
+            images_.erase(it);
+            error=hresult_description("00403B70 native surface key",keyed);
+            return false;
+        }
     }
 
     RECT src{0,0,it->second.width,it->second.height};
@@ -244,11 +262,18 @@ bool Win32OriginalDirectDraw::blit(
 bool Win32OriginalDirectDraw::restore_lost_surfaces(
     std::string& error) {
 
-    release_cached_bitmaps();
     auto hr=primary_->Restore();
     if (SUCCEEDED(hr)) hr=backbuffer_->Restore();
+    if (SUCCEEDED(hr)) hr=draw_->RestoreAllSurfaces();
     if (FAILED(hr)) {
         error=hresult_description("retail Restore surfaces",hr);
+        return false;
+    }
+    // PE32 00403830 reloads live original surface-pointer variables
+    // from filenames and restores keyed surfaces after a lost device.
+    if(!registry_->reload_registered_surfaces(draw_)){
+        release_cached_bitmaps();
+        error="00403830 failed to reload original registered bitmap surfaces";
         return false;
     }
     error.clear();

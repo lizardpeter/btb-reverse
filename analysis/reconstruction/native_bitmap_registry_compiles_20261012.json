@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "note": "Direct native C++ implementations of four high-use original registry functions. The 800-slot pointer-to-surface-address table is live in the actual Windows renderer and reloads native COM surfaces using original filenames. The original x86 ABI, COLORREF pixel parity, long paths, and retail differential behavior remain UNVERIFIED.",
+  "functions": [
+    {
+      "address": "0x004036E0",
+      "name": "MarkRegisteredSurfaceColorKeyed",
+      "cpp_function": "btb::original_win32::NativeBitmapRegistry::mark_registered_surface_color_keyed",
+      "original_source": "analysis/ghidra_main_exe/functions/004036E0.c"
+    },
+    {
+      "address": "0x00403720",
+      "name": "UnregisterBitmapSurface",
+      "cpp_function": "btb::original_win32::NativeBitmapRegistry::unregister_surface_reference",
+      "original_source": "analysis/ghidra_main_exe/functions/00403720.c"
+    },
+    {
+      "address": "0x00403770",
+      "name": "RegisterBitmapSurface",
+      "cpp_function": "btb::original_win32::NativeBitmapRegistry::register_surface_reference",
+      "original_source": "analysis/ghidra_main_exe/functions/00403770.c"
+    },
+    {
+      "address": "0x00403830",
+      "name": "ReloadRegisteredBitmapSurfaces",
+      "cpp_function": "btb::original_win32::NativeBitmapRegistry::reload_registered_surfaces",
+      "original_source": "analysis/ghidra_main_exe/functions/00403830.c"
+    }
+  ],
+  "cpp_source": "reconstruction/src/win32_native_bitmap_registry.cpp",
+  "api_header": "reconstruction/include/btb/win32_native_bitmap_registry.hpp",
+  "native_caller": "reconstruction/src/win32_original_directdraw.cpp",
+  "native_test": "reconstruction/tests/original_win32_platform_link_test.cpp",
+  "build_targets": [
+    "btb_original_win32_platform",
+    "btb_game",
+    "btb_original_win32_platform_link_tests"
+  ],
+  "stages": {
+    "compiles": "Both Windows platforms need CI compile/link smoke; runtime register and loss-restore call chain is connected",
+    "behavior_verified": "No retail differential traces yet"
+  }
+}
