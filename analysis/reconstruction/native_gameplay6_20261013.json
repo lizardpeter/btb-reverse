@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "original_exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "functions": [
+    {
+      "address": "0x004145F0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004145F0.c",
+      "native_cpp": "reconstruction/src/original_gameplay6.cpp",
+      "test": "reconstruction/tests/original_gameplay6_test.cpp"
+    },
+    {
+      "address": "0x00424360",
+      "ghidra": "analysis/ghidra_main_exe/functions/00424360.c",
+      "native_cpp": "reconstruction/src/original_gameplay6.cpp",
+      "test": "reconstruction/tests/original_gameplay6_test.cpp"
+    },
+    {
+      "address": "0x0041F820",
+      "ghidra": "analysis/ghidra_main_exe/functions/0041F820.c",
+      "native_cpp": "reconstruction/src/original_gameplay6.cpp",
+      "test": "reconstruction/tests/original_gameplay6_test.cpp"
+    },
+    {
+      "address": "0x0041FC90",
+      "ghidra": "analysis/ghidra_main_exe/functions/0041FC90.c",
+      "native_cpp": "reconstruction/src/original_gameplay6.cpp",
+      "test": "reconstruction/tests/original_gameplay6_test.cpp"
+    },
+    {
+      "address": "0x00413B60",
+      "ghidra": "analysis/ghidra_main_exe/functions/00413B60.c",
+      "native_cpp": "reconstruction/src/original_gameplay6.cpp",
+      "test": "reconstruction/tests/original_gameplay6_test.cpp"
+    },
+    {
+      "address": "0x0041F090",
+      "ghidra": "analysis/ghidra_main_exe/functions/0041F090.c",
+      "native_cpp": "reconstruction/src/original_gameplay6.cpp",
+      "test": "reconstruction/tests/original_gameplay6_test.cpp"
+    }
+  ],
+  "compiled_targets": [
+    "btb_recompiled_core",
+    "btb_game",
+    "btb_original_gameplay6_tests"
+  ],
+  "behavioral_tests": [
+    "Golf original 18-surface setup and 17 color-key slots",
+    "Spud Skate five retail capped movie buffers, 160 audio IDs",
+    "Grand Opening toolbar hover voice and mode transition",
+    "Bob's Band 120-cell timed audio play and per note clipping",
+    "Fireworks editor region handling and 10-tick debounce",
+    "Grand Opening five-machine animation playback",
+    "128 deterministic comparison cases for Band toolbar"
+  ],
+  "limitations": [
+    "Most original game-effect routines are not yet wired into live game caller chains",
+    "Original DirectDraw/DirectSound/Bink and asset callbacks remain host-owned plans",
+    "No x86 original executable differential validation"
+  ]
+}
