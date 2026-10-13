@@ -42,13 +42,15 @@ class FinalArchitectureTests(unittest.TestCase):
         self.assertEqual(self.summary["architecture_mapped"], 615)
         self.assertEqual(self.summary["source_written"], self.reviewed_count)
         self.assertEqual(self.summary["architecture_only"], 615 - self.reviewed_count)
+        self.assertEqual(self.summary["cpp_compiles"], 3)
+        self.assertEqual(self.summary["behavior_verified"], 0)
 
     def test_final_224_are_runtime_only(self):
         self.assertTrue(all(
             r["module_candidate"] == "static_runtime" for r in self.final))
         # Later C++ reconstruction must not change original architecture cohort.
         self.assertTrue(all(
-            r["source_stage"] in ("unreviewed", "source_written")
+            r["source_stage"] in ("unreviewed", "source_written", "compiles", "behavior_verified")
             for r in self.final))
         self.assertTrue(all(
             r["mapping_cohort"] == "architecture_batch_224" for r in self.final))
@@ -64,7 +66,7 @@ class FinalArchitectureTests(unittest.TestCase):
                     self.assertIn(addr, by_address)
 
     def test_source_reconstruction_stages_preserved(self):
-        mapped = [r for r in self.full if r["source_stage"] == "source_written"]
+        mapped = [r for r in self.full if r["source_stage"] in ("source_written","compiles","behavior_verified")]
         self.assertEqual(len(mapped), self.reviewed_count)
         self.assertTrue(all(r["explicit_cpp_source"] for r in mapped))
         self.assertTrue(all(r["cpp_validation_test"] for r in mapped))
