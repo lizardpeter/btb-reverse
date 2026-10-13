@@ -1019,6 +1019,7 @@ if(WIN32)
         src/win32_original_platform_link.cpp
         src/win32_recompiled_host.cpp
         src/win32_original_display_lifecycle.cpp
+        src/win32_original_main_window_proc.cpp
     )
     target_include_directories(btb_original_win32_platform PUBLIC include)
     btb_require_cpp26(btb_original_win32_platform PUBLIC)

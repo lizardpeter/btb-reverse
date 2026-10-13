@@ -1,0 +1,28 @@
+{
+  "original_exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "address": "0x004020D0",
+  "source": "analysis/ghidra_main_exe/functions/004020D0.c",
+  "native_cpp": "reconstruction/src/win32_original_main_window_proc.cpp",
+  "production_callsite": "reconstruction/src/win32_recompiled_host.cpp::native_window_proc",
+  "test": "reconstruction/tests/original_win32_platform_link_test.cpp",
+  "original_message_behaviors": [
+    "WM_SYSKEYDOWN",
+    "WM_DESTROY",
+    "WM_MOVE",
+    "WM_SIZE",
+    "WM_ACTIVATE",
+    "WM_SETCURSOR",
+    "WM_GETMINMAXINFO",
+    "WM_TIMER id 99 callback",
+    "WM_SYSCOMMAND",
+    "WM_COMMAND IDs 0x3E9 and 0x3EA",
+    "WM_COMMAND help 0x9C41 callback",
+    "WM 0x212 and 0x232 time"
+  ],
+  "limitations": [
+    "Exact DirectInput-acquire callback is not yet connected",
+    "Original loading-cursor animation providers not yet connected",
+    "Original contextual help cursor and sound effects not yet connected",
+    "Retail differential parity not verified"
+  ]
+}
