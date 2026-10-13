@@ -8,8 +8,8 @@
   "stage_counts": {
     "unreviewed": 229,
     "under_analysis": 0,
-    "source_written": 237,
-    "compiles": 149,
+    "source_written": 232,
+    "compiles": 154,
     "behavior_verified": 0
   },
   "tentative_subsystem_counts": {
