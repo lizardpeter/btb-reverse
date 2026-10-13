@@ -307,7 +307,8 @@ def build():
         "- 200 functions were originally architecture-only in the first pass.",
         "- 224 functions were originally architecture-only in the final pass.",
         "",
-        f"Current status: {summary615['source_written']} source-written or compiled functions (3 at compile stage) and "
+        f"Current status: {summary615['source_written']} source-written or compiled functions "
+        f"({summary615['cpp_compiles']} at compile stage) and "
         f"{summary615['architecture_only']} architecture-only functions.",
         "",
         "The full inventory keeps these statuses separate; no source-written",
