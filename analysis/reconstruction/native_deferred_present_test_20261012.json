@@ -1,0 +1,22 @@
+{
+  "change": "NativeGameSession two-phase deferred present native regression",
+  "critical_reason": "Previous C++ test existed but was missing from CMake. Its asserts vanished under NDEBUG in Release x86/x64 and expressions with side effects were silently skipped.",
+  "source": "reconstruction/tests/full_game_native_session_source_test.cpp",
+  "test": "full_game_native_session_source",
+  "tests": [
+    "full original sources and movie fixture tests now execute in Release",
+    "prepared source frame never presents early",
+    "present_prepared submits exactly once",
+    "repeat present without new frame fails",
+    "cancel deferred present allows another game tick",
+    "real device-present failure makes session sticky",
+    "overlapping unpresented frame fails and marks fatal"
+  ],
+  "contexts": [
+    "Linux CTest",
+    "Windows Win32 x86 Release CTest",
+    "Windows Win64 Release CTest"
+  ],
+  "original_function_increment": 0,
+  "retail_behavior_verified": false
+}

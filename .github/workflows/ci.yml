@@ -89,6 +89,8 @@ jobs:
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_runtime8$"
       - name: Verify 10 original CRT file and heap functions Win64 Release
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_crt10$"
+      - name: Execute native two-phase session regression Win64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^full_game_native_session_source$"
       - name: Upload source-only preview EXE
         uses: actions/upload-artifact@v4
         with:
@@ -138,6 +140,8 @@ jobs:
         run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_runtime8$"
       - name: Verify 10 original CRT file and heap functions Win32 Release
         run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_crt10$"
+      - name: Execute native two-phase session regression Win32 x86 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^full_game_native_session_source$"
       - name: Upload actual x86 compiled game image
         uses: actions/upload-artifact@v4
         with:

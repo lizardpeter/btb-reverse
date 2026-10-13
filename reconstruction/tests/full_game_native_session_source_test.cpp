@@ -1,6 +1,19 @@
 #include "btb/full_game_native_session.hpp"
 
 #include <cassert>
+#include <cstdio>
+#include <cstdlib>
+// The original test file was not registered with CMake. Native Release
+// builds define NDEBUG, which makes assert(...) vanish, including calls
+// with state-changing expressions. Keep every check executable in Release.
+#undef assert
+#define assert(condition) do { \
+    if(!(condition)){ \
+        std::fprintf(stderr,"native session assertion failed: %s at %s:%d\\n", \
+                     #condition,__FILE__,__LINE__); \
+        std::abort(); \
+    } \
+} while(false)
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -56,6 +69,7 @@ public:
     int draw_count{};
     int present_count{};
     bool fail_draw{};
+    bool fail_present{};
     std::string last_movie{};
     std::string last_help{};
     std::vector<Draw> received_draws{};
@@ -98,7 +112,9 @@ public:
         error.clear();return true;
     }
     bool present(std::string& error) override {
-        ++present_count;error.clear();return true;
+        ++present_count;
+        if(fail_present){error="forced native presentation failure";return false;}
+        error.clear();return true;
     }
 };
 
@@ -271,6 +287,79 @@ int main() {
         assert(missing.failure->stage==
                PhysicalPresentationStage::AssetResolve);
         assert(device.draw_count == 1);
+    }
+    // Exercise the REAL deferred two-phase NativeGameSession path used
+    // by original RunActiveGameFrame (00402440) before DD7 presentation.
+    touch(directory,"Data/ui/original.bmp");
+    {
+        GameRoot game;
+        assert(game.select_profile(0));
+        assert(game.install_pregame_front_end_pair(
+            State::GolfPregameSetup,std::make_unique<Instruction>()));
+        game.globals().menu.selected_subgame=1;
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture()
+        };
+        game.set_outer_state(State::GolfPregameSetup);
+        const auto prepared=session.tick({},false,false,true);
+        if(prepared.failure || prepared.submitted ||
+           !prepared.ready_for_present || device.present_count!=0)
+            return 61;
+        std::string present_error;
+        if(!session.present_prepared(present_error) ||
+           device.present_count!=1)return 62;
+        // No double-present without another prepared game frame.
+        if(session.present_prepared(present_error) ||
+           device.present_count!=1)return 63;
+        const auto second=session.tick({},false,false,true);
+        if(second.failure || !second.ready_for_present ||
+           second.submitted || device.present_count!=1)return 64;
+        session.discard_prepared();
+        // A cooperative-level retry drops only the prepared presentation,
+        // not all subsequent game states or the entire game session.
+        const auto third=session.tick({},false,false,true);
+        if(third.failure||!third.ready_for_present||
+           !session.present_prepared(present_error) ||
+           device.present_count!=2)return 65;
+    }
+    {
+        GameRoot game;
+        assert(game.select_profile(0));
+        assert(game.install_pregame_front_end_pair(
+            State::GolfPregameSetup,std::make_unique<Instruction>()));
+        Device device;
+        device.fail_present=true;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture()
+        };
+        game.set_outer_state(State::GolfPregameSetup);
+        const auto prepared=session.tick({},false,false,true);
+        if(prepared.failure || !prepared.ready_for_present)return 66;
+        std::string present_error;
+        if(session.present_prepared(present_error)||
+           !session.failed()||present_error.empty())return 67;
+    }
+    {
+        GameRoot game;
+        assert(game.select_profile(0));
+        assert(game.install_pregame_front_end_pair(
+            State::GolfPregameSetup,std::make_unique<Instruction>()));
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture()
+        };
+        game.set_outer_state(State::GolfPregameSetup);
+        const auto prepared=session.tick({},false,false,true);
+        if(prepared.failure || !prepared.ready_for_present)return 68;
+        const auto illegally_overlapping=session.tick({},false,false,true);
+        if(!illegally_overlapping.failure ||
+           illegally_overlapping.failure->stage!=
+               PhysicalPresentationStage::Present ||
+           !session.failed())return 69;
     }
     fs::remove_all(directory);
 }

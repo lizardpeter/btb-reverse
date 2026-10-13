@@ -1035,6 +1035,16 @@ target_link_libraries(btb_original_crt10_tests PRIVATE btb_recompiled_core)
 btb_require_cpp26(btb_original_crt10_tests PRIVATE)
 add_test(NAME original_crt10 COMMAND btb_original_crt10_tests)
 
+# Previously orphaned source-native-session tests are now compiled
+# and run on every supported architecture, with checks active in Release.
+add_executable(btb_full_game_native_session_source_tests
+    tests/full_game_native_session_source_test.cpp)
+target_link_libraries(btb_full_game_native_session_source_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_full_game_native_session_source_tests PRIVATE)
+add_test(NAME full_game_native_session_source
+    COMMAND btb_full_game_native_session_source_tests)
+
 add_executable(btb_recompiled_core_link_tests
     tests/recompiled_core_link_test.cpp)
 target_link_libraries(btb_recompiled_core_link_tests PRIVATE btb_recompiled_core)
