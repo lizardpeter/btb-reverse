@@ -1,4 +1,5 @@
 #include "btb/recompiled_core_smoke.hpp"
+#include "btb/original_gameplay11.hpp"
 #include "btb/original_shared11.hpp"
 #include "btb/original_lifecycle12.hpp"
 #include "btb/original_activity9.hpp"
@@ -34,6 +35,7 @@
 namespace btb::full_game {
 
 bool verify_linked_recompiled_core() {
+    if(!btb::original_gameplay11::verify_11_gameplay_data_functions())return false;
     if(!btb::original_shared11::verify_11_shared_native_functions())return false;
     if(!btb::original_lifecycle12::verify_12_original_gameplay_lifecycle())return false;
     if(!btb::original_activity9::verify_9_original_activity_functions())return false;

@@ -1,0 +1,82 @@
+{
+  "count": 11,
+  "original_sources": [
+    {
+      "address": "0x00415830",
+      "ghidra": "analysis/ghidra_main_exe/functions/00415830.c",
+      "cpp": "reconstruction/src/original_gameplay11.cpp"
+    },
+    {
+      "address": "0x004279F0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004279F0.c",
+      "cpp": "reconstruction/src/original_gameplay11.cpp"
+    },
+    {
+      "address": "0x00420030",
+      "ghidra": "analysis/ghidra_main_exe/functions/00420030.c",
+      "cpp": "reconstruction/src/original_gameplay11.cpp"
+    },
+    {
+      "address": "0x00407330",
+      "ghidra": "analysis/ghidra_main_exe/functions/00407330.c",
+      "cpp": "reconstruction/src/original_gameplay11.cpp"
+    },
+    {
+      "address": "0x00407870",
+      "ghidra": "analysis/ghidra_main_exe/functions/00407870.c",
+      "cpp": "reconstruction/src/original_gameplay11.cpp"
+    },
+    {
+      "address": "0x004077F0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004077F0.c",
+      "cpp": "reconstruction/src/original_gameplay11.cpp"
+    },
+    {
+      "address": "0x00406EB0",
+      "ghidra": "analysis/ghidra_main_exe/functions/00406EB0.c",
+      "cpp": "reconstruction/src/original_gameplay11.cpp"
+    },
+    {
+      "address": "0x004069C0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004069C0.c",
+      "cpp": "reconstruction/src/original_gameplay11.cpp"
+    },
+    {
+      "address": "0x00411B10",
+      "ghidra": "analysis/ghidra_main_exe/functions/00411B10.c",
+      "cpp": "reconstruction/src/original_gameplay11.cpp"
+    },
+    {
+      "address": "0x0041D920",
+      "ghidra": "analysis/ghidra_main_exe/functions/0041D920.c",
+      "cpp": "reconstruction/src/original_gameplay11.cpp"
+    },
+    {
+      "address": "0x00423260",
+      "ghidra": "analysis/ghidra_main_exe/functions/00423260.c",
+      "cpp": "reconstruction/src/original_gameplay11.cpp"
+    }
+  ],
+  "gameplay": [
+    "Golf activity update",
+    "Squirrel activity update",
+    "Bob's Band activity update",
+    "original bitmap filename table",
+    "original startup and completion movie paths",
+    "Bink walkthrough movie slots",
+    "help WAV table",
+    "credits slideshow names",
+    "Fireworks saved grid and resource teardown",
+    "Bob's Band composition save and resource teardown",
+    "Spud distance-to-screen-node"
+  ],
+  "tests": [
+    "existing source-model scenarios now exercised through independent compiled C++ functions in Release mode",
+    "Linux plus Windows x86/x64 CTest",
+    "btb_game --recompiled-smoke linkage"
+  ],
+  "limits": [
+    "Callbacks/resource plans still need integration into original runtime host call sites",
+    "Original x86 retail ABI and behavioral comparison not proven"
+  ]
+}
