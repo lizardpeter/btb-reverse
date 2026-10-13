@@ -2,6 +2,7 @@
 #include "btb/original_recompiled_bitmaps.hpp"
 #include "btb/win32_recompiled_graphics.hpp"
 #include "btb/win32_native_bitmap_registry.hpp"
+#include "btb/win32_original_display_lifecycle.hpp"
 #include <cstdio>
 
 int main() {
@@ -60,6 +61,19 @@ int main() {
         return 23;
     if(btb::original_win32::restore_all_directdraw_surfaces(nullptr)!=E_POINTER)
         return 24;
+    // Two original entry points linked to the ACTUAL Win32 game; neither
+    // may attempt COM creation or menu mutation with a missing HWND.
+    btb::full_game::Win32OriginalDirectDraw invalid_display{};
+    std::string display_error;
+    if(btb::original_win32::create_or_reset_display_manager(
+           nullptr,btb::display::DisplayMode::Windowed,
+           invalid_display,display_error)!=E_POINTER)return 25;
+    if(display_error.empty() || invalid_display.initialized())return 26;
+    display_error.clear();
+    if(btb::original_win32::initialize_display_for_game_window(
+           nullptr,btb::display::DisplayMode::Fullscreen,
+           invalid_display,display_error)!=E_POINTER)return 27;
+    if(display_error.empty() || invalid_display.initialized())return 28;
 #endif
     return 0;
 }

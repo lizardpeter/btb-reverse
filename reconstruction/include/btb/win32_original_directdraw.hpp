@@ -44,6 +44,7 @@ public:
         const std::vector<ResolvedDraw>& draw_stream,
         std::string& error);
     [[nodiscard]] bool present(std::string& error);
+    [[nodiscard]] HRESULT clear_retail_backbuffer(DWORD color) noexcept;
     void shutdown() noexcept;
 
     [[nodiscard]] bool initialized() const noexcept {

@@ -901,6 +901,7 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 # remaining activities or verified original executable parity.
 # ---------------------------------------------------------------
 add_library(btb_recompiled_core STATIC
+    src/native_input_pulse.cpp
     src/original_msvc30.cpp
     src/original_msvc30_probe.cpp
     src/original_games_batch_14.cpp
@@ -988,6 +989,12 @@ target_link_libraries(btb_original_msvc30_tests PRIVATE btb_recompiled_core)
 btb_require_cpp26(btb_original_msvc30_tests PRIVATE)
 add_test(NAME original_msvc30 COMMAND btb_original_msvc30_tests)
 
+add_executable(btb_native_input_pulse_tests
+    tests/native_input_pulse_test.cpp)
+target_link_libraries(btb_native_input_pulse_tests PRIVATE btb_recompiled_core)
+btb_require_cpp26(btb_native_input_pulse_tests PRIVATE)
+add_test(NAME native_input_pulse COMMAND btb_native_input_pulse_tests)
+
 add_executable(btb_recompiled_core_link_tests
     tests/recompiled_core_link_test.cpp)
 target_link_libraries(btb_recompiled_core_link_tests PRIVATE btb_recompiled_core)
@@ -1011,6 +1018,7 @@ if(WIN32)
         src/win32_original_game_device.cpp
         src/win32_original_platform_link.cpp
         src/win32_recompiled_host.cpp
+        src/win32_original_display_lifecycle.cpp
     )
     target_include_directories(btb_original_win32_platform PUBLIC include)
     btb_require_cpp26(btb_original_win32_platform PUBLIC)

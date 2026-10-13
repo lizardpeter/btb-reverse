@@ -12,6 +12,8 @@
 #include "btb/full_game_walkthrough_catalog.hpp"
 #include "btb/full_game_ui_bitmaps.hpp"
 #include "btb/original_asset_resolver.hpp"
+#include "btb/native_input_pulse.hpp"
+#include "btb/win32_original_display_lifecycle.hpp"
 #include <algorithm>
 #include <array>
 #include <filesystem>
@@ -93,8 +95,11 @@ struct Host {
             out_error="original game installation directory does not exist";
             return false;
         }
-        if(!graphics.initialize(
-            window,display::DisplayMode::Windowed,out_error))return false;
+        // PE32 00401F80 -> 00401FA0 now owns the actual DD7 creation,
+        // windowed native style/menu setup and initial backbuffer clear.
+        if(FAILED(original_win32::initialize_display_for_game_window(
+            window,display::DisplayMode::Windowed,graphics,out_error)))
+            return false;
         if(!audio.initialize(window,out_error))return false;
         const auto loaddata=root/"loaddata";
         GenericUiCatalog catalog;
@@ -215,9 +220,9 @@ struct Host {
         if(!running||!session)return false;
         ActivityFrameInput input{};
         input.pointer_x=pointer_x;input.pointer_y=pointer_y;
-        input.click_pulse=click_pulse;
-        click_pulse=false;
-        const auto frame=session->tick(input,input.click_pulse,false);
+        const auto click=consume_native_click(click_pulse);
+        input.click_pulse=click.activity_click;
+        const auto frame=session->tick(input,click.primary_input_click,false);
         if(frame.failure){
             error=frame.failure->message;
             running=false;

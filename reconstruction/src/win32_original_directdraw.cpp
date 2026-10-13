@@ -143,6 +143,10 @@ bool Win32OriginalDirectDraw::initialize(
     return true;
 }
 
+HRESULT Win32OriginalDirectDraw::clear_retail_backbuffer(DWORD color) noexcept {
+    return original_win32::clear_backbuffer(backbuffer_,color);
+}
+
 bool Win32OriginalDirectDraw::load_bitmap(
     const std::filesystem::path& filename,
     OriginalSurface& out,std::string& error) {
