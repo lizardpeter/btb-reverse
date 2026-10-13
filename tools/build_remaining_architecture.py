@@ -203,7 +203,9 @@ def build():
         original_exe_sha256=SHA, ghidra_original_function_count=615,
         architecture_mapped=615, cohort_counts=dict(sorted(Counter(
             r["mapping_cohort"] for r in rows).items())),
-        source_written=sum(r["source_stage"] == "source_written" for r in rows),
+        source_written=sum(r["source_stage"] in ("source_written","compiles","behavior_verified") for r in rows),
+        cpp_compiles=sum(r["source_stage"] in ("compiles","behavior_verified") for r in rows),
+        behavior_verified=sum(r["source_stage"] == "behavior_verified" for r in rows),
         architecture_only=sum(r["source_stage"] == "unreviewed" for r in rows),
         module_counts=dict(sorted(Counter(r["module_candidate"] for r in rows).items())),
         original_global_addresses=len(xrefs_report),
@@ -243,7 +245,7 @@ def build():
                    json.dumps(r["module_candidate"]) + "," +
                    json.dumps(r["cpp_owner_candidate"]) + "," +
                    r["caller_count"] + "," + r["global_count"] + "," +
-                   ("true" if r["source_stage"] == "source_written" else "false") + "," +
+                   ("true" if r["source_stage"] in ("source_written","compiles","behavior_verified") else "false") + "," +
                    ("true" if r["receiver_evidence"] == "explicit_thiscall" else "false") +
                    "},\n")
     header += "}};\n} // namespace btb::evidence\n"
