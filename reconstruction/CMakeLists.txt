@@ -901,6 +901,8 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 # remaining activities or verified original executable parity.
 # ---------------------------------------------------------------
 add_library(btb_recompiled_core STATIC
+    src/original_crt17.cpp
+    src/original_crt17_probe.cpp
     src/native_input_pulse.cpp
     src/original_msvc30.cpp
     src/original_msvc30_probe.cpp
@@ -994,6 +996,12 @@ add_executable(btb_native_input_pulse_tests
 target_link_libraries(btb_native_input_pulse_tests PRIVATE btb_recompiled_core)
 btb_require_cpp26(btb_native_input_pulse_tests PRIVATE)
 add_test(NAME native_input_pulse COMMAND btb_native_input_pulse_tests)
+
+add_executable(btb_original_crt17_tests
+    tests/original_crt17_test.cpp)
+target_link_libraries(btb_original_crt17_tests PRIVATE btb_recompiled_core)
+btb_require_cpp26(btb_original_crt17_tests PRIVATE)
+add_test(NAME original_crt17 COMMAND btb_original_crt17_tests)
 
 add_executable(btb_recompiled_core_link_tests
     tests/recompiled_core_link_test.cpp)

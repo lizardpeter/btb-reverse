@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "original_binary_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "count": 17,
+  "functions": [
+    {
+      "address": "0x0042FFBA",
+      "ghidra": "analysis/ghidra_main_exe/functions/0042FFBA.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x0042FFC4",
+      "ghidra": "analysis/ghidra_main_exe/functions/0042FFC4.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x0042FBDC",
+      "ghidra": "analysis/ghidra_main_exe/functions/0042FBDC.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x0042FBCE",
+      "ghidra": "analysis/ghidra_main_exe/functions/0042FBCE.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00430D93",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430D93.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00430DA5",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430DA5.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00430A1F",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430A1F.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00430A3F",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430A3F.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x0042FBB8",
+      "ghidra": "analysis/ghidra_main_exe/functions/0042FBB8.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x0042FF99",
+      "ghidra": "analysis/ghidra_main_exe/functions/0042FF99.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x0042FFA2",
+      "ghidra": "analysis/ghidra_main_exe/functions/0042FFA2.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00430441",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430441.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00430464",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430464.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00430CFE",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430CFE.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00430F2F",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430F2F.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00406600",
+      "ghidra": "analysis/ghidra_main_exe/functions/00406600.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x0042FB5C",
+      "ghidra": "analysis/ghidra_main_exe/functions/0042FB5C.c",
+      "cpp": "reconstruction/src/original_crt17.cpp",
+      "test": "reconstruction/tests/original_crt17_test.cpp",
+      "stage": "compiles"
+    }
+  ],
+  "link_targets": [
+    "btb_recompiled_core",
+    "btb_game",
+    "btb_original_crt17_tests"
+  ],
+  "execution": "btb_game --recompiled-smoke runs all 17 real function bodies in original_crt17_probe.cpp; Windows x86 and x64 Release CTest also runs them",
+  "limits": [
+    "External heap/CRT/WinAPI IAT operations provided as callbacks",
+    "Exact PE32 calling conventions and retail differential verification not proven",
+    "00430A1F/0042FBB8 imported argument convention captured as typed host adapters"
+  ]
+}
