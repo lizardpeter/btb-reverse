@@ -1,5 +1,6 @@
 #include "btb/recompiled_core_smoke.hpp"
 #include "btb/original_crt_batch_32.hpp"
+#include "btb/original_games_batch_14.hpp"
 #include "btb/original_leaf_batch_25.hpp"
 #include "btb/original_game_batch_13.hpp"
 
@@ -23,6 +24,7 @@ namespace btb::full_game {
 
 bool verify_linked_recompiled_core() {
     if (!btb::original_crt32::verify_32_original_crt_functions()) return false;
+    if (!btb::original_games14::verify_14_original_game_systems()) return false;
     if (!btb::original_leaf::verify_25_original_leaf_calls()) return false;
     if (!btb::original_game13::verify_13_original_game_calls()) return false;
     // The real 68-state GameRoot is called; metadata-only architecture
