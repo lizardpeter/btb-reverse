@@ -1,4 +1,7 @@
 #include "btb/recompiled_core_smoke.hpp"
+#include "btb/original_msvc_tail9.hpp"
+#include "btb/original_shared8.hpp"
+#include "btb/original_gameplay6.hpp"
 #include "btb/original_source9.hpp"
 #include "btb/original_gameplay9.hpp"
 #include "btb/original_gameplay11.hpp"
@@ -37,6 +40,9 @@
 namespace btb::full_game {
 
 bool verify_linked_recompiled_core() {
+    if(!btb::original_msvc_tail9::verify_9_original_msvc_tail())return false;
+    if(!btb::original_shared8::verify_8_original_shared_ui_functions())return false;
+    if(!btb::original_gameplay6::verify_6_original_gameplay_functions())return false;
     if(!btb::original_source9::verify_9_original_source_functions())return false;
     if(!btb::original_gameplay9::verify_9_original_gameplay_math_functions())return false;
     if(!btb::original_gameplay11::verify_11_gameplay_data_functions())return false;

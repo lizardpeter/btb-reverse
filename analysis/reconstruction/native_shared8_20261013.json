@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "original_exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "count": 8,
+  "functions": [
+    {
+      "address": "0x00429150",
+      "source": "analysis/ghidra_main_exe/functions/00429150.c",
+      "cpp": "reconstruction/src/original_shared8.cpp",
+      "test": "reconstruction/tests/original_shared8_test.cpp"
+    },
+    {
+      "address": "0x00428ED0",
+      "source": "analysis/ghidra_main_exe/functions/00428ED0.c",
+      "cpp": "reconstruction/src/original_shared8.cpp",
+      "test": "reconstruction/tests/original_shared8_test.cpp"
+    },
+    {
+      "address": "0x00429800",
+      "source": "analysis/ghidra_main_exe/functions/00429800.c",
+      "cpp": "reconstruction/src/original_shared8.cpp",
+      "test": "reconstruction/tests/original_shared8_test.cpp"
+    },
+    {
+      "address": "0x00429AA0",
+      "source": "analysis/ghidra_main_exe/functions/00429AA0.c",
+      "cpp": "reconstruction/src/original_shared8.cpp",
+      "test": "reconstruction/tests/original_shared8_test.cpp"
+    },
+    {
+      "address": "0x00429C90",
+      "source": "analysis/ghidra_main_exe/functions/00429C90.c",
+      "cpp": "reconstruction/src/original_shared8.cpp",
+      "test": "reconstruction/tests/original_shared8_test.cpp"
+    },
+    {
+      "address": "0x0042DB70",
+      "source": "analysis/ghidra_main_exe/functions/0042DB70.c",
+      "cpp": "reconstruction/src/original_shared8.cpp",
+      "test": "reconstruction/tests/original_shared8_test.cpp"
+    },
+    {
+      "address": "0x00423BE0",
+      "source": "analysis/ghidra_main_exe/functions/00423BE0.c",
+      "cpp": "reconstruction/src/original_shared8.cpp",
+      "test": "reconstruction/tests/original_shared8_test.cpp"
+    },
+    {
+      "address": "0x004281D0",
+      "source": "analysis/ghidra_main_exe/functions/004281D0.c",
+      "cpp": "reconstruction/src/original_shared8.cpp",
+      "test": "reconstruction/tests/original_shared8_test.cpp"
+    }
+  ],
+  "status": "native compiled into btb_recompiled_core and btb_game, not retail parity",
+  "scenarios": [
+    "UI authored bitmap table load and registration",
+    "bitmap lifetime unregister / COM release event order",
+    "volume slider and deferred options exit",
+    "deferred Quit dialog confirm vs cancel",
+    "yes/no modal context and release",
+    "centered profile name glyph and blink cycle",
+    "Bentley animation phases and audio handoff",
+    "7MB walkthrough movie buffer and original 31-word DD surface descriptor"
+  ],
+  "limits": [
+    "Native DirectDraw and Bink callbacks remain effect plans instead of retail provider calls",
+    "Original 0042D060 ProfileStore save/unload remains source_written and is explicitly not counted here",
+    "Original executable x86 differential behavioral verification remains outstanding"
+  ]
+}
