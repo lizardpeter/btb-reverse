@@ -106,5 +106,56 @@ HRESULT set_surface_transparency_color_key(
     return surface->SetColorKey(DDCKEY_SRCBLT,&key);
 }
 
+// PE32 00402620: original returns zero for successful COM HRESULT and
+// preserves failure bits. No dummy Restore or fabricated success result.
+HRESULT restore_all_directdraw_surfaces(IDirectDraw7* draw) noexcept {
+    if(!draw)return E_POINTER;
+    const HRESULT hr=draw->RestoreAllSurfaces();
+    return SUCCEEDED(hr)?S_OK:hr;
+}
+
+// PE32 00403480: original branch tests primary+render pointers first,
+// uses Flip(surface,nullptr,0) fullscreen and Blt(destination,render,
+// nullptr,DDBLT_WAIT,nullptr) windowed. Explicitly retries
+// DDERR_WASSTILLDRAWING without manufacturing a success. On surface lost
+// it Restores primary and render and calls RestoreAllSurfaces, then sets
+// retail DAT_0051c320 bitmap-reload flag. Original ignores restore
+// HRESULT values and returns the original DDERR_SURFACELOST to caller.
+HRESULT present_display_retail(
+    IDirectDrawSurface7* primary,IDirectDrawSurface7* render,
+    IDirectDraw7* draw,const RECT* destination,
+    bool windowed,bool& bitmap_reload) noexcept {
+    if(!primary && !render)return E_POINTER;
+    if(!primary || (windowed && (!render || !destination)))
+        return E_POINTER; // modern host safety, not original null UB
+    HRESULT hr=E_FAIL;
+    for(;;){
+        if(windowed)
+            hr=primary->Blt(const_cast<RECT*>(destination),render,
+                            nullptr,DDBLT_WAIT,nullptr);
+        else
+            hr=primary->Flip(nullptr,0);
+        if(hr!=DDERR_WASSTILLDRAWING)break;
+    }
+    if(hr==DDERR_SURFACELOST){
+        (void)primary->Restore();
+        if(render)(void)render->Restore();
+        if(draw)(void)draw->RestoreAllSurfaces();
+        bitmap_reload=true;
+    }
+    return hr;
+}
+
+// PE32 00402600: E_FAIL-like HRESULT is forwarded unmodified;
+// any successful positive HRESULT is normalized to zero.
+HRESULT present_game_frame_retail(
+    IDirectDrawSurface7* primary,IDirectDrawSurface7* render,
+    IDirectDraw7* draw,const RECT* destination,
+    bool windowed,bool& bitmap_reload) noexcept {
+    const auto result=present_display_retail(
+        primary,render,draw,destination,windowed,bitmap_reload);
+    return SUCCEEDED(result)?S_OK:result;
+}
+
 } // namespace btb::original_win32
 #endif

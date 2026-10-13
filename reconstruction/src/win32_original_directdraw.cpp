@@ -264,7 +264,7 @@ bool Win32OriginalDirectDraw::restore_lost_surfaces(
 
     auto hr=primary_->Restore();
     if (SUCCEEDED(hr)) hr=backbuffer_->Restore();
-    if (SUCCEEDED(hr)) hr=draw_->RestoreAllSurfaces();
+    if (SUCCEEDED(hr)) hr=original_win32::restore_all_directdraw_surfaces(draw_);
     if (FAILED(hr)) {
         error=hresult_description("retail Restore surfaces",hr);
         return false;
@@ -332,23 +332,37 @@ bool Win32OriginalDirectDraw::present(std::string& error) {
         return false;
     }
 
-    const auto try_present=[&]() -> HRESULT {
-        if (mode_==display::DisplayMode::Fullscreen) {
-            return primary_->Flip(nullptr,DDFLIP_WAIT);
-        }
-        RECT dest{};
-        if (!original_win32::update_display_destination_rect(
-                hwnd_,true,dest)) return E_FAIL;
-        return primary_->Blt(&dest,backbuffer_,nullptr,DDBLT_WAIT,nullptr);
+    // Execute the original PE32 00402600 -> 00403480 presentation pair,
+    // not the formerly hand-authored Flip/Blt approximation.
+    const auto try_present=[&](bool& bitmap_reload) -> HRESULT {
+        RECT destination{};
+        const bool windowed=mode_==display::DisplayMode::Windowed;
+        if(windowed && !original_win32::update_display_destination_rect(
+                           hwnd_,true,destination))
+            return E_FAIL;
+        return original_win32::present_game_frame_retail(
+            primary_,backbuffer_,draw_,windowed?&destination:nullptr,
+            windowed,bitmap_reload);
     };
 
-    auto hr=try_present();
-    if (hr==DDERR_SURFACELOST) {
-        if (!restore_lost_surfaces(error) ||
-            !render_ordered(previous_frame_,error)) {
+    bool bitmap_reload=false;
+    auto hr=try_present(bitmap_reload);
+    if (hr==DDERR_SURFACELOST && bitmap_reload) {
+        // 00403480 already Restored both COM surfaces and the DD device.
+        // Execute the companion 00403830 bitmap-registry reload (retail's
+        // DAT_0051c320 flag), then replay the actual cached source frame.
+        if(!registry_->reload_registered_surfaces(draw_)){
+            release_cached_bitmaps();
+            error="00403480/00403830 failed to reload original bitmaps";
             return false;
         }
-        hr=try_present();
+        if(!render_ordered(previous_frame_,error))return false;
+        bool lost_again=false;
+        hr=try_present(lost_again);
+        if(lost_again){
+            error="00403480 reported a second lost surface during present";
+            return false;
+        }
     }
     if (FAILED(hr)) {
         error=hresult_description("DirectDraw7 Blt/Flip present",hr);

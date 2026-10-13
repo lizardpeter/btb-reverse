@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "binary_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "description": "Win32 retail COM present/restore source functions with real renderer integration, not only generic smoke callback",
+  "functions": [
+    {
+      "address": "0x00402620",
+      "retail_ghidra": "analysis/ghidra_main_exe/functions/00402620.c",
+      "cpp": "reconstruction/src/win32_recompiled_graphics.cpp",
+      "production_call_site": "reconstruction/src/win32_original_directdraw.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00403480",
+      "retail_ghidra": "analysis/ghidra_main_exe/functions/00403480.c",
+      "cpp": "reconstruction/src/win32_recompiled_graphics.cpp",
+      "production_call_site": "reconstruction/src/win32_original_directdraw.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    },
+    {
+      "address": "0x00402600",
+      "retail_ghidra": "analysis/ghidra_main_exe/functions/00402600.c",
+      "cpp": "reconstruction/src/win32_recompiled_graphics.cpp",
+      "production_call_site": "reconstruction/src/win32_original_directdraw.cpp",
+      "stage": "compiles",
+      "retail_differential_verified": false
+    }
+  ],
+  "notes": [
+    "Original fullscreen Flip flags = 0, not DDFLIP_WAIT",
+    "Original windowed Blt uses DDBLT_WAIT",
+    "Original retries DDERR_WASSTILLDRAWING and restores surfaces when lost",
+    "Original game wrapper normalizes positive successful HRESULT to zero",
+    "Registry reload runs after native lost-surface flag; actual sources reloaded from filenames",
+    "Smoke verifies null COM interface errors; successful hardware frame parity still unverified"
+  ]
+}

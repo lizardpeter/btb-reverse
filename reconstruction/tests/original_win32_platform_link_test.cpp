@@ -50,6 +50,16 @@ int main() {
     if(registry.reload_registered_surfaces(nullptr))return 18;
     if(registry.reload_in_progress())return 19;
     if(!registry.unregister_surface_reference(&original_surface))return 20;
+    bool bitmap_reload=false;
+    if(btb::original_win32::present_display_retail(
+           nullptr,nullptr,nullptr,nullptr,false,bitmap_reload)!=E_POINTER)
+        return 21;
+    if(bitmap_reload)return 22;
+    if(btb::original_win32::present_game_frame_retail(
+           nullptr,nullptr,nullptr,nullptr,false,bitmap_reload)!=E_POINTER)
+        return 23;
+    if(btb::original_win32::restore_all_directdraw_surfaces(nullptr)!=E_POINTER)
+        return 24;
 #endif
     return 0;
 }
