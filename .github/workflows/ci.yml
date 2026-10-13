@@ -60,7 +60,7 @@ jobs:
       - name: Configure C++26 Windows game
         run: cmake -S reconstruction -B build/reconstruction-win -G "Visual Studio 18 2026" -A x64
       - name: Build game and integrated regression
-        run: cmake --build build/reconstruction-win --config Release --target btb_game btb_game_session_tests btb_original_win32_platform_link_tests btb_original_leaf_batch_25_tests btb_original_game_batch_13_tests btb_original_crt_batch_32_tests btb_original_games_batch_14_tests btb_original_msvc30_tests btb_native_input_pulse_tests btb_original_crt17_tests btb_original_runtime5_tests btb_original_active_frame_tests btb_original_runtime8_tests btb_original_crt10_tests btb_full_game_native_session_source_tests btb_original_media15_tests --parallel
+        run: cmake --build build/reconstruction-win --config Release --target btb_game btb_game_session_tests btb_original_win32_platform_link_tests btb_original_leaf_batch_25_tests btb_original_game_batch_13_tests btb_original_crt_batch_32_tests btb_original_games_batch_14_tests btb_original_msvc30_tests btb_native_input_pulse_tests btb_original_crt17_tests btb_original_runtime5_tests btb_original_active_frame_tests btb_original_runtime8_tests btb_original_crt10_tests btb_full_game_native_session_source_tests btb_original_media15_tests btb_original_system14_tests --parallel
       - name: Verify integrated session on Windows
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^game_session$"
       - name: Verify original DirectDraw7 DirectSound8 and Bink loader linkage
@@ -93,6 +93,8 @@ jobs:
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^full_game_native_session_source$"
       - name: Exercise 15 original media and Bink game functions Win64
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_media15$"
+      - name: Verify 14 original native resource destructors Win64
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_system14$"
       - name: Upload source-only preview EXE
         uses: actions/upload-artifact@v4
         with:
@@ -115,7 +117,7 @@ jobs:
       - name: Configure original 32-bit Windows executable
         run: cmake -S reconstruction -B build/reconstruction-x86 -G "Visual Studio 18 2026" -A Win32
       - name: Build x86 game and real Win32 COM providers
-        run: cmake --build build/reconstruction-x86 --config Release --target btb_game btb_original_win32_platform_link_tests btb_original_leaf_batch_25_tests btb_original_game_batch_13_tests btb_original_crt_batch_32_tests btb_original_games_batch_14_tests btb_original_msvc30_tests btb_native_input_pulse_tests btb_original_crt17_tests btb_original_runtime5_tests btb_original_active_frame_tests btb_original_runtime8_tests btb_original_crt10_tests btb_full_game_native_session_source_tests btb_original_media15_tests --parallel
+        run: cmake --build build/reconstruction-x86 --config Release --target btb_game btb_original_win32_platform_link_tests btb_original_leaf_batch_25_tests btb_original_game_batch_13_tests btb_original_crt_batch_32_tests btb_original_games_batch_14_tests btb_original_msvc30_tests btb_native_input_pulse_tests btb_original_crt17_tests btb_original_runtime5_tests btb_original_active_frame_tests btb_original_runtime8_tests btb_original_crt10_tests btb_full_game_native_session_source_tests btb_original_media15_tests btb_original_system14_tests --parallel
       - name: Verify x86 native graphics/audio/Bink provider linkage
         run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_win32_platform_link$"
       - name: Execute all 25 original leaf C++ bodies on x86 Release
@@ -146,6 +148,8 @@ jobs:
         run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^full_game_native_session_source$"
       - name: Exercise 15 original media and Bink game functions Win32
         run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_media15$"
+      - name: Verify 14 original native resource destructors Win32
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_system14$"
       - name: Upload actual x86 compiled game image
         uses: actions/upload-artifact@v4
         with:
