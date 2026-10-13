@@ -967,6 +967,7 @@ endif()
 if(WIN32)
     add_library(btb_original_win32_platform STATIC
         src/win32_original_directdraw.cpp
+        src/original_recompiled_bitmaps.cpp
         src/win32_original_directsound.cpp
         src/win32_original_bink_exports.cpp
         src/win32_original_game_device.cpp
@@ -1015,7 +1016,8 @@ foreach(btb_target IN LISTS BTB_BUILD_TARGETS)
 endforeach()
 list(REMOVE_DUPLICATES BTB_ATTACHED_CPP)
 foreach(btb_source IN LISTS BTB_PRODUCTION_CPP)
-    if(NOT WIN32 AND btb_source MATCHES "/win32_")
+    if(NOT WIN32 AND (btb_source MATCHES "/win32_" OR
+                      btb_source MATCHES "/original_recompiled_bitmaps[.]cpp$"))
         continue()
     endif()
     if(NOT btb_source IN_LIST BTB_ATTACHED_CPP)

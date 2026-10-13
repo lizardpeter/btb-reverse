@@ -1,6 +1,7 @@
 #include "btb/win32_original_directdraw.hpp"
 #include "btb/bitmap_registry.hpp"
 #include "btb/full_game_blt_clip.hpp"
+#include "btb/original_recompiled_bitmaps.hpp"
 
 #if defined(_WIN32)
 #include <cstdint>
@@ -144,107 +145,39 @@ bool Win32OriginalDirectDraw::load_bitmap(
     const std::filesystem::path& filename,
     OriginalSurface& out,std::string& error) {
 
-    auto* hbitmap=reinterpret_cast<HBITMAP>(
-        LoadImageW(nullptr,filename.c_str(),IMAGE_BITMAP,0,0,
-                   LR_LOADFROMFILE|LR_CREATEDIBSECTION));
-    if (!hbitmap) {
-        error="original bitmap failed Win32 LoadImage: "+
-              filename.generic_string();
+    // Actual recovered retail function call chain:
+    // 004038D0 LoadBitmapToDirectDrawSurface
+    //      -> 004035F0 CopyBitmapToSurface
+    //      -> DirectDraw7::GetDC / native GDI BitBlt / ReleaseDC.
+    original_win32::LoadedBitmap loaded{};
+    const auto hr=original_win32::load_bitmap_to_directdraw_surface(
+        draw_,filename,loaded);
+    if(FAILED(hr)){
+        error=hresult_description("004038D0 retail bitmap load",hr);
         return false;
     }
 
-    BITMAP bitmap{};
-    if (!GetObjectW(hbitmap,sizeof(bitmap),&bitmap) ||
-        bitmap.bmWidth <= 0 || bitmap.bmHeight <= 0) {
-        DeleteObject(hbitmap);
-        error="invalid native bitmap dimensions";
-        return false;
-    }
-
-    DDSURFACEDESC2 desc{};
-    desc.dwSize=sizeof(desc);
-    desc.dwFlags=DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT;
-    desc.ddsCaps.dwCaps =
-        bitmap.bmWidth <= bitmap_registry::kLargeBitmapWidthThreshold
-            ? DDSCAPS_OFFSCREENPLAIN
-            : (DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY);
-    desc.dwWidth=static_cast<DWORD>(bitmap.bmWidth);
-    desc.dwHeight=static_cast<DWORD>(bitmap.bmHeight);
-
-    IDirectDrawSurface7* surface=nullptr;
-    auto hr=draw_->CreateSurface(&desc,&surface,nullptr);
-    if (FAILED(hr)) {
-        // Matches the recovered registry's retry in system memory when
-        // the default surface allocation cannot be provided.
-        desc.ddsCaps.dwCaps=DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY;
-        hr=draw_->CreateSurface(&desc,&surface,nullptr);
-    }
-    if (FAILED(hr)) {
-        DeleteObject(hbitmap);
-        error=hresult_description("retail bitmap surface creation",hr);
-        return false;
-    }
-
-    HDC dst=nullptr;
-    hr=surface->GetDC(&dst);
-    if (FAILED(hr)) {
-        surface->Release();
-        DeleteObject(hbitmap);
-        error=hresult_description("GetDC bitmap destination",hr);
-        return false;
-    }
-    HDC source=CreateCompatibleDC(dst);
-    if (!source) {
-        surface->ReleaseDC(dst);
-        surface->Release();
-        DeleteObject(hbitmap);
-        error="CreateCompatibleDC failed during original bitmap upload";
-        return false;
-    }
-    const auto old=SelectObject(source,hbitmap);
-    if (!old || old==HGDI_ERROR) {
-        DeleteDC(source);
-        surface->ReleaseDC(dst);
-        surface->Release();
-        DeleteObject(hbitmap);
-        error="GDI failed to select the original BMP for DirectDraw upload";
-        return false;
-    }
-    const BOOL copied=BitBlt(
-        dst,0,0,bitmap.bmWidth,bitmap.bmHeight,
-        source,0,0,SRCCOPY);
-    SelectObject(source,old);
-    DeleteDC(source);
-    surface->ReleaseDC(dst);
-    DeleteObject(hbitmap);
-    if (!copied) {
-        surface->Release();
-        error="BitBlt failed to upload original BMP pixels";
-        return false;
-    }
-
-    // The recovered bitmap registry uses a magenta source color key.
-    // The actual stored pixel value differs in 16-bit fullscreen RGB
-    // and 32-bit/windowed modes: GetPixelFormat supplies the masks.
+    // 004036E0 MarkSurfaceColorKeyed is the bitmap-registry operation
+    // following 004038D0. Keep its magenta value derived from native
+    // pixel masks rather than synthesizing ARGB transparency.
     DDPIXELFORMAT pf{};
     pf.dwSize=sizeof(pf);
-    hr=surface->GetPixelFormat(&pf);
-    if (FAILED(hr) || !(pf.dwFlags&DDPF_RGB)) {
-        surface->Release();
+    auto status=loaded.surface->GetPixelFormat(&pf);
+    if(FAILED(status)||!(pf.dwFlags&DDPF_RGB)){
+        loaded.surface->Release();
         error="original bitmap surface has unknown DirectDraw RGB masks";
         return false;
     }
-    DDCOLORKEY magenta{};
-    magenta.dwColorSpaceLowValue=pf.dwRBitMask|pf.dwBBitMask;
-    magenta.dwColorSpaceHighValue=magenta.dwColorSpaceLowValue;
-    hr=surface->SetColorKey(DDCKEY_SRCBLT,&magenta);
-    if (FAILED(hr)) {
-        surface->Release();
-        error=hresult_description("native magenta color key",hr);
+    DDCOLORKEY key{};
+    key.dwColorSpaceLowValue=pf.dwRBitMask|pf.dwBBitMask;
+    key.dwColorSpaceHighValue=key.dwColorSpaceLowValue;
+    status=loaded.surface->SetColorKey(DDCKEY_SRCBLT,&key);
+    if(FAILED(status)){
+        loaded.surface->Release();
+        error=hresult_description("004036E0 native magenta color key",status);
         return false;
     }
-
-    out={surface,bitmap.bmWidth,bitmap.bmHeight};
+    out={loaded.surface,loaded.width,loaded.height};
     error.clear();
     return true;
 }
@@ -300,8 +233,14 @@ bool Win32OriginalDirectDraw::blit(
     if (requested.original.color_keyed) {
         flags|=DDBLT_KEYSRC;
     }
-    const auto hr=backbuffer_->Blt(
-        &dest,it->second.surface,&src,flags,nullptr);
+    // 00415E50 handles original keyed sprites through an actual
+    // DirectDraw7::Blt call. Other draw modes retain their own real blit.
+    const HRESULT hr=requested.original.color_keyed
+        ? original_win32::blit_color_keyed_surface_clipped(
+            backbuffer_,it->second.surface,dest.left,dest.top,
+            &src,0,0)
+        : backbuffer_->Blt(
+            &dest,it->second.surface,&src,flags,nullptr);
     if (hr==DDERR_SURFACELOST) {
         surface_lost_during_draw_=true;
         error="DirectDraw surface lost during original sprite blit";

@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "note": "This batch contains DIRECT original Win32 function bodies, not effect-plan models. They compile into btb_game's Windows native provider. Native provider link smoke explicitly calls each for missing-object behavior in Release, and real bitmap draw paths in the game call them on source assets. x86 differential equality, 0044439A8 DirectDraw error flags and retail-CD fallback remain unverified.",
+  "functions": [
+    {
+      "address": "0x004035F0",
+      "name": "CopyBitmapToSurface",
+      "cpp_function": "btb::original_win32::copy_bitmap_to_surface",
+      "original_source": "analysis/ghidra_main_exe/functions/004035F0.c",
+      "role": "HBITMAP to DirectDraw7 surface via GetDC, CreateCompatibleDC, SelectObject, BitBlt, ReleaseDC",
+      "called_by": [
+        "0x004038D0"
+      ]
+    },
+    {
+      "address": "0x004038D0",
+      "name": "LoadBitmapToDirectDrawSurface",
+      "cpp_function": "btb::original_win32::load_bitmap_to_directdraw_surface",
+      "original_source": "analysis/ghidra_main_exe/functions/004038D0.c",
+      "role": "Actual LoadImageW, GetObjectW, CreateSurface with system-memory retry, invokes reconstructed 004035F0, GDI cleanup",
+      "called_by": [
+        "Win32OriginalDirectDraw::load_bitmap",
+        "0x004035F0"
+      ]
+    },
+    {
+      "address": "0x00415E50",
+      "name": "BlitColorKeyedSurfaceClipped",
+      "cpp_function": "btb::original_win32::blit_color_keyed_surface_clipped",
+      "original_source": "analysis/ghidra_main_exe/functions/00415E50.c",
+      "role": "Real keyed 640x480 DirectDraw7 blit with camera-adjusted source+destination clipping",
+      "called_by": [
+        "Win32OriginalDirectDraw::blit"
+      ]
+    }
+  ],
+  "cpp_source": "reconstruction/src/original_recompiled_bitmaps.cpp",
+  "api_header": "reconstruction/include/btb/original_recompiled_bitmaps.hpp",
+  "native_caller": "reconstruction/src/win32_original_directdraw.cpp",
+  "native_test": "reconstruction/tests/original_win32_platform_link_test.cpp",
+  "build_targets": [
+    "btb_original_win32_platform",
+    "btb_game",
+    "btb_original_win32_platform_link_tests"
+  ],
+  "stages": {
+    "compiles": "Required Windows x86 and Windows x64 builds plus link smoke successful",
+    "behavior_verified": "No authoritative original x86 executable vs reconstructed differential trace yet"
+  }
+}
