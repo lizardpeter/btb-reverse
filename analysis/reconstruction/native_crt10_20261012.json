@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "original_exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "count": 10,
+  "functions": [
+    {
+      "address": "0x004311DC",
+      "ghidra": "analysis/ghidra_main_exe/functions/004311DC.c",
+      "source": "reconstruction/src/original_crt10.cpp",
+      "test": "reconstruction/tests/original_crt10_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x0042FB62",
+      "ghidra": "analysis/ghidra_main_exe/functions/0042FB62.c",
+      "source": "reconstruction/src/original_crt10.cpp",
+      "test": "reconstruction/tests/original_crt10_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00431207",
+      "ghidra": "analysis/ghidra_main_exe/functions/00431207.c",
+      "source": "reconstruction/src/original_crt10.cpp",
+      "test": "reconstruction/tests/original_crt10_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x004312A7",
+      "ghidra": "analysis/ghidra_main_exe/functions/004312A7.c",
+      "source": "reconstruction/src/original_crt10.cpp",
+      "test": "reconstruction/tests/original_crt10_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00430FB8",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430FB8.c",
+      "source": "reconstruction/src/original_crt10.cpp",
+      "test": "reconstruction/tests/original_crt10_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00437371",
+      "ghidra": "analysis/ghidra_main_exe/functions/00437371.c",
+      "source": "reconstruction/src/original_crt10.cpp",
+      "test": "reconstruction/tests/original_crt10_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x004343FC",
+      "ghidra": "analysis/ghidra_main_exe/functions/004343FC.c",
+      "source": "reconstruction/src/original_crt10.cpp",
+      "test": "reconstruction/tests/original_crt10_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x0043439F",
+      "ghidra": "analysis/ghidra_main_exe/functions/0043439F.c",
+      "source": "reconstruction/src/original_crt10.cpp",
+      "test": "reconstruction/tests/original_crt10_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00430196",
+      "ghidra": "analysis/ghidra_main_exe/functions/00430196.c",
+      "source": "reconstruction/src/original_crt10.cpp",
+      "test": "reconstruction/tests/original_crt10_test.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00433596",
+      "ghidra": "analysis/ghidra_main_exe/functions/00433596.c",
+      "source": "reconstruction/src/original_crt10.cpp",
+      "test": "reconstruction/tests/original_crt10_test.cpp",
+      "stage": "compiles"
+    }
+  ],
+  "internal_connections": [
+    "original 0042FB62 crt_fclose calls native original 004311DC __freebuf",
+    "original 004312A7 flsall calls native original 00431207 flush_one",
+    "original 0043439F runtime heap initializer calls native original 004343FC heap slab setup"
+  ],
+  "limitations": [
+    "Native FILE buffers and heap services represented through typed caller-provided state and callbacks",
+    "Original Win32 allocator globals and SEH are not rebound to retail addresses",
+    "No original executable x86 ABI or retail behavioral differential verification"
+  ]
+}
