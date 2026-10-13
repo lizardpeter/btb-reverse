@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "kind": "32 PE32 MSVC runtime leaf functions compiled into game executable",
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "functions": [
+    {
+      "address": "0x00433630",
+      "source": "analysis/ghidra_main_exe/functions/00433630.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x004377BA",
+      "source": "analysis/ghidra_main_exe/functions/004377BA.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x0043779F",
+      "source": "analysis/ghidra_main_exe/functions/0043779F.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x004377C6",
+      "source": "analysis/ghidra_main_exe/functions/004377C6.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x004387C7",
+      "source": "analysis/ghidra_main_exe/functions/004387C7.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00438846",
+      "source": "analysis/ghidra_main_exe/functions/00438846.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00438874",
+      "source": "analysis/ghidra_main_exe/functions/00438874.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00437674",
+      "source": "analysis/ghidra_main_exe/functions/00437674.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x004376BD",
+      "source": "analysis/ghidra_main_exe/functions/004376BD.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x004387E8",
+      "source": "analysis/ghidra_main_exe/functions/004387E8.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00436640",
+      "source": "analysis/ghidra_main_exe/functions/00436640.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00436680",
+      "source": "analysis/ghidra_main_exe/functions/00436680.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00436540",
+      "source": "analysis/ghidra_main_exe/functions/00436540.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x0043991A",
+      "source": "analysis/ghidra_main_exe/functions/0043991A.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00439E9E",
+      "source": "analysis/ghidra_main_exe/functions/00439E9E.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00436EB6",
+      "source": "analysis/ghidra_main_exe/functions/00436EB6.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00436745",
+      "source": "analysis/ghidra_main_exe/functions/00436745.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x0043670D",
+      "source": "analysis/ghidra_main_exe/functions/0043670D.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00436729",
+      "source": "analysis/ghidra_main_exe/functions/00436729.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00438241",
+      "source": "analysis/ghidra_main_exe/functions/00438241.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00434444",
+      "source": "analysis/ghidra_main_exe/functions/00434444.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x0043091D",
+      "source": "analysis/ghidra_main_exe/functions/0043091D.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00431D8A",
+      "source": "analysis/ghidra_main_exe/functions/00431D8A.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x004330B2",
+      "source": "analysis/ghidra_main_exe/functions/004330B2.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x004330E7",
+      "source": "analysis/ghidra_main_exe/functions/004330E7.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00435FF5",
+      "source": "analysis/ghidra_main_exe/functions/00435FF5.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x0043A0DD",
+      "source": "analysis/ghidra_main_exe/functions/0043A0DD.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x0043A1C5",
+      "source": "analysis/ghidra_main_exe/functions/0043A1C5.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x004379DA",
+      "source": "analysis/ghidra_main_exe/functions/004379DA.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x004379F0",
+      "source": "analysis/ghidra_main_exe/functions/004379F0.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00437EB3",
+      "source": "analysis/ghidra_main_exe/functions/00437EB3.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    },
+    {
+      "address": "0x00437478",
+      "source": "analysis/ghidra_main_exe/functions/00437478.c",
+      "native_cpp": "reconstruction/src/original_crt_batch_32.cpp",
+      "test": "reconstruction/tests/original_crt_batch_32_test.cpp",
+      "stage": "compiles only, not retail verified"
+    }
+  ],
+  "linkage": "btb_recompiled_core -> btb_game; verify_linked_recompiled_core explicitly executes all 32 in --recompiled-smoke",
+  "verified": "CI Linux and Windows Win32 and x64 Release tests; no retail PE32 differential parity claimed",
+  "limits": "Original global state and imported IAT functions are represented by explicit typed operands/callbacks; not yet installed in original game's CRT call sites"
+}
