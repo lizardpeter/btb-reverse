@@ -112,6 +112,12 @@ add_executable(btb_golf_runtime_tests
 target_link_libraries(btb_golf_runtime_tests PRIVATE btb_golf)
 add_test(NAME golf_runtime COMMAND btb_golf_runtime_tests)
 
+# Compile native original 0041AEB0 into one reusable library.
+add_library(btb_original_activity9_algorithms STATIC
+    src/original_activity9.cpp)
+target_include_directories(btb_original_activity9_algorithms PUBLIC include)
+btb_require_cpp26(btb_original_activity9_algorithms PUBLIC)
+
 add_library(btb_maze
     src/maze_data.cpp
     src/maze_runtime.cpp
@@ -122,6 +128,7 @@ add_library(btb_maze
 )
 target_include_directories(btb_maze PUBLIC include)
 btb_require_cpp26(btb_maze PUBLIC)
+target_link_libraries(btb_maze PRIVATE btb_original_activity9_algorithms)
 
 add_executable(btb_maze_data_tests
     tests/maze_data_test.cpp
@@ -129,6 +136,12 @@ add_executable(btb_maze_data_tests
 target_link_libraries(btb_maze_data_tests PRIVATE btb_maze)
 add_test(NAME maze_data COMMAND btb_maze_data_tests)
 
+
+add_executable(btb_original_live_maze_debounce_tests
+    tests/original_live_maze_debounce_test.cpp)
+target_link_libraries(btb_original_live_maze_debounce_tests PRIVATE btb_maze)
+btb_require_cpp26(btb_original_live_maze_debounce_tests PRIVATE)
+add_test(NAME original_live_maze_debounce COMMAND btb_original_live_maze_debounce_tests)
 
 add_executable(btb_maze_runtime_tests
     tests/maze_runtime_test.cpp
@@ -907,7 +920,6 @@ add_library(btb_recompiled_core STATIC
     src/original_shared11_probe.cpp
     src/original_lifecycle12.cpp
     src/original_lifecycle12_probe.cpp
-    src/original_activity9.cpp
     src/original_activity9_probe.cpp
     src/original_system14.cpp
     src/original_system14_probe.cpp
@@ -958,6 +970,7 @@ add_library(btb_recompiled_core STATIC
 target_include_directories(btb_recompiled_core PUBLIC include)
 btb_require_cpp26(btb_recompiled_core PUBLIC)
 target_link_libraries(btb_recompiled_core PUBLIC
+    btb_original_activity9_algorithms
     btb_full_game_root_source
     btb_full_game_audio_source
     btb_full_game_fireworks_source
