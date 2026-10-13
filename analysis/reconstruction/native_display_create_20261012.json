@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "original_exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "functions": [
+    {
+      "address": "0x00401FA0",
+      "name": "CreateOrResetDisplayManager"
+    },
+    {
+      "address": "0x00401F80",
+      "name": "InitializeDisplayForGameWindow"
+    }
+  ],
+  "cpp": "reconstruction/src/win32_original_display_lifecycle.cpp",
+  "production_callsite": "reconstruction/src/win32_recompiled_host.cpp::Host::start",
+  "native_ops": [
+    "directdraw shutdown",
+    "native IDirectDraw7 initialize",
+    "GetWindowLongA/SetWindowLongA WS_SYSMENU",
+    "LoadMenuA resource 102 / SetMenu",
+    "real DirectDraw7 color fill"
+  ],
+  "new_regression": "Native primary click pulse preserved in simultaneous activity and native input channels",
+  "limits": [
+    "Host wrapper owns real COM resources instead of original 0x30-byte operator-new object",
+    "Original failure HRESULT from graphics.initialize not available; E_FAIL used on failure",
+    "Original PE32 differential parity not verified"
+  ]
+}
