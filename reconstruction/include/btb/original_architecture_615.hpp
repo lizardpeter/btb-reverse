@@ -54,7 +54,7 @@ inline constexpr std::array<OriginalArchitecture615,615> kOriginalArchitecture61
   {0x00403770U,"RegisterBitmapSurface","shared_platform","BitmapSurfaceSubsystem",25,5,true,false},
   {0x00403830U,"ReloadRegisteredBitmapSurfaces","shared_platform","BitmapSurfaceSubsystem",1,6,true,false},
   {0x004038d0U,"LoadBitmapToDirectDrawSurface","shared_platform","BitmapSurfaceSubsystem",26,2,true,false},
-  {0x00403a70U,"FUN_00403a70","shared_platform","SharedPlatformModule",1,0,false,false},
+  {0x00403a70U,"FUN_00403a70","shared_platform","SharedPlatformModule",1,0,true,false},
   {0x00403b70U,"SetSurfaceTransparencyColorKey","shared_platform","DisplaySubsystem",23,0,true,false},
   {0x00403bb0U,"CSoundManager_Constructor","shared_platform","CSoundManager",1,0,true,false},
   {0x00403bc0U,"CSoundManager_Destructor","shared_platform","CSoundManager",1,0,true,false},
