@@ -1,4 +1,5 @@
 #include "btb/recompiled_core_smoke.hpp"
+#include "btb/original_leaf_batch_25.hpp"
 
 #include "btb/full_game_audio.hpp"
 #include "btb/full_game_bobs_band.hpp"
@@ -19,6 +20,7 @@
 namespace btb::full_game {
 
 bool verify_linked_recompiled_core() {
+    if (!btb::original_leaf::verify_25_original_leaf_calls()) return false;
     // The real 68-state GameRoot is called; metadata-only architecture
     // registries or the early Dinosaur-only Session are NOT involved.
     GameRoot root{};
