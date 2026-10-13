@@ -1,4 +1,5 @@
 #include "btb/recompiled_core_smoke.hpp"
+#include "btb/original_msvc30.hpp"
 #include "btb/original_crt_batch_32.hpp"
 #include "btb/original_games_batch_14.hpp"
 #include "btb/original_leaf_batch_25.hpp"
@@ -23,6 +24,7 @@
 namespace btb::full_game {
 
 bool verify_linked_recompiled_core() {
+    if (!btb::original_msvc30::verify_30_original_msvc_functions()) return false;
     if (!btb::original_crt32::verify_32_original_crt_functions()) return false;
     if (!btb::original_games14::verify_14_original_game_systems()) return false;
     if (!btb::original_leaf::verify_25_original_leaf_calls()) return false;
