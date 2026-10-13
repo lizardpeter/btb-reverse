@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "count": 15,
+  "originals": [
+    {
+      "address": "0x00409210",
+      "original_source": "analysis/ghidra_main_exe/functions/00409210.c",
+      "compiled_source": "reconstruction/src/original_media15.cpp",
+      "test": "reconstruction/tests/original_media15_test.cpp"
+    },
+    {
+      "address": "0x00408E10",
+      "original_source": "analysis/ghidra_main_exe/functions/00408E10.c",
+      "compiled_source": "reconstruction/src/original_media15.cpp",
+      "test": "reconstruction/tests/original_media15_test.cpp"
+    },
+    {
+      "address": "0x00408EB0",
+      "original_source": "analysis/ghidra_main_exe/functions/00408EB0.c",
+      "compiled_source": "reconstruction/src/original_media15.cpp",
+      "test": "reconstruction/tests/original_media15_test.cpp"
+    },
+    {
+      "address": "0x00408D90",
+      "original_source": "analysis/ghidra_main_exe/functions/00408D90.c",
+      "compiled_source": "reconstruction/src/original_media15.cpp",
+      "test": "reconstruction/tests/original_media15_test.cpp"
+    },
+    {
+      "address": "0x00409070",
+      "original_source": "analysis/ghidra_main_exe/functions/00409070.c",
+      "compiled_source": "reconstruction/src/original_media15.cpp",
+      "test": "reconstruction/tests/original_media15_test.cpp"
+    },
+    {
+      "address": "0x00428010",
+      "original_source": "analysis/ghidra_main_exe/functions/00428010.c",
+      "compiled_source": "reconstruction/src/original_media15.cpp",
+      "test": "reconstruction/tests/original_media15_test.cpp"
+    },
+    {
+      "address": "0x004280D0",
+      "original_source": "analysis/ghidra_main_exe/functions/004280D0.c",
+      "compiled_source": "reconstruction/src/original_media15.cpp",
+      "test": "reconstruction/tests/original_media15_test.cpp"
+    },
+    {
+      "address": "0x0042A240",
+      "original_source": "analysis/ghidra_main_exe/functions/0042A240.c",
+      "compiled_source": "reconstruction/src/original_media15.cpp",
+      "test": "reconstruction/tests/original_media15_test.cpp"
+    },
+    {
+      "address": "0x0042A1A0",
+      "original_source": "analysis/ghidra_main_exe/functions/0042A1A0.c",
+      "compiled_source": "reconstruction/src/original_media15.cpp",
+      "test": "reconstruction/tests/original_media15_test.cpp"
+    },
+    {
+      "address": "0x00428470",
+      "original_source": "analysis/ghidra_main_exe/functions/00428470.c",
+      "compiled_source": "reconstruction/src/original_media15.cpp",
+      "test": "reconstruction/tests/original_media15_test.cpp"
+    },
+    {
+      "address": "0x004169A0",
+      "original_source": "analysis/ghidra_main_exe/functions/004169A0.c",
+      "compiled_source": "reconstruction/src/original_media15.cpp",
+      "test": "reconstruction/tests/original_media15_test.cpp"
+    },
+    {
+      "address": "0x00406E10",
+      "original_source": "analysis/ghidra_main_exe/functions/00406E10.c",
+      "compiled_source": "reconstruction/src/original_media15.cpp",
+      "test": "reconstruction/tests/original_media15_test.cpp"
+    },
+    {
+      "address": "0x0041CBE0",
+      "original_source": "analysis/ghidra_main_exe/functions/0041CBE0.c",
+      "compiled_source": "reconstruction/src/original_media15.cpp",
+      "test": "reconstruction/tests/original_media15_test.cpp"
+    },
+    {
+      "address": "0x00423220",
+      "original_source": "analysis/ghidra_main_exe/functions/00423220.c",
+      "compiled_source": "reconstruction/src/original_media15.cpp",
+      "test": "reconstruction/tests/original_media15_test.cpp"
+    },
+    {
+      "address": "0x004093C0",
+      "original_source": "analysis/ghidra_main_exe/functions/004093C0.c",
+      "compiled_source": "reconstruction/src/original_media15.cpp",
+      "test": "reconstruction/tests/original_media15_test.cpp"
+    }
+  ],
+  "connected_calls": [
+    "00408E10 OpenBinkMovieWithFallback -> 00409210 ApplyGlobalBinkVolume",
+    "00408EB0 OpenGlobalBinkMovie -> 00409210 ApplyGlobalBinkVolume",
+    "004093C0 ApplyGlobalGameVolume -> 00409210 ApplyGlobalBinkVolume"
+  ],
+  "targets": [
+    "btb_recompiled_core",
+    "btb_game",
+    "btb_original_media15_tests"
+  ],
+  "limitations": [
+    "Bink/DirectDraw/Windows service callbacks are injected and not yet bound to live game at original callsites",
+    "Original 32-bit Bink decoder remains unconnected",
+    "Original retail binary differential parity unverified",
+    "Safety limits prevent original stack buffer overflow on invalid media paths"
+  ],
+  "evidence": "15 independent C++ bodies in a .cpp, regression exercises all, game smoke links them"
+}

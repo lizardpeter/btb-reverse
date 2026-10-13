@@ -1,4 +1,5 @@
 #include "btb/recompiled_core_smoke.hpp"
+#include "btb/original_media15.hpp"
 #include "btb/original_crt10.hpp"
 #include "btb/original_runtime8.hpp"
 #include "btb/original_active_frame.hpp"
@@ -29,6 +30,7 @@
 namespace btb::full_game {
 
 bool verify_linked_recompiled_core() {
+    if(!btb::original_media15::verify_15_original_media_functions())return false;
     if(!btb::original_crt10::verify_10_original_crt_io_functions())return false;
     if(!btb::original_runtime8::verify_8_original_algorithms())return false;
     if(!btb::original_active_frame::verify_source_frame_control_flow())return false;
