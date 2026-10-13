@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "count": 8,
+  "functions": [
+    {
+      "address": "0x00429150",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00429150.c",
+      "compiled_source": "reconstruction/src/original_shared_ui8.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00428ED0",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00428ED0.c",
+      "compiled_source": "reconstruction/src/original_shared_ui8.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00429800",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00429800.c",
+      "compiled_source": "reconstruction/src/original_shared_ui8.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00429AA0",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00429AA0.c",
+      "compiled_source": "reconstruction/src/original_shared_ui8.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00429C90",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00429C90.c",
+      "compiled_source": "reconstruction/src/original_shared_ui8.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x0042DB70",
+      "pseudocode": "analysis/ghidra_main_exe/functions/0042DB70.c",
+      "compiled_source": "reconstruction/src/original_shared_ui8.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00423BE0",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00423BE0.c",
+      "compiled_source": "reconstruction/src/original_shared_ui8.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x004281D0",
+      "pseudocode": "analysis/ghidra_main_exe/functions/004281D0.c",
+      "compiled_source": "reconstruction/src/original_shared_ui8.cpp",
+      "stage": "compiles"
+    }
+  ],
+  "scope": [
+    "Generic UI resource import/release",
+    "Options overlay and slider",
+    "Quit and YesNo modal source UI",
+    "Profile glyph positioning and cursor blinking",
+    "Bentley animation and voice phases",
+    "Walkthrough authored movie loading"
+  ],
+  "intentionally_excluded": "0042D060 Profile save/unload has unresolved original scanf-vs-write ambiguity and is not promoted or implemented in this batch",
+  "limitations": [
+    "Original effect-plan providers not yet bound to full native COM/DirectSound/Bink callsites",
+    "Retail x86 executable differential parity remains unverified"
+  ],
+  "test": "original_shared_ui8 native Release-safe CTest and actual btb_game --recompiled-smoke"
+}
