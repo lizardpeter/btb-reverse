@@ -251,13 +251,16 @@ int main() {
             State::GolfPregameSetup,std::make_unique<Instruction>()));
         game.globals().menu.selected_subgame=1;
         Device device;
-        device.fail_draw=true;
         NativeGameSession session{
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
         };
         game.set_outer_state(State::GolfPregameSetup);
         assert(session.tick({},false,false).submitted);
+        // The first setup frame legitimately draws. Force failure only
+        // for the following instruction frame so the sticky-failure
+        // behavior is tested rather than failing the setup frame.
+        device.fail_draw=true;
         const auto broken=session.tick({},false,false);
         assert(broken.failure);
         assert(broken.failure->stage==
