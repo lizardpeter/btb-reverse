@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "original_exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "count": 9,
+  "originals": [
+    {
+      "address": "0x004048F0",
+      "pseudocode": "analysis/ghidra_main_exe/functions/004048F0.c",
+      "implementation": "reconstruction/src/original_activity9.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00404270",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00404270.c",
+      "implementation": "reconstruction/src/original_activity9.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00404360",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00404360.c",
+      "implementation": "reconstruction/src/original_activity9.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x0041FB90",
+      "pseudocode": "analysis/ghidra_main_exe/functions/0041FB90.c",
+      "implementation": "reconstruction/src/original_activity9.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x0041AEB0",
+      "pseudocode": "analysis/ghidra_main_exe/functions/0041AEB0.c",
+      "implementation": "reconstruction/src/original_activity9.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00427320",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00427320.c",
+      "implementation": "reconstruction/src/original_activity9.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00408460",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00408460.c",
+      "implementation": "reconstruction/src/original_activity9.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00424C80",
+      "pseudocode": "analysis/ghidra_main_exe/functions/00424C80.c",
+      "implementation": "reconstruction/src/original_activity9.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x0040D7D0",
+      "pseudocode": "analysis/ghidra_main_exe/functions/0040D7D0.c",
+      "implementation": "reconstruction/src/original_activity9.cpp",
+      "stage": "compiles"
+    }
+  ],
+  "original_gameplay": [
+    "0041FB90 Bob's Band region hit",
+    "0041AEB0 maze 3-sample directional debounce",
+    "00427320 Squirrel conveyor movement phases",
+    "0040D7D0 Park Designer pond segments"
+  ],
+  "native_interfaces": [
+    "004048F0 CWaveFile reset",
+    "00404270 CSound buffer restore",
+    "00404360 CSound play",
+    "00408460 keyboard translation",
+    "00424C80 Bink exact keyframe seek"
+  ],
+  "tests": [
+    "independent CTest original_activity9 on Linux Windows x86 Windows x64 Release",
+    "actual native btb_game --recompiled-smoke checks all nine"
+  ],
+  "limitations": [
+    "Injected Bink/DirectInput/DirectSound callbacks are not all live in native host",
+    "Original code pointer x86 calling conventions are modeled rather than ABI-identical",
+    "No behavioral retail binary differential proof"
+  ]
+}
