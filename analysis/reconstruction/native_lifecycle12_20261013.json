@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "count": 12,
+  "functions": [
+    {
+      "address": "0x004110E0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004110E0.c",
+      "cpp": "reconstruction/src/original_lifecycle12.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x004111C0",
+      "ghidra": "analysis/ghidra_main_exe/functions/004111C0.c",
+      "cpp": "reconstruction/src/original_lifecycle12.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x0040A530",
+      "ghidra": "analysis/ghidra_main_exe/functions/0040A530.c",
+      "cpp": "reconstruction/src/original_lifecycle12.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00419390",
+      "ghidra": "analysis/ghidra_main_exe/functions/00419390.c",
+      "cpp": "reconstruction/src/original_lifecycle12.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x0041A390",
+      "ghidra": "analysis/ghidra_main_exe/functions/0041A390.c",
+      "cpp": "reconstruction/src/original_lifecycle12.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00414410",
+      "ghidra": "analysis/ghidra_main_exe/functions/00414410.c",
+      "cpp": "reconstruction/src/original_lifecycle12.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00424100",
+      "ghidra": "analysis/ghidra_main_exe/functions/00424100.c",
+      "cpp": "reconstruction/src/original_lifecycle12.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00424F00",
+      "ghidra": "analysis/ghidra_main_exe/functions/00424F00.c",
+      "cpp": "reconstruction/src/original_lifecycle12.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00420360",
+      "ghidra": "analysis/ghidra_main_exe/functions/00420360.c",
+      "cpp": "reconstruction/src/original_lifecycle12.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00412BD0",
+      "ghidra": "analysis/ghidra_main_exe/functions/00412BD0.c",
+      "cpp": "reconstruction/src/original_lifecycle12.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00412D50",
+      "ghidra": "analysis/ghidra_main_exe/functions/00412D50.c",
+      "cpp": "reconstruction/src/original_lifecycle12.cpp",
+      "stage": "compiles"
+    },
+    {
+      "address": "0x00424D10",
+      "ghidra": "analysis/ghidra_main_exe/functions/00424D10.c",
+      "cpp": "reconstruction/src/original_lifecycle12.cpp",
+      "stage": "compiles"
+    }
+  ],
+  "gameplay": [
+    "Unload Fireworks editor",
+    "Unload Fireworks Bink movie bank",
+    "Unload Dinosaur",
+    "Unload Herding",
+    "Unload Maze",
+    "Unload Golf",
+    "Unload Spud Skate",
+    "Unload Squirrel",
+    "Unload Spud Maze",
+    "Begin Fireworks editor action",
+    "Complete Fireworks editor action",
+    "Update Spud Skate activity"
+  ],
+  "test": "reconstruction/tests/original_lifecycle12_test.cpp",
+  "native_targets": [
+    "btb_recompiled_core",
+    "btb_game --recompiled-smoke",
+    "Win32/x64/Linux CTest original_lifecycle12"
+  ],
+  "limits": [
+    "Original COM/IAT cleanup operations expressed as ordered host effects pending complete game integration",
+    "Retail executable x86 ABI and behavior differential tests not yet complete"
+  ]
+}

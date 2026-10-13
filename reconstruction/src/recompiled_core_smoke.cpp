@@ -1,4 +1,5 @@
 #include "btb/recompiled_core_smoke.hpp"
+#include "btb/original_lifecycle12.hpp"
 #include "btb/original_activity9.hpp"
 #include "btb/original_system14.hpp"
 #include "btb/original_media15.hpp"
@@ -32,6 +33,7 @@
 namespace btb::full_game {
 
 bool verify_linked_recompiled_core() {
+    if(!btb::original_lifecycle12::verify_12_original_gameplay_lifecycle())return false;
     if(!btb::original_activity9::verify_9_original_activity_functions())return false;
     if(!btb::original_system14::verify_14_original_system_functions())return false;
     if(!btb::original_media15::verify_15_original_media_functions())return false;
