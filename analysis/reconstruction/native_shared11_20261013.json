@@ -1,0 +1,67 @@
+{
+  "count": 11,
+  "originals": [
+    {
+      "address": "0x00407AF0",
+      "source": "analysis/ghidra_main_exe/functions/00407AF0.c",
+      "native": "reconstruction/src/original_shared11.cpp"
+    },
+    {
+      "address": "0x00407960",
+      "source": "analysis/ghidra_main_exe/functions/00407960.c",
+      "native": "reconstruction/src/original_shared11.cpp"
+    },
+    {
+      "address": "0x00407E10",
+      "source": "analysis/ghidra_main_exe/functions/00407E10.c",
+      "native": "reconstruction/src/original_shared11.cpp"
+    },
+    {
+      "address": "0x004280A0",
+      "source": "analysis/ghidra_main_exe/functions/004280A0.c",
+      "native": "reconstruction/src/original_shared11.cpp"
+    },
+    {
+      "address": "0x00402CC0",
+      "source": "analysis/ghidra_main_exe/functions/00402CC0.c",
+      "native": "reconstruction/src/original_shared11.cpp"
+    },
+    {
+      "address": "0x00402BC0",
+      "source": "analysis/ghidra_main_exe/functions/00402BC0.c",
+      "native": "reconstruction/src/original_shared11.cpp"
+    },
+    {
+      "address": "0x00409260",
+      "source": "analysis/ghidra_main_exe/functions/00409260.c",
+      "native": "reconstruction/src/original_shared11.cpp"
+    },
+    {
+      "address": "0x004092A0",
+      "source": "analysis/ghidra_main_exe/functions/004092A0.c",
+      "native": "reconstruction/src/original_shared11.cpp"
+    },
+    {
+      "address": "0x00408F50",
+      "source": "analysis/ghidra_main_exe/functions/00408F50.c",
+      "native": "reconstruction/src/original_shared11.cpp"
+    },
+    {
+      "address": "0x00403BC0",
+      "source": "analysis/ghidra_main_exe/functions/00403BC0.c",
+      "native": "reconstruction/src/original_shared11.cpp"
+    },
+    {
+      "address": "0x004043F0",
+      "source": "analysis/ghidra_main_exe/functions/004043F0.c",
+      "native": "reconstruction/src/original_shared11.cpp"
+    }
+  ],
+  "executable": "btb_game --recompiled-smoke",
+  "tests": "original_shared11 (Linux and Windows x86/x64)",
+  "limitations": [
+    "Original x86 ABI and retail executable differential parity incomplete",
+    "Native COM and DirectInput services expressed as callbacks rather than identical retail pointers",
+    "Actual game runtime callsites remain distinct from executable smoke checks"
+  ]
+}
