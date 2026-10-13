@@ -744,11 +744,22 @@ add_test(NAME retail_source_batch_32
 
 # Retail Park Designer scene closure: 8 interconnected original functions.
 # Use the exact 400 x 76-byte native save layout and verified polygon parity.
+# Original Ghidra functions 0040DD50/0040D5B0 and original
+# Spud animation/MSVC functions, compiled out of line for direct reuse.
+add_library(btb_original_source9_algorithms STATIC
+    src/original_source9.cpp)
+target_include_directories(btb_original_source9_algorithms PUBLIC include)
+btb_require_cpp26(btb_original_source9_algorithms PUBLIC)
+
 add_library(btb_park_designer_scene
     src/park_designer_scene.cpp
 )
 target_include_directories(btb_park_designer_scene PUBLIC include)
 btb_require_cpp26(btb_park_designer_scene PUBLIC)
+# Native Park Designer collision checks now execute original 0040DD50
+# from a real compiled C++ object, not only an inline source model.
+target_link_libraries(btb_park_designer_scene PUBLIC
+    btb_original_source9_algorithms)
 add_executable(btb_park_designer_scene_tests
     tests/park_designer_scene_test.cpp
 )
@@ -914,6 +925,7 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 # remaining activities or verified original executable parity.
 # ---------------------------------------------------------------
 add_library(btb_recompiled_core STATIC
+    src/original_source9_probe.cpp
     src/original_gameplay9.cpp
     src/original_gameplay9_probe.cpp
     src/original_gameplay11.cpp
@@ -972,6 +984,7 @@ add_library(btb_recompiled_core STATIC
 target_include_directories(btb_recompiled_core PUBLIC include)
 btb_require_cpp26(btb_recompiled_core PUBLIC)
 target_link_libraries(btb_recompiled_core PUBLIC
+    btb_original_source9_algorithms
     btb_original_activity9_algorithms
     btb_full_game_root_source
     btb_full_game_audio_source
@@ -1112,6 +1125,12 @@ add_executable(btb_original_gameplay9_tests
 target_link_libraries(btb_original_gameplay9_tests PRIVATE btb_recompiled_core)
 btb_require_cpp26(btb_original_gameplay9_tests PRIVATE)
 add_test(NAME original_gameplay9 COMMAND btb_original_gameplay9_tests)
+
+add_executable(btb_original_source9_tests
+    tests/original_source9_test.cpp)
+target_link_libraries(btb_original_source9_tests PRIVATE btb_recompiled_core)
+btb_require_cpp26(btb_original_source9_tests PRIVATE)
+add_test(NAME original_source9 COMMAND btb_original_source9_tests)
 
 add_executable(btb_recompiled_core_link_tests
     tests/recompiled_core_link_test.cpp)
