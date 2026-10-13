@@ -141,7 +141,7 @@ Plan update_fireworks_editor_controls(FireControls& s){
  for(const auto& r:s.regions){
   const I32 action=r.action;
   if(action==-1 || !(r.rect.left<x&&x<r.rect.right&&
-                     r.rect.top<y&&y<r.rect.bottom))
+                     r.rect.top<y&&y<r.rect.bottom)
       || (action!=25&&action!=26&&action!=27))continue;
   if(action==27){
    if(s.selected_left==0&&s.selected_right==0){
