@@ -13,6 +13,7 @@
 #include "btb/full_game_ui_bitmaps.hpp"
 #include "btb/original_asset_resolver.hpp"
 #include "btb/native_input_pulse.hpp"
+#include "btb/original_active_frame.hpp"
 #include "btb/win32_original_display_lifecycle.hpp"
 #include "btb/win32_original_main_window_proc.hpp"
 #include <algorithm>
@@ -20,6 +21,7 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <mmsystem.h>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -68,6 +70,7 @@ struct Host {
     bool click_pulse{};
     bool running{};
     original_win32::RetailWindowState retail_window{};
+    original_active_frame::State original_frame{};
 
     explicit Host(fs::path original_root):root(std::move(original_root)) {}
 
@@ -220,17 +223,70 @@ struct Host {
 
     [[nodiscard]] bool step() {
         if(!running||!session)return false;
-        ActivityFrameInput input{};
-        input.pointer_x=pointer_x;input.pointer_y=pointer_y;
-        const auto click=consume_native_click(click_pulse);
-        input.click_pulse=click.activity_click;
-        const auto frame=session->tick(input,click.primary_input_click,false);
-        if(frame.failure){
-            error=frame.failure->message;
+        // The original CD volume label is not extracted/validated in this
+        // source-only opt-in development host. The frame driver explicitly
+        // marks this compatibility waiver instead of claiming disc parity.
+        original_frame.media_check_waived=true;
+        original_active_frame::Callbacks callbacks{};
+        callbacks.context=this;
+        callbacks.run_main_game_flow=+[](void* context)->bool{
+            auto& h=*static_cast<Host*>(context);
+            ActivityFrameInput input{};
+            input.pointer_x=h.pointer_x;input.pointer_y=h.pointer_y;
+            const auto click=consume_native_click(h.click_pulse);
+            input.click_pulse=click.activity_click;
+            const auto frame=h.session->tick(
+                input,click.primary_input_click,false,true);
+            if(frame.failure){
+                h.error=frame.failure->message;
+                return false;
+            }
+            return frame.ready_for_present;
+        };
+        callbacks.check_directdraw_cooperative=+[](void* context)
+            ->original_active_frame::U32 {
+            const auto& h=*static_cast<Host*>(context);
+            return static_cast<original_active_frame::U32>(
+                h.graphics.cooperative_status());
+        };
+        callbacks.reset_display_manager=+[](void* context)
+            ->original_active_frame::U32 {
+            auto& h=*static_cast<Host*>(context);
+            const auto mode=h.retail_window.windowed
+                ? display::DisplayMode::Windowed
+                : display::DisplayMode::Fullscreen;
+            return static_cast<original_active_frame::U32>(
+                original_win32::create_or_reset_display_manager(
+                    h.window,mode,h.graphics,h.error));
+        };
+        callbacks.present_original_game_frame=+[](void* context)
+            ->original_active_frame::U32 {
+            auto& h=*static_cast<Host*>(context);
+            return h.session->present_prepared(h.error)?0U:0x80004005U;
+        };
+        callbacks.cancel_pending_frame=+[](void* context) {
+            static_cast<Host*>(context)->session->discard_prepared();
+        };
+        callbacks.restore_all_surfaces=+[](void* context) {
+            auto& h=*static_cast<Host*>(context);
+            (void)h.graphics.restore_for_frame(h.error);
+        };
+        callbacks.sleep_ms=+[](original_active_frame::U32 ms,void*) {
+            Sleep(ms);
+        };
+        // DirectSound ReapFinishedSounds is invoked by the device's real
+        // observe() before game advancement. Win32 messages provide event-
+        // driven input; no unverified DirectInput poll is fabricated.
+        const auto frame=original_active_frame::run_active_game_frame(
+            original_frame,timeGetTime(),callbacks);
+        if(frame.outcome==original_active_frame::Outcome::Failed){
+            if(error.empty())
+                error="00402440 native frame failed (status "+
+                      std::to_string(frame.original_status)+")";
             running=false;
             return false;
         }
-        return frame.submitted;
+        return true; // idle-ms and recoverable DD7 frames must not quit
     }
 
     void set_pointer(LPARAM lparam) {
@@ -261,9 +317,12 @@ LRESULT CALLBACK native_window_proc(
     if(!host)return DefWindowProcW(hwnd,msg,wp,lp);
     // Original 004020D0 is now on the genuine Win32 message path, before
     // application-specific game activity and mouse input handling.
-    if(auto result=original_win32::main_window_proc_recompiled(
-           hwnd,msg,wp,lp,host->retail_window,host->graphics,host->error))
-        return *result;
+    const auto original_result=original_win32::main_window_proc_recompiled(
+        hwnd,msg,wp,lp,host->retail_window,host->graphics,host->error);
+    if(msg==0x212 || msg==0x232)
+        host->original_frame.last_time_ms=
+            host->retail_window.last_input_ms;
+    if(original_result)return *original_result;
     switch(msg){
     case WM_CREATE:{
         std::string error;

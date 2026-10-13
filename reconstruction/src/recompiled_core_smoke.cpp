@@ -1,4 +1,5 @@
 #include "btb/recompiled_core_smoke.hpp"
+#include "btb/original_active_frame.hpp"
 #include "btb/original_runtime5.hpp"
 #include "btb/original_crt17.hpp"
 #include "btb/original_msvc30.hpp"
@@ -26,6 +27,7 @@
 namespace btb::full_game {
 
 bool verify_linked_recompiled_core() {
+    if(!btb::original_active_frame::verify_source_frame_control_flow())return false;
     if(!btb::original_runtime5::verify_5_original_runtime_functions())return false;
     if(!btb::original_crt17::verify_17_original_crt_functions())return false;
     if (!btb::original_msvc30::verify_30_original_msvc_functions()) return false;

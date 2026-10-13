@@ -60,7 +60,7 @@ jobs:
       - name: Configure C++26 Windows game
         run: cmake -S reconstruction -B build/reconstruction-win -G "Visual Studio 18 2026" -A x64
       - name: Build game and integrated regression
-        run: cmake --build build/reconstruction-win --config Release --target btb_game btb_game_session_tests btb_original_win32_platform_link_tests btb_original_leaf_batch_25_tests btb_original_game_batch_13_tests btb_original_crt_batch_32_tests btb_original_games_batch_14_tests btb_original_msvc30_tests btb_native_input_pulse_tests btb_original_crt17_tests btb_original_runtime5_tests --parallel
+        run: cmake --build build/reconstruction-win --config Release --target btb_game btb_game_session_tests btb_original_win32_platform_link_tests btb_original_leaf_batch_25_tests btb_original_game_batch_13_tests btb_original_crt_batch_32_tests btb_original_games_batch_14_tests btb_original_msvc30_tests btb_native_input_pulse_tests btb_original_crt17_tests btb_original_runtime5_tests btb_original_active_frame_tests --parallel
       - name: Verify integrated session on Windows
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^game_session$"
       - name: Verify original DirectDraw7 DirectSound8 and Bink loader linkage
@@ -83,6 +83,8 @@ jobs:
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_crt17$"
       - name: Verify five original native CRT dependencies Win64 Release
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_runtime5$"
+      - name: Verify original game frame state-machine Win64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_active_frame$"
       - name: Upload source-only preview EXE
         uses: actions/upload-artifact@v4
         with:
@@ -105,7 +107,7 @@ jobs:
       - name: Configure original 32-bit Windows executable
         run: cmake -S reconstruction -B build/reconstruction-x86 -G "Visual Studio 18 2026" -A Win32
       - name: Build x86 game and real Win32 COM providers
-        run: cmake --build build/reconstruction-x86 --config Release --target btb_game btb_original_win32_platform_link_tests btb_original_leaf_batch_25_tests btb_original_game_batch_13_tests btb_original_crt_batch_32_tests btb_original_games_batch_14_tests btb_original_msvc30_tests btb_native_input_pulse_tests btb_original_crt17_tests btb_original_runtime5_tests --parallel
+        run: cmake --build build/reconstruction-x86 --config Release --target btb_game btb_original_win32_platform_link_tests btb_original_leaf_batch_25_tests btb_original_game_batch_13_tests btb_original_crt_batch_32_tests btb_original_games_batch_14_tests btb_original_msvc30_tests btb_native_input_pulse_tests btb_original_crt17_tests btb_original_runtime5_tests btb_original_active_frame_tests --parallel
       - name: Verify x86 native graphics/audio/Bink provider linkage
         run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_win32_platform_link$"
       - name: Execute all 25 original leaf C++ bodies on x86 Release
@@ -126,6 +128,8 @@ jobs:
         run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_crt17$"
       - name: Verify five original native CRT dependencies Win32 Release
         run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_runtime5$"
+      - name: Verify original game frame state-machine Win32 x86 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_active_frame$"
       - name: Upload actual x86 compiled game image
         uses: actions/upload-artifact@v4
         with:

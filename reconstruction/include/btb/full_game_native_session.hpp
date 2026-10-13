@@ -64,6 +64,7 @@ public:
 struct NativeSessionFrame {
     PreparedGameFrame prepared{};
     bool submitted{};
+    bool ready_for_present{}; // render complete; original frame driver owns present
     bool global_movie_opened{};
     bool walkthrough_opened{};
     bool walkthrough_closed{};
@@ -95,7 +96,15 @@ public:
     [[nodiscard]] NativeSessionFrame tick(
         ActivityFrameInput input,
         bool primary_input_pulse,
-        bool secondary_input_pulse);
+        bool secondary_input_pulse,
+        bool defer_present=false);
+
+    // Split native render from final Flip/Blt so retail 00402440 can
+    // check DirectDraw cooperative status in between. Existing callers
+    // retain normal tick(...)-and-present behavior by default.
+    [[nodiscard]] bool present_prepared(std::string& error);
+    void discard_prepared() noexcept { pending_present_=false; }
+
 
     [[nodiscard]] bool failed() const noexcept { return failed_; }
     [[nodiscard]] bool has_walkthrough() const noexcept {
@@ -115,6 +124,7 @@ private:
     OriginalWalkthroughCatalog walkthroughs_{};
     bool walkthrough_open_{};
     bool failed_{};
+    bool pending_present_{};
 };
 
 } // namespace btb::full_game
