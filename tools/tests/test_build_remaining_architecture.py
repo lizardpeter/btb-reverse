@@ -42,7 +42,8 @@ class FinalArchitectureTests(unittest.TestCase):
         self.assertEqual(self.summary["architecture_mapped"], 615)
         self.assertEqual(self.summary["source_written"], self.reviewed_count)
         self.assertEqual(self.summary["architecture_only"], 615 - self.reviewed_count)
-        self.assertEqual(self.summary["cpp_compiles"], sum(\n            r["source_stage"] == "compiles" for r in self.full))
+        self.assertEqual(self.summary["cpp_compiles"], sum(
+            r["source_stage"] == "compiles" for r in self.full))
         self.assertEqual(self.summary["behavior_verified"], 0)
 
     def test_final_224_are_runtime_only(self):
