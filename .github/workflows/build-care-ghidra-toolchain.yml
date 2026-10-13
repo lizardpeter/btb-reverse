@@ -1,0 +1,54 @@
+name: Build Care Bears Ghidra toolchain
+
+on:
+  push:
+    paths:
+      - .github/workflows/build-care-ghidra-toolchain.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Fetch SHA-256 verified official Ghidra
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 6 --retry-delay 2 --output ghidra.zip \
+            https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_11.4.2_build/ghidra_11.4.2_PUBLIC_20250826.zip
+          echo "795a02076af16257bd6f3f4736c4fc152ce9ff1f95df35cd47e2adc086e037a6  ghidra.zip" | sha256sum --check
+          unzip -q ghidra.zip
+          mv ghidra_11.4.2_PUBLIC ghidra
+      - name: Install third-party unSP SLEIGH processor and verify compilation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth=1 https://github.com/SamuelWAnderson45/ghidra-unSP.git unsp
+          mkdir -p ghidra/Ghidra/Processors/unSP
+          cp -r unsp/data unsp/Module.manifest unsp/extension.properties ghidra/Ghidra/Processors/unSP/
+          chmod +x ghidra/support/sleigh ghidra/support/analyzeHeadless
+          ghidra/support/sleigh -a ghidra/Ghidra/Processors/unSP
+          test -s ghidra/Ghidra/Processors/unSP/data/languages/unsp.sla
+          sha256sum ghidra/Ghidra/Processors/unSP/data/languages/unsp.sla > processor.sha256
+          git -C unsp rev-parse HEAD > processor-revision.txt
+          echo 'µnSP SLEIGH processor successfully compiled'
+      - name: Archive installed headless toolchain (NO cartridge ROM)
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf care-ghidra-toolchain.tar.gz ghidra
+          du -h care-ghidra-toolchain.tar.gz
+      - name: Upload portable Ghidra+unSP for local execution
+        uses: actions/upload-artifact@v4
+        with:
+          name: care-ghidra-11_4_2-unsp
+          path: |
+            care-ghidra-toolchain.tar.gz
+            processor.sha256
+            processor-revision.txt
+          retention-days: 7
+          compression-level: 0
