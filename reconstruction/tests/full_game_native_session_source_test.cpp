@@ -336,6 +336,7 @@ int main() {
         assert(game.select_profile(0));
         assert(game.install_pregame_front_end_pair(
             State::GolfPregameSetup,std::make_unique<Instruction>()));
+        game.globals().menu.selected_subgame=1;
         Device device;
         device.fail_present=true;
         NativeGameSession session{
@@ -354,6 +355,7 @@ int main() {
         assert(game.select_profile(0));
         assert(game.install_pregame_front_end_pair(
             State::GolfPregameSetup,std::make_unique<Instruction>()));
+        game.globals().menu.selected_subgame=1;
         Device device;
         NativeGameSession session{
             game,device,OriginalAssetResolver{directory},
