@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <string_view>
 #include <functional>
+#include <utility>
 namespace btb::original_runtime16 {
 using U32=std::uint32_t;using I32=std::int32_t;using U64=std::uint64_t;
 // Fields retain the original 32-byte FILE and eight-byte descriptor layout.

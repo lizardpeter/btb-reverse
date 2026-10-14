@@ -1,5 +1,6 @@
 #include "btb/original_startup11.hpp"
 #include <bit>
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <sstream>

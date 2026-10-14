@@ -1,5 +1,6 @@
 #include "btb/original_startup11.hpp"
 #include <cstdlib>
+#include <stdexcept>
 #include <cstring>
 #include <unordered_map>
 #include <unordered_set>
