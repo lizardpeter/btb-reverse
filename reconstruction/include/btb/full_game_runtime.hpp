@@ -10,6 +10,7 @@
 #include "btb/player_profiles.hpp"
 #include "btb/profile_name_entry.hpp"
 #include "btb/original_profile_screen.hpp"
+#include "btb/original_help2.hpp"
 
 #include <array>
 #include <cstddef>
@@ -314,6 +315,7 @@ public:
         profile_directory_ = std::move(directory);
     }
     void set_outer_state(game_flow::State state) noexcept;
+    void begin_original_help(help::State&,bool name_popup,bool progress_screen,help::Services&);
     [[nodiscard]] bool delete_profile(int index);
     // Supplies the original loaddata/fontdatablue.txt rectangles. The
     // five-sign selector still owns deciding which profile to create.

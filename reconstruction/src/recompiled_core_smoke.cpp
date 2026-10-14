@@ -1,6 +1,8 @@
 #include "btb/recompiled_core_smoke.hpp"
 #include "btb/original_runtime16.hpp"
 #include "btb/original_float6.hpp"
+#include "btb/original_exception9.hpp"
+#include "btb/original_startup11.hpp"
 #include "btb/original_string8.hpp"
 #include "btb/original_crt9.hpp"
 #include "btb/original_shared_ui8.hpp"
@@ -44,6 +46,8 @@
 namespace btb::full_game {
 
 bool verify_linked_recompiled_core() {
+    if(!btb::original_exception9::verify_9_original_exception_functions())return false;
+    if(!btb::original_startup11::verify_11_original_startup_functions())return false;
     if(!btb::original_float6::verify_6_original_float_functions())return false;
     if(!btb::original_runtime16::verify_16_original_runtime_functions())return false;
     if(!btb::original_string8::verify_8_original_string_functions())return false;
@@ -69,6 +73,20 @@ bool verify_linked_recompiled_core() {
     if (!btb::original_games14::verify_14_original_game_systems()) return false;
     if (!btb::original_leaf::verify_25_original_leaf_calls()) return false;
     if (!btb::original_game13::verify_13_original_game_calls()) return false;
+    // Force original help loading and its GameRoot caller into game linkage.
+    struct HelpValidation final:btb::help::Services {
+        bool copied{},voiced{};
+        void copy_front_buffer_to_help_surface() override {copied=true;}
+        void play_help_voice(std::int32_t sound,std::int32_t priority) override {
+            voiced=copied && sound==476 && priority==1;
+        }
+    } help_services;
+    btb::help::State help_state;
+    std::istringstream help_data("END");
+    btb::help::load_original_help_info(help_state,help_data);
+    GameRoot help_root;help_root.globals().dispatcher.current_state=1;
+    help_root.begin_original_help(help_state,false,false,help_services);
+    if(!help_services.voiced || !help_state.active || help_state.context!=0)return false;
     // The real 68-state GameRoot is called; metadata-only architecture
     // registries or the early Dinosaur-only Session are NOT involved.
     GameRoot root{};

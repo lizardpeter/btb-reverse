@@ -2,17 +2,18 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-14): **419/615** discovered
+Current compiled-source milestone (2026-10-14): **441/615** discovered
 function reconstructions are compiled and linked to executed source tests;
-**123 CTest tests pass**. The latest batch adds six connected floating-point
-runtime bodies and fixes the original rounding-carry return. All **34,314**
-new original-x86 numeric comparison cases pass. The original float/double
-wrappers now call the recovered converter directly. Full native gameplay
-caller integration and retail behavior equivalence remain incomplete;
-**0/615** are fully certified against retail behavior. See
-[numeric reconstruction and validation](docs/original-float6.md),
-[original string/x86 reference evidence](docs/original-string8.md), and
-[controller/runtime evidence](docs/profile-controller-runtime16.md).
+**126 CTest tests pass**. The latest batch adds **22 original bodies**:
+nine exception/string-error routines, eleven startup/descriptor routines,
+and two contextual-help routines. String error callers, buffered fclose,
+and the live GameRoot help-entry caller use the reconstructed dependencies.
+The new startup/help tests include **3,544 original-x86 comparison cases**.
+Full native gameplay caller integration and retail ABI equivalence remain
+incomplete; **0/615** are fully certified against retail behavior. See
+[latest connected batch](docs/batch-22-connected-runtime-help.md),
+[numeric reconstruction and validation](docs/original-float6.md), and
+[original string/x86 reference evidence](docs/original-string8.md).
 
 ## Source material
 

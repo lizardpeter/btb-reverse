@@ -1,0 +1,17 @@
+{
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "data_section": {
+    "virtual_address": "0x43e000",
+    "virtual_bytes": 916062,
+    "raw_bytes": 53248
+  },
+  "base_exception_message_00482574": {
+    "address": "0x00482574",
+    "storage": "zero-filled tail of PE .data section",
+    "initial_byte": 0
+  },
+  "string_npos_0043B334": {
+    "address": "0x0043B334",
+    "value": "0xffffffff"
+  }
+}

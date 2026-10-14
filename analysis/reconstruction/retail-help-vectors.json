@@ -1,0 +1,11 @@
+{
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "original_address": "004011B0",
+  "vectors": 272,
+  "vectors_sha256": "102278ebe3cd8436bdb130550e6ec2deed5efb840af605d8799a213d02d3edc9",
+  "controlled_dependencies": [
+    "DirectDraw Blt stdcall return",
+    "00401000 PlayHelpVoice cdecl return"
+  ],
+  "scope": "Original help-entry context/global writes for all 68 states and popup/progress flags; not graphical/audio behavior."
+}

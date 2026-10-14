@@ -1,0 +1,17 @@
+{
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "emulator": "Unicorn 2.1.4",
+  "original_addresses": [
+    "00435A9D",
+    "00433640",
+    "0043259C"
+  ],
+  "vector_counts": {
+    "ARGV": 2011,
+    "COUNT": 5,
+    "CAT": 256,
+    "PMD": 1000
+  },
+  "vectors_sha256": "e287ac2e7bdb901bb0b26375aa1b365df1d3202a7eab5da69222ebe53fdc2b54",
+  "scope": "Bounded source-result comparison, ASCII argv and supplied PMD memory; no whole-game/ABI certification."
+}

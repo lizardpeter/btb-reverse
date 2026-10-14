@@ -1,4 +1,5 @@
 #include "btb/original_string8.hpp"
+#include "btb/original_exception9.hpp"
 #include "btb/original_system14.hpp"
 #include <algorithm>
 #include <bit>
@@ -18,7 +19,7 @@ U32 allocation_bytes(U32 capacity) noexcept {
 }
 void check_length(U32 n) {
     if(n>static_cast<U32>(btb::original_system14::string_error_code_minus_three()))
-        throw std::length_error("string too long");
+        btb::original_exception9::throw_string_too_long();
 }
 // Original REP MOVSD followed by REP MOVSB, with each word loaded before
 // it is written. This avoids imposing memcpy's overlap precondition.
@@ -116,7 +117,7 @@ void detach_shared_buffer(String& s,Heap& heap) {
     old[-1]=static_cast<char>(static_cast<unsigned char>(old[-1])-1);
     s.data=nullptr;s.length=0;s.capacity=0;
     const auto length=std::strlen(old);
-    if(length>0xfffffffdULL)throw std::length_error("string too long");
+    if(length>0xfffffffdULL)btb::original_exception9::throw_string_too_long();
     assign_buffer(s,old,static_cast<U32>(length),heap);
 }
 void* move_bytes(void* destination,const void* source,U32 count) noexcept {
@@ -129,7 +130,7 @@ void* move_bytes(void* destination,const void* source,U32 count) noexcept {
     return destination;
 }
 String& assign_substring(String& dest,const String& source,U32 offset,U32 count,Heap& heap) {
-    if(offset>source.length)throw std::out_of_range("invalid string position");
+    if(offset>source.length)btb::original_exception9::throw_invalid_string_position();
     const U32 length=std::min(count,source.length-offset);
     if(&dest==&source) {
         const U32 end=offset+length;

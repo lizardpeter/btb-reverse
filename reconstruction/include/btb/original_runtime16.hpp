@@ -5,6 +5,7 @@
 #include <span>
 #include <cstdint>
 #include <string_view>
+#include <functional>
 namespace btb::original_runtime16 {
 using U32=std::uint32_t;using I32=std::int32_t;using U64=std::uint64_t;
 // Fields retain the original 32-byte FILE and eight-byte descriptor layout.
@@ -68,8 +69,10 @@ public:
     BufferedIoLink(const BufferedIoLink&)=delete;
     BufferedIoLink& operator=(const BufferedIoLink&)=delete;
     btb::original_crt10::Io callbacks();
+    void set_descriptor_close(std::function<I32(U32)> close){close_=std::move(close);}
 private:
     IoState& state_;IoServices& services_;btb::original_crt10::Io upstream_;
+    std::function<I32(U32)> close_;
 };
 bool verify_16_original_runtime_functions();
 } // namespace btb::original_runtime16

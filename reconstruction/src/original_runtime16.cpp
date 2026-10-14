@@ -196,7 +196,10 @@ btb::original_crt10::Io BufferedIoLink::callbacks() {
     if(upstream_.deallocate)out.deallocate=+[](U32 address,void* ctx) {
         auto& base=static_cast<BufferedIoLink*>(ctx)->upstream_;base.deallocate(address,base.ctx);
     };
-    if(upstream_.close_handle)out.close_handle=+[](I32 fd,void* ctx)->I32 {
+    if(close_)out.close_handle=+[](I32 fd,void* ctx)->I32 {
+        return static_cast<BufferedIoLink*>(ctx)->close_(static_cast<U32>(fd));
+    };
+    else if(upstream_.close_handle)out.close_handle=+[](I32 fd,void* ctx)->I32 {
         auto& base=static_cast<BufferedIoLink*>(ctx)->upstream_;return base.close_handle(fd,base.ctx);
     };
     if(upstream_.lock)out.lock=+[](File& file,void* ctx)->I32 {

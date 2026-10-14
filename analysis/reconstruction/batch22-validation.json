@@ -1,0 +1,46 @@
+{
+  "new_addresses": {
+    "exception9": [
+      "00406580",
+      "00406620",
+      "00439F23",
+      "00439FB1",
+      "0043A00A",
+      "0043A067",
+      "0043A14F",
+      "00439EC9",
+      "0043A0F5"
+    ],
+    "startup11": [
+      "00435A9D",
+      "00435A04",
+      "0043594B",
+      "00430884",
+      "00433640",
+      "0043259C",
+      "004382FB",
+      "0043619C",
+      "00435D83",
+      "00431129",
+      "004372D7"
+    ],
+    "help2": [
+      "00401030",
+      "004011B0"
+    ]
+  },
+  "new_count": 22,
+  "compiled_source_count": 441,
+  "total_functions": 615,
+  "remaining": 174,
+  "ctest_passed": 126,
+  "python_tests_passed": 16,
+  "startup_x86_vectors": 3272,
+  "help_entry_x86_vectors": 272,
+  "sanitizers": [
+    "Exception9 native ASan/UBSan",
+    "Startup11 native ASan/UBSan"
+  ],
+  "scope": "Compiled source and executed regressions; original binary ABI and full gameplay/retail behavior not certified.",
+  "behavior_verified": false
+}
