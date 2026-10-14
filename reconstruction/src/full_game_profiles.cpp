@@ -38,7 +38,11 @@ bool GameRoot::load_profile_files(
                 "player" + std::to_string(i + 1) + ".txt";
             const auto source = directory / filename;
             if (!std::filesystem::exists(source)) {
-                continue; // Original first-run profiles have no save yet.
+                // 0x0042D270 writes -1 to the first progress word when
+                // playerN.txt is absent; zero incorrectly means an existing
+                // first-run save. The remaining 99 words stay zero.
+                records[i].values[0] = -1;
+                continue;
             }
 
             std::ifstream in(source, std::ios::binary);
@@ -57,6 +61,9 @@ bool GameRoot::load_profile_files(
     globals_.profile_metadata = std::move(metadata);
     globals_.player_progress = std::move(records);
     globals_.active_profile.reset();
+    name_entry_.reset();
+    name_entry_blue_font_.clear();
+    name_entry_phase_ = 0;
     globals_.finale_gate = {};
     profile_directory_ = directory;
     activity_select_initialized_ = false;

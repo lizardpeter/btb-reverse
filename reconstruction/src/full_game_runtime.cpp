@@ -1,6 +1,7 @@
 #include "btb/full_game_runtime.hpp"
 
 #include <utility>
+#include <fstream>
 
 namespace btb::full_game {
 
@@ -82,10 +83,22 @@ bool GameRoot::select_profile(int index) noexcept {
 bool GameRoot::delete_profile(int index) {
     if (index < 0 ||
         index >= static_cast<int>(progress::kPlayerCount) ||
-        initialized_activity_) {
+        initialized_activity_ || name_entry_) {
         return false;
     }
     const auto i = static_cast<std::size_t>(index);
+    // 0042E110 clears all five per-player activity files with fopen("w").
+    // Otherwise a newly created profile in this slot inherits the deleted
+    // player's Park Designer, Fireworks and three compositions.
+    if (!profile_directory_.empty()) {
+        for (const auto& filename : profiles::activity_files_for_profile(i)) {
+            std::ofstream out(profile_directory_ / filename,
+                              std::ios::binary | std::ios::trunc);
+            if (!out) return false;
+            out.close();
+            if (!out) return false;
+        }
+    }
     profiles::delete_profile_in_memory(
         globals_.profile_metadata, globals_.player_progress, i);
     if (globals_.active_profile == index) {
@@ -263,6 +276,9 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
     }
 
     const auto& state = *dispatch.dispatch;
+    if (state.state == game_flow::State::PlayerProfileAndNameEntry && name_entry_) {
+        return advance_profile_name_entry(effective_input,std::move(result));
+    }
     if (state.kind == game_flow::StateKind::NoOp) {
         result.kind = FrameKind::StateNoOp;
         return result;

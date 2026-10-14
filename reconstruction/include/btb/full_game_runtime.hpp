@@ -8,6 +8,7 @@
 #include "btb/full_game_startup_movies.hpp"
 #include "btb/player_progress.hpp"
 #include "btb/player_profiles.hpp"
+#include "btb/profile_name_entry.hpp"
 
 #include <array>
 #include <cstddef>
@@ -181,6 +182,9 @@ struct ActivityFrameInput {
     // mapping is 0x01 Left, 0x02 Right, 0x04 Up, 0x08 Down.
     // Activity-specific providers decide how to consume this input.
     std::uint8_t directional_input_bits{};
+    std::array<std::uint8_t,256> keyboard_state{};
+    int translated_character{-1};
+    bool pointer_button_held{};
 };
 
 struct ActivityFrameOutput {
@@ -279,6 +283,7 @@ struct GameFrame {
     bool clear_input_pulse{};
     bool state_changed{};
     bool profile_saved{};
+    bool clear_translated_character{};
 };
 
 // This is the shared source-level coordinator for ten native activities.
@@ -309,10 +314,17 @@ public:
     }
     void set_outer_state(game_flow::State state) noexcept;
     [[nodiscard]] bool delete_profile(int index);
+    // Supplies the original loaddata/fontdatablue.txt rectangles. The
+    // five-sign selector still owns deciding which profile to create.
+    [[nodiscard]] bool begin_profile_name_entry(
+        int index,std::span<const Rect> blue_font_rectangles,
+        std::span<const Rect> fonttools_badge_rectangles);
     [[nodiscard]] GameFrame advance(const ActivityFrameInput& input);
     [[nodiscard]] bool unload_current(std::string& error);
 
 private:
+    [[nodiscard]] GameFrame advance_profile_name_entry(
+        const ActivityFrameInput&,GameFrame);
     void apply_effects(const ActivityFrameOutput& output) noexcept;
     void consume_menu_action(
         game_flow::State update,
@@ -330,6 +342,11 @@ private:
     std::optional<ActivityId> initialized_activity_{};
     GameGlobals globals_{};
     std::filesystem::path profile_directory_{};
+    std::optional<profiles::NameEntryState> name_entry_{};
+    std::vector<Rect> name_entry_blue_font_{};
+    std::array<Rect,6> name_entry_badges_{};
+    int name_entry_phase_{};
+    int name_entry_blink_{};
 };
 
 } // namespace btb::full_game

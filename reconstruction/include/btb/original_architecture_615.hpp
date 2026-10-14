@@ -329,7 +329,7 @@ inline constexpr std::array<OriginalArchitecture615,615> kOriginalArchitecture61
   {0x0042d060U,"SaveAndUnloadPlayerProfiles","profiles_and_ui","ProfilesSubsystem",1,13,false,false},
   {0x0042d270U,"InitializeAndLoadPlayerProfiles","profiles_and_ui","ProfilesSubsystem",1,31,false,false},
   {0x0042db70U,"DrawEnterNamePopup","profiles_and_ui","ProfilesAndUIModule",2,13,true,false},
-  {0x0042dcc0U,"UpdateEnterNamePopup","profiles_and_ui","ProfilesAndUIModule",1,26,false,false},
+  {0x0042dcc0U,"UpdateEnterNamePopup","profiles_and_ui","ProfilesAndUIModule",1,26,true,false},
   {0x0042e110U,"UpdatePlayerProfileScreen","profiles_and_ui","ProfilesSubsystem",1,44,false,false},
   {0x0042ead0U,"DirectDrawCreateEx","profiles_and_ui","DisplaySubsystem",2,0,false,false},
   {0x0042fb50U,"DirectInput8Create","static_runtime","MsvcRuntimeModule",1,0,false,false},

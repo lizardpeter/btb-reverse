@@ -34,6 +34,14 @@ void write_playerinfo(
     std::ostream& out,
     const ProfileTable& profiles) {
 
+    // Reject invalid host state before emitting a partial file or reading
+    // outside the original nine-word name slot.
+    for (const auto& profile : profiles) {
+        if (profile.name_length < 0 ||
+            profile.name_length > static_cast<std::int32_t>(kMaxNameGlyphs)) {
+            throw std::runtime_error("playerinfo.txt name length out of range");
+        }
+    }
     for (const auto& profile : profiles) {
         out << profile.name_length << ' '
             << profile.badge_index << ' ';

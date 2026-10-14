@@ -2,6 +2,13 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
+Current compiled-source milestone (2026-10-14): **388/615** discovered
+function reconstructions are compiled and linked to executed source tests;
+**118 CTest tests pass**. This includes 93 previously written implementations
+and a new original name-entry routine. Full native gameplay caller integration
+and retail behavior equivalence remain incomplete; **0/615** are certified
+against retail behavior. See [name-entry and build evidence](docs/profile-name-entry-reconstruction.md).
+
 ## Source material
 
 The original game files are intentionally **not committed** to this repository. Point the tooling at a local copy of the installed game or CD contents.

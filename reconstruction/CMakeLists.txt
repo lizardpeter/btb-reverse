@@ -378,6 +378,7 @@ add_test(NAME player_progress COMMAND btb_player_progress_tests)
 
 add_library(btb_player_profiles
     src/player_profiles.cpp
+    src/profile_name_entry.cpp
 )
 target_include_directories(btb_player_profiles PUBLIC include)
 btb_require_cpp26(btb_player_profiles PUBLIC)
@@ -387,6 +388,10 @@ add_executable(btb_player_profiles_tests
 )
 target_link_libraries(btb_player_profiles_tests PRIVATE btb_player_profiles)
 add_test(NAME player_profiles COMMAND btb_player_profiles_tests)
+
+add_executable(btb_profile_name_entry_tests tests/profile_name_entry_test.cpp)
+target_link_libraries(btb_profile_name_entry_tests PRIVATE btb_player_profiles)
+add_test(NAME profile_name_entry COMMAND btb_profile_name_entry_tests)
 
 
 add_library(btb_sound_manager
@@ -591,6 +596,7 @@ add_test(NAME full_game_audio_source COMMAND btb_full_game_audio_source_tests)
 add_library(btb_full_game_root_source
     src/full_game_runtime.cpp
     src/full_game_profiles.cpp
+    src/full_game_profile_name_entry.cpp
 )
 target_include_directories(btb_full_game_root_source PUBLIC include)
 btb_require_cpp26(btb_full_game_root_source PUBLIC)
@@ -1168,6 +1174,22 @@ add_executable(btb_recompiled_core_link_tests
     tests/recompiled_core_link_test.cpp)
 target_link_libraries(btb_recompiled_core_link_tests PRIVATE btb_recompiled_core)
 add_test(NAME recompiled_core_link COMMAND btb_recompiled_core_link_tests)
+
+# This source regression was previously checked in but never registered.
+add_executable(btb_bobs_band_source_tests tests/bobs_band_source_test.cpp)
+target_link_libraries(btb_bobs_band_source_tests PRIVATE btb_recompiled_core)
+add_test(NAME bobs_band_source COMMAND btb_bobs_band_source_tests)
+
+foreach(test_target IN ITEMS btb_profile_name_entry_tests
+        btb_full_game_profiles_source_tests btb_bobs_band_source_tests)
+    # These regressions use assert, including state-changing expressions.
+    # Keep them active in the Windows Release CI configurations as well.
+    if(MSVC)
+        target_compile_options(${test_target} PRIVATE /UNDEBUG)
+    else()
+        target_compile_options(${test_target} PRIVATE -UNDEBUG)
+    endif()
+endforeach()
 
 # Test actual linked game executable on every supported platform,
 # including original x86 Windows (not only a library-linked test program).
