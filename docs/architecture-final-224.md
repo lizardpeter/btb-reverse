@@ -35,7 +35,7 @@ Original executable SHA-256: c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd
 ## Reconstruction boundary
 
 615/615 architecture-mapped does not mean 615/615 rewritten in C++.
-Current source-written or compiled functions: 444; remaining: 171.
+Current source-written or compiled functions: 459; remaining: 156.
 Frozen architecture cohorts are independent of reconstruction status.
 Recover runtime layouts, identify import thunks,
 and integrate original gameplay functions before claiming fidelity.

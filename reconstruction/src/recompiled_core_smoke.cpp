@@ -3,6 +3,8 @@
 #include "btb/original_float6.hpp"
 #include "btb/original_exception9.hpp"
 #include "btb/original_editor3.hpp"
+#include "btb/original_locale7.hpp"
+#include "btb/original_runtime15.hpp"
 #include "btb/original_startup11.hpp"
 #include "btb/original_string8.hpp"
 #include "btb/original_crt9.hpp"
@@ -48,6 +50,8 @@ namespace btb::full_game {
 
 bool verify_linked_recompiled_core() {
     if(!btb::original_editor3::verify_3_original_editor_functions())return false;
+    if(!btb::original_locale7::verify_7_original_locale_functions())return false;
+    if(!btb::original_runtime15::verify_8_original_runtime_functions())return false;
     if(!btb::original_exception9::verify_9_original_exception_functions())return false;
     if(!btb::original_startup11::verify_11_original_startup_functions())return false;
     if(!btb::original_float6::verify_6_original_float_functions())return false;

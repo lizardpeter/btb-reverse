@@ -1,0 +1,29 @@
+{
+  "new_addresses": [
+    "0043646F",
+    "004365C0",
+    "004370B3",
+    "00438404",
+    "004375A9",
+    "004327E1",
+    "00436F12",
+    "00436B93",
+    "004369E7",
+    "004326B8",
+    "0043854D",
+    "0043576F",
+    "00433824",
+    "0043669F",
+    "00433888"
+  ],
+  "compiled_source_count": 459,
+  "remaining": 156,
+  "ctest_passed": 129,
+  "python_tests_passed": 16,
+  "original_x86_cases": 7500,
+  "retail_vector_evidence": "analysis/reconstruction/retail-runtime15-vectors.json",
+  "locale_validation": "All byte cases and controlled NLS protocol/boundary tests; real Windows NLS adapter tests configured in CI",
+  "sanitizers": "Native runtime and locale ASan/UBSan builds and executions pass; leak detection disabled for restricted proc",
+  "scope": "Compiled source reconstruction with connected dependencies; host service integration and retail ABI/full-game certification incomplete.",
+  "behavior_verified": false
+}

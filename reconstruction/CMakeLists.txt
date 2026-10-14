@@ -933,6 +933,10 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 # ---------------------------------------------------------------
 add_library(btb_recompiled_core STATIC
     src/original_editor3.cpp
+    src/original_locale7.cpp
+    src/original_locale7_validation.cpp
+    src/original_runtime15.cpp
+    src/original_runtime15_validation.cpp
     src/original_help2.cpp
     src/full_game_original_help.cpp
     src/original_exception9.cpp
@@ -1323,3 +1327,20 @@ endif()
 add_executable(btb_original_editor3_tests tests/original_editor3_test.cpp)
 target_link_libraries(btb_original_editor3_tests PRIVATE btb_recompiled_core)
 add_test(NAME original_editor3 COMMAND btb_original_editor3_tests ${CMAKE_CURRENT_SOURCE_DIR}/../analysis/reconstruction/retail-editor-vectors.txt)
+
+if(WIN32)
+    target_sources(btb_recompiled_core PRIVATE src/win32_original_locale7.cpp)
+endif()
+add_executable(btb_original_runtime15_tests tests/original_runtime15_test.cpp)
+target_link_libraries(btb_original_runtime15_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_runtime15 COMMAND btb_original_runtime15_tests ${CMAKE_CURRENT_SOURCE_DIR}/../analysis/reconstruction/retail-runtime15-vectors.txt)
+add_executable(btb_original_locale7_tests tests/original_locale7_test.cpp)
+target_link_libraries(btb_original_locale7_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_locale7 COMMAND btb_original_locale7_tests)
+foreach(target btb_original_runtime15_tests btb_original_locale7_tests)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /UNDEBUG)
+    else()
+        target_compile_options(${target} PRIVATE -UNDEBUG)
+    endif()
+endforeach()

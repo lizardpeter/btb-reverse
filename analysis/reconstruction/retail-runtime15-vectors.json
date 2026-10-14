@@ -1,0 +1,28 @@
+{
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "emulator": "Unicorn 2.1.4",
+  "vector_counts": {
+    "TRANS": 1500,
+    "DST": 1500,
+    "CAL": 1500,
+    "IO": 2000,
+    "SIGNAL": 1000
+  },
+  "vectors_sha256": "4d6bd49a8657236f3e2a108ec298dd345ff0fee58a72433d67ffa7cefddfb355",
+  "original_addresses": [
+    "00436B93",
+    "004369E7",
+    "004326B8",
+    "0043669F",
+    "00433888",
+    "0043854D",
+    "0043576F"
+  ],
+  "controlled_dependencies": [
+    "00430D93 allocation success/failure",
+    "00433961 descriptor read result/data",
+    "guest signal handler trace",
+    "timezone initialization latch set; no tzset called"
+  ],
+  "scope": "Original control flow, state mutations and service requests; not whole-game or operating-system certification."
+}

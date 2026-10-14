@@ -2,17 +2,18 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-14): **444/615** discovered
+Current compiled-source milestone (2026-10-14): **459/615 (74.6%)** discovered
 function reconstructions are compiled and linked to executed source tests;
-**127 CTest tests pass**. The latest batch reconstructs the larger original
-Fireworks hit-test and Squirrel motion-selection/conveyor-generation bodies,
-with **3,000 original-x86 state, RNG and cursor/audio request comparisons**.
-The Squirrel selector is connected to the loaded-motion animation consumer.
+**156 remain** and **129 CTest tests pass**. The latest batch adds **15 original
+functions** covering locale conversion/case mapping, dates/DST, signal dispatch
+and buffered input, with **7,500 original-x86 comparisons**. Locale services
+include a real Windows NLS adapter. Recovered callers now connect classification,
+FILE input, calendar conversion and signal-table lookup bodies directly.
 Full native gameplay caller integration and retail ABI equivalence remain
 incomplete; **0/615** are fully certified against retail behavior. See
-[editor reconstruction and evidence](docs/original-editor3.md),
-[preceding 22-function batch](docs/batch-22-connected-runtime-help.md), and
-[numeric reconstruction and validation](docs/original-float6.md).
+[15-function runtime batch and evidence](docs/original-runtime15.md),
+[editor reconstruction and evidence](docs/original-editor3.md), and
+[preceding 22-function batch](docs/batch-22-connected-runtime-help.md).
 
 ## Source material
 
