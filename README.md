@@ -2,18 +2,17 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-14): **441/615** discovered
+Current compiled-source milestone (2026-10-14): **444/615** discovered
 function reconstructions are compiled and linked to executed source tests;
-**126 CTest tests pass**. The latest batch adds **22 original bodies**:
-nine exception/string-error routines, eleven startup/descriptor routines,
-and two contextual-help routines. String error callers, buffered fclose,
-and the live GameRoot help-entry caller use the reconstructed dependencies.
-The new startup/help tests include **3,544 original-x86 comparison cases**.
+**127 CTest tests pass**. The latest batch reconstructs the larger original
+Fireworks hit-test and Squirrel motion-selection/conveyor-generation bodies,
+with **3,000 original-x86 state, RNG and cursor/audio request comparisons**.
+The Squirrel selector is connected to the loaded-motion animation consumer.
 Full native gameplay caller integration and retail ABI equivalence remain
 incomplete; **0/615** are fully certified against retail behavior. See
-[latest connected batch](docs/batch-22-connected-runtime-help.md),
-[numeric reconstruction and validation](docs/original-float6.md), and
-[original string/x86 reference evidence](docs/original-string8.md).
+[editor reconstruction and evidence](docs/original-editor3.md),
+[preceding 22-function batch](docs/batch-22-connected-runtime-help.md), and
+[numeric reconstruction and validation](docs/original-float6.md).
 
 ## Source material
 

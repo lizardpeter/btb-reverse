@@ -1,0 +1,16 @@
+{
+  "new_addresses": [
+    "004126F0",
+    "004259D0",
+    "00426F30"
+  ],
+  "compiled_source_count": 444,
+  "remaining": 171,
+  "ctest_passed": 127,
+  "python_tests_passed": 16,
+  "original_x86_cases": 3000,
+  "sanitizers": "Native editor ASan/UBSan pass; leak detection disabled for restricted proc",
+  "previous_windows_ci_fix": "761264e",
+  "scope": "Source reconstruction plus bounded original state/RNG/request parity; complete native activity integration and ABI/full retail certification incomplete.",
+  "behavior_verified": false
+}

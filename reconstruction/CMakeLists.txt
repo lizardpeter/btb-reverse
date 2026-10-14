@@ -932,6 +932,7 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 # remaining activities or verified original executable parity.
 # ---------------------------------------------------------------
 add_library(btb_recompiled_core STATIC
+    src/original_editor3.cpp
     src/original_help2.cpp
     src/full_game_original_help.cpp
     src/original_exception9.cpp
@@ -1318,3 +1319,7 @@ if(MSVC)
 else()
     target_compile_options(btb_original_help2_tests PRIVATE -UNDEBUG)
 endif()
+
+add_executable(btb_original_editor3_tests tests/original_editor3_test.cpp)
+target_link_libraries(btb_original_editor3_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_editor3 COMMAND btb_original_editor3_tests ${CMAKE_CURRENT_SOURCE_DIR}/../analysis/reconstruction/retail-editor-vectors.txt)

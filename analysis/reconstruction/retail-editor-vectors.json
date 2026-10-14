@@ -1,0 +1,19 @@
+{
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "emulator": "Unicorn 2.1.4",
+  "original_addresses": [
+    "004126F0",
+    "004259D0",
+    "00426F30"
+  ],
+  "vector_counts": {
+    "FIRE": 1000,
+    "SQUIRREL": 2000
+  },
+  "vectors_sha256": "e30cc3449b42d6bebf63d3e85906992067ff24ad16baf62cd7b236bca0b44ae8",
+  "controlled_dependencies": [
+    "00402CF0 sound request recorded, thiscall return",
+    "00407AF0 cursor request recorded, cdecl return"
+  ],
+  "scope": "Original editor state, RNG and cursor/audio request traces; not actual rendering/audio or whole-game certification."
+}
