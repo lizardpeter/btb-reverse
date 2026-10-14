@@ -379,6 +379,7 @@ add_test(NAME player_progress COMMAND btb_player_progress_tests)
 add_library(btb_player_profiles
     src/player_profiles.cpp
     src/profile_name_entry.cpp
+    src/original_profile_screen.cpp
 )
 target_include_directories(btb_player_profiles PUBLIC include)
 btb_require_cpp26(btb_player_profiles PUBLIC)
@@ -931,6 +932,10 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 # remaining activities or verified original executable parity.
 # ---------------------------------------------------------------
 add_library(btb_recompiled_core STATIC
+    src/original_string8.cpp
+    src/original_string8_validation.cpp
+    src/original_runtime16.cpp
+    src/original_runtime16_validation.cpp
     src/original_crt9.cpp
     src/original_crt9_probe.cpp
     src/original_shared_ui8.cpp
@@ -1180,8 +1185,26 @@ add_executable(btb_bobs_band_source_tests tests/bobs_band_source_test.cpp)
 target_link_libraries(btb_bobs_band_source_tests PRIVATE btb_recompiled_core)
 add_test(NAME bobs_band_source COMMAND btb_bobs_band_source_tests)
 
+add_executable(btb_original_profile_screen_tests tests/original_profile_screen_test.cpp)
+target_link_libraries(btb_original_profile_screen_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_profile_screen COMMAND btb_original_profile_screen_tests)
+
+add_executable(btb_original_runtime16_tests tests/original_runtime16_test.cpp)
+target_link_libraries(btb_original_runtime16_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_runtime16 COMMAND btb_original_runtime16_tests)
+
+add_executable(btb_original_string8_tests tests/original_string8_test.cpp)
+target_link_libraries(btb_original_string8_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_string8 COMMAND btb_original_string8_tests)
+
+add_executable(btb_retail_pure_runtime_vectors_tests tests/retail_pure_runtime_vectors_test.cpp)
+target_link_libraries(btb_retail_pure_runtime_vectors_tests PRIVATE btb_recompiled_core)
+add_test(NAME retail_pure_runtime_vectors COMMAND btb_retail_pure_runtime_vectors_tests
+    "${CMAKE_CURRENT_SOURCE_DIR}/../analysis/reconstruction/retail-pure-runtime-vectors.txt")
+
 foreach(test_target IN ITEMS btb_profile_name_entry_tests
-        btb_full_game_profiles_source_tests btb_bobs_band_source_tests)
+        btb_full_game_profiles_source_tests btb_bobs_band_source_tests
+        btb_original_profile_screen_tests btb_original_runtime16_tests btb_original_string8_tests)
     # These regressions use assert, including state-changing expressions.
     # Keep them active in the Windows Release CI configurations as well.
     if(MSVC)

@@ -1,0 +1,56 @@
+{
+  "base_commit": "a4d712ae77f5ccd45ead016ff778dd2bc1e203c6",
+  "compiler": "Clang 19.1.1, C++26",
+  "assertions_enabled": true,
+  "ctest_passed": 122,
+  "ctest_failed": 0,
+  "new_original_bodies": [
+    "0x00436231",
+    "0x004362A8",
+    "0x0043635F",
+    "0x00439627",
+    "0x00434005",
+    "0x00431242",
+    "0x004356A5",
+    "0x00435630",
+    "0x004380F0",
+    "0x0043867A",
+    "0x0043422A",
+    "0x004320AF",
+    "0x00437A60",
+    "0x004303BA",
+    "0x004303F7",
+    "0x00430835",
+    "0x0042E110",
+    "0x00406790",
+    "0x004067E9",
+    "0x00406810",
+    "0x004063A0",
+    "0x00406460",
+    "0x004068A0",
+    "0x00406150",
+    "0x00430500"
+  ],
+  "remainder_cases": 100000,
+  "retail_behavior_verified": 0,
+  "limitations": "Native profile provider/resource initializer and original CRT ABI integration remain incomplete.",
+  "sanitizer_checks": {
+    "runtime16": "AddressSanitizer + UndefinedBehaviorSanitizer passed",
+    "string8": "AddressSanitizer + UndefinedBehaviorSanitizer passed; explicit live-allocation tracking clean",
+    "leaksanitizer": "Disabled: environment process-task-directory restriction"
+  },
+  "original_x86_vector_comparison": {
+    "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+    "emulator": "Unicorn 2.1.4",
+    "executed_original_addresses": [
+      "00435630",
+      "004380F0",
+      "00430500"
+    ],
+    "remainder_vectors": 1030,
+    "strchr_vectors": 144,
+    "memmove_vectors": 704,
+    "vectors_sha256": "1cae2b973c38b7f0dbda1a7f75f317df0ef685c0bef8fb6139bf27de530d5f62",
+    "scope": "Original x86 instruction result checks for bounded valid inputs; not whole-game or complete ABI verification."
+  }
+}

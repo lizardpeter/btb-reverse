@@ -8,6 +8,18 @@
 
 namespace btb::full_game {
 
+void GameRoot::update_original_profile_screen(profiles::ProfileScreenState& state,
+    const profiles::ProfileScreenInput& input,profiles::ProfileScreenServices& services) {
+    const int prior=state.outer_state;
+    profiles::update_player_profile_screen(state,input,globals_.profile_metadata,
+        globals_.player_progress,services);
+    if(state.outer_state!=prior) {
+        if(state.selected_profile>=0)
+            static_cast<void>(select_profile(state.selected_profile));
+        globals_.dispatcher.current_state=state.outer_state;
+    }
+}
+
 bool GameRoot::load_profile_files(
     const std::filesystem::path& directory,
     std::string& error) {

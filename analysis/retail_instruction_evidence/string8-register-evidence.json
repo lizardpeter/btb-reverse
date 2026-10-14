@@ -1,0 +1,18 @@
+{
+  "executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "allocation_capacity_register": "ESI; rounded requested | 0x1f, or exact requested in catch continuation",
+  "replacement_string_register": "EBX",
+  "new_allocation_slot": "EBP+8",
+  "saved_capacity_slot": "EBP-0x14",
+  "function_info_address": "0043BFF0",
+  "try_block_address": "0043C020",
+  "handler_address": "0043C038",
+  "catch_descriptor": [
+    0,
+    0,
+    0,
+    "004067E9"
+  ],
+  "catch_type": "catch-all (null type descriptor)",
+  "checked_against_original_pe_bytes": true
+}

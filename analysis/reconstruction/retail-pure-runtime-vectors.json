@@ -1,0 +1,14 @@
+{
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "emulator": "Unicorn 2.1.4",
+  "executed_original_addresses": [
+    "00435630",
+    "004380F0",
+    "00430500"
+  ],
+  "remainder_vectors": 1030,
+  "strchr_vectors": 144,
+  "memmove_vectors": 704,
+  "vectors_sha256": "1cae2b973c38b7f0dbda1a7f75f317df0ef685c0bef8fb6139bf27de530d5f62",
+  "scope": "Original x86 instruction result checks for bounded valid inputs; not whole-game or complete ABI verification."
+}

@@ -2,12 +2,15 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-14): **388/615** discovered
+Current compiled-source milestone (2026-10-14): **413/615** discovered
 function reconstructions are compiled and linked to executed source tests;
-**118 CTest tests pass**. This includes 93 previously written implementations
-and a new original name-entry routine. Full native gameplay caller integration
+**122 CTest tests pass**. The latest batch adds the original five-sign
+profile controller, sixteen runtime bodies, and eight instruction-backed
+string/memory bodies, with real buffered-I/O caller connections. Full native gameplay caller integration
 and retail behavior equivalence remain incomplete; **0/615** are certified
-against retail behavior. See [name-entry and build evidence](docs/profile-name-entry-reconstruction.md).
+against retail behavior. See [original string/x86 reference evidence](docs/original-string8.md),
+[controller/runtime evidence](docs/profile-controller-runtime16.md)
+and [earlier name-entry evidence](docs/profile-name-entry-reconstruction.md).
 
 ## Source material
 

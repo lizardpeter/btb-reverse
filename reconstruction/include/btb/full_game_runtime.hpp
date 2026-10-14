@@ -9,6 +9,7 @@
 #include "btb/player_progress.hpp"
 #include "btb/player_profiles.hpp"
 #include "btb/profile_name_entry.hpp"
+#include "btb/original_profile_screen.hpp"
 
 #include <array>
 #include <cstddef>
@@ -319,6 +320,10 @@ public:
     [[nodiscard]] bool begin_profile_name_entry(
         int index,std::span<const Rect> blue_font_rectangles,
         std::span<const Rect> fonttools_badge_rectangles);
+    // Invokes original 0042E110 against the ONE live profile/progress table.
+    // Providers perform the required original rendering/audio/help/I/O calls.
+    void update_original_profile_screen(profiles::ProfileScreenState&,
+        const profiles::ProfileScreenInput&,profiles::ProfileScreenServices&);
     [[nodiscard]] GameFrame advance(const ActivityFrameInput& input);
     [[nodiscard]] bool unload_current(std::string& error);
 
