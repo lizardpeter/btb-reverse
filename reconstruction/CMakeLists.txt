@@ -1265,6 +1265,10 @@ endif()
 
 # Fail configuration if any production .cpp is silently left out of the
 # build, as happened previously to the Golf and Herding source files.
+if(WIN32)
+    target_sources(btb_recompiled_core PRIVATE src/win32_original_locale7.cpp)
+endif()
+
 file(GLOB BTB_PRODUCTION_CPP CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 get_property(BTB_BUILD_TARGETS DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
@@ -1328,9 +1332,6 @@ add_executable(btb_original_editor3_tests tests/original_editor3_test.cpp)
 target_link_libraries(btb_original_editor3_tests PRIVATE btb_recompiled_core)
 add_test(NAME original_editor3 COMMAND btb_original_editor3_tests ${CMAKE_CURRENT_SOURCE_DIR}/../analysis/reconstruction/retail-editor-vectors.txt)
 
-if(WIN32)
-    target_sources(btb_recompiled_core PRIVATE src/win32_original_locale7.cpp)
-endif()
 add_executable(btb_original_runtime15_tests tests/original_runtime15_test.cpp)
 target_link_libraries(btb_original_runtime15_tests PRIVATE btb_recompiled_core)
 add_test(NAME original_runtime15 COMMAND btb_original_runtime15_tests ${CMAKE_CURRENT_SOURCE_DIR}/../analysis/reconstruction/retail-runtime15-vectors.txt)
