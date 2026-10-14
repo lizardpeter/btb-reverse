@@ -80,7 +80,7 @@ constexpr bool increment_words96_masked(Words96& words,unsigned index) noexcept 
         carry=add32_with_carry(words[static_cast<unsigned>(i)],1, result);
         words[static_cast<unsigned>(i)]=result;
     }
-    return true;
+    return carry!=0;
 }
 
 // 004387E8: ___add_12, modular addition of 3x32-bit little-endian words.

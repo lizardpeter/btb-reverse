@@ -932,6 +932,7 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 # remaining activities or verified original executable parity.
 # ---------------------------------------------------------------
 add_library(btb_recompiled_core STATIC
+    src/original_float6.cpp
     src/original_string8.cpp
     src/original_string8_validation.cpp
     src/original_runtime16.cpp
@@ -1287,3 +1288,7 @@ foreach(btb_source IN LISTS BTB_PRODUCTION_CPP)
             "Add it to a CMake target so the compiler can find errors.")
     endif()
 endforeach()
+
+add_executable(btb_original_float6_tests tests/original_float6_test.cpp)
+target_link_libraries(btb_original_float6_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_float6 COMMAND btb_original_float6_tests ${CMAKE_CURRENT_SOURCE_DIR}/../analysis/reconstruction/retail-float-vectors.txt)

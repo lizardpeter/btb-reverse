@@ -23,6 +23,7 @@ void copy_words(Words96&,const Words96&) noexcept;
 void shift_left_one(Words96&) noexcept;
 void shift_right_one(Words96&) noexcept;
 [[nodiscard]] bool higher_parts_zero(const Words96&,unsigned bit_index) noexcept;
+// Returns final carry in EAX, not success. Original callers use overflow.
 [[nodiscard]] bool increment_masked(Words96&,unsigned bit_index) noexcept;
 void add_words(Words96&,const Words96&) noexcept;
 // 00436640 00436680
@@ -72,7 +73,10 @@ LegacyVptrObject* construct_object_a(LegacyVptrObject&,ObjectInitializer,void*);
 LegacyVptrObject* construct_object_b(LegacyVptrObject&,ObjectInitializer,void*);
 // 004379DA 004379F0 00437EB3 00437478
 using TableDecode=void(*)(U16*,U32*,U32,void*);
+// Direct linked conversion, using the recovered original format tables.
+void decode_first(const U16*,U32*);
 void decode_first(U16*,U32*,TableDecode,void*);
+void decode_second(const U16*,U32*);
 void decode_second(U16*,U32*,TableDecode,void*);
 using Decoder=void(*)(void*,U8*,I32*,void*,I32,void*);
 void decode_forward_zero(void*,U8*,I32*,void*,Decoder,void*);

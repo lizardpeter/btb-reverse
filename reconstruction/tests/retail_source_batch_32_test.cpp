@@ -72,11 +72,14 @@ int main(){
 
     // 004376BD add masked bit and carry toward smaller-index limbs.
     w={0,0,0};
-    assert(increment_words96_masked(w,0));
+    assert(!increment_words96_masked(w,0));
     assert((w==Words96{0x80000000U,0,0}));
     w={0,0xffffffffU,0};
-    assert(increment_words96_masked(w,63));
+    assert(!increment_words96_masked(w,63));
     assert((w==Words96{1,0,0}));
+    w={0xffffffffU,0xffffffffU,0};
+    assert(increment_words96_masked(w,63));
+    assert((w==Words96{0,0,0}));
     assert(!increment_words96_masked(w,96));
 
     // 004387E8 3-limb addition.

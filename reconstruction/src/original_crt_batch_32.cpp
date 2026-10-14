@@ -1,4 +1,5 @@
 #include "btb/original_crt_batch_32.hpp"
+#include "btb/original_float6.hpp"
 #include <bit>
 #include <cstring>
 #include <limits>
@@ -51,7 +52,7 @@ bool increment_masked(Words96& w,unsigned index) noexcept {
         carry=add32_with_carry(w[static_cast<std::size_t>(i)],1,sum);
         w[static_cast<std::size_t>(i)]=sum;
     }
-    return true;
+    return carry!=0;
 }
 void add_words(Words96& lhs,const Words96& rhs) noexcept {
     U32 carry=0;
@@ -160,6 +161,16 @@ LegacyVptrObject* construct_object_b(
     if(initialize)initialize(ctx);
     obj.vtable=0x0043bb84U;
     return &obj;
+}
+void decode_first(const U16* input,U32* output){
+    original_float6::Extended12 value;
+    for(unsigned i=0;i<6;++i)value[i]=input[i];
+    (void)original_float6::convert_extended(value,std::span<U32>{output,2},original_float6::double_format);
+}
+void decode_second(const U16* input,U32* output){
+    original_float6::Extended12 value;
+    for(unsigned i=0;i<6;++i)value[i]=input[i];
+    (void)original_float6::convert_extended(value,std::span<U32>{output,1},original_float6::float_format);
 }
 void decode_first(U16* dst,U32* state,TableDecode fn,void* ctx){
     if(fn)fn(dst,state,0x00449f48U,ctx);

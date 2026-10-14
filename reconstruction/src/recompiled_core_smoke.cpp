@@ -1,5 +1,6 @@
 #include "btb/recompiled_core_smoke.hpp"
 #include "btb/original_runtime16.hpp"
+#include "btb/original_float6.hpp"
 #include "btb/original_string8.hpp"
 #include "btb/original_crt9.hpp"
 #include "btb/original_shared_ui8.hpp"
@@ -43,6 +44,7 @@
 namespace btb::full_game {
 
 bool verify_linked_recompiled_core() {
+    if(!btb::original_float6::verify_6_original_float_functions())return false;
     if(!btb::original_runtime16::verify_16_original_runtime_functions())return false;
     if(!btb::original_string8::verify_8_original_string_functions())return false;
     if(!btb::original_crt9::verify_9_original_crt_functions())return false;
