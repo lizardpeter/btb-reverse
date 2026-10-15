@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "pe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "entrypoints": [
+    "0x004332F2",
+    "0x004333F6",
+    "0x004334D4"
+  ],
+  "source": "reconstruction/src/original_crt_float3.cpp",
+  "header": "reconstruction/include/btb/original_crt_float3.hpp",
+  "test": "reconstruction/tests/original_crt_float3_test.cpp",
+  "validation": "source_written, CI pending",
+  "recovered": [
+    "Original digit buffer extraction interface from FUN00437AD7",
+    "Source FUN00437A60 guard digit rounding with carry and decimal-position increase",
+    "Source decimal separator DAT_00449B14",
+    "Source exponent e+000/E+000 format branch and fixed point placement",
+    "Source general -4 and significant-digit threshold"
+  ],
+  "outstanding": [
+    "Actual 80-bit x87 to decimal conversion and retail leading digit classification require native helper",
+    "Exact general formatting trailing zero/underflow flags vs MSVC original not yet differential validated",
+    "True x86 ABI entrypoints and native allocator contexts",
+    "Runtime callsite integration"
+  ]
+}
