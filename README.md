@@ -2,23 +2,24 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-15 UTC): **583/615 (94.8%)**
-discovered original-function source models compile and link into the native
-game core. **32 remain** and **145 CTest tests pass**.
+Current compiled-source milestone (2026-10-15 UTC): **587/615 (95.4%)**
+original discovered function source models compile and link into the native
+game core. **28 remain**, and **146 CTest tests pass**.
 
-The latest source models reconstruct `0042D270` player-profile initialization
-and `00412E50` Fireworks editor drawing with font and save loading,
-original resource-slot admission, actor animation and grid/overlay rendering.
-[PR #59](https://github.com/lizardpeter/btb-reverse/pull/59) passed Linux
-C++26, Python and Windows x86/x64 native game/provider regression CI.
+The latest four out-of-line source models reconstruct `00409990` Dino
+drawing, `0041C110` Maze drawing, `00414A60` Golf drawing, and
+`00416370` Herding drawing, with original sprite pass ordering,
+frame/state changes, Maze node boxes, Golf digits and animation, and
+Herding entity-depth ordering. [PR #60](https://github.com/lizardpeter/btb-reverse/pull/60)
+passed Linux C++26, Python, Windows x86 and x64 native game/provider CI.
 
-**0/615** bodies are fully certified for exact retail behavior.
-The actual game host has not yet been wired to these new provider
-interfaces, and no new original-binary differential comparisons were
-performed. Compiled-source coverage is not executable equivalence.
-See [latest profile/editor source models](docs/original-profiles-fireworks2.md),
-[Maze activity initialization](docs/original-maze-init2.md),
-and [Fireworks movie bank](docs/original-fireworks-start2.md).
+**0/615** functions are fully certified against original retail behavior.
+Exact x86 original-executable comparisons, real native renderer/provider
+wiring and complete game-flow integration remain unfinished. Compiled-source
+coverage is not game equivalence. See [the four latest drawing
+routines](docs/original-draw4.md), [profile and Fireworks
+drawing](docs/original-profiles-fireworks2.md), and
+[Maze initialization](docs/original-maze-init2.md).
 
 ## Source material
 

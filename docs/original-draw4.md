@@ -29,7 +29,20 @@ silently fabricated game assets. Live native-game caller admission and
 real resource providers remain unfinished.
 
 This patch is a genuine four-function *source model* batch, not a retail
-binary-identical port. The functions remain `source_written` until
-Linux C++26 and Windows x86/x64 builds and regression tests pass.
+binary-identical port. The functions passed all required build and regression checks and are
+now marked `compiles`.
 No additional original-executable comparisons were performed; the fully
 retail-verified count remains 0/615.
+
+## CI admission — October 15, 2026
+
+[GitHub Actions run 38780708122](https://github.com/lizardpeter/btb-reverse/actions/runs/38780708122)
+passed all four jobs: Linux C++26 compilation and **146/146 CTest tests**,
+Python checks, Windows x64 integrated game/provider build plus tests, and
+Windows x86 native game/COM-provider build and smoke/regression tests.
+
+All four entries are promoted to `compiles` (587/615; 28 remaining).
+No direct original executable differential comparisons were added.
+Retail-equivalent functions certified: 0/615. Native live caller
+integration, original DirectDraw/DirectInput paths, and exact source
+equivalence require separate testing.
