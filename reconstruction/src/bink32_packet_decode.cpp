@@ -1,5 +1,7 @@
 #include "btb/bink32_packet_decode.hpp"
 #include <cstdint>
+#include <bit>
+#include <algorithm>
 
 namespace btb::bink32_recovered {
 namespace {
@@ -62,4 +64,25 @@ bool LsbBitReader::align(unsigned bytes) noexcept {
     const auto remainder=pos_%multiple;
     return remainder==0 || skip(multiple-remainder);
 }
+
+ // Real original 0x3000FC04..0x3000FC68 computes the entropy lookup width
+ // from ((plane_width >> 3) * multiplier + base - 1), clamped at 15 bits.
+ // Original 0x3000FC76..0x3000FCA6 resets state and optional prefix mask.
+ EntropyPlaneSetup init_entropy_plane(
+     std::uintptr_t table_address, std::uint32_t symbol_base,
+     std::uint32_t plane_width, std::uint32_t symbol_bits,
+     std::uint32_t plane_multiplier, bool install_prefix_mask) noexcept {
+     const auto count=std::uint64_t(symbol_base)+
+         std::uint64_t(plane_width>>3)*plane_multiplier;
+     const auto width=std::bit_width(std::min<std::uint64_t>(
+         count?count-1:0,0x7fffU));
+     EntropyPlaneSetup out{};
+     out.symbol_bits=symbol_bits;
+     out.table_bit_width=width;
+     out.lookup_table_address=table_address;
+     if(install_prefix_mask && symbol_bits>=1 && symbol_bits<=32)
+         out.prefix_mask=std::uint32_t(1)<<(symbol_bits-1);
+     return out;
+ }
+
 } // namespace btb::bink32_recovered
