@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "original_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "entrypoints": [
+    "0040A670",
+    "00425160"
+  ],
+  "source": "reconstruction/src/original_init2.cpp",
+  "header": "reconstruction/include/btb/original_init2.hpp",
+  "test": "reconstruction/tests/original_init2_test.cpp",
+  "validation_status": "source_written, awaiting Linux and Windows CI",
+  "covered": [
+    "Original Squirrel 12 RNG rolls and copied cells",
+    "Original 16 Squirrel sprite slots / 15 magenta color keys",
+    "Original Squirrel run X offset read from parsed shipped data",
+    "Dino species/difficulty level index and conditional cursor tolerance",
+    "Original Dino permutation mapping and DirectDraw surface descriptor request",
+    "Dino special_render_anchor and audio volume attenuation"
+  ],
+  "unresolved": [
+    "Real game dispatcher initialization entrypoint linkage",
+    "Actual original asset resolver, DirectDraw and sound providers",
+    "Full retail x86 behavior and pointer-ABI parity",
+    "Other Dino asset string-format and offscreen behavior tracing"
+  ]
+}
