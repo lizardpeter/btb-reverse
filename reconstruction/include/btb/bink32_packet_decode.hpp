@@ -48,4 +48,17 @@ struct DecoderFrontier {
     static constexpr std::uint32_t entropy_setup=0x3000FC00U;
     static constexpr std::uint32_t entropy_tree=0x3000FCB0U;
 };
+
+ // Source model of internal 0x3000FC00: initializes entropy-plane state
+ // for the block decoder at 0x3000E400.
+ struct EntropyPlaneSetup {
+     std::uint32_t read_state{}, extra_state{}, symbol_bits{}, prefix_mask{};
+     std::uint32_t table_bit_width{};
+     std::uintptr_t lookup_table_address{};
+ };
+ [[nodiscard]] EntropyPlaneSetup init_entropy_plane(
+     std::uintptr_t table_address, std::uint32_t symbol_base,
+     std::uint32_t plane_width, std::uint32_t symbol_bits,
+     std::uint32_t plane_multiplier, bool install_prefix_mask) noexcept;
+
 } // namespace btb::bink32_recovered
