@@ -15,9 +15,12 @@ Save files are deliberately isolated from the original installed game:
 The same profile directory is passed to native Fireworks, Bob's Band,
 Park Designer drivers, and the shared `GameRoot` persistence service,
 so game progress and per-activity saves share one identity and location.
+The native Win32 window's `WM_DESTROY` path also writes all five profile
+records using `GameRoot::save_profile_files()`, and reports any failure
+explicitly instead of silently dropping unsaved progress.
 
 **Open work:** Startup still selects provisional profile slot zero rather
 than presenting the full five-sign original profile UI. The original profile
-choice, name-entry, deletion and save-on-exit integration remain necessary.
+choice, name-entry, deletion remain necessary.
 No original retail files are overwritten by default, and successful load of
 a profile is not proof of playable activity behavior.
