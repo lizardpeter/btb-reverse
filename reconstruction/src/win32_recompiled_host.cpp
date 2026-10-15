@@ -13,6 +13,7 @@
 #include "btb/full_game_ui_bitmaps.hpp"
 #include "btb/original_asset_resolver.hpp"
 #include "btb/native_input_pulse.hpp"
+#include "btb/native_host_input.hpp"
 #include "btb/original_active_frame.hpp"
 #include "btb/win32_original_display_lifecycle.hpp"
 #include "btb/win32_original_main_window_proc.hpp"
@@ -67,7 +68,7 @@ struct Host {
     std::unique_ptr<NativeGameSession> session{};
     std::string error{};
     int pointer_x{320},pointer_y{240};
-    bool click_pulse{};
+    NativeHostInput native_input{};
     bool running{};
     original_win32::RetailWindowState retail_window{};
     original_active_frame::State original_frame{};
@@ -231,9 +232,9 @@ struct Host {
         callbacks.context=this;
         callbacks.run_main_game_flow=+[](void* context)->bool{
             auto& h=*static_cast<Host*>(context);
-            ActivityFrameInput input{};
-            input.pointer_x=h.pointer_x;input.pointer_y=h.pointer_y;
-            const auto click=consume_native_click(h.click_pulse);
+            ActivityFrameInput input=h.native_input.sample(
+                h.pointer_x,h.pointer_y,timeGetTime());
+            const auto click=consume_native_click(h.native_input.click_pulse);
             input.click_pulse=click.activity_click;
             const auto frame=h.session->tick(
                 input,click.primary_input_click,false,true);
@@ -338,10 +339,20 @@ LRESULT CALLBACK native_window_proc(
     case WM_MOUSEMOVE:
         host->set_pointer(lp);return 0;
     case WM_LBUTTONDOWN:
-        host->set_pointer(lp);host->click_pulse=true;return 0;
+        host->set_pointer(lp);host->native_input.press_mouse();return 0;
+    case WM_LBUTTONUP:
+        host->set_pointer(lp);host->native_input.release_mouse();return 0;
     case WM_KEYDOWN:
+        host->native_input.key_down(
+            static_cast<unsigned>(wp),(lp&0x40000000)!=0);
         if(wp==VK_ESCAPE)DestroyWindow(hwnd);
         return 0;
+    case WM_KEYUP:
+        host->native_input.key_up(static_cast<unsigned>(wp));return 0;
+    case WM_CHAR:
+        host->native_input.character(static_cast<unsigned>(wp));return 0;
+    case WM_KILLFOCUS:
+        host->native_input.lose_focus();return 0;
     case WM_TIMER:
         if(wp==kNativeTimer&&!host->step()){
             const auto message=host->error.empty()
