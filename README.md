@@ -2,23 +2,24 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-15 UTC): **566/615 (92.0%)** discovered
-function reconstructions are compiled and linked to executed source tests;
-**49 remain**, and **140 CTest tests pass**. The latest source batch
-recovered **8** original functions: profile persistence and release, Park
-Designer teardown, quit confirmation loading, progress display and narration,
-CD removal/drive scans, and print BMP export and print-dialog flow.
-[PR #54](https://github.com/lizardpeter/btb-reverse/pull/54) passed Linux
-C++26, Windows x86/x64 game/provider builds and tests, and Python CI.
-No original-executable differential comparisons were generated for this
-batch; previous controlled comparisons are not counted as full coverage.
-Full native gameplay and retail ABI equivalence remain incomplete;
-**0/615** are fully certified against retail behavior. See
-[latest eight connected runtime/UI/resource functions](docs/original-closure8.md),
-[previous four CRT/runtime boundary functions](docs/original-tail4.md),
-[display/gameplay batch and evidence](docs/original-device8.md),
-[preceding C++ dispatch batch](docs/original-cxx12.md), and
-[exception/runtime batch](docs/original-unwind15.md).
+Current compiled-source milestone (2026-10-15 UTC): **574/615 (93.3%)** discovered
+function reconstructions compile and link into the native game core,
+with **41 remaining** and **141 CTest tests passing**.
+
+The newest eight original-address source models cover DirectInput8
+initialization/polling, CRT process startup, SEH registration, Windows
+locale collation, `sprintf`, and floating-point conversion dispatch.
+[PR #55](https://github.com/lizardpeter/btb-reverse/pull/55)
+passes Linux C++26, Windows x86/x64 game-provider builds/tests, and
+Python CI.
+
+**0/615** functions are fully certified against retail behavior.
+Original executable ABI parity, actual native DirectInput8 provider wiring,
+the full game-flow loop and remaining activity implementations still need
+work. Compilation metrics are not equivalence metrics. See
+[the latest input/CRT batch](docs/original-input-crt8.md),
+[the previous UI/resource batch](docs/original-closure8.md), and
+[the original device batch](docs/original-device8.md).
 
 ## Source material
 

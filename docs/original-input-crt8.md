@@ -37,3 +37,16 @@ bounded storage and requested codepage handling are host-safe adaptations.
 pass. No new direct original-executable differential comparisons were generated.
 \`behavior_verified\` remains **0** pending full retail equivalence, executable
 comparison and native provider/admission validation.
+
+## CI admission — October 15, 2026
+
+Run [38762634028](https://github.com/lizardpeter/btb-reverse/actions/runs/38762634028)
+passed **all four jobs**: Linux C++26 (141/141 CTests including this
+batch), Python checks, Windows x64 native game, and Windows x86 native
+game/provider compilation plus regression. The eight original-address
+source bodies are now marked **compiles** (574/615 total, 41 remaining).
+
+No direct original executable comparisons were added. No new fully
+retail-equivalent function has been certified. The original DirectInput
+native COM provider, formatter/locale backend execution and legacy x86
+exception-stack semantics remain external dependencies.
