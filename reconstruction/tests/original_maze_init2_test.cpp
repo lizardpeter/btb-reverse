@@ -13,18 +13,18 @@ struct Host:IO{
  I32 applied_volume{};
  bool invalid_repair{},unknown_file{};
  void install_unload(bool spud) override{events.push_back(spud?"unload-spud":"unload-maze");}
- maze::Data read_original_maze_data() override {
+ btb::maze::Data read_original_maze_data() override {
   events.push_back("maze-data");
-  maze::Data v{};
+  btb::maze::Data v{};
   for(auto& graph:v.screens){graph.nodes.push_back({});}
   v.timer_by_difficulty={90,80,70};return v;
  }
- spud_maze::Data read_original_spud_maze_data() override {
+ spud_btb::maze::Data read_original_spud_maze_data() override {
   events.push_back("spud-data");
-  spud_maze::Data v{};
+  spud_btb::maze::Data v{};
   for(std::size_t i=0;i<5;++i){
    v.screens[i].push_back({});
-   v.repair_points[i].resize(spud_maze::kRepairPointCounts[i]);
+   v.repair_points[i].resize(btb::spud_maze::kRepairPointCounts[i]);
   }
   if(invalid_repair)v.repair_points[2].clear();
   v.timer_values={50,60,70};return v;
@@ -50,7 +50,7 @@ struct Host:IO{
  std::string_view spud_background_path(std::size_t i) override{
   assert(i<5);++background_count;return "Data\\SubGameSpudMaze\\screen1.bmp";}
  std::string_view repair_sprite_path(std::size_t s,std::size_t i) override{
-  assert(s<5&&i<spud_maze::kRepairPointCounts[s]);++repair_count;
+  assert(s<5&&i<btb::spud_maze::kRepairPointCounts[s]);++repair_count;
   return unknown_file&&i==0?std::string_view{}:std::string_view("Data\\SubGameSpudMaze\\0_0.bmp");
  }
  U32 next_original_rand() override{++rand_count;return next_rand++;}
