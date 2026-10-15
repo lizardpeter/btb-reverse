@@ -25,7 +25,7 @@ std::string padded_digits(std::string_view digits,std::size_t size){
 }
 std::string exponent_digits(I32 exponent){
  const bool negative=exponent<0;
- const U32 magnitude=static_cast<U32>(negative?-static_cast<std::int64_t>(exponent):exponent);
+ const std::uint32_t magnitude=static_cast<std::uint32_t>(negative?-static_cast<std::int64_t>(exponent):exponent);
  std::string d=std::to_string(magnitude);
  if(d.size()<3)d.insert(d.begin(),3-d.size(),'0');
  return std::string(1,negative?'-':'+')+d;
