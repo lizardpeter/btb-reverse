@@ -119,8 +119,8 @@ int main(){
   s.input_mask=2;s.motion_enabled=true;
   s.remaining=2;
   s.pens[0].center={500,500};s.pens[1].center={550,500};s.pens[2].center={600,500};
-  s.animals.push_back({.id=1,.behavior=1,.x=30,.y=40,.size_x=20,.size_y=20});
-  s.animals.push_back({.id=2,.behavior=3,.x=100,.y=90,.size_x=30,.size_y=30});
+  s.animals.push_back({.id=1,.behavior=1,.size_x=20,.size_y=20,.x=30,.y=40});
+  s.animals.push_back({.id=2,.behavior=3,.size_x=30,.size_y=30,.x=100,.y=90});
   update_herding_activity(s,io);
   assert(io.input==1&&io.draw==1&&io.animal_updates==2);
   assert(s.current_x>80&&s.frames_rendered==1);
