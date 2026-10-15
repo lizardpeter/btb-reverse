@@ -49,7 +49,16 @@ struct Host final:IO {
    save.state(TrailingStateIndex::SelectedObjectRecord)=42;
   }
  }
- std::array<I32,4> original_palette_source_rect(I32 mode,I32 cat,I32 variant,U32 sprite) override{
+ U32 original_palette_surface(I32 mode,I32 cat,I32 variant,
+                               const std::vector<Surface>& originals) override{
+  assert(mode>=0&&mode<3&&cat>=0&&cat<4&&variant>=0&&variant<5);
+  const U32 slot=mode==0?(cat==0?0x0050926cU:0x00509258U):
+                 mode==1?(cat==0?0x00509288U:0x0050928cU):
+                          (cat==0?0x00509278U:0x0050927cU);
+  for(const auto& a:originals)if(a.guest_slot==slot)return a.native_handle;
+  assert(false);return 0;
+ }
+  std::array<I32,4> original_palette_source_rect(I32 mode,I32 cat,I32 variant,U32 sprite) override{
   assert(mode>=0&&mode<3&&cat>=0&&cat<4&&variant>=0&&variant<5);
   assert(sprite>=1000);
   ++palette_rects;
