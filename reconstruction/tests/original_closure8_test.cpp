@@ -143,7 +143,7 @@ int main(){
   s.intro_voice_pending=1;progress.values[52]=1;progress.values[56]=1;
   update_progress(s,progress,io);
   assert(s.intro_voice_pending==0&&io.intros==1);
-  assert(io.sounds.size()==2&&io.sounds[0]==954&&io.sounds[1]==959);
+  assert(io.sounds.size()==2&&io.sounds[0]==954&&io.sounds[1]==958);
   assert(io.help==2&&io.stars==2);
   assert(io.stars_at[0].first==52);
   s.back_hover=true;s.back_down=true;s.back_clicked=true;
