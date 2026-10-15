@@ -25,7 +25,18 @@ Tests cover keyboard movement and freeze; portal capture; repair sound
 and completion; Spud NPC spawn/package pickup/return/offscreen reset; and
 Herding home-entry, final delivery, animation and collision handling.
 
-The four entries begin at `source_written`. They must not be counted
-as `compiles` until Linux C++26, Python and native Windows x86/x64 CI
-all pass. No additional original PE32 differential comparisons are added
+All four entries passed Linux C++26, Python and native Windows x86/x64 CI
+and are promoted to `compiles`, while the incomplete source-specific
+behavior and original x86 parity remain explicitly unresolved. No additional original PE32 differential comparisons are added
 and no full retail behavior parity is certified (0/615).
+
+## CI validation
+
+[Actions run 38787706201](https://github.com/lizardpeter/btb-reverse/actions/runs/38787706201)
+passed every gate: Linux C++26 native core and **148/148 CTests**,
+Python tools, Windows x86 native game/Win32 provider builds and tests,
+and Windows x64 native game/provider builds and regression.
+
+The compiled-source count is **595/615 (96.7%)**; **20** remain.
+Original executable differential checks added in this patch: **0**.
+Fully retail-verified functions: **0/615**.

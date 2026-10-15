@@ -1,4 +1,5 @@
 {
+  "schema_version": 1,
   "original_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
   "addresses": [
     "0041B140",
@@ -6,11 +7,18 @@
     "0041CCB0",
     "00416A30"
   ],
-  "stage": "source_written",
-  "previous_compiles": 591,
-  "expected_after_ci": 595,
-  "ci": null,
+  "stage": "compiles",
+  "compiled": 595,
+  "remaining": 20,
+  "linux_ctest": {
+    "passed": 148,
+    "failed": 0
+  },
+  "python": "success",
+  "windows_x86": "success",
+  "windows_x64": "success",
+  "ci_run": "https://github.com/lizardpeter/btb-reverse/actions/runs/38787706201",
   "original_executable_differential_added": 0,
-  "fully_retail_verified": 0,
-  "limitations": "Partial original state and movement source models; complete x87, collision, roam/follow states, native host integration unverified"
+  "full_retail_certified": 0,
+  "limitations": "Out-of-line movement source models; original PE32 x87 branches, full Herding roam/follow dispatch, native input/physics/game host integration and binary behavior parity remain unfinished"
 }
