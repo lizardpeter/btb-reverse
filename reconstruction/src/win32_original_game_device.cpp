@@ -40,15 +40,19 @@ bool Win32OriginalGameDevice::apply_sound(
 bool Win32OriginalGameDevice::draw_ordered(
     const std::vector<ResolvedDraw>& stream,std::string& error) {
 
-    if (!draw_.render_ordered(stream,error)) {
-        return false;
-    }
-    // Source-backed looping walkthrough Bink overlays belong above the
-    // original instructional background and button surfaces.
-    return bink_.render_walkthrough_overlay(error);
+    // Original video decoding happens during observe(), before GameRoot.
+    // Only the final present must overlay buffered Bink pixels; global
+    // movie intercepts skip ordered draw entirely.
+    return draw_.render_ordered(stream,error);
 }
 
 bool Win32OriginalGameDevice::present(std::string& error) {
+    // Global Bink mode 13/14 intentionally bypasses draw_ordered().
+    // Display the last real decoded frame even on those intercepted ticks.
+    // For instruction screens this overlays the source-backed UI last.
+    if (!bink_.render_walkthrough_overlay(error)) {
+        return false;
+    }
     return draw_.present(error);
 }
 
