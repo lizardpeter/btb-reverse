@@ -85,4 +85,36 @@ bool LsbBitReader::align(unsigned bytes) noexcept {
      return out;
  }
 
+
+std::optional<EntropyTreePrefix> read_entropy_tree_prefix(
+    LsbBitReader& source) noexcept {
+    // Temporary bit cursor ensures malformed headers do not partially
+    // consume a compressed packet.
+    auto probe=source;
+    const auto selector=probe.read(4);
+    if(!selector)return std::nullopt;
+    EntropyTreePrefix result{};
+    result.selector=static_cast<std::uint8_t>(*selector);
+    result.bits_consumed=4;
+    if(!*selector) {
+        source=probe;
+        return result; // 0x3000FD32: all-zero 16-symbol table
+    }
+    const auto branch=probe.read(1);
+    if(!branch)return std::nullopt;
+    result.bits_consumed=5;
+    if(*branch) {
+        result.branch_mode=1;
+        source=probe;
+        return result; // branch to 0x3000FFE7
+    }
+    const auto mode=probe.read(2);
+    if(!mode)return std::nullopt;
+    result.branch_mode=2;
+    result.submode=static_cast<std::uint8_t>(*mode);
+    result.bits_consumed=7;
+    source=probe;
+    return result;
+}
+
 } // namespace btb::bink32_recovered
