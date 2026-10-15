@@ -2,23 +2,23 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-15 UTC): **579/615 (94.1%)**
-original discovered function source models compile and link into the native
-game core. **36 remain**, and **143 CTest tests pass**.
+Current compiled-source milestone (2026-10-15 UTC): **581/615 (94.5%)**
+original discovered function source models compile and link in the native game
+core, with **34 remaining** and **144 passing CTest tests**.
 
-The newest original Fireworks entry points are the 23-movie Bink asset,
-surface and buffer loader (`004115C0`) and Fireworks editor
-initialization from original player save/layout data (`00411C80`).
-[PR #57](https://github.com/lizardpeter/btb-reverse/pull/57)
-passed Linux C++26, Python and native Windows x86/x64 game/provider CI.
+The latest original `0041A730` Maze initializer and `004207E0` Spud Maze
+initializer implement original resource-slot admission, difficulty-selective
+actor spawn logic, 32 repair sprite bindings and damage selection, music
+and sound-state initialization, and clock setup. [PR #58](https://github.com/lizardpeter/btb-reverse/pull/58)
+passed Linux C++26, Python, Windows x86 and x64 native game/provider CI.
 
-**0/615** functions are fully retail-executable-equivalence certified:
-the native Bink/DirectDraw services still need to be connected to the live
-gameplay driver, and no new original-binary differential comparisons were
-added in this batch. Compiler/link coverage does not establish retail parity.
-See [the latest Fireworks initialization batch](docs/original-fireworks-start2.md),
-[gameplay state machines](docs/original-gameplay3.md),
-and [the earlier input/CRT work](docs/original-input-crt8.md).
+**0/615** bodies are fully certified for exact retail behavior.
+The game driver still needs actual DirectDraw/sound providers admitted to
+these source models, and no new original-executable differential comparisons
+were produced. Compiled-source coverage is not full retail parity.
+See [the latest Maze init batch](docs/original-maze-init2.md),
+[Fireworks Bink/editor loader](docs/original-fireworks-start2.md),
+and [gameplay state machines](docs/original-gameplay3.md).
 
 ## Source material
 
