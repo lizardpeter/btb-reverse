@@ -50,7 +50,7 @@ fs::path native_profile_directory(const fs::path& retail_root) {
  if(auto path=native_profile_env_path(L"BTB_PROFILE_DIR"))return *path;
  // Preserve preexisting development saves before choosing a new location.
  std::error_code ec;
- const auto prior=retail_profile_dir;
+ const auto prior=retail_root/"profiles";
  if(fs::is_directory(prior,ec)&&!ec)return prior;
  if(auto local=native_profile_env_path(L"LOCALAPPDATA"))
   return *local/"BTB-Recompiled"/"profiles";
