@@ -211,6 +211,33 @@ int main() {
         assert(session.failed());
     }
 
+    // The original loader does not require the spoken-help WAV to open
+    // a Bink. The help sound is requested later when hovering over video.
+    // This reproduces retail installations that lack a help WAV while
+    // retaining the real Bink and preventing synthetic audio substitution.
+    fs::remove(directory/"data/sound/help_5.wav");
+    {
+        GameRoot game;
+        assert(game.select_profile(0));
+        assert(game.install_pregame_front_end_pair(
+            State::GolfPregameSetup,std::make_unique<Instruction>()));
+        game.globals().menu.selected_subgame=1;
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture()
+        };
+        game.set_outer_state(State::GolfPregameSetup);
+        const auto no_help=session.tick({},false,false);
+        assert(!no_help.failure);
+        assert(no_help.submitted);
+        assert(no_help.walkthrough_opened);
+        assert(device.walk_open==1);
+        assert(device.last_help.empty());
+        assert(device.last_movie.find("bink_5.bik")!=std::string::npos);
+    }
+    touch(directory,"data/sound/help_5.wav");
+
     {
         GameRoot game;
         assert(game.select_profile(0));

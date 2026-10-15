@@ -354,14 +354,23 @@ LRESULT CALLBACK native_window_proc(
     case WM_KILLFOCUS:
         host->native_input.lose_focus();return 0;
     case WM_TIMER:
-        if(wp==kNativeTimer&&!host->step()){
-            const auto message=host->error.empty()
-              ? "Native game could not submit a complete source frame"
-              : host->error;
-            MessageBoxA(hwnd,message.c_str(),
-              "Reconstructed game stopped at unsupported native dependency",
-              MB_OK|MB_ICONERROR);
-            DestroyWindow(hwnd);
+        if(wp==kNativeTimer){
+            // MessageBox pumps a nested Win32 message loop. Latch failure
+            // and disarm the timer BEFORE displaying the modal dialog;
+            // otherwise recursive WM_TIMER deliveries open unbounded
+            // duplicate dialogs and leave the original host running.
+            if(!host->running)return 0;
+            if(!host->step()){
+                host->running=false;
+                KillTimer(hwnd,kNativeTimer);
+                const auto message=host->error.empty()
+                  ? "Native game could not submit a complete source frame"
+                  : host->error;
+                MessageBoxA(hwnd,message.c_str(),
+                  "Reconstructed game stopped at unsupported native dependency",
+                  MB_OK|MB_ICONERROR);
+                DestroyWindow(hwnd);
+            }
         }
         return 0;
     case WM_PAINT:{
