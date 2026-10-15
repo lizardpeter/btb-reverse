@@ -13,8 +13,8 @@ struct SquirrelHost final:SquirrelIO{
  U32 rand_next{};int unload{},choices{},stopped{},data_reads{},offset_calls{};
  std::vector<SpriteEvent> loaded{};
  std::vector<KeyEvent> keyed{};
- squirrel::Data load_original_data() override{
-  ++data_reads;squirrel::Data d{};
+ btb::squirrel::Data load_original_data() override{
+  ++data_reads;btb::squirrel::Data d{};
   d.animation_step_delay=7;d.initial_horizontal_alignment_offset=70;
   return d;
  }
@@ -40,9 +40,9 @@ struct DinoHost final:DinoIO{
  int unload{},level_reads{},volume_calls{},volume{},dimension_queries{};
  I32 selected_level{-1};
  std::vector<SpriteEvent> loaded{};std::vector<KeyEvent> keyed{};
- dino::LevelData load_original_level(I32 idx) override{
+ btb::dino::LevelData load_original_level(I32 idx) override{
   ++level_reads;selected_level=idx;
-  dino::LevelData d;
+  btb::dino::LevelData d;
   d.target_positions={{10,20},{30,40},{50,60}};
   d.start_positions={{100,200},{300,400},{500,600}};
   d.extra_positions={{777,999},{888,1111}};
