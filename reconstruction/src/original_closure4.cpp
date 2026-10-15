@@ -81,7 +81,7 @@ I32 run_winmain_00402700(WindowState& s,WindowIO& io,U32 instance,I32 show,
    io.destroy_game_window(s.window);s.startup_failed=true;return 0;
   }
   io.initialize_original_bink();
-  if(!s.display_active){
+  if(s.fullscreen_mode==0){
    s.fullscreen_hook=io.install_original_fullscreen_key_hook(instance);
    s.hook_installed=s.fullscreen_hook!=0;
   }
