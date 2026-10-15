@@ -7,6 +7,26 @@ using namespace btb::bink32_recovered;
 // Release-safe checks (MSVC /DNDEBUG must not suppress tests).
 #define CHECK(p) do{if(!(p)){std::fprintf(stderr,"Bink RE regression line %d: %s\n",__LINE__,#p);std::abort();}}while(0)
 int main() {
+    // Real BinkOpen first-branch semantics, including proprietary SJPi magic.
+    CHECK(classify_magic(0x664b4942U)==Magic::BIKf);
+    CHECK(classify_magic(0x674b4942U)==Magic::BIKg);
+    CHECK(classify_magic(0x684b4942U)==Magic::BIKh);
+    CHECK(classify_magic(0x69504a53U)==Magic::SJPi);
+    CHECK(classify_magic(0x694b4942U)==Magic::Invalid);
+    std::array<std::uint8_t,36> movie{};
+    const auto store=[&](std::size_t off,std::uint32_t v){
+        for(unsigned j=0;j<4;++j)movie[off+j]=static_cast<std::uint8_t>(v>>(8*j));
+    };
+    store(0,0x69504a53U);store(8,445);store(20,282);
+    store(24,179);store(28,15);store(32,1);
+    const auto h=parse_header_prefix(movie);
+    CHECK(h.has_value()&&h->magic==Magic::SJPi);
+    CHECK(h->frame_count==445&&h->width==282&&h->height==179);
+    CHECK(h->frame_rate==15&&h->divisor==1);
+    CHECK(!parse_header_prefix(std::span<const std::uint8_t>(movie).first(35)));
+    store(8,0);
+    CHECK(!parse_header_prefix(movie));
+
     Globals g{};
     rad_set_memory(g,0x1234,0x9876);
     CHECK(g.allocation_callback==0x1234&&g.free_callback==0x9876);
