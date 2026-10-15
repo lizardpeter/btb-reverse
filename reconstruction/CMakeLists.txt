@@ -933,6 +933,10 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 # ---------------------------------------------------------------
 add_library(btb_recompiled_core STATIC
     src/original_editor3.cpp
+    src/original_wave7.cpp
+    src/original_printer7.cpp
+    src/original_runtime6.cpp
+    src/original_batch20_validation.cpp
     src/original_locale7.cpp
     src/original_locale7_validation.cpp
     src/original_runtime15.cpp
@@ -1343,5 +1347,16 @@ foreach(target btb_original_runtime15_tests btb_original_locale7_tests)
         target_compile_options(${target} PRIVATE /UNDEBUG)
     else()
         target_compile_options(${target} PRIVATE -UNDEBUG)
+    endif()
+endforeach()
+
+foreach(group wave7 printer7 runtime6)
+    add_executable(btb_original_${group}_tests tests/original_${group}_test.cpp)
+    target_link_libraries(btb_original_${group}_tests PRIVATE btb_recompiled_core)
+    add_test(NAME original_${group} COMMAND btb_original_${group}_tests ${CMAKE_CURRENT_SOURCE_DIR}/../analysis/reconstruction/retail-batch20-vectors.txt)
+    if(MSVC)
+        target_compile_options(btb_original_${group}_tests PRIVATE /UNDEBUG)
+    else()
+        target_compile_options(btb_original_${group}_tests PRIVATE -UNDEBUG)
     endif()
 endforeach()

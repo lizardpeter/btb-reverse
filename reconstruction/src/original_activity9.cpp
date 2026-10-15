@@ -9,13 +9,14 @@ U32 reset_wave_file(
   wave.m_pbDataCur=wave.m_pbData;return 0;
  }
  if(!wave.m_hmmio)return 0x800401F0U;
- wave.m_ck.ckid=0x61746164U;
  if(wave.m_dwFlags==1){
   if(!seek||!seek(mmio,static_cast<I32>(
       wave.m_ckRiff.dwDataOffset+4U)))return 0x80004005U;
+  wave.m_ck.ckid=0x61746164U;
   if(!descend||!descend(mmio))return 0x80004005U;
   return 0;
  }
+ wave.m_ck.ckid=0x61746164U;
  wave.m_ck.cksize=0;
  if(!create||!create(mmio))return 0x80004005U;
  if(!get_info||!get_info(mmio))return 0x80004005U;
@@ -24,6 +25,11 @@ U32 reset_wave_file(
 U32 restore_sound_buffer(
  void* buffer,bool* was_restored,GetStatus status_query,Restore restore,
  SleepMs sleep,std::size_t max_attempts) noexcept {
+ return restore_sound_buffer(buffer,was_restored,status_query,restore,std::function<void(U32)>(sleep),max_attempts);
+}
+U32 restore_sound_buffer(
+ void* buffer,bool* was_restored,GetStatus status_query,Restore restore,
+ const std::function<void(U32)>& sleep,std::size_t max_attempts) noexcept {
  if(!buffer)return 0x800401F0U;
  if(was_restored)*was_restored=false;
  if(!status_query)return 0x80004003U;

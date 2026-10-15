@@ -3,6 +3,7 @@
 // algorithms from Bob Builds a Park PE32. Original ABI/Windows providers
 // are typed callbacks, never silent synthetic DirectDraw/Bink services.
 #include "btb/retail_activity_closure.hpp"
+#include <functional>
 namespace btb::original_activity9 {
 using namespace btb::retail_activity;
 [[nodiscard]] U32 reset_wave_file(
@@ -10,6 +11,8 @@ using namespace btb::retail_activity;
     MmioTask,MmioTask,MmioTask) noexcept; // 004048F0
 [[nodiscard]] U32 restore_sound_buffer(
     void*,bool*,GetStatus,Restore,SleepMs,std::size_t=0) noexcept; // 00404270
+[[nodiscard]] U32 restore_sound_buffer(
+    void*,bool*,GetStatus,Restore,const std::function<void(U32)>&,std::size_t=0) noexcept;
 [[nodiscard]] U32 sound_play(
     void*,bool,U32,U32,I32,ChooseSoundBuffer,RestoreSelected,
     FillSound,ResetSound,PlaySound,SoundVolume) noexcept; // 00404360

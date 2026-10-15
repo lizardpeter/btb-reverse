@@ -33,13 +33,14 @@ using MmioTask=bool (*)(void*) noexcept;
         return 0;
     }
     if(!wave.m_hmmio)return 0x800401F0U;
-    wave.m_ck.ckid=0x61746164U;
     if(wave.m_dwFlags==1) {
         if(!seek||!seek(mmio,static_cast<I32>(wave.m_ckRiff.dwDataOffset+4U)))
             return 0x80004005U;
+        wave.m_ck.ckid=0x61746164U;
         if(!descend_data||!descend_data(mmio))return 0x80004005U;
         return 0;
     }
+    wave.m_ck.ckid=0x61746164U;
     wave.m_ck.cksize=0;
     if(!create_chunk||!create_chunk(mmio))return 0x80004005U;
     if(!get_info||!get_info(mmio))return 0x80004005U;

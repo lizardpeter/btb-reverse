@@ -1,6 +1,6 @@
 {
   "architecture_mapped": 615,
-  "architecture_only": 156,
+  "architecture_only": 136,
   "behavior_verified": 0,
   "cohort_counts": {
     "architecture_batch_200": 200,
@@ -8,7 +8,7 @@
     "previous_source_written": 191
   },
   "cpp_bodies_reconstructed_this_batch": 0,
-  "cpp_compiles": 459,
+  "cpp_compiles": 479,
   "ghidra_original_function_count": 615,
   "globals_referenced_across_modules": 342,
   "globals_used_by_multiple_functions": 909,
@@ -37,5 +37,5 @@
   "owner_notes": "Tentative module and class candidates, not proven layouts",
   "prototype_notes": "Ghidra prototype, not original C++ signature",
   "source_fingerprint_sha256_validated": 615,
-  "source_written": 459
+  "source_written": 479
 }

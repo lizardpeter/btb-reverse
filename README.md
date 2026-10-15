@@ -2,18 +2,17 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-14): **459/615 (74.6%)** discovered
+Current compiled-source milestone (2026-10-15 UTC): **479/615 (77.9%)** discovered
 function reconstructions are compiled and linked to executed source tests;
-**156 remain** and **129 CTest tests pass**. The latest batch adds **15 original
-functions** covering locale conversion/case mapping, dates/DST, signal dispatch
-and buffered input, with **7,500 original-x86 comparisons**. Locale services
-include a real Windows NLS adapter. Recovered callers now connect classification,
-FILE input, calendar conversion and signal-table lookup bodies directly.
+**136 remain** and **132 CTest tests pass**. The latest batch adds **20 original
+functions** covering wave audio, bitmap printing, character/codepage processing
+and file modes, with **4,354 original-x86 comparisons**. It also corrects the
+existing wave-reset function's failure-path mutation order.
 Full native gameplay caller integration and retail ABI equivalence remain
 incomplete; **0/615** are fully certified against retail behavior. See
-[15-function runtime batch and evidence](docs/original-runtime15.md),
-[editor reconstruction and evidence](docs/original-editor3.md), and
-[preceding 22-function batch](docs/batch-22-connected-runtime-help.md).
+[20-function batch and evidence](docs/original-batch20.md),
+[preceding runtime batch](docs/original-runtime15.md), and
+[editor reconstruction](docs/original-editor3.md).
 
 ## Source material
 
