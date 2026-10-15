@@ -64,6 +64,7 @@ struct Host {
     std::unique_ptr<Win32OriginalGameDevice> device{};
     GameRoot game{};
     std::unique_ptr<NativeGameSession> session{};
+    fs::path profile_directory{};
     std::string error{};
     int pointer_x{320},pointer_y{240};
     NativeHostInput native_input{};
@@ -190,6 +191,7 @@ struct Host {
             return false;
         }
         if(!game.load_profile_files(profile_dir,out_error))return false;
+        profile_directory=profile_dir;
         game.install(ActivityId::Golf,std::make_unique<GolfDriver>(
             root/"Data"/"SubGameGolf",0));
         game.install(ActivityId::Fireworks,std::make_unique<FireworksDriver>(
@@ -382,6 +384,16 @@ LRESULT CALLBACK native_window_proc(
     case WM_DESTROY:
         host->running=false;
         KillTimer(hwnd,kNativeTimer);
+        // Persist all five native source-format profile records even when the
+        // user exits from a menu rather than through a game completion path.
+        if(!host->profile_directory.empty()){
+            std::string save_error;
+            if(!host->game.save_profile_files(
+                   host->profile_directory,save_error)){
+                MessageBoxA(hwnd,save_error.c_str(),
+                    "Native profile save failed",MB_OK|MB_ICONERROR);
+            }
+        }
         PostQuitMessage(0);
         return 0;
     default:
