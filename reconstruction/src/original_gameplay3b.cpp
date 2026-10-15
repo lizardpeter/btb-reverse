@@ -70,8 +70,11 @@ I32 update_golf_gameplay(Golf& s,GolfIO& io) {
   if(s.difficulty<0||s.difficulty>15)throw std::out_of_range("golf difficulty");
   // 00415080: charge increments by difficulty-scaled pulse, reverses
   // when the charge leaves the native 0..1000 range.
-  constexpr std::array<I32,16> charge_steps{4,6,8,11,13,16,19,22,25,29,33,37,41,46,51,56};
-  s.power+=charge_steps[static_cast<std::size_t>(s.difficulty)]*s.power_step;
+  // The original indexes a difficulty-dependent integer table at DAT_0050adf0.
+  // Do not invent retail constants: require the native data-table provider.
+  const I32 charge=io.original_charge_step(s.difficulty);
+  if(charge<0)throw std::invalid_argument("negative original Golf charge increment");
+  s.power+=charge*s.power_step;
   if(s.power>1000){s.power=1000;s.power_step=-s.power_step;}
   else if(s.power<0){s.power=0;s.power_step=-s.power_step;}
   if(!s.mouse_down)return s.power_step;
