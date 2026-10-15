@@ -164,14 +164,14 @@ void update_and_draw_squirrel_run(SquirrelRun& s,SquirrelRunIO& io){
   return s.frame>cap;
  };
  auto move=[&](bool descending){
-  const I32 shape=code[check_index(s.source_profile[static_cast<std::size_t>(s.direction)]+
-                                    s.profile_mark,code.size(),"Squirrel original motion-map index")];
+  const I32 shape=code[check_index(s.source_profile[check_index(s.direction,s.source_profile.size(),"Squirrel source direction")],code.size(),"Squirrel original motion-map index")];
   const auto next=io.original_frame_offset(shape,s.frame,descending);
   s.offset_y+=next;
   s.offset_x+=s.step_x[check_index(s.frame,s.step_x.size(),"Squirrel X animation table")];
  };
  if(s.phase==0){
-  if(s.completed_cycles<s.reset_run){
+  // Source DAT_00515004 < DAT_00514fb4 selects the idle-run path.
+  if(s.reset_run<s.completed_cycles){
    if(tick(0)){
     s.sequence=std::clamp(s.sequence+1,s.min_run,s.max_run);
     s.frame=0;
