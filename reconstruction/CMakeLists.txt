@@ -940,6 +940,7 @@ add_library(btb_recompiled_core STATIC
     src/original_cxx12.cpp
     src/original_tail4.cpp
     src/original_closure8.cpp
+    src/original_input_crt8.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1455,4 +1456,14 @@ if(MSVC)
  target_compile_options(btb_original_closure8_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_closure8_tests PRIVATE -UNDEBUG)
+endif()
+
+# Eight additional original-address DirectInput and MSVC runtime source bodies.
+add_executable(btb_original_input_crt8_tests tests/original_input_crt8_test.cpp)
+target_link_libraries(btb_original_input_crt8_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_input_crt8 COMMAND btb_original_input_crt8_tests)
+if(MSVC)
+ target_compile_options(btb_original_input_crt8_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_input_crt8_tests PRIVATE -UNDEBUG)
 endif()
