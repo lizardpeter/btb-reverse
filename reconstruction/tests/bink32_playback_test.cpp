@@ -84,10 +84,15 @@ int main() {
     CHECK(plan_seek(0,0,10,0,0,15,1,1).requested_frame==0);
     // Mode 2 of original 300066B0 advances its forward search EACH loop,
     // even after all backward positions are exhausted.
-    const std::array<std::uint32_t,8> frames{1,0,0,0,0,1,0,0};
+    const std::array<std::uint32_t,8> frames{1,0,0,0,0,0,0,1};
     Movie meta{8,frames};
-    CHECK(get_key_frame(&meta,3,2)==6);
-    CHECK(get_key_frame(&meta,3,1)==6);
-    CHECK(get_key_frame(&meta,3,0)==1);
+    // At frame 6 the backward probes hit no key before the forward
+    // index advances from 6 to 7, where key-frame 8 is found.
+    CHECK(get_key_frame(&meta,6,2)==8);
+    CHECK(get_key_frame(&meta,6,1)==8);
+    CHECK(get_key_frame(&meta,6,0)==1);
+    const std::array<std::uint32_t,8> nearby{1,0,0,1,0,0,0,1};
+    Movie with_backward{8,nearby};
+    CHECK(get_key_frame(&with_backward,6,2)==4);
     std::puts("Original x86 Bink pause/audio/seek regression: PASS");
 }
