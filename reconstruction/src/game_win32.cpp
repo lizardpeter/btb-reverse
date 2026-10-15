@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <commdlg.h>
 #include <shellapi.h>
+#include <shlobj.h>
 #include <cwchar>
 
 #include "btb/game_session.hpp"
@@ -15,6 +16,8 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <optional>
+#include <system_error>
 #include <string>
 #include <vector>
 
@@ -448,37 +451,97 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT message, WPARAM wp, LPARAM lp) {
 }
 } // namespace
 
-int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
-    // Explicit opt-in: retains the earlier Dinosaur-only preview for default
-    // launches, but allows the unified recovered GameRoot to own a real
-    // DirectDraw7/DirectSound8 window against original installed assets.
-    int argument_count=0;
-    LPWSTR* arguments=CommandLineToArgvW(GetCommandLineW(),&argument_count);
-    if(arguments){
-        const bool smoke=argument_count==2 &&
-            std::wcscmp(arguments[1],L"--recompiled-smoke")==0;
-        const bool native=argument_count==3 &&
-            std::wcscmp(arguments[1],L"--native-original")==0;
-        const std::filesystem::path installed=
-            native ? std::filesystem::path(arguments[2])
-                   : std::filesystem::path{};
-        LocalFree(arguments);
-        if(smoke){
-            // The Windows GUI-subsystem game also runs the same complete
-            // source-linked GameRoot, activity and 129-function core probe.
-            // Never create a window or require graphics during this mode.
-            return btb::full_game::verify_linked_recompiled_core()?0:3;
-        }
-        if(native){
-            if(!btb::full_game::verify_linked_win32_providers())return 4;
-            return btb::full_game::run_recompiled_native_game(
-                instance,installed,show);
+namespace {
+// The recovered native GameRoot is the default executable, not the old
+// GDI Dinosaur demonstration. The disc installer is intentionally not bundled.
+bool has_retail_assets(const std::filesystem::path& root) {
+    std::error_code ec;
+    return std::filesystem::is_regular_file(
+        root / L"loaddata" / L"uiBitmapName.txt",ec) && !ec &&
+        std::filesystem::is_directory(root / L"Data",ec) && !ec;
+}
+std::optional<std::filesystem::path> locate_retail_root() {
+    const DWORD n=GetEnvironmentVariableW(L"BTB_RETAIL_ROOT",nullptr,0);
+    if(n>1&&n<32768){
+        std::wstring env(static_cast<std::size_t>(n),L'\0');
+        const auto got=GetEnvironmentVariableW(L"BTB_RETAIL_ROOT",
+            env.data(),n);
+        if(got>0&&got<n) {
+            env.resize(got);
+            auto path=std::filesystem::path(env);
+            if(has_retail_assets(path))return path;
         }
     }
-    // Force actual native DirectDraw7/DirectSound8/Bink-loader implementations
-    // to link into this executable, not only a platform-only test program.
-    // This is a safe precondition probe; it does not claim movie playback.
-    if (!btb::full_game::verify_linked_win32_providers()) return 4;
+    wchar_t executable[32768]{};
+    if(const auto len=GetModuleFileNameW(nullptr,executable,32768);
+       len>0&&len<32768) {
+        auto candidate=std::filesystem::path(executable).parent_path();
+        for(int i=0;i<5;++i){
+            if(has_retail_assets(candidate))return candidate;
+            if(candidate==candidate.parent_path())break;
+            candidate=candidate.parent_path();
+        }
+    }
+    std::error_code ec;
+    auto candidate=std::filesystem::current_path(ec);
+    if(!ec)for(int i=0;i<5;++i){
+        if(has_retail_assets(candidate))return candidate;
+        if(candidate==candidate.parent_path())break;
+        candidate=candidate.parent_path();
+    }
+    return std::nullopt;
+}
+std::optional<std::filesystem::path> select_retail_root() {
+    BROWSEINFOW browse{};
+    browse.lpszTitle=L"Select the installed original Bob Builds a Park folder (containing Data and loaddata)";
+    browse.ulFlags=BIF_RETURNONLYFSDIRS|BIF_NEWDIALOGSTYLE;
+    const auto selection=SHBrowseForFolderW(&browse);
+    if(!selection)return std::nullopt;
+    wchar_t directory[MAX_PATH]{};
+    const bool ok=SHGetPathFromIDListW(selection,directory)!=FALSE;
+    ILFree(selection);
+    if(!ok)return std::nullopt;
+    return std::filesystem::path(directory);
+}
+} // namespace
+
+int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
+    // Smoke remains usable without assets. The legacy Dino-only preview is
+    // still present but cannot silently masquerade as the whole game.
+    int count=0;
+    LPWSTR* argv=CommandLineToArgvW(GetCommandLineW(),&count);
+    bool legacy=false,smoke=false,invalid_args=false;
+    std::optional<std::filesystem::path> chosen;
+    if(argv){
+        smoke=count==2 && std::wcscmp(argv[1],L"--recompiled-smoke")==0;
+        legacy=count==2 && std::wcscmp(argv[1],L"--legacy-dino-preview")==0;
+        if(count==3 && std::wcscmp(argv[1],L"--native-original")==0)
+            chosen=std::filesystem::path(argv[2]);
+        else if(count!=1 && !smoke && !legacy) invalid_args=true;
+        LocalFree(argv);
+    }
+    if(smoke)
+        return btb::full_game::verify_linked_recompiled_core()?0:3;
+    if(invalid_args){
+        MessageBoxW(nullptr,L"Usage: btb_game.exe [--native-original <installed retail root> | --legacy-dino-preview | --recompiled-smoke]",
+            L"Bob Builds a Park - Native C++ Game",MB_OK|MB_ICONERROR);
+        return 2;
+    }
+    if(!btb::full_game::verify_linked_win32_providers()) return 4;
+    if(!legacy){
+        if(!chosen)chosen=locate_retail_root();
+        if(!chosen)chosen=select_retail_root();
+        if(!chosen)return 0;
+        if(!has_retail_assets(*chosen)){
+            MessageBoxW(nullptr,
+                L"The selected folder must contain the original loaddata\\uiBitmapName.txt and Data directory. No retail assets are bundled.",
+                L"Original game installation required",MB_OK|MB_ICONERROR);
+            return 5;
+        }
+        return btb::full_game::run_recompiled_native_game(
+            instance,*chosen,show);
+    }
+    // --legacy-dino-preview: preserved solely for old source regression UI.
     Host host;
     WNDCLASSEXW cls{};
     cls.cbSize = sizeof(cls);
