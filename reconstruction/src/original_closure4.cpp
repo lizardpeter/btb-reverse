@@ -306,7 +306,7 @@ FloatDigits format_x87_00438e39(const Ext80& x,I32 precision,
   if(out.sign=='-'&&x.mantissa_hi==0xc0000000U&&x.mantissa_lo==0){
    out.digits="1#IND";return out;
   }
-  if((x.mantissa_hi&0x40000000U)!=0||x.mantissa_hi==0x80000000U){
+  if((x.mantissa_hi&0x40000000U)!=0 ){
    out.digits="1#QNAN";return out;
   }
   out.digits="1#SNAN";return out;
