@@ -173,7 +173,7 @@ inline constexpr std::array<OriginalArchitecture615,615> kOriginalArchitecture61
   {0x0040ac90U,"SaveParkDesignerData","park_designer","ParkDesignerModule",1,31,true,false},
   {0x0040aea0U,"LoadParkDesignerData","park_designer","ParkDesignerModule",1,36,true,false},
   {0x0040b190U,"UnloadParkDesignerActivityResources","park_designer","ParkDesignerModule",1,48,true,false},
-  {0x0040b7e0U,"InitializeParkDesignerActivity","park_designer","ParkDesignerModule",1,232,false,false},
+  {0x0040b7e0U,"InitializeParkDesignerActivity","park_designer","ParkDesignerModule",1,232,true,false},
   {0x0040d1d0U,"ApplyParkDesignerSeason","park_designer","ParkDesignerModule",2,18,true,false},
   {0x0040d2e0U,"FindTopmostParkDesignerObjectAtCursor","park_designer","ParkDesignerModule",1,8,true,false},
   {0x0040d420U,"HitTestParkDesignerToolbar","park_designer","ParkDesignerModule",1,4,true,false},
