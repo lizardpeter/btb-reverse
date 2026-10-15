@@ -32,6 +32,7 @@ public:
  virtual U32 random32()=0;
  virtual void play_sound(I32 id,I32 priority,I32 kind)=0;
  virtual Vec2 original_vector_from_degrees(I32 degrees,I32 magnitude)=0;
+ virtual I32 original_charge_step(I32 difficulty)=0; // original DAT_0050adf0 table
  virtual I32 original_launch_angle(const Golf& game)=0; // __ftol source dependency
  virtual I32 original_energy_loss(const Golf& game)=0; // retail trajectory friction
  virtual float original_distance(Point a,Point b)=0;
