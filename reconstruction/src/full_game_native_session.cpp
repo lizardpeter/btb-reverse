@@ -111,7 +111,7 @@ NativeSessionFrame NativeGameSession::tick(
             frame.walkthrough_closed = true;
             walkthrough_open_ = false;
         }
-        if (!device_.open_walkthrough_movie(*movie,*help,error)) {
+        if (!device_.open_walkthrough_movie(*movie,help_path,error)) {
             fail(frame,PhysicalPresentationStage::MovieOpen,error);
             return frame;
         }
