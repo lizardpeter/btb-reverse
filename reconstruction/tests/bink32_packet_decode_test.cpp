@@ -66,6 +66,28 @@ int main(int argc,char** argv){
      const auto bounded=init_entropy_plane(1,0x100000U,640,4,1,true);
      CHECK(bounded.table_bit_width==15);
 
+
+    // Source-driven initial Huffman-tree selector and branch dispatch.
+    const std::array<std::uint8_t,1> tree_zero{0};
+    LsbBitReader z(tree_zero);
+    const auto z0=read_entropy_tree_prefix(z);
+    CHECK(z0&&z0->selector==0&&z0->branch_mode==0);
+    CHECK(z0->bits_consumed==4&&z.bit_position()==4);
+    const std::array<std::uint8_t,1> tree_branch{0x11};
+    LsbBitReader tb(tree_branch);
+    const auto t1=read_entropy_tree_prefix(tb);
+    CHECK(t1&&t1->selector==1&&t1->branch_mode==1);
+    CHECK(t1->bits_consumed==5&&tb.bit_position()==5);
+    const std::array<std::uint8_t,1> tree_submode{0x61};
+    LsbBitReader tm(tree_submode);
+    const auto t2=read_entropy_tree_prefix(tm);
+    CHECK(t2&&t2->selector==1&&t2->branch_mode==2);
+    CHECK(t2->submode==3&&t2->bits_consumed==7&&tm.bit_position()==7);
+    const std::array<std::uint8_t,1> tree_short{0x10};
+    LsbBitReader ts(tree_short);
+    CHECK(ts.read(4)==0&&!read_entropy_tree_prefix(ts));
+    CHECK(ts.bit_position()==4);
+
     // Optional retail file validation; CI never needs copyrighted BIK assets.
     for(int a=1;a<argc;++a){
         std::ifstream fd(argv[a],std::ios::binary);
