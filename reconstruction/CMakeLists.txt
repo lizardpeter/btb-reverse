@@ -956,6 +956,7 @@ add_library(btb_recompiled_core STATIC
     src/original_crt_float3.cpp
     src/original_closure4.cpp
     src/original_stdio2.cpp
+    src/original_last2.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1632,4 +1633,14 @@ if(MSVC)
  target_compile_options(btb_original_stdio2_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_stdio2_tests PRIVATE -UNDEBUG)
+endif()
+
+# Original 0040E440 Park editor and 0041DB20 BobsBand initializer.
+add_executable(btb_original_last2_tests tests/original_last2_test.cpp)
+target_link_libraries(btb_original_last2_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_last2 COMMAND btb_original_last2_tests)
+if(MSVC)
+ target_compile_options(btb_original_last2_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_last2_tests PRIVATE -UNDEBUG)
 endif()
