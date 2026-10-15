@@ -150,7 +150,7 @@ int main(){
  d.mouse_input.dx=10;d.mouse_input.dy=5;d.mouse_input.left=0x80;
  poll_direct_input(s,d);
  assert(s.mouse_down==1&&s.x==330&&s.y==5);
- assert(s.translated_key=='A'&&s.cursor_draws==0);
+ assert(s.translated_key=='A'&&d.cursor_draws==1);
  assert(d.cursor_draws==1&&s.click_pulse==0);
  d.mouse_input={};
  poll_direct_input(s,d);
