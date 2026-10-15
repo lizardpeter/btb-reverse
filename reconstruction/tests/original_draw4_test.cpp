@@ -80,9 +80,11 @@ int main(){
   back.actors[0]={-1,3,20,30};
   back.other_enabled=2;back.other_screen=0;back.spud_pose=4;
   Render secondary;draw_maze(back,secondary);
-  assert(secondary.calls.size()==2);
-  assert(secondary.calls[0].surface==back.spud_surface);
-  assert(secondary.calls[1].x==20&&secondary.calls[1].y==22);
+  assert(secondary.calls.size()==3);
+  assert(secondary.calls[0].surface==back.box_surface);
+  assert(secondary.calls[0].x==12&&secondary.calls[0].y==22);
+  assert(secondary.calls[1].surface==back.spud_surface);
+  assert(secondary.calls[2].x==20&&secondary.calls[2].y==22);
   assert(back.view_offset==8);
  }
  {
