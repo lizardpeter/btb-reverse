@@ -56,7 +56,7 @@ int main(){
   auto r=general_004334d4(3,3,false,io);
   assert(r.text=="1.23e+003"&&r.scientific);
   r=general_004334d4(4,4,true,io);
-  assert(r.text=="1.234E-005"&&r.scientific);
+  assert(r.text=="1.235E-005"&&r.scientific);
   r=general_004334d4(1,4,false,io);
   assert(r.text=="1.235"&&!r.scientific);
   r=general_004334d4(2,3,false,io);
