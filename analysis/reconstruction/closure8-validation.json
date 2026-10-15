@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "new_addresses": [
+    "0042D060",
+    "0040B190",
+    "004074F0",
+    "00427C30",
+    "00406C00",
+    "00406CB0",
+    "00409460",
+    "00409730"
+  ],
+  "source_written": 8,
+  "compiled_after_validation": null,
+  "retail_x86_differential_comparisons": 0,
+  "full_retail_equivalence_certified": 0,
+  "scope": "eight source-level implementations; platform/caller behavior not certified",
+  "linux_cpp": null,
+  "windows_x86": null,
+  "windows_x64": null
+}
