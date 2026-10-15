@@ -29,5 +29,17 @@ them to the live native game. The editor-palette and secondary overlay
 filenames remain provider-sourced where not yet verified by this batch.
 
 No original x86 executable differential testing or retail-equivalence
-certification is claimed. These two functions remain `source_written`
-until Linux C++26, Windows x86/x64 and Python CI pass.
+certification is claimed. The two source bodies passed Linux C++26,
+Windows x86/x64 and Python CI and are now marked `compiles`.
+
+## CI validation
+
+All four jobs in [Actions run 38768292171](https://github.com/lizardpeter/btb-reverse/actions/runs/38768292171)
+passed: Linux C++26 compilation and **143/143 CTests**, Python, native
+Windows x86 game/provider build and regression tests, and native Windows
+x64 game/provider build and regression tests.
+
+Source compilation is now **579/615 (94.1%)**, with **36** remaining.
+Original x86 executable comparisons added: **0**. Full retail behavior
+certification: **0/615**. The video assets are not embedded in the repository,
+and this source-level backend is not yet admitted to the running game.

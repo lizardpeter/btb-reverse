@@ -2,23 +2,23 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-15 UTC): **577/615 (93.8%)**
-discovered function reconstructions compile and link to the native game
-core; **38 remain** and **142 CTest tests pass**.
+Current compiled-source milestone (2026-10-15 UTC): **579/615 (94.1%)**
+original discovered function source models compile and link into the native
+game core. **36 remain**, and **143 CTest tests pass**.
 
-The latest three original gameplay source models reconstruct the Fireworks
-show playback coordinator (`00413450`), Spud Maze Pilchard pursuit/wander
-(`00423630`), and Squirrel actor placement/retrieval (`004273F0`).
-[PR #56](https://github.com/lizardpeter/btb-reverse/pull/56) passed Linux
-C++26, Windows x86/x64 native game/provider builds and Python CI.
+The newest original Fireworks entry points are the 23-movie Bink asset,
+surface and buffer loader (`004115C0`) and Fireworks editor
+initialization from original player save/layout data (`00411C80`).
+[PR #57](https://github.com/lizardpeter/btb-reverse/pull/57)
+passed Linux C++26, Python and native Windows x86/x64 game/provider CI.
 
-**0/615** original functions have full retail-behavior certification.
-DirectInput native provider wiring, original Bink execution, and the
-remaining game-flow and activity functions are unfinished. Compiled-source
-coverage must not be mistaken for original executable parity.
-See [the latest gameplay batch](docs/original-gameplay3.md),
-[the DirectInput/CRT batch](docs/original-input-crt8.md),
-and [the previous UI/resource batch](docs/original-closure8.md).
+**0/615** functions are fully retail-executable-equivalence certified:
+the native Bink/DirectDraw services still need to be connected to the live
+gameplay driver, and no new original-binary differential comparisons were
+added in this batch. Compiler/link coverage does not establish retail parity.
+See [the latest Fireworks initialization batch](docs/original-fireworks-start2.md),
+[gameplay state machines](docs/original-gameplay3.md),
+and [the earlier input/CRT work](docs/original-input-crt8.md).
 
 ## Source material
 
