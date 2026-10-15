@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "original_function": "0x0040B7E0",
+  "pe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "source": "reconstruction/src/original_park_init.cpp",
+  "header": "reconstruction/include/btb/original_park_init.hpp",
+  "tests": "reconstruction/tests/original_park_init_test.cpp",
+  "stage": "source_written",
+  "validation": "CI pending",
+  "implemented": [
+    "38 static original bitmap VA registrations",
+    "5 summer/winter pond bitmap families and 9 source-indexed arrow sprites",
+    "3 mode tray,10 toolbar and 12 View icon callback registrations",
+    "60 original 0x30 stride (mode,category,variant) palette cells; original source rectangles required",
+    "Original 400-record empty defaults and persistently loaded Park Designer data",
+    "Original object-selection state and activity music/managed sound transition"
+  ],
+  "unresolved": [
+    "Original per-cell active surface selection and source rectangle permutation are supplied by native callback, not yet decoded",
+    "Stack-assembled toolbar filenames require native original resource service",
+    "Native DirectDraw pixel parity and on-screen source rectangles unverified",
+    "Live game driver Park Designer activity initial dispatch unverified",
+    "Complete retail-x86 equivalence not established"
+  ]
+}
