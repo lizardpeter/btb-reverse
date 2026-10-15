@@ -1,0 +1,21 @@
+{
+  "exe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "rows": 6020,
+  "counts": {
+    "THROW": 300,
+    "OBJ": 300,
+    "CATCH": 300,
+    "LOCAL": 400,
+    "CPP": 400,
+    "ABNORMAL": 300,
+    "UNWIND": 160,
+    "GLOBAL": 80,
+    "DESTROY": 200,
+    "TERMINATE": 40,
+    "UNEXPECTED": 40,
+    "RANGE": 400,
+    "SIZE": 600,
+    "FTOL": 2500
+  },
+  "scope": "Original x86 instructions with controlled callback/Win32 boundaries. No host OS SEH, unmasked x87 trap or complete retail ABI certification."
+}

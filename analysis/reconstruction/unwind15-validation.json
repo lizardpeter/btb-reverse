@@ -1,0 +1,38 @@
+{
+  "new_addresses": [
+    "00430495",
+    "0042FC1B",
+    "0042FC22",
+    "0042FC29",
+    "0042FCAE",
+    "0042FE50",
+    "0042FECC",
+    "0042FF0E",
+    "0042FF76",
+    "0043210C",
+    "00432535",
+    "0043260C",
+    "00432662",
+    "004304D0",
+    "0043A2F5"
+  ],
+  "compiled_source_count": 534,
+  "remaining": 81,
+  "ctest_passed": 136,
+  "python_tests_passed": 16,
+  "original_x86_comparisons": 6020,
+  "vector_evidence": "analysis/reconstruction/retail-unwind15-vectors.json",
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "sanitizers": "ASan/UBSan passes unwind13, ftol1, heap9, heap4, crt9, msvc30 and new test sources, linked to prebuilt core for older dependencies; leak detection disabled",
+  "scope": "Compiled source and bounded state/callback parity. Native process FS/stack registration, OS exception dispatch, unmasked x87 traps/status flags, full gameplay callers and retail ABI/behavior are not certified.",
+  "behavior_verified": false,
+  "windows_ci": "New target configured for x86/x64; run result must be checked after publication.",
+  "preceding_publication": {
+    "commit": "471abd6181faaf95282dc3492adde4d9e1abe93a",
+    "ci_run": 38734306707,
+    "windows_x86": "success",
+    "windows_x64": "success",
+    "python_tools": "success",
+    "reconstruction_cpp": "success"
+  }
+}

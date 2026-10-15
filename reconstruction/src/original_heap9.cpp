@@ -173,6 +173,16 @@ U32 reallocate(State& s,U32 p,U32 n,Services& io){
   }if(!s.retry || !io.new_handler(size))return 0;
  }
 }
+U32 allocation_size(State& state,U32 p,SizeServices& io) {
+ if(state.mode==3) {
+  if(find_region(state,p,io))return io.read(p-4)-9;
+ }else if(state.mode==2) {
+  U32 region{},page{};
+  const U32 slot=original_heap4::find_small2(state.base,p,region,page,io);
+  if(slot)return U32(byte(io,slot))<<4;
+ }
+ return io.heap_size(state.base.heap,0,p);
+}
 void* Link::allocate3(U32 n){return host(original_heap9::allocate3(state_,n,services_));}
 void* Link::allocate2(U32 n){return host(original_heap9::allocate2(state_,n,services_));}
 std::uintptr_t Link::find3(void* p){return find_region(state_,pointer(p),services_);}

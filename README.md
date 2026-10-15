@@ -2,18 +2,19 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-15 UTC): **519/615 (84.4%)** discovered
+Current compiled-source milestone (2026-10-15 UTC): **534/615 (86.8%)** discovered
 function reconstructions are compiled and linked to executed source tests;
-**96 remain** and **135 CTest tests pass**. The latest batch adds **14 original
-functions** covering both small heaps, reallocation, extended-precision arithmetic,
-integer parsing, heap selection and runtime diagnostics, with **9,083 original-x86
-comparisons**. Allocation/free dispatch now calls recovered heap bodies, and
-numeric conversion and runtime-message dependencies have direct source links.
+**81 remain** and **136 CTest tests pass**. The latest batch adds **15 original
+functions** covering exception throwing, thiscall trampolines, catch/unwind
+control, termination handlers, masked x87 integer conversion and heap-size
+lookup, with **6,020 original-x86 comparisons**. The unwind paths call recovered
+frame-setting and fatal-runtime dependencies; heap-size dispatch calls both
+recovered small-heap lookups.
 Full native gameplay caller integration and retail ABI equivalence remain
 incomplete; **0/615** are fully certified against retail behavior. See
-[heap/runtime batch and evidence](docs/original-heap14.md),
-[preceding file/runtime batch](docs/original-io13.md), and
-[wave/printing batch](docs/original-batch20.md).
+[exception/runtime batch and evidence](docs/original-unwind15.md),
+[preceding heap/runtime batch](docs/original-heap14.md), and
+[file/runtime batch](docs/original-io13.md).
 
 ## Source material
 

@@ -19,6 +19,11 @@ U32 allocate_page2(U32 page,U32 available,U32 paragraphs,Services&); //00435443
 bool resize2(U32 region,U32 page,U32 slot,U32 paragraphs,Services&); //00435567
 U32 allocate2(State&,U32 paragraphs,Services&); //0043523B
 U32 reallocate(State&,U32 pointer,U32 bytes,Services&); //00439B8B
+class SizeServices:public Services {
+public:
+ virtual U32 heap_size(U32 heap,U32 flags,U32 pointer)=0;
+};
+U32 allocation_size(State&,U32 pointer,SizeServices&); //0043A2F5
 // Connects recovered allocation/free dispatch to both real small-heap implementations.
 class Link final:public original_memory4::HeapServices {
 public:
