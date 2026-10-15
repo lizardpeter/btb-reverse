@@ -24,7 +24,6 @@ struct WindowHost final:WindowIO{
   assert(seed==123||seed==456);events.push_back("seed");
  }
  void load_original_global_tables() override{events.push_back("globaltables");}
- I32 create_game_window(U32,U32,U32&,U32&) = delete;
  I32 create_game_window(U32 inst,I32 show,U32& win,U32& acc) override{
   assert(inst==99&&show==1);win=10;acc=11;
   events.push_back("window");return 0;
@@ -184,7 +183,7 @@ int main(){
   FloatHost io;
   auto a=parse_float_00438968("  -0.001230e+2!",'.',0,0,true,io);
   assert(a.valid&&a.status==0&&a.negative&&a.had_exponent);
-  assert(a.consumed==13&&io.text=="123"&&io.exponent==-3);
+  assert(a.consumed==14&&io.text=="123"&&io.exponent==-3);
   auto b=parse_float_00438968("123400",'.',0,0,true,io);
   assert(b.mantissa_digits=="1234"&&b.decimal_exponent==2);
   auto c=parse_float_00438968("+7,50D-2",',',0,0,true,io);
