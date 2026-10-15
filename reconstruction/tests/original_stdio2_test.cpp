@@ -78,7 +78,7 @@ int main(){
  }
  {
   sc.indices.clear();sc.commits.clear();
-  const auto result=scanf_00431314("apple12345:Z",
+  const auto result=scanf_00431314("apple123:Z",
      "%[a-z]%3d:%c%n",sc);
   assert(result.assignments==3);
   assert(result.values[0].bytes=="apple");
