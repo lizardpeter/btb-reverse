@@ -14,6 +14,7 @@ struct GolfHost:GolfIO {
  Vec2 original_vector_from_degrees(I32 degrees,I32 magnitude) override{
   assert(degrees>=0&&magnitude>=0);++moves;return {float(magnitude),0.f};
  }
+ I32 original_charge_step(I32 difficulty) override{assert(difficulty==2);return 8;}
  I32 original_launch_angle(const Golf&) override{return 12;}
  I32 original_energy_loss(const Golf&) override{++losses;return 55;}
  float original_distance(Point a,Point b) override{
