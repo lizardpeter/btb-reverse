@@ -1,0 +1,40 @@
+{
+  "new_addresses": [
+    "00432371",
+    "00432301",
+    "0042FBE7",
+    "0042FD27",
+    "00431DC5",
+    "004321C0",
+    "00431E60",
+    "0043223B",
+    "00432007",
+    "0042FDDB",
+    "0042FC78",
+    "0042FD02"
+  ],
+  "compiled_source_count": 546,
+  "remaining": 69,
+  "ctest_passed": 137,
+  "python_tests_passed": 16,
+  "original_x86_comparisons": 3420,
+  "vector_evidence": "analysis/reconstruction/retail-cxx12-vectors.json",
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "sanitizers": "ASan/UBSan passes cxx12, unwind13, crt9, msvc30, string8, startup11 and test sources; remaining older dependencies linked from prebuilt core; leak detection disabled",
+  "native_integration_checks": [
+    "catch rethrow returns zero and restores saved state without destroying active object",
+    "escaping foreign exception restores saved state and destroys original C++ exception object",
+    "raised translated exception dispatches and resumes the translator continuation"
+  ],
+  "scope": "Compiled bodies and bounded guest-state/callback/continuation parity. Original OS SEH, native PE32 FS/stack ABI and full native gameplay/retail behavior are not certified.",
+  "behavior_verified": false,
+  "windows_ci": "x86 and x64 target configured; inspect publication run before claiming a result.",
+  "preceding_ci": {
+    "commit": "181ebc95ca2458c56b88d7ccec51038d5fb0ac27",
+    "run": 38736997109,
+    "windows_x86": "success",
+    "windows_x64": "success",
+    "linux_cpp": "success",
+    "python": "success"
+  }
+}

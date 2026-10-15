@@ -934,6 +934,7 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 add_library(btb_recompiled_core STATIC
     src/original_editor3.cpp
     src/original_heap9.cpp
+    src/original_cxx12.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1408,4 +1409,13 @@ if(MSVC)
  target_compile_options(btb_original_unwind15_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_unwind15_tests PRIVATE -UNDEBUG)
+endif()
+
+add_executable(btb_original_cxx12_tests tests/original_cxx12_test.cpp)
+target_link_libraries(btb_original_cxx12_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_cxx12 COMMAND btb_original_cxx12_tests ${CMAKE_CURRENT_SOURCE_DIR}/../analysis/reconstruction/retail-cxx12-vectors.txt)
+if(MSVC)
+ target_compile_options(btb_original_cxx12_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_cxx12_tests PRIVATE -UNDEBUG)
 endif()

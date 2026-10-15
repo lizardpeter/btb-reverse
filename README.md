@@ -2,19 +2,19 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-15 UTC): **534/615 (86.8%)** discovered
+Current compiled-source milestone (2026-10-15 UTC): **546/615 (88.8%)** discovered
 function reconstructions are compiled and linked to executed source tests;
-**81 remain** and **136 CTest tests pass**. The latest batch adds **15 original
-functions** covering exception throwing, thiscall trampolines, catch/unwind
-control, termination handlers, masked x87 integer conversion and heap-size
-lookup, with **6,020 original-x86 comparisons**. The unwind paths call recovered
-frame-setting and fatal-runtime dependencies; heap-size dispatch calls both
-recovered small-heap lookups.
+**69 remain** and **137 CTest tests pass**. The latest batch adds **12 original
+functions** completing the recovered C++ catch/dispatch source chain: handler
+search, object copy, catch entry/cleanup, translator handling and continuations,
+with **3,420 original-x86 comparisons** and native rethrow/translation integration
+checks. These call the recovered unwind, RTTI matching, pointer adjustment,
+byte-copy and fatal-runtime procedures directly.
 Full native gameplay caller integration and retail ABI equivalence remain
 incomplete; **0/615** are fully certified against retail behavior. See
-[exception/runtime batch and evidence](docs/original-unwind15.md),
-[preceding heap/runtime batch](docs/original-heap14.md), and
-[file/runtime batch](docs/original-io13.md).
+[C++ dispatch batch and evidence](docs/original-cxx12.md),
+[preceding exception/runtime batch](docs/original-unwind15.md), and
+[heap/runtime batch](docs/original-heap14.md).
 
 ## Source material
 
