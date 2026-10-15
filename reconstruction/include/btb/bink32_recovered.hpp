@@ -5,6 +5,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 
@@ -32,6 +33,16 @@ struct Movie {
     std::span<const std::uint32_t> track_max_sizes{}, track_types{}, track_ids{};
     std::uint32_t video_on_off{};
 };
+// First stage of _BinkOpen@8 (0x30003E77..0x30003EB6):
+// actual 2002 DLL accepts BIKf/BIKg/BIKh and the game's SJPi extension.
+enum class Magic : std::uint8_t { Invalid, BIKf, BIKg, BIKh, SJPi };
+struct Header {
+    Magic magic{Magic::Invalid};
+    std::uint32_t frame_count{}, width{}, height{}, frame_rate{}, divisor{};
+};
+Magic classify_magic(std::uint32_t little_endian) noexcept;
+std::optional<Header> parse_header_prefix(std::span<const std::uint8_t> source) noexcept;
+
 void rad_set_memory(Globals&, std::uintptr_t alloc, std::uintptr_t release) noexcept;
 void buffer_set_resolution(Globals&, std::uint32_t width,
                            std::uint32_t height, std::uint32_t bpp) noexcept;
