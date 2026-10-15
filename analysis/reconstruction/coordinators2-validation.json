@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "source_pe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "entrypoints": [
+    "0x00409E00",
+    "0x00428600"
+  ],
+  "source": "reconstruction/src/original_coordinators2.cpp",
+  "test": "reconstruction/tests/original_coordinators2_test.cpp",
+  "status": "source_written; CI unverified",
+  "recovered": "Dino drag/target state machine, terminal sound/print transition, UI hover/voice-gated navigation and progress eligibility",
+  "unresolved": [
+    "retail x86 global and ABI binding",
+    "DirectDraw surface identity/cursor integration",
+    "Dino completion reward sprite offsets and exact feedback table mapping",
+    "UI PointInPolygon convention to be confirmed against retail traces",
+    "live game-driver activity dispatch and differential checks"
+  ]
+}
