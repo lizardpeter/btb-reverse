@@ -138,9 +138,10 @@ void initialize_park_designer(State& s,IO& io){
       static_cast<std::size_t>(category),
       static_cast<std::size_t>(variant));
     const I32 left=variant*0x22,top=category*0x3d;
-    const U32 atlas=mode==0?0x0050926cU:
-                    mode==1?0x00509288U:0x00509278U;
-    const U32 handle=surface(s,atlas);
+    // The original chooses different summer/winter sprite handles per
+    // palette row and variant; do not pretend one texture covers a mode.
+    const U32 handle=io.original_palette_surface(mode,category,variant,s.surfaces);
+    if(handle==0)throw std::runtime_error("original Park palette sprite unresolved");
     const auto rect=io.original_palette_source_rect(mode,category,variant,handle);
     if(rect[2]<rect[0]||rect[3]<rect[1])
      throw std::runtime_error("invalid original Park Designer palette dimensions");
