@@ -28,7 +28,20 @@ frame number, mouse hover arbitration, sprite clipping and game-global
 struct layouts need original executable differential comparisons. The
 entry-point calls are not yet admitted into the native live game drivers.
 
-This source patch remains `source_written` until Linux C++26, Python
-and Windows x86/x64 integrated game/provider checks all pass. Full
+All four source bodies passed Linux C++26, Python and Windows x86/x64
+integrated game/provider CI and are now marked `compiles`. Full
 retail behavior certification remains **0/615** and original-executable
 comparison count added in this patch is **0**.
+
+## CI admission — October 15, 2026
+
+All four jobs in [Actions run 38783605153](https://github.com/lizardpeter/btb-reverse/actions/runs/38783605153)
+passed: Linux C++26 core and **147/147 CTest tests**, Python tooling,
+Windows x64 game/provider compilation and regressions, and Windows x86
+native game/COM/Bink-provider builds plus smoke/regression checks.
+
+The compiled-source ledger is now **591/615 (96.1%)**, with **24**
+remaining. This does not imply original-executable equivalence:
+new direct original-binary comparisons **0** and complete retail behavior
+certifications **0/615**. The backend hooks have not yet been admitted
+to the running gameplay host.
