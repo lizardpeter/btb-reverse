@@ -19,7 +19,7 @@ struct Host:IO{
   for(auto& graph:v.screens){graph.nodes.push_back({});}
   v.timer_by_difficulty={90,80,70};return v;
  }
- spud_btb::maze::Data read_original_spud_maze_data() override {
+ btb::spud_maze::Data read_original_spud_maze_data() override {
   events.push_back("spud-data");
   spud_btb::maze::Data v{};
   for(std::size_t i=0;i<5;++i){
