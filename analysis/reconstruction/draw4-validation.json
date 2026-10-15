@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "original_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "addresses": [
+    "00409990",
+    "0041C110",
+    "00414A60",
+    "00416370"
+  ],
+  "stage": "compiles",
+  "compiled_count": 587,
+  "remaining": 28,
+  "linux_ctest": {
+    "passed": 146,
+    "failed": 0
+  },
+  "python": "success",
+  "windows_x64": "success",
+  "windows_x86": "success",
+  "ci_run": "https://github.com/lizardpeter/btb-reverse/actions/runs/38780708122",
+  "new_original_executable_comparisons": 0,
+  "retail_equivalence_certified": 0,
+  "qualifier": "Source-level reconstructed rendering coordination with platform callbacks. Exact original x86 binary equivalence and game-driver admission remain unverified."
+}
