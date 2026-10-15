@@ -4,12 +4,12 @@
   "meaning": "Inventory of Ghidra-discovered functions; not source reconstruction coverage.",
   "ghidra_function_count": 615,
   "ghidra_decompiled_count": 615,
-  "reviewed_overlay_rows": 554,
+  "reviewed_overlay_rows": 558,
   "stage_counts": {
-    "unreviewed": 61,
+    "unreviewed": 57,
     "under_analysis": 0,
     "source_written": 0,
-    "compiles": 554,
+    "compiles": 558,
     "behavior_verified": 0
   },
   "tentative_subsystem_counts": {
