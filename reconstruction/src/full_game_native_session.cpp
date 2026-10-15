@@ -83,11 +83,25 @@ NativeSessionFrame NativeGameSession::tick(
             return frame;
         }
         auto movie=resolve_movie(entry->movie);
-        auto help=resolve_movie(entry->spoken_help);
-        if (!movie || !help) {
+        if (!movie) {
             fail(frame,PhysicalPresentationStage::MovieResolve,error);
             return frame;
         }
+        // Retail OpenWalkthroughMovie (004281D0) opens the Bink here;
+        // UpdateWalkthroughMovie (00428120) requests the help voice only
+        // upon hovering. Missing spoken-help audio must not prevent a
+        // genuine walkthrough Bink from opening. Do not manufacture a WAV
+        // or silently ignore malformed/unsafe source paths.
+        const auto help=effects_.assets().resolve(entry->spoken_help);
+        if (!help.found() &&
+            help.status != AssetResolutionStatus::Missing) {
+            fail(frame,PhysicalPresentationStage::MovieResolve,
+                 "invalid walkthrough help WAV path: "+entry->spoken_help+
+                 " ("+help.error+")");
+            return frame;
+        }
+        const std::filesystem::path help_path =
+            help.found() ? help.absolute_path : std::filesystem::path{};
         if (walkthrough_open_ &&
             !device_.close_walkthrough_movie(error)) {
             fail(frame,PhysicalPresentationStage::MovieClose,error);
@@ -97,7 +111,7 @@ NativeSessionFrame NativeGameSession::tick(
             frame.walkthrough_closed = true;
             walkthrough_open_ = false;
         }
-        if (!device_.open_walkthrough_movie(*movie,*help,error)) {
+        if (!device_.open_walkthrough_movie(*movie,help_path,error)) {
             fail(frame,PhysicalPresentationStage::MovieOpen,error);
             return frame;
         }
