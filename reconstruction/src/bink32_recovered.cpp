@@ -116,16 +116,20 @@ std::uint32_t get_key_frame(const Movie* m,std::uint32_t frame,
         return 0;
     }
     case 2: {
-        // Interleaved backward/forward probes as in original 300066F0.
-        if(frame>=2) {
-            for(std::int64_t i=static_cast<std::int64_t>(frame)-2;i>=0;--i) {
-                if(key(static_cast<std::uint32_t>(i)))
-                    return static_cast<std::uint32_t>(i)+1;
-                if(frame<m->frame_count&&key(frame))return frame+1;
-            }
+        // Exact 300066EC..30006723: EDI searches backward while EAX
+        // independently advances FORWARD after each failed backward probe.
+        // The older approximation tested frame repeatedly; that incorrectly
+        // returned zero if a future key was beyond the immediate next slot.
+        auto backward=static_cast<std::int64_t>(frame)-2;
+        auto forward=static_cast<std::uint64_t>(frame);
+        for(;;--backward) {
+            if(backward>=0&&key(static_cast<std::uint32_t>(backward)))
+                return static_cast<std::uint32_t>(backward)+1;
+            if(forward>=m->frame_count||forward>=flags.size())return 0;
+            const bool found=key(static_cast<std::uint32_t>(forward));
+            ++forward; // original INC EAX occurs before the key-bit test
+            if(found)return static_cast<std::uint32_t>(forward);
         }
-        if(frame<m->frame_count&&key(frame))return frame+1;
-        return 0;
     }
     default:return 0;
     }
