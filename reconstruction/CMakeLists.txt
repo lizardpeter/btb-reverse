@@ -951,6 +951,7 @@ add_library(btb_recompiled_core STATIC
     src/original_coordinators2.cpp
     src/original_gameplay3b.cpp
     src/original_init2.cpp
+    src/original_herding_init.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1577,4 +1578,14 @@ if(MSVC)
  target_compile_options(btb_original_init2_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_init2_tests PRIVATE -UNDEBUG)
+endif()
+
+# Original 00419600 Herding retail-data and bitmap initialization.
+add_executable(btb_original_herding_init_tests tests/original_herding_init_test.cpp)
+target_link_libraries(btb_original_herding_init_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_herding_init COMMAND btb_original_herding_init_tests)
+if(MSVC)
+ target_compile_options(btb_original_herding_init_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_herding_init_tests PRIVATE -UNDEBUG)
 endif()
