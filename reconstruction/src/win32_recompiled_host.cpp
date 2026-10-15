@@ -47,14 +47,12 @@ std::optional<fs::path> native_profile_env_path(const wchar_t* key) {
  return fs::path(chars);
 }
 fs::path native_profile_directory(const fs::path& retail_root) {
+ // Never write into the retail installation or reuse its profiles silently.
+ // An explicit override can safely reuse a user-chosen existing save.
  if(auto path=native_profile_env_path(L"BTB_PROFILE_DIR"))return *path;
- // Preserve preexisting development saves before choosing a new location.
- std::error_code ec;
- const auto prior=retail_root/"profiles";
- if(fs::is_directory(prior,ec)&&!ec)return prior;
  if(auto local=native_profile_env_path(L"LOCALAPPDATA"))
   return *local/"BTB-Recompiled"/"profiles";
- return prior;
+ return retail_root/"BTB-Recompiled-Saves";
 }
 
 struct Host {
