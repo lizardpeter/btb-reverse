@@ -933,7 +933,10 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 # ---------------------------------------------------------------
 # Machine-code-derived 2002 Bink32 DLL source models. Unlike our regular
 # retail Bink provider, this library never loads the original DLL.
-add_library(btb_bink32_recovered STATIC src/bink32_recovered.cpp)
+add_library(btb_bink32_recovered STATIC
+    src/bink32_recovered.cpp
+    src/bink32_container.cpp
+)
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
 
@@ -1664,3 +1667,8 @@ add_executable(btb_bink32_recovered_tests tests/bink32_recovered_test.cpp)
 target_link_libraries(btb_bink32_recovered_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_recovered_tests PRIVATE)
 add_test(NAME bink32_recovered_export_source COMMAND btb_bink32_recovered_tests)
+add_executable(btb_bink32_container_tests tests/bink32_container_test.cpp)
+target_link_libraries(btb_bink32_container_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_container_tests PRIVATE)
+add_test(NAME bink32_native_container_index COMMAND btb_bink32_container_tests)
+
