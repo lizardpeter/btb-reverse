@@ -30,6 +30,16 @@ int main() {
  // Numeric wrap in timeGetTime() must preserve elapsed time.
  frame=native.sample(17,31,0x00000020U);
  assert(frame.elapsed_centiseconds==28);
+ native.press_right_mouse();
+ assert(native.right_click_pulse&&native.pointer_held);
+ click=consume_native_click(native.right_click_pulse);
+ assert(click.activity_click&&click.primary_input_click);
+ assert(!native.right_click_pulse);
+ native.press_mouse();
+ native.release_right_mouse();
+ assert(native.pointer_held); // still holding primary
+ native.release_mouse();
+ assert(!native.pointer_held);
  native.key_down(0x20,false);
  assert(native.click_pulse);
  click=consume_native_click(native.click_pulse);
