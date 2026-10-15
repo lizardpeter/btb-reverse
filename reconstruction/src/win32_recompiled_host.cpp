@@ -34,6 +34,29 @@ namespace btb::full_game {
 namespace {
 namespace fs=std::filesystem;
 
+// Native game profile saves live outside the retail install by default.
+// Never silently overwrite an original playerinfo.txt / playerN.txt.
+// Explicit BTB_PROFILE_DIR can point to a preexisting source-format save.
+std::optional<fs::path> native_profile_env_path(const wchar_t* key) {
+ const DWORD length=GetEnvironmentVariableW(key,nullptr,0);
+ if(length==0||length>32768)return std::nullopt;
+ std::wstring chars(static_cast<std::size_t>(length),L'\0');
+ const DWORD got=GetEnvironmentVariableW(key,chars.data(),length);
+ if(got==0||got>=length)return std::nullopt;
+ chars.resize(got);
+ return fs::path(chars);
+}
+fs::path native_profile_directory(const fs::path& retail_root) {
+ if(auto path=native_profile_env_path(L"BTB_PROFILE_DIR"))return *path;
+ // Preserve preexisting development saves before choosing a new location.
+ std::error_code ec;
+ const auto prior=retail_profile_dir;
+ if(fs::is_directory(prior,ec)&&!ec)return prior;
+ if(auto local=native_profile_env_path(L"LOCALAPPDATA"))
+  return *local/"BTB-Recompiled"/"profiles";
+ return prior;
+}
+
 struct Host {
     HWND window{};
     fs::path root{};
@@ -160,15 +183,24 @@ struct Host {
         // One set of original activity drivers, not cloned effect models.
         // Other activities are deliberately not registered until their
         // complete motion/runtime providers are linked.
+        const auto profile_dir=native_profile_directory(root);
+        std::error_code profile_ec;
+        fs::create_directories(profile_dir,profile_ec);
+        if(profile_ec){
+            out_error="cannot create native game save directory: "+
+                      profile_ec.message();
+            return false;
+        }
+        if(!game.load_profile_files(profile_dir,out_error))return false;
         game.install(ActivityId::Golf,std::make_unique<GolfDriver>(
             root/"Data"/"SubGameGolf",0));
         game.install(ActivityId::Fireworks,std::make_unique<FireworksDriver>(
-            root/"Data"/"SubGameFirework",root/"profiles"));
+            root/"Data"/"SubGameFirework",profile_dir));
         game.install(ActivityId::BobsBand,std::make_unique<BobsBandDriver>(
-            root/"Data"/"SubGameOpen",root/"profiles"));
+            root/"Data"/"SubGameOpen",profile_dir));
         game.install(ActivityId::ParkDesigner,
             std::make_unique<ParkDesignerDriver>(
-                root/"Data"/"SubGameDYP",root/"profiles"));
+                root/"Data"/"SubGameDYP",profile_dir));
 
         // Start at the original Activity Select rather than inventing an
         // incomplete five-sign profile-entry workflow. Profile 0 is
