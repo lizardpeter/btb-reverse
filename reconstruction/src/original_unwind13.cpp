@@ -1,4 +1,5 @@
 #include "btb/original_unwind13.hpp"
+#include "btb/original_tail4.hpp"
 #include "btb/original_crt9.hpp"
 #include "btb/original_msvc30.hpp"
 #include <bit>
@@ -22,6 +23,12 @@ U32 setting_frame(U32 target,U32 frame,U32 status,Services& io) {
         [&](I32 code){io.notify(result,frame+12,static_cast<U32>(code));});
     return result;
 }
+void call_original_rtl_unwind(U32 frame,U32 ip,U32 record,U32 value,Services& io) {
+    original_tail4::rtl_unwind_thunk(frame,ip,record,value,
+        +[](U32 f,U32 instruction,U32 r,U32 v,void* ctx){
+            static_cast<Services*>(ctx)->rtl_unwind(f,instruction,r,v);
+        },&io);
+}
 void abort_runtime(Services& io) {
     original_msvc30::fatal_runtime_error(
         [](U32 code,void* p){static_cast<Services*>(p)->report_error(code);},
@@ -44,7 +51,7 @@ U32 call_object_virtual(U32 object,U32 target,std::span<const U32> args,Services
 void unwind_to(State& state,U32 frame,U32 record,Services& io) {
     Registration* const saved=state.chain;
     if(!saved)throw std::invalid_argument("original unwind requires a registration");
-    io.rtl_unwind(frame,0x0042fc51,record,0);
+    call_original_rtl_unwind(frame,0x0042fc51,record,0,io);
     io.write32(record+4,io.read32(record+4)&~2U);
     saved->previous=state.chain;
     state.chain=saved;
@@ -69,7 +76,7 @@ U32 find_try_range(State& state,U32 info,I32 nesting,I32 level,U32& first,U32& l
     if(count<upper || upper<first)unexpected(state,io);
     return table+first*20;
 }
-void global_unwind(U32 frame,Services& io) { io.rtl_unwind(frame,0x0042fee4,0,0); }
+void global_unwind(U32 frame,Services& io) { call_original_rtl_unwind(frame,0x0042fee4,0,0,io); }
 void local_unwind(State& state,U32 frame,I32 stop,U32 frame_base,Services& io) {
     Link link(state,0x0042feec,-2,frame);
     for(;;) {
