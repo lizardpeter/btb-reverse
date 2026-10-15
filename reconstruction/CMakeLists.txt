@@ -955,6 +955,7 @@ add_library(btb_recompiled_core STATIC
     src/original_park_init.cpp
     src/original_crt_float3.cpp
     src/original_closure4.cpp
+    src/original_stdio2.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1621,4 +1622,14 @@ if(MSVC)
  target_compile_options(btb_original_closure4_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_closure4_tests PRIVATE -UNDEBUG)
+endif()
+
+# Original CRT stdio 00432971 printf / 00431314 scanf.
+add_executable(btb_original_stdio2_tests tests/original_stdio2_test.cpp)
+target_link_libraries(btb_original_stdio2_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_stdio2 COMMAND btb_original_stdio2_tests)
+if(MSVC)
+ target_compile_options(btb_original_stdio2_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_stdio2_tests PRIVATE -UNDEBUG)
 endif()
