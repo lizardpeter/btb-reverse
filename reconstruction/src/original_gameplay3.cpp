@@ -160,7 +160,7 @@ void update_spud_maze_pilchard(PilchardState& s,PilchardIO& io){
   s.phase=2;
   if(s.shortest_path.empty()){s.phase=0;s.wait_frames=500;break;}
   s.edge_index=direction(s.current_node,edge_from_path());
-  io.sound(0x2ce+static_cast<I32>(io.random32()&1),0x32,0);
+  io.sound(0x2ce + static_cast<I32>(io.random32()&1),0x32,0);
   break;
  }
  case 2:{
