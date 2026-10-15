@@ -931,6 +931,12 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 # This does not yet supply the original DirectDraw, DirectSound, Bink runtime,
 # remaining activities or verified original executable parity.
 # ---------------------------------------------------------------
+# Machine-code-derived 2002 Bink32 DLL source models. Unlike our regular
+# retail Bink provider, this library never loads the original DLL.
+add_library(btb_bink32_recovered STATIC src/bink32_recovered.cpp)
+target_include_directories(btb_bink32_recovered PUBLIC include)
+btb_require_cpp26(btb_bink32_recovered PUBLIC)
+
 add_library(btb_recompiled_core STATIC
     src/original_editor3.cpp
     src/original_heap9.cpp
@@ -1054,6 +1060,7 @@ add_library(btb_recompiled_core STATIC
 target_include_directories(btb_recompiled_core PUBLIC include)
 btb_require_cpp26(btb_recompiled_core PUBLIC)
 target_link_libraries(btb_recompiled_core PUBLIC
+    btb_bink32_recovered
     btb_player_profiles
     btb_player_progress
     btb_original_source9_algorithms
@@ -1650,3 +1657,10 @@ if(MSVC)
 else()
  target_compile_options(btb_original_last2_tests PRIVATE -UNDEBUG)
 endif()
+
+# First 15 recovered original Bink DLL exports are compiled, linked, and
+# independently executed on Windows x86/x64 and Linux. Not a codec yet.
+add_executable(btb_bink32_recovered_tests tests/bink32_recovered_test.cpp)
+target_link_libraries(btb_bink32_recovered_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_recovered_tests PRIVATE)
+add_test(NAME bink32_recovered_export_source COMMAND btb_bink32_recovered_tests)
