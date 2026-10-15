@@ -35,5 +35,16 @@ invalid difficulty, missing surfaces and inconsistent repair-data
 census. No original executable binary comparisons or native gameplay
 provider equivalence were performed in this batch.
 
-Do not promote from `source_written` to `compiles` until both Windows
-architectures and Linux regressions pass.
+After passing the CI gate, both entries are marked `compiles`, with
+original executable parity and host device admission still unverified.
+
+## Validated admission, October 15, 2026
+
+[GitHub Actions run 38771945489](https://github.com/lizardpeter/btb-reverse/actions/runs/38771945489)
+passed all four jobs: Linux C++26 build and **144/144 CTests**, Python
+tool checks, Windows x64 native game/provider build and tests, and Windows
+x86 native game/COM-provider build and regression.
+
+Both source bodies are now `compiles`: 581/615 total and 34 remaining.
+Zero new original PE32 executable comparisons were performed, and full
+retail behavioral certification remains 0/615.
