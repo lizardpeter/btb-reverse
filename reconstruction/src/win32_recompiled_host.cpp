@@ -51,7 +51,7 @@ struct Host {
     original_active_frame::State original_frame{};
 
     explicit Host(fs::path original_root):root(std::move(original_root)),
-        movies(root,graphics) {}
+        movies(root,graphics,audio) {}
 
     [[nodiscard]] static bool parse_bitmap_names(
         const fs::path& loaddata,OriginalUiBitmapCatalog& bitmaps,
