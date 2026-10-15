@@ -245,9 +245,16 @@ struct Host {
             ActivityFrameInput input=h.native_input.sample(
                 h.pointer_x,h.pointer_y,timeGetTime());
             const auto click=consume_native_click(h.native_input.click_pulse);
-            input.click_pulse=click.activity_click;
+            const auto secondary=consume_native_click(
+                h.native_input.right_click_pulse);
+            // Retail Golf accepts either mouse button to arm/lock the
+            // original power meter; UI menus retain primary-only actions.
+            const bool golf=h.game.globals().dispatcher.current_state==
+                static_cast<int>(game_flow::State::GolfRun);
+            input.click_pulse=click.activity_click ||
+                (golf&&secondary.activity_click);
             const auto frame=h.session->tick(
-                input,click.primary_input_click,false,true);
+                input,click.primary_input_click,secondary.primary_input_click,true);
             if(frame.failure){
                 h.error=frame.failure->message;
                 return false;
@@ -352,6 +359,10 @@ LRESULT CALLBACK native_window_proc(
         host->set_pointer(lp);host->native_input.press_mouse();return 0;
     case WM_LBUTTONUP:
         host->set_pointer(lp);host->native_input.release_mouse();return 0;
+    case WM_RBUTTONDOWN:
+        host->set_pointer(lp);host->native_input.press_right_mouse();return 0;
+    case WM_RBUTTONUP:
+        host->set_pointer(lp);host->native_input.release_right_mouse();return 0;
     case WM_KEYDOWN:
         host->native_input.key_down(
             static_cast<unsigned>(wp),(lp&0x40000000)!=0);
