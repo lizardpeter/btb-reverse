@@ -25,7 +25,6 @@ static std::vector<std::uint8_t> fixture(std::uint32_t tracks){
         put(b,52+i*12,i+71);
     }
     put(b,index,first|1);
-    put(b,index+4,first+10-2); // corrected below: offsets must be four-byte aligned
     put(b,index+4,first+12);
     put(b,index+8,first+20);
     put(b,index+12,static_cast<std::uint32_t>(b.size()));
