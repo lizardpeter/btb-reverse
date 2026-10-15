@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "new_addresses": [
+    "0042FFE2",
+    "00430F00",
+    "0043A220",
+    "00437BF1"
+  ],
+  "compiled_source_count": 558,
+  "remaining": 57,
+  "retail_behavior_certified": 0,
+  "ctest_passed": 139,
+  "python_checks": "success",
+  "original_executable_comparisons_in_batch": 0,
+  "source_commit": "d18dc087b2249b0e203a4e39850cc28fac355320",
+  "github_actions_run_url": "https://github.com/lizardpeter/btb-reverse/actions/runs/38753132933",
+  "linux_cpp": "success",
+  "windows_x86": "success",
+  "windows_x64": "success",
+  "scope": "Original runtime source-level models with required platform callback boundaries. 0043A220 is called by the previously reconstructed unwind callers. Native x86 stack/SEH ABI and original executable differential parity are unverified."
+}

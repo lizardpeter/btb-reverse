@@ -2,16 +2,19 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-15 UTC): **554/615 (90.1%)** discovered
+Current compiled-source milestone (2026-10-15 UTC): **558/615 (90.7%)** discovered
 function reconstructions are compiled and linked to executed source tests;
-**61 remain** and **138 CTest tests pass**. The latest batch adds **8 original
-functions**: fullscreen/windowed display setup, main-window creation, three
-DirectX import thunks, Fireworks bitmap loading and Pilchard movement, with
-**3,580 original-x86 comparisons**. Native display initialization and sound
-creation now call the recovered source bodies through real Windows providers.
-The resource loader and movement routine still need full gameplay caller integration.
+**57 remain**, and **139 CTest tests pass**. The newest batch adds **four
+original Win32/CRT boundary procedures**: cached local-time conversion,
+x86 guest stack probing, the RtlUnwind import thunk (used by existing
+unwind callers), and CRT message termination. Linux C++26, Windows x86/x64
+native builds/tests and Python checks all passed.
+The preceding display and gameplay batch added eight original bodies with
+**3,580 independent original-x86 comparisons**; this latest CRT batch
+adds **no new original-executable comparisons**.
 Full native gameplay and retail ABI equivalence remain incomplete;
 **0/615** are fully certified against retail behavior. See
+[latest four CRT/runtime boundary functions](docs/original-tail4.md),
 [display/gameplay batch and evidence](docs/original-device8.md),
 [preceding C++ dispatch batch](docs/original-cxx12.md), and
 [exception/runtime batch](docs/original-unwind15.md).

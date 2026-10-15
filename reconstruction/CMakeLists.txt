@@ -938,6 +938,7 @@ add_library(btb_recompiled_core STATIC
     src/original_imports3.cpp
     src/original_display3.cpp
     src/original_cxx12.cpp
+    src/original_tail4.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1431,4 +1432,14 @@ if(MSVC)
  target_compile_options(btb_original_device8_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_device8_tests PRIVATE -UNDEBUG)
+endif()
+
+# Four original CRT/time/stack-unwind source-level boundary functions.
+add_executable(btb_original_tail4_tests tests/original_tail4_test.cpp)
+target_link_libraries(btb_original_tail4_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_tail4 COMMAND btb_original_tail4_tests)
+if(MSVC)
+ target_compile_options(btb_original_tail4_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_tail4_tests PRIVATE -UNDEBUG)
 endif()
