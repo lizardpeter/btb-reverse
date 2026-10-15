@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "source_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "entries": [
+    "00415080",
+    "00425F40",
+    "004182B0"
+  ],
+  "source": "reconstruction/src/original_gameplay3b.cpp",
+  "header": "reconstruction/include/btb/original_gameplay3b.hpp",
+  "test": "reconstruction/tests/original_gameplay3b_test.cpp",
+  "stage": "source_written",
+  "validation": "pending",
+  "scope": {
+    "golf": "charge, aim, trajectory state, rebound, target proximity, sound and reset; source DLL movement provider",
+    "squirrel": "91 source animation-profile codes, 0..6 run phases, gating, frame tables and draw",
+    "herding": "input movement, target pens, animal callbacks, boundary collision, animation, completion and music"
+  },
+  "unresolved": [
+    "Original live-game dispatcher wiring",
+    "Original movement and collision implementations through native providers",
+    "Exact retail float/x87 behavior and coordinate conversions",
+    "Original graphics and sound assets integrated with providers",
+    "Differential retail executable equivalence"
+  ]
+}

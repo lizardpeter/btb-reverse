@@ -949,6 +949,7 @@ add_library(btb_recompiled_core STATIC
     src/original_activity4.cpp
     src/original_motion4.cpp
     src/original_coordinators2.cpp
+    src/original_gameplay3b.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1555,4 +1556,14 @@ if(MSVC)
  target_compile_options(btb_original_coordinators2_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_coordinators2_tests PRIVATE -UNDEBUG)
+endif()
+
+# Retail source-model controllers 00415080 / 00425F40 / 004182B0.
+add_executable(btb_original_gameplay3b_tests tests/original_gameplay3b_test.cpp)
+target_link_libraries(btb_original_gameplay3b_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_gameplay3b COMMAND btb_original_gameplay3b_tests)
+if(MSVC)
+ target_compile_options(btb_original_gameplay3b_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_gameplay3b_tests PRIVATE -UNDEBUG)
 endif()
