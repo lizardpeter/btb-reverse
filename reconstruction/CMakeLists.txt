@@ -937,6 +937,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_recovered.cpp
     src/bink32_container.cpp
     src/bink32_playback.cpp
+    src/bink32_packet_decode.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1676,5 +1677,11 @@ add_executable(btb_bink32_playback_tests tests/bink32_playback_test.cpp)
 target_link_libraries(btb_bink32_playback_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_playback_tests PRIVATE)
 add_test(NAME bink32_native_pause_and_seek COMMAND btb_bink32_playback_tests)
+# Source-derived real BinkDoFrame frame demultiplexer + entropy bitstream.
+add_executable(btb_bink32_packet_decode_tests tests/bink32_packet_decode_test.cpp)
+target_link_libraries(btb_bink32_packet_decode_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_packet_decode_tests PRIVATE)
+add_test(NAME bink32_source_frame_packets COMMAND btb_bink32_packet_decode_tests)
+
 
 
