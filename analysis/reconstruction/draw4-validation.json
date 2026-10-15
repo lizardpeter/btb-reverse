@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "original_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "source_written": [
+    "00409990",
+    "0041C110",
+    "00414A60",
+    "00416370"
+  ],
+  "previous_compiled": 583,
+  "tests_added": [
+    "original_draw4"
+  ],
+  "ci": null,
+  "original_binary_comparisons_added": 0,
+  "retail_behavior_certified": 0,
+  "qualification": "Compilable source model of recovered control flow, not original executable ABI or behavioral equivalence"
+}

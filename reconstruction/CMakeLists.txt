@@ -945,6 +945,7 @@ add_library(btb_recompiled_core STATIC
     src/original_fireworks_start2.cpp
     src/original_maze_init2.cpp
     src/original_profiles_fireworks2.cpp
+    src/original_draw4.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1511,4 +1512,14 @@ if(MSVC)
  target_compile_options(btb_original_profiles_fireworks2_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_profiles_fireworks2_tests PRIVATE -UNDEBUG)
+endif()
+
+# Four original drawing functions with explicit native video/physics boundary.
+add_executable(btb_original_draw4_tests tests/original_draw4_test.cpp)
+target_link_libraries(btb_original_draw4_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_draw4 COMMAND btb_original_draw4_tests)
+if(MSVC)
+ target_compile_options(btb_original_draw4_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_draw4_tests PRIVATE -UNDEBUG)
 endif()
