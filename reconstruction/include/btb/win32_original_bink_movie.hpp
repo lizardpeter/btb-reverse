@@ -2,6 +2,7 @@
 #if defined(_WIN32)
 #include "btb/win32_original_game_device.hpp"
 #include "btb/win32_original_bink_exports.hpp"
+#include "btb/win32_original_directsound.hpp"
 #include <cstdint>
 #include <filesystem>
 #include <string>
@@ -13,8 +14,9 @@ namespace btb::full_game {
 class Win32OriginalBinkMovie final : public OriginalBinkProvider {
 public:
  explicit Win32OriginalBinkMovie(
-   std::filesystem::path root,Win32OriginalDirectDraw& graphics)
-     : root_(std::move(root)),graphics_(graphics) {}
+   std::filesystem::path root,Win32OriginalDirectDraw& graphics,
+   Win32OriginalDirectSound& audio)
+     : root_(std::move(root)),graphics_(graphics),audio_(audio) {}
  ~Win32OriginalBinkMovie() override;
  [[nodiscard]] bool service(bool& global_finished,std::string& error) override;
  [[nodiscard]] bool open_global(
@@ -41,7 +43,9 @@ private:
  void close_global() noexcept;
  std::filesystem::path root_{};
  Win32OriginalDirectDraw& graphics_;
+ Win32OriginalDirectSound& audio_;
  Win32OriginalBinkExports exports_{};
+ bool sound_system_ready_{};
  void* current_{};
  std::uint32_t width_{},height_{},total_frames_{},decoded_frames_{};
  bool last_frame_shown_{},have_pixels_{};
