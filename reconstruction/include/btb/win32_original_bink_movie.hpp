@@ -8,9 +8,9 @@
 #include <string>
 #include <vector>
 namespace btb::full_game {
-// Real 32-bit retail Bink decode/presentation of global intro/cutscene movies.
-// The vintage x86 DLL is not usable from a 64-bit process. Walkthrough video
-// remains refused until the original inset surface positioning is recovered.
+// Real 32-bit retail Bink decode/presentation for both global cutscenes and
+// the independent, looping instructional walkthrough Bink surface.
+// Uses the actual retail x86 binkw32.dll. No media is synthesized.
 class Win32OriginalBinkMovie final : public OriginalBinkProvider {
 public:
  explicit Win32OriginalBinkMovie(
@@ -40,7 +40,10 @@ private:
    void*,void*,std::int32_t,std::uint32_t,std::uint32_t,std::uint32_t,std::uint32_t);
  using BinkNextFn=void (__stdcall*)(void*);
  [[nodiscard]] bool ensure_decoder(std::string& error);
+ [[nodiscard]] bool open_original_file(
+    const std::filesystem::path& file,void*& handle,std::string& error);
  void close_global() noexcept;
+ void close_walkthrough_handle() noexcept;
  std::filesystem::path root_{};
  Win32OriginalDirectDraw& graphics_;
  Win32OriginalDirectSound& audio_;
@@ -50,6 +53,10 @@ private:
  std::uint32_t width_{},height_{},total_frames_{},decoded_frames_{};
  bool last_frame_shown_{},have_pixels_{};
  std::vector<std::uint8_t> bgra_{};
+ void* walkthrough_{};
+ std::uint32_t walk_width_{},walk_height_{},walk_total_frames_{},walk_decoded_frames_{};
+ bool walk_have_pixels_{},walk_restart_on_next_frame_{};
+ std::vector<std::uint8_t> walkthrough_bgra_{};
 };
 } // namespace btb::full_game
 #endif
