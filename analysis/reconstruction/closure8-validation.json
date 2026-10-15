@@ -11,12 +11,15 @@
     "00409460",
     "00409730"
   ],
-  "source_written": 8,
-  "compiled_after_validation": null,
-  "retail_x86_differential_comparisons": 0,
+  "compiled_source_count": 566,
+  "remaining": 49,
   "full_retail_equivalence_certified": 0,
-  "scope": "eight source-level implementations; platform/caller behavior not certified",
-  "linux_cpp": null,
-  "windows_x86": null,
-  "windows_x64": null
+  "retail_x86_differential_comparisons_in_batch": 0,
+  "ctest_passed": 140,
+  "linux_cpp": "success",
+  "python": "success",
+  "windows_x86": "success",
+  "windows_x64": "success",
+  "ci_run": "https://github.com/lizardpeter/btb-reverse/actions/runs/38759035193",
+  "source_scope": "Source-level models compiled and linked to regression; original PE32 ABI and full-game parity not verified"
 }

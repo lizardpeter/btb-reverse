@@ -2,19 +2,20 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-15 UTC): **558/615 (90.7%)** discovered
+Current compiled-source milestone (2026-10-15 UTC): **566/615 (92.0%)** discovered
 function reconstructions are compiled and linked to executed source tests;
-**57 remain**, and **139 CTest tests pass**. The newest batch adds **four
-original Win32/CRT boundary procedures**: cached local-time conversion,
-x86 guest stack probing, the RtlUnwind import thunk (used by existing
-unwind callers), and CRT message termination. Linux C++26, Windows x86/x64
-native builds/tests and Python checks all passed.
-The preceding display and gameplay batch added eight original bodies with
-**3,580 independent original-x86 comparisons**; this latest CRT batch
-adds **no new original-executable comparisons**.
+**49 remain**, and **140 CTest tests pass**. The latest source batch
+recovered **8** original functions: profile persistence and release, Park
+Designer teardown, quit confirmation loading, progress display and narration,
+CD removal/drive scans, and print BMP export and print-dialog flow.
+[PR #54](https://github.com/lizardpeter/btb-reverse/pull/54) passed Linux
+C++26, Windows x86/x64 game/provider builds and tests, and Python CI.
+No original-executable differential comparisons were generated for this
+batch; previous controlled comparisons are not counted as full coverage.
 Full native gameplay and retail ABI equivalence remain incomplete;
 **0/615** are fully certified against retail behavior. See
-[latest four CRT/runtime boundary functions](docs/original-tail4.md),
+[latest eight connected runtime/UI/resource functions](docs/original-closure8.md),
+[previous four CRT/runtime boundary functions](docs/original-tail4.md),
 [display/gameplay batch and evidence](docs/original-device8.md),
 [preceding C++ dispatch batch](docs/original-cxx12.md), and
 [exception/runtime batch](docs/original-unwind15.md).

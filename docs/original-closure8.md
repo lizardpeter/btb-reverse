@@ -7,7 +7,7 @@ These are C++26 source-level reconstructive implementations of eight remaining o
 | Original address | Reconstructed scope |
 |---|---|
 | 0042D060 | Release profile UI bitmaps in original slot order, serialize 5 metadata and progress records |
-| 0040B190 | Save Park Designer; destroy 20 objects; clear 300 table words; release 100+ registered surface slots; stop music |
+| 0040B190 | Save Park Designer; destroy 20 objects; clear 300 table words; release 82 registered surface slots; stop music |
 | 004074F0 | Parse quitsure numeric/string record and clear six rows of four matching placeholder labels |
 | 00427C30 | Draw progress screen, 15 original star coordinates, grouped progress voice selection, quit/back handling |
 | 00406C00 | Exit-on-removed-CD platform and audio shutdown with original error and quit sequencing |
@@ -35,3 +35,16 @@ against-original binary testing can settle them.
 
 Native callers for full game/UI resource ownership, input, sprite drawing
 and actual printing remain to be wired into a complete retail-equivalent host.
+
+## Validation / gate
+
+All four jobs passed in [GitHub Actions run 38759035193](https://github.com/lizardpeter/btb-reverse/actions/runs/38759035193):
+Linux GCC 14 C++26 compilation and 140/140 CTests; Python tools;
+Windows x64 and x86 native game/provider builds and regression tests.
+All eight bodies are therefore marked **compiles** in the source
+registry (566/615 total, 49 remaining).
+
+This is a compile and source-contract validation, not original PE32
+behavioral equivalence. Original x86 differential comparisons added: **0**.
+Full retail equivalence certified: **0/615**. Full OS/DirectDraw device
+behavior and top-level gameplay remain incomplete.
