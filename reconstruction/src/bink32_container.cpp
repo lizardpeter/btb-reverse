@@ -49,7 +49,8 @@ std::optional<ContainerIndex> parse_container_index(
     if(track_count>kMaximumTracks)return std::nullopt;
     const auto index_start=kHeaderBytes+std::size_t(track_count)*kTrackBytes;
     const auto count=std::size_t(prefix->frame_count)+1;
-    if(count>(b.size()-index_start)/4)return std::nullopt;
+    if(index_start>b.size()||count>(b.size()-index_start)/4)
+        return std::nullopt;
     const auto frame_data_start=index_start+count*4;
 
     ContainerIndex out;
