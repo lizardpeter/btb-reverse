@@ -2,6 +2,38 @@
 #include <algorithm>
 namespace btb::bink32_recovered {
 
+namespace {
+std::uint32_t le32(std::span<const std::uint8_t> bytes,std::size_t off) noexcept {
+    return std::uint32_t(bytes[off]) | (std::uint32_t(bytes[off+1])<<8)
+         | (std::uint32_t(bytes[off+2])<<16) | (std::uint32_t(bytes[off+3])<<24);
+}
+}
+// Source: original BinkOpen code 30003E77..30003EB6 compares four DWORD
+// literals. Notably 30003E90 compares with 0x69504A53 (ASCII "SJPi").
+Magic classify_magic(std::uint32_t m) noexcept {
+    switch(m) {
+    case 0x664b4942U:return Magic::BIKf;
+    case 0x674b4942U:return Magic::BIKg;
+    case 0x684b4942U:return Magic::BIKh;
+    case 0x69504a53U:return Magic::SJPi;
+    default:return Magic::Invalid;
+    }
+}
+// Read only fields directly verified against retail BinkOpen's 44-byte
+// header read; this is NOT the complete open/decode procedure.
+// The null frame-count branch is at 30003EB6; fields at 0x14/18/1C/20
+// are confirmed by the actual retail BIKs supplied for this project.
+std::optional<Header> parse_header_prefix(
+    std::span<const std::uint8_t> bytes) noexcept {
+    if(bytes.size()<36)return std::nullopt;
+    const auto magic=classify_magic(le32(bytes,0));
+    if(magic==Magic::Invalid)return std::nullopt;
+    Header out{magic,le32(bytes,8),le32(bytes,20),
+               le32(bytes,24),le32(bytes,28),le32(bytes,32)};
+    if(out.frame_count==0)return std::nullopt;
+    return out;
+}
+
 // Original _RADSetMemory@8 at 30001000. Two global pointer writes.
 void rad_set_memory(Globals& g,std::uintptr_t alloc,std::uintptr_t release) noexcept {
     g.allocation_callback=alloc;g.free_callback=release;
