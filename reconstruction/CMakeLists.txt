@@ -936,6 +936,7 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 add_library(btb_bink32_recovered STATIC
     src/bink32_recovered.cpp
     src/bink32_container.cpp
+    src/bink32_playback.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1671,4 +1672,9 @@ add_executable(btb_bink32_container_tests tests/bink32_container_test.cpp)
 target_link_libraries(btb_bink32_container_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_container_tests PRIVATE)
 add_test(NAME bink32_native_container_index COMMAND btb_bink32_container_tests)
+add_executable(btb_bink32_playback_tests tests/bink32_playback_test.cpp)
+target_link_libraries(btb_bink32_playback_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_playback_tests PRIVATE)
+add_test(NAME bink32_native_pause_and_seek COMMAND btb_bink32_playback_tests)
+
 
