@@ -54,6 +54,18 @@ int main(int argc,char** argv){
     CHECK(align.read(8)==0x98);
     CHECK(!align.align(4));
     CHECK(!align.align(3));
+
+     // Recovered original 0x3000FC00 entropy-state initialization.
+     const auto plane=init_entropy_plane(0xabcU,0x200U,640U,4U,1U,false);
+     CHECK(plane.table_bit_width==10&&plane.symbol_bits==4);
+     CHECK(plane.prefix_mask==0&&plane.lookup_table_address==0xabcU);
+     const auto masked=init_entropy_plane(0xabcU,0x200U,640U,4U,1U,true);
+     CHECK(masked.prefix_mask==8);
+     const auto single=init_entropy_plane(1,1,0,1,0,true);
+     CHECK(single.table_bit_width==0&&single.prefix_mask==1);
+     const auto bounded=init_entropy_plane(1,0x100000U,640,4,1,true);
+     CHECK(bounded.table_bit_width==15);
+
     // Optional retail file validation; CI never needs copyrighted BIK assets.
     for(int a=1;a<argc;++a){
         std::ifstream fd(argv[a],std::ios::binary);
