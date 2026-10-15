@@ -41,6 +41,8 @@ public:
  virtual void set_magenta_key(U32 guest_slot,U32 handle,U32 rgb)=0;
  virtual void load_original_park_data(park_designer::SaveData&,
                                       park_designer::BoundAreas&)=0;
+ virtual U32 original_palette_surface(I32 mode,I32 category,I32 variant,
+                                      const std::vector<Surface>& originals)=0;
  virtual std::array<I32,4> original_palette_source_rect(
     I32 mode,I32 category,I32 variant,U32 sprite)=0;
  virtual void stop_all_managed_sounds()=0;
