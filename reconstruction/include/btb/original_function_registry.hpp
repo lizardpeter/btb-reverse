@@ -240,7 +240,7 @@ inline constexpr std::array<OriginalFunction, 615> kOriginalFunctions{{
     {0x00416A30U, "UpdateHerdingAnimal", OriginalSubsystem::Golf, ReconstructionStage::Compiles, 6141U, 1U, 8U},
     {0x004182B0U, "UpdateHerdingActivity", OriginalSubsystem::Herding, ReconstructionStage::Compiles, 4317U, 1U, 15U},
     {0x00419390U, "UnloadHerdingActivityResources", OriginalSubsystem::Herding, ReconstructionStage::Compiles, 609U, 1U, 2U},
-    {0x00419600U, "InitializeHerdingActivity", OriginalSubsystem::Herding, ReconstructionStage::Unreviewed, 3458U, 1U, 8U},
+    {0x00419600U, "InitializeHerdingActivity", OriginalSubsystem::Herding, ReconstructionStage::SourceWritten, 3458U, 1U, 8U},
     {0x0041A390U, "UnloadMazeActivityResources", OriginalSubsystem::Herding, ReconstructionStage::Compiles, 331U, 2U, 2U},
     {0x0041A4E0U, "LoadMazeData", OriginalSubsystem::Herding, ReconstructionStage::Compiles, 542U, 1U, 4U},
     {0x0041A700U, "Divide64BitDeltaByTenMillion", OriginalSubsystem::Herding, ReconstructionStage::Compiles, 39U, 7U, 1U},
