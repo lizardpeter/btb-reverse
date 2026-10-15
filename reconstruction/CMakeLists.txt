@@ -953,6 +953,7 @@ add_library(btb_recompiled_core STATIC
     src/original_init2.cpp
     src/original_herding_init.cpp
     src/original_park_init.cpp
+    src/original_crt_float3.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1599,4 +1600,14 @@ if(MSVC)
  target_compile_options(btb_original_park_init_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_park_init_tests PRIVATE -UNDEBUG)
+endif()
+
+# Original CRT 004332F2 / 004333F6 / 004334D4.
+add_executable(btb_original_crt_float3_tests tests/original_crt_float3_test.cpp)
+target_link_libraries(btb_original_crt_float3_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_crt_float3 COMMAND btb_original_crt_float3_tests)
+if(MSVC)
+ target_compile_options(btb_original_crt_float3_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_crt_float3_tests PRIVATE -UNDEBUG)
 endif()
