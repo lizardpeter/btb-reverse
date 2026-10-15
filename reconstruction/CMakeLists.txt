@@ -948,6 +948,7 @@ add_library(btb_recompiled_core STATIC
     src/original_draw4.cpp
     src/original_activity4.cpp
     src/original_motion4.cpp
+    src/original_coordinators2.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1544,4 +1545,14 @@ if(MSVC)
  target_compile_options(btb_original_motion4_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_motion4_tests PRIVATE -UNDEBUG)
+endif()
+
+# Original 00409E00 Dino and 00428600 generic UI event coordinators.
+add_executable(btb_original_coordinators2_tests tests/original_coordinators2_test.cpp)
+target_link_libraries(btb_original_coordinators2_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_coordinators2 COMMAND btb_original_coordinators2_tests)
+if(MSVC)
+ target_compile_options(btb_original_coordinators2_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_coordinators2_tests PRIVATE -UNDEBUG)
 endif()
