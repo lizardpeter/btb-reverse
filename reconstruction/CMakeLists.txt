@@ -947,6 +947,7 @@ add_library(btb_recompiled_core STATIC
     src/original_profiles_fireworks2.cpp
     src/original_draw4.cpp
     src/original_activity4.cpp
+    src/original_motion4.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1533,4 +1534,14 @@ if(MSVC)
   target_compile_options(btb_original_activity4_tests PRIVATE /UNDEBUG)
 else()
   target_compile_options(btb_original_activity4_tests PRIVATE -UNDEBUG)
+endif()
+
+# Original Maze, Spud Maze, Spud NPC and Herding movement coordination.
+add_executable(btb_original_motion4_tests tests/original_motion4_test.cpp)
+target_link_libraries(btb_original_motion4_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_motion4 COMMAND btb_original_motion4_tests)
+if(MSVC)
+ target_compile_options(btb_original_motion4_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_motion4_tests PRIVATE -UNDEBUG)
 endif()

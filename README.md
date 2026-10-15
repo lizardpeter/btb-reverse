@@ -2,24 +2,25 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-15 UTC): **591/615 (96.1%)**
-original discovered function source models compile and link into the native
-game core. **24 remain**, and **147 CTest tests pass**.
+Current compiled-source milestone (2026-10-15 UTC): **595/615 (96.7%)**
+original discovered function source models compile and link to the native
+game core. **20 remain**, and **148 CTest tests pass**.
 
-The newest four source-level original-address routines include Spud Maze
-scene and repair/hammer presentation (`004227F0`), Spud Skate Bink
-playback and scoring (`00424690`), Squirrel scene rendering and state
-advancement (`004267B0`), and context-sensitive help/voice interactions
-(`00401700`). [PR #61](https://github.com/lizardpeter/btb-reverse/pull/61)
-passed Linux C++26, Python and Windows x86/x64 native game/provider CI.
+The newest four original-address source models cover Maze player movement
+(`0041B140`), Spud Maze Bob movement and repairs (`00421360`), the
+eight-state Maze Spud NPC (`0041CCB0`), and source-confirmed home-route
+behavior in the Herding animal update (`00416A30`). [PR #62](https://github.com/lizardpeter/btb-reverse/pull/62)
+passed Linux C++26, Python, Windows x86 and x64 native game/provider CI.
+These source bodies reuse recovered Maze node/proximity, Spud NPC phase,
+and Herding home-route algorithms.
 
 **0/615** original bodies have full retail behavioral certification.
-Exact x86 differential comparisons, admission to the actual game driver
-and native DirectDraw/Bink platform integration remain unfinished.
-Compiler/link coverage is not full game equivalence. See
-[the latest activity source batch](docs/original-activity4.md),
-[the earlier four drawing functions](docs/original-draw4.md),
-and [the player/editor resource work](docs/original-profiles-fireworks2.md).
+The remaining x87 branches, Herding roam/follower dispatcher paths, native
+game-driver admission, and original executable differential comparisons
+remain unfinished. Compiled-source coverage is not original-binary parity.
+See [the latest movement and NPC batch](docs/original-motion4.md),
+[previous activity coordinators](docs/original-activity4.md),
+and [prior drawing coordinators](docs/original-draw4.md).
 
 ## Source material
 
