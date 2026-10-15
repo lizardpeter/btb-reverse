@@ -55,7 +55,7 @@ struct DinoHost final:DinoIO{
   loaded.push_back({dest,va,handle});return handle;
  }
  U32 load_original_background_bitmap(U32 dest,I32 level_index) override{
-  assert(dest==0x004fc9e8U&&level_index==5);
+  assert(dest==0x004fc9e8U&&level_index==selected_level);
   return load_registered_bitmap(dest,0x0043e15cU);
  }
  U32 load_original_piece_bitmap(U32 dest,I32 index) override{
