@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "original_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "addresses": [
+    "004227F0",
+    "00424690",
+    "004267B0",
+    "00401700"
+  ],
+  "stage": "source_written",
+  "previous_compiles": 587,
+  "compiled_expected_if_ci_passes": 591,
+  "original_x86_differential_added": 0,
+  "retail_certified": 0,
+  "ci": null
+}
