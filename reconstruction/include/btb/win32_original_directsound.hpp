@@ -42,6 +42,9 @@ public:
     [[nodiscard]] bool apply(
         const ResolvedSoundEffect& effect,std::string& error);
     void shutdown() noexcept;
+    [[nodiscard]] IDirectSound8* native_device_for_bink() const noexcept {
+        return sound_;
+    }
 
 private:
     [[nodiscard]] bool create_wave_buffer(
