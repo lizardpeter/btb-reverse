@@ -938,6 +938,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_container.cpp
     src/bink32_playback.cpp
     src/bink32_packet_decode.cpp
+    src/bink32_fixed_huffman.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1682,6 +1683,11 @@ add_executable(btb_bink32_packet_decode_tests tests/bink32_packet_decode_test.cp
 target_link_libraries(btb_bink32_packet_decode_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_packet_decode_tests PRIVATE)
 add_test(NAME bink32_source_frame_packets COMMAND btb_bink32_packet_decode_tests)
+add_executable(btb_bink32_fixed_huffman_tests tests/bink32_fixed_huffman_test.cpp)
+target_link_libraries(btb_bink32_fixed_huffman_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_fixed_huffman_tests PRIVATE)
+add_test(NAME bink32_original_fixed_huffman COMMAND btb_bink32_fixed_huffman_tests)
+
 
 
 
