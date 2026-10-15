@@ -70,7 +70,7 @@ int main(){
   assert(s.difficulty==2&&s.leader_count==15&&io.rng==15);
   assert(s.entities.size()==22);
   assert(s.entities.back().type==7&&s.entities.back().x==100);
-  assert(s.gate_left_index==16&&s.gate_right_index==17);
+  assert(s.gate_left_index==19&&s.gate_right_index==20);
  }
  {
   Host io;State s;s.difficulty=2;s.player_mode=1;
