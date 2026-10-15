@@ -25,6 +25,18 @@ This is source-level reconstruction and NOT verified PE32 ABI fidelity.
 Actual game driver wiring, exact Ghidra-vs-PE comparison, and native media
 provider behavior remain unfinished.
 
-These addresses remain `source_written` pending Linux C++26, Windows x86
-and Windows x64 CI admission. No original-executable differential comparisons
-were added; full retail equivalence remains 0/615.
+Both source models are now `compiles`, having passed the Linux C++26,
+Windows x86 and Windows x64 validation gates. No original-executable
+differential comparisons were added; full retail equivalence remains 0/615.
+
+## Validation
+
+All four jobs passed in [Actions run 38775824990](https://github.com/lizardpeter/btb-reverse/actions/runs/38775824990):
+Linux GCC C++26 compilation and **145/145 CTests**, Python checks,
+Windows x64 native game and integrated regression, and Windows x86 native
+game/COM provider linking and smoke/regression tests.
+
+Compiled-source coverage: **583/615 (94.8%)**, 32 remaining.
+Original x86 executable comparisons added: **0**. Exact retail
+behavior certification: **0/615**. External device implementation
+and game-host admission are still required.
