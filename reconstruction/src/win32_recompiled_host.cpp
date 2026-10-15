@@ -34,6 +34,27 @@ namespace btb::full_game {
 namespace {
 namespace fs=std::filesystem;
 
+// Native game profile saves live outside the retail install by default.
+// Never silently overwrite an original playerinfo.txt / playerN.txt.
+// Explicit BTB_PROFILE_DIR can point to a preexisting source-format save.
+std::optional<fs::path> native_profile_env_path(const wchar_t* key) {
+ const DWORD length=GetEnvironmentVariableW(key,nullptr,0);
+ if(length==0||length>32768)return std::nullopt;
+ std::wstring chars(static_cast<std::size_t>(length),L'\0');
+ const DWORD got=GetEnvironmentVariableW(key,chars.data(),length);
+ if(got==0||got>=length)return std::nullopt;
+ chars.resize(got);
+ return fs::path(chars);
+}
+fs::path native_profile_directory(const fs::path& retail_root) {
+ // Never write into the retail installation or reuse its profiles silently.
+ // An explicit override can safely reuse a user-chosen existing save.
+ if(auto path=native_profile_env_path(L"BTB_PROFILE_DIR"))return *path;
+ if(auto local=native_profile_env_path(L"LOCALAPPDATA"))
+  return *local/"BTB-Recompiled"/"profiles";
+ return retail_root/"BTB-Recompiled-Saves";
+}
+
 struct Host {
     HWND window{};
     fs::path root{};
@@ -43,6 +64,7 @@ struct Host {
     std::unique_ptr<Win32OriginalGameDevice> device{};
     GameRoot game{};
     std::unique_ptr<NativeGameSession> session{};
+    fs::path profile_directory{};
     std::string error{};
     int pointer_x{320},pointer_y{240};
     NativeHostInput native_input{};
@@ -160,15 +182,25 @@ struct Host {
         // One set of original activity drivers, not cloned effect models.
         // Other activities are deliberately not registered until their
         // complete motion/runtime providers are linked.
+        const auto profile_dir=native_profile_directory(root);
+        std::error_code profile_ec;
+        fs::create_directories(profile_dir,profile_ec);
+        if(profile_ec){
+            out_error="cannot create native game save directory: "+
+                      profile_ec.message();
+            return false;
+        }
+        if(!game.load_profile_files(profile_dir,out_error))return false;
+        profile_directory=profile_dir;
         game.install(ActivityId::Golf,std::make_unique<GolfDriver>(
             root/"Data"/"SubGameGolf",0));
         game.install(ActivityId::Fireworks,std::make_unique<FireworksDriver>(
-            root/"Data"/"SubGameFirework",root/"profiles"));
+            root/"Data"/"SubGameFirework",profile_dir));
         game.install(ActivityId::BobsBand,std::make_unique<BobsBandDriver>(
-            root/"Data"/"SubGameOpen",root/"profiles"));
+            root/"Data"/"SubGameOpen",profile_dir));
         game.install(ActivityId::ParkDesigner,
             std::make_unique<ParkDesignerDriver>(
-                root/"Data"/"SubGameDYP",root/"profiles"));
+                root/"Data"/"SubGameDYP",profile_dir));
 
         // Start at the original Activity Select rather than inventing an
         // incomplete five-sign profile-entry workflow. Profile 0 is
@@ -352,6 +384,16 @@ LRESULT CALLBACK native_window_proc(
     case WM_DESTROY:
         host->running=false;
         KillTimer(hwnd,kNativeTimer);
+        // Persist all five native source-format profile records even when the
+        // user exits from a menu rather than through a game completion path.
+        if(!host->profile_directory.empty()){
+            std::string save_error;
+            if(!host->game.save_profile_files(
+                   host->profile_directory,save_error)){
+                MessageBoxA(hwnd,save_error.c_str(),
+                    "Native profile save failed",MB_OK|MB_ICONERROR);
+            }
+        }
         PostQuitMessage(0);
         return 0;
     default:
