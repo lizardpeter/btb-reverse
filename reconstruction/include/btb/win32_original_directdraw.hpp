@@ -75,6 +75,7 @@ private:
     IDirectDrawSurface7* primary_{};
     IDirectDrawSurface7* backbuffer_{};
     IDirectDrawClipper* clipper_{};
+    bool extra_back_reference_{};
     std::unordered_map<std::wstring,OriginalSurface> images_{};
     std::unique_ptr<original_win32::NativeBitmapRegistry> registry_{
         std::make_unique<original_win32::NativeBitmapRegistry>()};

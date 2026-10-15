@@ -1,4 +1,7 @@
 #include "btb/win32_original_directdraw.hpp"
+#include "btb/original_display3.hpp"
+#include "btb/win32_original_imports3.hpp"
+#include <functional>
 #include "btb/bitmap_registry.hpp"
 #include "btb/full_game_blt_clip.hpp"
 #include "btb/original_recompiled_bitmaps.hpp"
@@ -24,6 +27,45 @@ void release_surface(IDirectDrawSurface7*& surface) noexcept {
     }
 }
 
+class DisplayProvider final:public original_display3::Services {
+public:
+    using Handle=original_display3::Handle;using U32=original_display3::U32;using I32=original_display3::I32;using Guid=original_display3::Guid;
+    explicit DisplayProvider(std::function<void()> reset):reset_(std::move(reset)){}
+    I32 direct_draw(const Guid* a,Handle& out,const Guid& id,Handle outer) override{return imports_.direct_draw(a,out,id,outer);}
+    I32 direct_input(Handle h,U32 v,const Guid& id,Handle& out,Handle outer) override{return imports_.direct_input(h,v,id,out,outer);}
+    I32 direct_sound(const Guid* id,Handle& out,Handle outer) override{return imports_.direct_sound(id,out,outer);}
+    void reset(original_display3::State& state) override{reset_();state={};}
+    I32 cooperative(Handle draw,Handle window,U32 flags) override{return reinterpret_cast<IDirectDraw7*>(draw)->SetCooperativeLevel(reinterpret_cast<HWND>(window),flags);}
+    I32 display_mode(Handle draw,U32 w,U32 h,U32 bits,U32 refresh,U32 flags) override{return reinterpret_cast<IDirectDraw7*>(draw)->SetDisplayMode(w,h,bits,refresh,flags);}
+    I32 surface(Handle draw,const original_display3::Descriptor& in,Handle& result) override{
+        DDSURFACEDESC2 desc{};desc.dwSize=sizeof(desc);desc.dwFlags=in.flags;desc.dwHeight=in.height;desc.dwWidth=in.width;desc.dwBackBufferCount=in.backbuffers;desc.ddsCaps.dwCaps=in.caps;
+        auto* out=reinterpret_cast<IDirectDrawSurface7*>(result);const auto hr=reinterpret_cast<IDirectDraw7*>(draw)->CreateSurface(&desc,&out,nullptr);result=reinterpret_cast<Handle>(out);return hr;
+    }
+    I32 attached(Handle surface,const std::array<U32,4>& in,Handle& result) override{
+        DDSCAPS2 caps{};caps.dwCaps=in[0];caps.dwCaps2=in[1];caps.dwCaps3=in[2];caps.dwCaps4=in[3];auto* out=reinterpret_cast<IDirectDrawSurface7*>(result);
+        const auto hr=reinterpret_cast<IDirectDrawSurface7*>(surface)->GetAttachedSurface(&caps,&out);result=reinterpret_cast<Handle>(out);return hr;
+    }
+    void add_ref(Handle object) override{reinterpret_cast<IUnknown*>(object)->AddRef();}
+    I32 create_clipper(Handle draw,U32 flags,Handle& result,Handle outer) override{
+        auto* out=reinterpret_cast<IDirectDrawClipper*>(result);const auto hr=reinterpret_cast<IDirectDraw7*>(draw)->CreateClipper(flags,&out,reinterpret_cast<IUnknown*>(outer));result=reinterpret_cast<Handle>(out);return hr;
+    }
+    I32 clipper_window(Handle clip,U32 flags,Handle window) override{return reinterpret_cast<IDirectDrawClipper*>(clip)->SetHWnd(flags,reinterpret_cast<HWND>(window));}
+    I32 set_clipper(Handle surface,Handle clip) override{return reinterpret_cast<IDirectDrawSurface7*>(surface)->SetClipper(reinterpret_cast<IDirectDrawClipper*>(clip));}
+    void release(Handle object) override{reinterpret_cast<IUnknown*>(object)->Release();}
+    U32 window_long(Handle h,I32 index) override{return static_cast<U32>(GetWindowLongA(reinterpret_cast<HWND>(h),index));}
+    void window_long(Handle h,I32 index,U32 value) override{SetWindowLongA(reinterpret_cast<HWND>(h),index,static_cast<LONG>(value));}
+    Handle menu(Handle h) override{return reinterpret_cast<Handle>(GetMenu(reinterpret_cast<HWND>(h)));}
+    void adjust_window(original_display3::Rect& r,U32 style,bool has_menu,U32 ex) override{
+        RECT native{r.left,r.top,r.right,r.bottom};AdjustWindowRectEx(&native,style,has_menu,ex);r={native.left,native.top,native.right,native.bottom};
+    }
+    void position(Handle h,Handle after,I32 x,I32 y,I32 w,I32 height,U32 flags) override{SetWindowPos(reinterpret_cast<HWND>(h),reinterpret_cast<HWND>(after),x,y,w,height,flags);}
+    original_display3::Rect work_area() override{RECT r{};SystemParametersInfoA(SPI_GETWORKAREA,0,&r,0);return {r.left,r.top,r.right,r.bottom};}
+    original_display3::Rect window_rectangle(Handle h) override{RECT r{};GetWindowRect(reinterpret_cast<HWND>(h),&r);return {r.left,r.top,r.right,r.bottom};}
+    void update_destination(original_display3::State& state) override{RECT r{};(void)original_win32::update_display_destination_rect(reinterpret_cast<HWND>(state.window),state.windowed!=0,r);state.destination={r.left,r.top,r.right,r.bottom};}
+private:
+    original_win32::NativeImports3 imports_;std::function<void()> reset_;
+};
+
 } // namespace
 
 Win32OriginalDirectDraw::~Win32OriginalDirectDraw() {
@@ -41,6 +83,8 @@ void Win32OriginalDirectDraw::release_cached_bitmaps() noexcept {
 void Win32OriginalDirectDraw::shutdown() noexcept {
     release_cached_bitmaps();
     previous_frame_.clear();
+    if(extra_back_reference_ && backbuffer_)backbuffer_->Release();
+    extra_back_reference_=false;
     release_surface(backbuffer_);
     release_surface(primary_);
     if (clipper_) {
@@ -62,82 +106,21 @@ void Win32OriginalDirectDraw::shutdown() noexcept {
 bool Win32OriginalDirectDraw::initialize(
     HWND hwnd,display::DisplayMode mode,std::string& error) {
 
-    shutdown();
     if (!hwnd || !IsWindow(hwnd)) {
-        error="DirectDraw7 requires a valid original-game HWND";
-        return false;
+        shutdown();error="DirectDraw7 requires a valid original-game HWND";return false;
     }
-    hwnd_=hwnd;
-    mode_=mode;
-
-    auto hr=DirectDrawCreateEx(
-        nullptr,reinterpret_cast<void**>(&draw_),IID_IDirectDraw7,nullptr);
-    if (FAILED(hr)) {
-        error=hresult_description("DirectDrawCreateEx",hr);
-        shutdown();return false;
-    }
-    if (mode_ == display::DisplayMode::Fullscreen) {
-        hr=draw_->SetCooperativeLevel(
-            hwnd_,DDSCL_FULLSCREEN|DDSCL_EXCLUSIVE);
-        if (SUCCEEDED(hr)) {
-            hr=draw_->SetDisplayMode(
-                display::kRetailWidth,display::kRetailHeight,
-                display::kRetailFullscreenBitsPerPixel,0,0);
-        }
-        if (FAILED(hr)) {
-            error=hresult_description("fullscreen 640x480x16 setup",hr);
-            shutdown();return false;
-        }
-        DDSURFACEDESC2 desc{};
-        desc.dwSize=sizeof(desc);
-        desc.dwFlags=DDSD_CAPS|DDSD_BACKBUFFERCOUNT;
-        desc.ddsCaps.dwCaps=
-            DDSCAPS_PRIMARYSURFACE|DDSCAPS_COMPLEX|DDSCAPS_FLIP;
-        desc.dwBackBufferCount=1;
-        hr=draw_->CreateSurface(&desc,&primary_,nullptr);
-        if (SUCCEEDED(hr)) {
-            DDSCAPS2 caps{};
-            caps.dwCaps=DDSCAPS_BACKBUFFER;
-            hr=primary_->GetAttachedSurface(&caps,&backbuffer_);
-        }
-        if (FAILED(hr)) {
-            error=hresult_description("retail fullscreen flip chain",hr);
-            shutdown();return false;
-        }
-    } else {
-        hr=draw_->SetCooperativeLevel(hwnd_,DDSCL_NORMAL);
-        if (FAILED(hr)) {
-            error=hresult_description("windowed cooperative level",hr);
-            shutdown();return false;
-        }
-        DDSURFACEDESC2 primary_desc{};
-        primary_desc.dwSize=sizeof(primary_desc);
-        primary_desc.dwFlags=DDSD_CAPS;
-        primary_desc.ddsCaps.dwCaps=DDSCAPS_PRIMARYSURFACE;
-        hr=draw_->CreateSurface(&primary_desc,&primary_,nullptr);
-        if (FAILED(hr)) {
-            error=hresult_description("windowed primary surface",hr);
-            shutdown();return false;
-        }
-        DDSURFACEDESC2 render_desc{};
-        render_desc.dwSize=sizeof(render_desc);
-        render_desc.dwFlags=DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT;
-        render_desc.ddsCaps.dwCaps=DDSCAPS_OFFSCREENPLAIN|DDSCAPS_VIDEOMEMORY;
-        render_desc.dwWidth=display::kRetailWidth;
-        render_desc.dwHeight=display::kRetailHeight;
-        hr=draw_->CreateSurface(&render_desc,&backbuffer_,nullptr);
-        if (FAILED(hr)) {
-            error=hresult_description("windowed 640x480 render surface",hr);
-            shutdown();return false;
-        }
-        hr=draw_->CreateClipper(0,&clipper_,nullptr);
-        if (SUCCEEDED(hr)) hr=clipper_->SetHWnd(0,hwnd_);
-        if (SUCCEEDED(hr)) hr=primary_->SetClipper(clipper_);
-        if (FAILED(hr)) {
-            error=hresult_description("native windowed clipper",hr);
-            shutdown();return false;
-        }
-    }
+    original_display3::State state;
+    DisplayProvider provider([this]{shutdown();});
+    const auto window=reinterpret_cast<original_display3::Handle>(hwnd);
+    const auto hr=mode==display::DisplayMode::Fullscreen
+        ? original_display3::fullscreen(state,window,640,480,16,provider)
+        : original_display3::windowed(state,window,640,480,provider);
+    // Adopt partial results as well, so native failure cleanup owns every COM ref.
+    draw_=reinterpret_cast<IDirectDraw7*>(state.draw);
+    primary_=reinterpret_cast<IDirectDrawSurface7*>(state.primary);
+    backbuffer_=reinterpret_cast<IDirectDrawSurface7*>(state.back);
+    extra_back_reference_=state.extra_back_reference;hwnd_=hwnd;mode_=mode;
+    if(hr<0){error=hresult_description("original display initialization",hr);shutdown();return false;}
 
     error.clear();
     return true;

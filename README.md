@@ -2,19 +2,19 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-15 UTC): **546/615 (88.8%)** discovered
+Current compiled-source milestone (2026-10-15 UTC): **554/615 (90.1%)** discovered
 function reconstructions are compiled and linked to executed source tests;
-**69 remain** and **137 CTest tests pass**. The latest batch adds **12 original
-functions** completing the recovered C++ catch/dispatch source chain: handler
-search, object copy, catch entry/cleanup, translator handling and continuations,
-with **3,420 original-x86 comparisons** and native rethrow/translation integration
-checks. These call the recovered unwind, RTTI matching, pointer adjustment,
-byte-copy and fatal-runtime procedures directly.
-Full native gameplay caller integration and retail ABI equivalence remain
-incomplete; **0/615** are fully certified against retail behavior. See
-[C++ dispatch batch and evidence](docs/original-cxx12.md),
-[preceding exception/runtime batch](docs/original-unwind15.md), and
-[heap/runtime batch](docs/original-heap14.md).
+**61 remain** and **138 CTest tests pass**. The latest batch adds **8 original
+functions**: fullscreen/windowed display setup, main-window creation, three
+DirectX import thunks, Fireworks bitmap loading and Pilchard movement, with
+**3,580 original-x86 comparisons**. Native display initialization and sound
+creation now call the recovered source bodies through real Windows providers.
+The resource loader and movement routine still need full gameplay caller integration.
+Full native gameplay and retail ABI equivalence remain incomplete;
+**0/615** are fully certified against retail behavior. See
+[display/gameplay batch and evidence](docs/original-device8.md),
+[preceding C++ dispatch batch](docs/original-cxx12.md), and
+[exception/runtime batch](docs/original-unwind15.md).
 
 ## Source material
 

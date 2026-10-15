@@ -934,6 +934,9 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 add_library(btb_recompiled_core STATIC
     src/original_editor3.cpp
     src/original_heap9.cpp
+    src/original_game_device2.cpp
+    src/original_imports3.cpp
+    src/original_display3.cpp
     src/original_cxx12.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
@@ -1252,6 +1255,7 @@ add_test(NAME recompiled_game_executable_link
 # of the REAL Windows game executable, not just behavior-plan tests.
 if(WIN32)
     add_library(btb_original_win32_platform STATIC
+        src/win32_original_imports3.cpp
         src/win32_original_directdraw.cpp
         src/original_recompiled_bitmaps.cpp
         src/win32_recompiled_graphics.cpp
@@ -1418,4 +1422,13 @@ if(MSVC)
  target_compile_options(btb_original_cxx12_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_cxx12_tests PRIVATE -UNDEBUG)
+endif()
+
+add_executable(btb_original_device8_tests tests/original_device8_test.cpp)
+target_link_libraries(btb_original_device8_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_device8 COMMAND btb_original_device8_tests ${CMAKE_CURRENT_SOURCE_DIR}/../analysis/reconstruction/retail-device8-vectors.txt)
+if(MSVC)
+ target_compile_options(btb_original_device8_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_device8_tests PRIVATE -UNDEBUG)
 endif()

@@ -1,0 +1,32 @@
+{
+  "new_addresses": [
+    "0042EAD0",
+    "0042FB50",
+    "0042FB56",
+    "00403080",
+    "004031E0",
+    "00401E20",
+    "004112A0",
+    "004232B0"
+  ],
+  "compiled_source_count": 554,
+  "remaining": 61,
+  "ctest_passed": 138,
+  "python_tests_passed": 16,
+  "original_x86_comparisons": 3580,
+  "vector_evidence": "analysis/reconstruction/retail-device8-vectors.json",
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "movement_components_using_float_tolerance": 0,
+  "scope": "Compiled original bodies and controlled Win32/COM/resource boundary parity. Display and sound creation use recovered bodies in native callers. Window creation, input thunk, Fireworks loader and Pilchard movement still need complete native callers; native device behavior, OS ABI and retail-equivalent gameplay are not certified.",
+  "behavior_verified": false,
+  "windows_ci": "New x86/x64 batch configured; publication results pending.",
+  "preceding_ci": {
+    "commit": "67ce6f4f02b9b0fdaf8762b9acd4dafe93d37802",
+    "run": 38743961132,
+    "windows_x86": "success",
+    "windows_x64": "success",
+    "linux_cpp": "success",
+    "python": "success"
+  },
+  "sanitizers": "ASan/UBSan pass new display3, imports3, game_device2, maze_input and test sources; older dependencies linked from prebuilt archives; leak detection disabled"
+}

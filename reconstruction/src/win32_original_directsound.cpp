@@ -1,4 +1,5 @@
 #include "btb/win32_original_directsound.hpp"
+#include "btb/win32_original_imports3.hpp"
 
 #if defined(_WIN32)
 #include <algorithm>
@@ -158,7 +159,10 @@ bool Win32OriginalDirectSound::initialize(
         error="DirectSound8 needs a real original-game HWND";
         return false;
     }
-    auto hr=DirectSoundCreate8(nullptr,&sound_,nullptr);
+    original_win32::NativeImports3 imports;
+    original_imports3::Handle created=reinterpret_cast<original_imports3::Handle>(sound_);
+    auto hr=original_imports3::create_sound(imports,nullptr,created,0);
+    sound_=reinterpret_cast<IDirectSound8*>(created);
     if (FAILED(hr)) {
         error=hr_error("DirectSoundCreate8",hr);
         return false;
