@@ -939,6 +939,7 @@ add_library(btb_recompiled_core STATIC
     src/original_display3.cpp
     src/original_cxx12.cpp
     src/original_tail4.cpp
+    src/original_closure8.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1036,6 +1037,8 @@ add_library(btb_recompiled_core STATIC
 target_include_directories(btb_recompiled_core PUBLIC include)
 btb_require_cpp26(btb_recompiled_core PUBLIC)
 target_link_libraries(btb_recompiled_core PUBLIC
+    btb_player_profiles
+    btb_player_progress
     btb_original_source9_algorithms
     btb_original_activity9_algorithms
     btb_full_game_root_source
@@ -1442,4 +1445,14 @@ if(MSVC)
  target_compile_options(btb_original_tail4_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_tail4_tests PRIVATE -UNDEBUG)
+endif()
+
+# Eight large original-address activity/UI/resource/print source reconstructions.
+add_executable(btb_original_closure8_tests tests/original_closure8_test.cpp)
+target_link_libraries(btb_original_closure8_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_closure8 COMMAND btb_original_closure8_tests)
+if(MSVC)
+ target_compile_options(btb_original_closure8_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_closure8_tests PRIVATE -UNDEBUG)
 endif()
