@@ -21,7 +21,7 @@ struct Host:IO{
  }
  btb::spud_maze::Data read_original_spud_maze_data() override {
   events.push_back("spud-data");
-  spud_btb::maze::Data v{};
+  btb::spud_maze::Data v{};
   for(std::size_t i=0;i<5;++i){
    v.screens[i].push_back({});
    v.repair_points[i].resize(btb::spud_maze::kRepairPointCounts[i]);
