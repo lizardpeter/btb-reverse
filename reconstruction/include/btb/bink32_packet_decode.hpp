@@ -70,4 +70,13 @@ struct DecoderFrontier {
  };
  [[nodiscard]] std::optional<FixedHuffmanSymbol> read_fixed_huffman_symbol(
      LsbBitReader& source, unsigned selector) noexcept;
+
+ // 0x3000FCB0..0x3000FDBF: source-driven first control flow of the
+ // dynamic entropy tree. Remaining tree construction is still unfinished.
+ struct EntropyTreePrefix {
+     std::uint8_t selector{}, branch_mode{}, submode{}, bits_consumed{};
+ };
+ [[nodiscard]] std::optional<EntropyTreePrefix> read_entropy_tree_prefix(
+     LsbBitReader& source) noexcept;
+
 } // namespace btb::bink32_recovered
