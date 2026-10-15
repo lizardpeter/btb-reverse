@@ -941,6 +941,7 @@ add_library(btb_recompiled_core STATIC
     src/original_tail4.cpp
     src/original_closure8.cpp
     src/original_input_crt8.cpp
+    src/original_gameplay3.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1466,4 +1467,14 @@ if(MSVC)
  target_compile_options(btb_original_input_crt8_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_input_crt8_tests PRIVATE -UNDEBUG)
+endif()
+
+# Three interconnected source-level retail gameplay state machines.
+add_executable(btb_original_gameplay3_tests tests/original_gameplay3_test.cpp)
+target_link_libraries(btb_original_gameplay3_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_gameplay3 COMMAND btb_original_gameplay3_tests)
+if(MSVC)
+ target_compile_options(btb_original_gameplay3_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_gameplay3_tests PRIVATE -UNDEBUG)
 endif()
