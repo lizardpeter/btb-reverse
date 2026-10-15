@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "original_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "addresses": [
+    "004227F0",
+    "00424690",
+    "004267B0",
+    "00401700"
+  ],
+  "stage": "compiles",
+  "compiles": 591,
+  "remaining": 24,
+  "linux_ctest": {
+    "passed": 147,
+    "failed": 0
+  },
+  "python": "success",
+  "windows_x86": "success",
+  "windows_x64": "success",
+  "ci_run": "https://github.com/lizardpeter/btb-reverse/actions/runs/38783605153",
+  "original_executable_comparisons_added": 0,
+  "retail_equivalence_certified": 0,
+  "qualification": "Out-of-line source reconstructions with mandatory platform callbacks; actual native gameplay host wiring, Bink/DirectDraw admission and PE32 exact behavior unverified"
+}

@@ -2,24 +2,24 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-15 UTC): **587/615 (95.4%)**
+Current compiled-source milestone (2026-10-15 UTC): **591/615 (96.1%)**
 original discovered function source models compile and link into the native
-game core. **28 remain**, and **146 CTest tests pass**.
+game core. **24 remain**, and **147 CTest tests pass**.
 
-The latest four out-of-line source models reconstruct `00409990` Dino
-drawing, `0041C110` Maze drawing, `00414A60` Golf drawing, and
-`00416370` Herding drawing, with original sprite pass ordering,
-frame/state changes, Maze node boxes, Golf digits and animation, and
-Herding entity-depth ordering. [PR #60](https://github.com/lizardpeter/btb-reverse/pull/60)
-passed Linux C++26, Python, Windows x86 and x64 native game/provider CI.
+The newest four source-level original-address routines include Spud Maze
+scene and repair/hammer presentation (`004227F0`), Spud Skate Bink
+playback and scoring (`00424690`), Squirrel scene rendering and state
+advancement (`004267B0`), and context-sensitive help/voice interactions
+(`00401700`). [PR #61](https://github.com/lizardpeter/btb-reverse/pull/61)
+passed Linux C++26, Python and Windows x86/x64 native game/provider CI.
 
-**0/615** functions are fully certified against original retail behavior.
-Exact x86 original-executable comparisons, real native renderer/provider
-wiring and complete game-flow integration remain unfinished. Compiled-source
-coverage is not game equivalence. See [the four latest drawing
-routines](docs/original-draw4.md), [profile and Fireworks
-drawing](docs/original-profiles-fireworks2.md), and
-[Maze initialization](docs/original-maze-init2.md).
+**0/615** original bodies have full retail behavioral certification.
+Exact x86 differential comparisons, admission to the actual game driver
+and native DirectDraw/Bink platform integration remain unfinished.
+Compiler/link coverage is not full game equivalence. See
+[the latest activity source batch](docs/original-activity4.md),
+[the earlier four drawing functions](docs/original-draw4.md),
+and [the player/editor resource work](docs/original-profiles-fireworks2.md).
 
 ## Source material
 

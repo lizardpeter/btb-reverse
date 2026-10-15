@@ -946,6 +946,7 @@ add_library(btb_recompiled_core STATIC
     src/original_maze_init2.cpp
     src/original_profiles_fireworks2.cpp
     src/original_draw4.cpp
+    src/original_activity4.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1522,4 +1523,14 @@ if(MSVC)
  target_compile_options(btb_original_draw4_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_draw4_tests PRIVATE -UNDEBUG)
+endif()
+
+# Four source-level original game activity coordination routines.
+add_executable(btb_original_activity4_tests tests/original_activity4_test.cpp)
+target_link_libraries(btb_original_activity4_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_activity4 COMMAND btb_original_activity4_tests)
+if(MSVC)
+  target_compile_options(btb_original_activity4_tests PRIVATE /UNDEBUG)
+else()
+  target_compile_options(btb_original_activity4_tests PRIVATE -UNDEBUG)
 endif()
