@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "source_pe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "functions": [
+    "0040E440",
+    "0041DB20"
+  ],
+  "source": "reconstruction/src/original_last2.cpp",
+  "header": "reconstruction/include/btb/original_last2.hpp",
+  "test": "reconstruction/tests/original_last2_test.cpp",
+  "status": "source_written",
+  "covered": [
+    "Original Park page and maximum-page state indices and scroll offsets",
+    "Original editor mode buttons 7..10 and previous/next 5/6, delete control 11, voice cues 0x112 and 0xC9",
+    "Original Bob's Band 42 bitmap slots using source guest addresses, color key and required native provider",
+    "Original musicbob1.txt 120-cell sequence through native source file loader",
+    "Source machine animation sprite slots, coordinates and conductor selection",
+    "Original 5x24 one-second grid coordinates with native recovered global constants",
+    "Global volume attenuation and band audio id"
+  ],
+  "unresolved": [
+    "Original Park editor complex pond shape collision and world placement forwarded to native provider",
+    "Original view rendering, DirectDraw blitting and audio not yet bound to source in Win32 game",
+    "Original Bob's Band dynamic stack-assembled bitmap paths require native path synthesizer",
+    "Original per-machine animation interlocks remain in existing native grand_opening_runtime code",
+    "Real x86 executable equivalence and frame-level visual/sound matching unverified"
+  ]
+}
