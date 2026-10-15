@@ -44,6 +44,11 @@ public:
         const std::vector<ResolvedDraw>& draw_stream,
         std::string& error);
     [[nodiscard]] bool present(std::string& error);
+    // Copy already decoded retail Bink BGRA video pixels into the actual
+    // DirectDraw7 backbuffer between ordered draw and present.
+    [[nodiscard]] bool blit_decoded_bink32(
+        const void* pixels,unsigned width,unsigned height,int x,int y,
+        std::string& error);
     // Direct original 00402440 cooperative test and loss recovery.
     [[nodiscard]] HRESULT cooperative_status() const noexcept;
     [[nodiscard]] bool restore_for_frame(std::string& error);
