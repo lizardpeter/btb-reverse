@@ -10,12 +10,23 @@ namespace btb::full_game {
 struct NativeHostInput {
  std::array<std::uint8_t,256> keys{};
  bool pointer_held{};
- bool click_pulse{};
+ bool left_held{},right_held{};
+ bool click_pulse{},right_click_pulse{};
  int typed_character{-1};
  std::uint32_t initial_tick{};
  bool clock_started{};
- void press_mouse() noexcept {pointer_held=true;click_pulse=true;}
- void release_mouse() noexcept {pointer_held=false;}
+ void press_mouse() noexcept {
+  left_held=true;pointer_held=true;click_pulse=true;
+ }
+ void release_mouse() noexcept {
+  left_held=false;pointer_held=right_held;
+ }
+ void press_right_mouse() noexcept {
+  right_held=true;pointer_held=true;right_click_pulse=true;
+ }
+ void release_right_mouse() noexcept {
+  right_held=false;pointer_held=left_held;
+ }
  void key_down(unsigned key,bool repeated) noexcept {
   if(key>=keys.size())return;
   keys[key]=0x80;
@@ -32,7 +43,8 @@ struct NativeHostInput {
   if(unicode>=0x20&&unicode<=0x7e)typed_character=static_cast<int>(unicode);
  }
  void lose_focus() noexcept {
-  keys.fill(0);pointer_held=false;click_pulse=false;typed_character=-1;
+  keys.fill(0);pointer_held=left_held=right_held=false;
+  click_pulse=right_click_pulse=false;typed_character=-1;
  }
  [[nodiscard]] ActivityFrameInput sample(
     int x,int y,std::uint32_t monotonic_ms) noexcept {
