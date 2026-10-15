@@ -53,6 +53,27 @@ bool Win32OriginalBinkMovie::open_global(
  const std::filesystem::path& file,std::string& error) {
  close_global();
  if(!ensure_decoder(error))return false;
+ if(!sound_system_ready_){
+  auto* device=audio_.native_device_for_bink();
+  if(!device){
+   error="native DirectSound is not initialized for original Bink audio";
+   return false;
+  }
+  const auto callback=exports_.find("BinkOpenDirectSound");
+  const auto exported=exports_.find("BinkSetSoundSystem");
+  if(!callback||!exported){
+   error="original Bink SDK missing DirectSound initialization exports";
+   return false;
+  }
+  using SoundSystemOpenFn=std::int32_t (__stdcall*)(FARPROC,std::uint32_t);
+  const auto open_sound=reinterpret_cast<SoundSystemOpenFn>(exported);
+  if(open_sound(callback,static_cast<std::uint32_t>(
+       reinterpret_cast<std::uintptr_t>(device)))==0){
+   error="original BinkSetSoundSystem rejected native DirectSound device";
+   return false;
+  }
+  sound_system_ready_=true;
+ }
  if(!std::filesystem::is_regular_file(file)){
   error="original Bink movie missing: "+file.string();return false;
  }
