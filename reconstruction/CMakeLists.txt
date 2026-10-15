@@ -1111,6 +1111,12 @@ target_link_libraries(btb_original_msvc30_tests PRIVATE btb_recompiled_core)
 btb_require_cpp26(btb_original_msvc30_tests PRIVATE)
 add_test(NAME original_msvc30 COMMAND btb_original_msvc30_tests)
 
+
+# Event-driven keyboard/mouse/text native host admission, shared by x86 and x64.
+add_executable(btb_native_host_input_tests tests/native_host_input_test.cpp)
+target_link_libraries(btb_native_host_input_tests PRIVATE btb_recompiled_core)
+btb_require_cpp26(btb_native_host_input_tests PRIVATE)
+add_test(NAME native_host_input COMMAND btb_native_host_input_tests)
 add_executable(btb_native_input_pulse_tests
     tests/native_input_pulse_test.cpp)
 target_link_libraries(btb_native_input_pulse_tests PRIVATE btb_recompiled_core)
