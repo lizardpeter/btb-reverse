@@ -39,7 +39,7 @@ public:
     virtual void query_version()=0;
     virtual void stretch_mode(Handle,I32)=0;
     virtual I32 stretch_dib(Handle,const Rect&,I32,I32,const std::byte*,const std::byte*)=0;
-    // Virtual slot 0x24 is still a separately unreviewed original procedure.
+    // Virtual slot 0x24; original_printer2::LinkedServices supplies its recovered body.
     virtual void compute_target(Printer&,Handle)=0;
     virtual I32 start_doc(Handle,const char*)=0;
     virtual I32 start_page(Handle)=0;

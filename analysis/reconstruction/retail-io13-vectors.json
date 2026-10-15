@@ -1,0 +1,22 @@
+{
+  "retail_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "cases": 3920,
+  "counts": {
+    "ERRORS": 1,
+    "READ": 360,
+    "WRITE": 360,
+    "RESIZE": 360,
+    "OPEN": 360,
+    "FLUSH": 360,
+    "FREAD": 360,
+    "FWRITE": 360,
+    "TZ": 300,
+    "ZONE": 120,
+    "CHDIR": 120,
+    "HLOOK": 500,
+    "HRELEASE": 120,
+    "HDECOMMIT": 120,
+    "HADD": 120
+  },
+  "scope": "Original x86 bodies with controlled native file, time, NLS, allocation and virtual memory services; not full game or ABI verification."
+}

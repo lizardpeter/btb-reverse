@@ -13,14 +13,26 @@ using U32=std::uint32_t;using I32=std::int32_t;using U64=std::uint64_t;
 struct Stream32 { std::array<U32,8> words{}; };
 struct Descriptor32 { U32 handle{0xffffffffU};std::uint8_t flags{};std::array<std::uint8_t,3> reserved{}; };
 static_assert(sizeof(Stream32)==32 && sizeof(Descriptor32)==8);
-struct IoState { std::span<Descriptor32> descriptors;U32 dos_error{};I32 error{};bool console_application{}; };
+// Supports legacy contiguous tests and the real lazily allocated 32-entry blocks.
+// Both views address the same Descriptor32 objects; no copied flags/handles.
+struct DescriptorView {
+    std::span<Descriptor32> flat{};
+    std::array<Descriptor32,32>* const* blocks{};const U32* limit{};
+    DescriptorView()=default;
+    DescriptorView(std::span<Descriptor32> values):flat(values){}
+    template<std::size_t N> DescriptorView(std::array<Descriptor32,N>& values):flat(values){}
+    DescriptorView(std::array<Descriptor32,32>* const* values,const U32* count):blocks(values),limit(count){}
+    std::size_t size() const noexcept{return blocks?*limit:flat.size();}
+    Descriptor32& operator[](std::size_t i) const noexcept{return blocks?(*blocks[i/32])[i%32]:flat[i];}
+};
+struct IoState { DescriptorView descriptors;U32 dos_error{};I32 error{};bool console_application{}; };
 class IoServices {
 public:
     virtual ~IoServices()=default;
     virtual void set_standard_handle(U32 which,U32 handle)=0;
     virtual bool flush_file(U32 handle)=0;
     virtual U32 last_error()=0;
-    // 0043407D dependency owns original descriptor/text-mode translation.
+    // original_file7::Link supplies recovered 0043407D text-mode translation.
     virtual U32 write_descriptor(U32 descriptor,U32 guest_buffer,U32 count)=0;
     virtual Stream32* allocate_stream(std::size_t bytes)=0;
     virtual bool is_terminal(U32 descriptor)=0;

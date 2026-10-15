@@ -1,0 +1,33 @@
+{
+  "new_addresses": [
+    "00437BFA",
+    "00433961",
+    "0043407D",
+    "004390CC",
+    "0043285C",
+    "00430A52",
+    "00430937",
+    "00436789",
+    "004300BE",
+    "0043519F",
+    "00435087",
+    "004350DD",
+    "00434AA1"
+  ],
+  "compiled_source_count": 505,
+  "remaining": 110,
+  "ctest_passed": 134,
+  "python_tests_passed": 16,
+  "original_x86_cases": 3920,
+  "vector_evidence": "analysis/reconstruction/retail-io13-vectors.json",
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "integration": [
+    "open parser -> block descriptor allocation -> buffered write -> descriptor write -> flush -> seek -> refill/read -> fclose cleanup",
+    "calendar initializer -> timezone setup -> environment lookup -> CTYPE integer conversion",
+    "memory release -> recovered small-heap lookup -> required free service"
+  ],
+  "scope": "Compiled source, guest state and bounded service-call parity; native API providers and complete gameplay/retail ABI integration incomplete.",
+  "behavior_verified": false,
+  "windows_ci": "Configured for x86 and x64; not run because GitHub publication requires explicit authorization.",
+  "sanitizers": "ASan/UBSan passes new groups and runtime16/runtime15/startup11/environment4/memory4 sources, linked to prebuilt existing core; leak detection disabled"
+}

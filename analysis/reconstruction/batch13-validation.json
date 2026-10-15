@@ -1,0 +1,27 @@
+{
+  "new_addresses": [
+    "00430D2A",
+    "00430DD1",
+    "00433B60",
+    "00430B5C",
+    "0043874A",
+    "00435C51",
+    "0043931D",
+    "00439945",
+    "00438272",
+    "00403FF0",
+    "00403D20",
+    "00405490",
+    "004056C0"
+  ],
+  "compiled_source_count": 492,
+  "remaining": 123,
+  "ctest_passed": 133,
+  "python_tests_passed": 16,
+  "original_x86_cases": 4850,
+  "vector_evidence": "analysis/reconstruction/retail-batch13-vectors.json",
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "scope": "Compiled source and bounded dependency/state parity; native game provider/caller integration, full x87 precision across input domains, retail ABI and full behavior certification incomplete.",
+  "behavior_verified": false,
+  "sanitizers": "ASan/UBSan passes new groups plus original_wave7/activity9, linked to prebuilt existing core; leak detection disabled"
+}

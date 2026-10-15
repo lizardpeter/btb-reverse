@@ -933,6 +933,17 @@ add_test(NAME native_gameplay_batch_6 COMMAND btb_native_gameplay_batch_6_tests)
 # ---------------------------------------------------------------
 add_library(btb_recompiled_core STATIC
     src/original_editor3.cpp
+    src/original_heap9.cpp
+    src/original_float2.cpp
+    src/original_support3.cpp
+    src/original_file7.cpp
+    src/original_system2.cpp
+    src/original_heap4.cpp
+    src/original_memory4.cpp
+    src/original_environment4.cpp
+    src/original_message1.cpp
+    src/original_sound2.cpp
+    src/original_printer2.cpp
     src/original_wave7.cpp
     src/original_printer7.cpp
     src/original_runtime6.cpp
@@ -1360,3 +1371,30 @@ foreach(group wave7 printer7 runtime6)
         target_compile_options(btb_original_${group}_tests PRIVATE -UNDEBUG)
     endif()
 endforeach()
+
+add_executable(btb_original_batch13_tests tests/original_batch13_test.cpp)
+target_link_libraries(btb_original_batch13_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_batch13 COMMAND btb_original_batch13_tests ${CMAKE_CURRENT_SOURCE_DIR}/../analysis/reconstruction/retail-batch13-vectors.txt)
+if(MSVC)
+ target_compile_options(btb_original_batch13_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_batch13_tests PRIVATE -UNDEBUG)
+endif()
+
+add_executable(btb_original_io13_tests tests/original_io13_test.cpp)
+target_link_libraries(btb_original_io13_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_io13 COMMAND btb_original_io13_tests ${CMAKE_CURRENT_SOURCE_DIR}/../analysis/reconstruction/retail-io13-vectors.txt)
+if(MSVC)
+ target_compile_options(btb_original_io13_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_io13_tests PRIVATE -UNDEBUG)
+endif()
+
+add_executable(btb_original_heap14_tests tests/original_heap14_test.cpp)
+target_link_libraries(btb_original_heap14_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_heap14 COMMAND btb_original_heap14_tests ${CMAKE_CURRENT_SOURCE_DIR}/../analysis/reconstruction/retail-heap14-vectors.txt)
+if(MSVC)
+ target_compile_options(btb_original_heap14_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_heap14_tests PRIVATE -UNDEBUG)
+endif()

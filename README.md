@@ -2,17 +2,18 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-15 UTC): **479/615 (77.9%)** discovered
+Current compiled-source milestone (2026-10-15 UTC): **519/615 (84.4%)** discovered
 function reconstructions are compiled and linked to executed source tests;
-**136 remain** and **132 CTest tests pass**. The latest batch adds **20 original
-functions** covering wave audio, bitmap printing, character/codepage processing
-and file modes, with **4,354 original-x86 comparisons**. It also corrects the
-existing wave-reset function's failure-path mutation order.
+**96 remain** and **135 CTest tests pass**. The latest batch adds **14 original
+functions** covering both small heaps, reallocation, extended-precision arithmetic,
+integer parsing, heap selection and runtime diagnostics, with **9,083 original-x86
+comparisons**. Allocation/free dispatch now calls recovered heap bodies, and
+numeric conversion and runtime-message dependencies have direct source links.
 Full native gameplay caller integration and retail ABI equivalence remain
 incomplete; **0/615** are fully certified against retail behavior. See
-[20-function batch and evidence](docs/original-batch20.md),
-[preceding runtime batch](docs/original-runtime15.md), and
-[editor reconstruction](docs/original-editor3.md).
+[heap/runtime batch and evidence](docs/original-heap14.md),
+[preceding file/runtime batch](docs/original-io13.md), and
+[wave/printing batch](docs/original-batch20.md).
 
 ## Source material
 

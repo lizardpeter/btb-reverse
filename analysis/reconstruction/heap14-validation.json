@@ -1,0 +1,31 @@
+{
+  "new_addresses": [
+    "0043446F",
+    "00434F43",
+    "00434B52",
+    "00434C4D",
+    "00435443",
+    "00435567",
+    "00434798",
+    "0043523B",
+    "00439B8B",
+    "0043938B",
+    "004395AB",
+    "00437ECA",
+    "00434257",
+    "00436049"
+  ],
+  "compiled_source_count": 519,
+  "remaining": 96,
+  "ctest_passed": 135,
+  "python_tests_passed": 16,
+  "original_x86_comparisons": 9083,
+  "fixture_rows": 9112,
+  "configuration_rows": 29,
+  "vector_evidence": "analysis/reconstruction/retail-heap14-vectors.json",
+  "source_executable_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "sanitizers": "ASan/UBSan passes new heap9/float2/support3 plus heap4/memory4/float6/message1/runtime8 sources, linked to prebuilt core for remaining older dependencies; leak detection disabled",
+  "scope": "Compiled source and bounded guest-state/native-service parity; real native providers, all retail domains, full gameplay callers and original ABI not certified.",
+  "behavior_verified": false,
+  "windows_ci": "Targets configured for x86/x64; publication blocked by automatic approval review pending explicit repository/destination authorization."
+}
