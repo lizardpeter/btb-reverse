@@ -32,6 +32,14 @@ static std::vector<std::uint8_t> fixture(std::uint32_t tracks){
 }
 int main(int argc,char** argv) {
     CHECK(!parse_container_index({}));
+    // A truncated but plausible 44-byte file with 64 declared tracks
+    // previously underflowed size_t in (size - index_start), then read OOB.
+    std::vector<std::uint8_t> truncated(44,0);
+    put(truncated,0,0x69504a53U);
+    put(truncated,4,36);
+    put(truncated,8,1); put(truncated,20,282); put(truncated,24,179);
+    put(truncated,28,15); put(truncated,32,1); put(truncated,40,64);
+    CHECK(!parse_container_index(truncated));
     for(unsigned n: {0U,1U}) {
         auto b=fixture(n);
         const auto p=parse_container_index(b);
