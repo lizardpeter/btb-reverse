@@ -16,7 +16,7 @@ Win32OriginalBinkMovie::~Win32OriginalBinkMovie() {
 }
 void Win32OriginalBinkMovie::close_global() noexcept {
  if(current_) {
-  if(const auto* proc=exports_.find("BinkClose")){
+  if(const auto proc=exports_.find("BinkClose")){
    const auto close=reinterpret_cast<BinkCloseFn>(proc);
    close(current_);
   }
