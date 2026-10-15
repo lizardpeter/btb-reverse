@@ -68,7 +68,6 @@ I32 update_dino_activity(DinoState& s,DinoIO& io){
     io.stop_all_managed_sounds();
     io.sound(s.level_variant+0xb9,0x32,1);
     score_completed(s);
-    s.marked_profile=1;
     io.load_completion_sprite(s.level_variant);
     s.completion_sprite_loaded=true;
     s.completion_state=1;
