@@ -8,7 +8,7 @@ Each original function belongs to exactly one evidence cohort:
 - 200 functions were originally architecture-only in the first pass.
 - 224 functions were originally architecture-only in the final pass.
 
-Current status: 574 source-written or compiled functions (574 at compile stage) and 41 architecture-only functions.
+Current status: 577 source-written or compiled functions (577 at compile stage) and 38 architecture-only functions.
 
 The full inventory keeps these statuses separate; no source-written
 function was promoted to behavior-verified by architecture analysis.
