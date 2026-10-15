@@ -61,4 +61,13 @@ struct DecoderFrontier {
      std::uint32_t plane_width, std::uint32_t symbol_bits,
      std::uint32_t plane_multiplier, bool install_prefix_mask) noexcept;
 
+
+ // Original internal 0x3000FCB0: read one variable-length symbol through the
+ // fixed tables at 0x30047800..0x30047BCF. This does not yet decode
+ // dynamic tree permutations or complete a decoded video block.
+ struct FixedHuffmanSymbol {
+     std::uint8_t value{}, consumed_bits{};
+ };
+ [[nodiscard]] std::optional<FixedHuffmanSymbol> read_fixed_huffman_symbol(
+     LsbBitReader& source, unsigned selector) noexcept;
 } // namespace btb::bink32_recovered
