@@ -80,7 +80,7 @@ int main() {
     CHECK(p3.first_decode_frame==135);
     const auto p4=plan_seek(445,200,999,3,1,15,1,111);
     CHECK(p4.requested_frame==445&&p4.first_decode_frame==445&&p4.use_direct_seek);
-    CHECK(plan_seek(100,150,150,0,1,30,1,100).already_at_frame);
+    CHECK(plan_seek(100,100,150,0,1,30,1,100).already_at_frame);
     CHECK(plan_seek(0,0,10,0,0,15,1,1).requested_frame==0);
     // Mode 2 of original 300066B0 advances its forward search EACH loop,
     // even after all backward positions are exhausted.
