@@ -954,6 +954,7 @@ add_library(btb_recompiled_core STATIC
     src/original_herding_init.cpp
     src/original_park_init.cpp
     src/original_crt_float3.cpp
+    src/original_closure4.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1610,4 +1611,14 @@ if(MSVC)
  target_compile_options(btb_original_crt_float3_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_crt_float3_tests PRIVATE -UNDEBUG)
+endif()
+
+# 00402700 / 0042A2C0 / 00438968 / 00438E39 original source model.
+add_executable(btb_original_closure4_tests tests/original_closure4_test.cpp)
+target_link_libraries(btb_original_closure4_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_closure4 COMMAND btb_original_closure4_tests)
+if(MSVC)
+ target_compile_options(btb_original_closure4_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_closure4_tests PRIVATE -UNDEBUG)
 endif()

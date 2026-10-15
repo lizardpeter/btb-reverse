@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "source_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "entrypoints": [
+    "00402700",
+    "0042A2C0",
+    "00438968",
+    "00438E39"
+  ],
+  "source": "reconstruction/src/original_closure4.cpp",
+  "header": "reconstruction/include/btb/original_closure4.hpp",
+  "tests": "reconstruction/tests/original_closure4_test.cpp",
+  "status": "source_written; cross-platform CI pending",
+  "implemented": [
+    "WinMain startup, registry path limit, main window/DirectInput/sound initialization, bounded PeekMessage/GetMessage pump, optional full-screen hook and exit cleanup",
+    "Global game-flow overlay priority, global movie handoff, intro, 10 original activity entrypoints and associated initialization transitions",
+    "Original CRT 25 significant digit mantissa lexer, D/d/E/e exponent, clamping and native x87 packing boundary",
+    "Original x87 packed 80-bit zero/INF/IND/QNAN/SNAN classification, finite decimal native provider interface"
+  ],
+  "unresolved": [
+    "WinMain cannot be called as a retail x86 WinMain without native callback ABI bridging",
+    "RunMainGameFlow has additional substantial screen/movie branches delegated through explicit native provider: not behavior-equivalent yet",
+    "FUN00438968 finite precision conversion must use actual original x87 packing helper for bit parity",
+    "FUN00438E39 finite exponent scaling and rounding require source original x87 converter; provider not implemented",
+    "Live native game run with real retail resource assets not yet certified"
+  ]
+}
