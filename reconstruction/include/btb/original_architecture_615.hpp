@@ -233,7 +233,7 @@ inline constexpr std::array<OriginalArchitecture615,615> kOriginalArchitecture61
   {0x00416a30U,"UpdateHerdingAnimal","golf","GolfActivityModule",1,74,true,false},
   {0x004182b0U,"UpdateHerdingActivity","herding","HerdingActivityModule",1,70,true,false},
   {0x00419390U,"UnloadHerdingActivityResources","herding","HerdingActivityModule",1,20,true,false},
-  {0x00419600U,"InitializeHerdingActivity","herding","HerdingActivityModule",1,131,false,false},
+  {0x00419600U,"InitializeHerdingActivity","herding","HerdingActivityModule",1,131,true,false},
   {0x0041a390U,"UnloadMazeActivityResources","herding","HerdingActivityModule",2,11,true,false},
   {0x0041a4e0U,"LoadMazeData","herding","HerdingActivityModule",1,11,true,false},
   {0x0041a700U,"Divide64BitDeltaByTenMillion","herding","HerdingActivityModule",7,0,true,false},
