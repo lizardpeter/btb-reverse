@@ -92,10 +92,10 @@ void update_player(Player& p,IO& io,bool spud){
    const auto delta=io.actor_distance(p.x,p.y,cx,cy);
    if(delta>=20.f||std::fabs(cx-p.x)>=15.f||!input.action_pressed)continue;
    if(!p.repair_tool_engaged){
-    const I32 voice=0x2c5+static_cast<I32>(io.random32()%2);
+    const I32 voice=0x2c5 + static_cast<I32>(io.random32()%2);
     sound(io,voice,50);
    }else{
-    const I32 voice=0x2be+static_cast<I32>(io.random32()%7);
+    const I32 voice=0x2be + static_cast<I32>(io.random32()%7);
     sound(io,voice,50);
     r.counter=0;p.repair_hit_count+=1;p.animation=9;p.hazard_lock=true;
     io.spud_repair_completed(p.screen,static_cast<I32>(i));
