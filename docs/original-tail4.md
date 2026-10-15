@@ -25,3 +25,17 @@ does not recover full Win32 FS:0/SEH or x86 stack ABI. This does not certify
 retail compatibility. All four need the corresponding native provider or
 application-level caller integration; avoid using this guest probe as native
 `__chkstk` and do not replace OS `RtlUnwind` with a fake implementation.
+
+## CI validation, 2026-10-15
+
+Source commit `d18dc087b2249b0e203a4e39850cc28fac355320` passed
+[CI run 38753132933](https://github.com/lizardpeter/btb-reverse/actions/runs/38753132933):
+Linux C++26 reconstruction (139/139 CTests), Python tool checks,
+Windows x64 native game/provider build and tests, and Windows x86
+native game/provider build and tests. All four CI jobs reported success.
+
+**558/615 (90.7%)** source bodies compile and link with the new four
+admitted; **57 remain**. This is not four new binary-behavior comparisons:
+the original executable is not present in CI and no new x86 differential
+vectors were generated for this batch. Retail-equivalent certification remains
+at 0/615.
