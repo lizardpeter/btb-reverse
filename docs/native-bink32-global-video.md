@@ -19,8 +19,11 @@ The public Bink SDK's first seven \`BINK\` structure fields and
 
 **Not yet certified**: Original installed Bink binary and actual movie
 asset have not been present in GitHub CI. The ABI/buffer flags are compiled
-but still need video-by-video validation. The original Bink sound-system
-callback has not been wired, so video audio is not claimed.
+but still need video-by-video validation. The original Bink sound-system callback is now connected to the same
+native DirectSound8 instance as the game's managed sounds using the
+historical `BinkSetSoundSystem(BinkOpenDirectSound, IDirectSound*)` ABI.
+**Audible retail video playback is still unverified** without the original
+DLL and Bink assets on a real x86 Windows machine.
 
 **Walkthrough/instructional inset movie placement and associated spoken
 WAV arbitration remain unavailable**, and the implementation still
