@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "source_pe_sha256": "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05",
+  "function": "0x00419600",
+  "source": "reconstruction/src/original_herding_init.cpp",
+  "header": "reconstruction/include/btb/original_herding_init.hpp",
+  "test": "reconstruction/tests/original_herding_init_test.cpp",
+  "stage": "source_written",
+  "validation": "pending",
+  "covered": [
+    "Eighteen native bitmap slot/resource-string pairs",
+    "Magenta color-key setup",
+    "Profile-controlled 3 by difficulty+3 original animal placement and RNG facing",
+    "Static trailer, cab and gate records",
+    "Existing Herding retail data parser and four sentinel-delimited coordinate groups",
+    "Global game volume setup and protected state resets"
+  ],
+  "not_claimed": [
+    "Actual original DirectDraw surfaces loaded",
+    "Original x87 side effects and full Win32 ABI",
+    "Bit-exact retail animal movement",
+    "Native game entrypoint dispatch integration"
+  ]
+}
