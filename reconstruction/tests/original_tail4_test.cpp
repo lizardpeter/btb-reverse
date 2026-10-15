@@ -6,14 +6,14 @@
 #include <vector>
 using namespace btb::original_tail4;
 struct TestClock:Clock {
- SystemTime loc{2026,1,4,0,15,45,30,4};
- SystemTime utc{2026,1,4,0,20,45,30,5};
+ SystemTime loc{2026,1,0,4,15,45,30,0};
+ SystemTime utc{2026,1,0,4,20,45,30,0};
  ZoneInfo zone{1,3,60};
  unsigned local_calls{},utc_calls{},zone_calls{},init_calls{};
  SystemTime local_time() override {++local_calls;return loc;}
  SystemTime system_time() override {++utc_calls;return utc;}
  ZoneInfo timezone_information() override {++zone_calls;return zone;}
- void initialize_timezone(original_runtime15::TimeState& time) override {
+ void initialize_timezone(btb::original_runtime15::TimeState& time) override {
   ++init_calls;time.timezone=0;time.daylight=0;
  }
 };
@@ -43,9 +43,9 @@ int main() {
  local_epoch(state,clock,nullptr);
  assert(clock.zone_calls==4 && state.daylight_status==-1);
  // Compare the caller's result to the already recovered 004326B8 dependency.
- original_runtime15::TimeState independent;
+ btb::original_runtime15::TimeState independent;
  TestClock comparison;
- I32 reference=original_runtime15::calendar_to_time(
+ I32 reference=btb::original_runtime15::calendar_to_time(
    independent,comparison.loc.year,comparison.loc.month,comparison.loc.day,
    comparison.loc.hour,comparison.loc.minute,comparison.loc.second,0,comparison,{});
  assert(result==reference);
@@ -54,7 +54,7 @@ int main() {
   TestStack stack;const U32 esp=0x90000U;
   assert(probe_stack(bytes,esp,0x12345678U,stack)==esp-bytes);
   assert(stack.written.size()==1);
-  assert(stack.written[0]==std::pair<U32,U32>(esp-bytes,0x12345678U));
+  assert((stack.written[0]==std::pair<U32,U32>{esp-bytes,0x12345678U}));
   assert(stack.touched.size()==bytes/4096U);
   for(U32 i=0;i<stack.touched.size();++i)
    assert(stack.touched[i]==esp+4U-(i+1U)*4096U);
