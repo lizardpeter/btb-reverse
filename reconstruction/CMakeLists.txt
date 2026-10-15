@@ -950,6 +950,7 @@ add_library(btb_recompiled_core STATIC
     src/original_motion4.cpp
     src/original_coordinators2.cpp
     src/original_gameplay3b.cpp
+    src/original_init2.cpp
     src/original_unwind13.cpp
     src/original_ftol1.cpp
     src/original_float2.cpp
@@ -1566,4 +1567,14 @@ if(MSVC)
  target_compile_options(btb_original_gameplay3b_tests PRIVATE /UNDEBUG)
 else()
  target_compile_options(btb_original_gameplay3b_tests PRIVATE -UNDEBUG)
+endif()
+
+# Original 0040A670 Dino and 00425160 Squirrel native initializer recovery.
+add_executable(btb_original_init2_tests tests/original_init2_test.cpp)
+target_link_libraries(btb_original_init2_tests PRIVATE btb_recompiled_core)
+add_test(NAME original_init2 COMMAND btb_original_init2_tests)
+if(MSVC)
+ target_compile_options(btb_original_init2_tests PRIVATE /UNDEBUG)
+else()
+ target_compile_options(btb_original_init2_tests PRIVATE -UNDEBUG)
 endif()
