@@ -24,8 +24,7 @@ per-frame compressed-track routing and a bounded LSB-first entropy bitreader.
 fixed lookup bytes at `30047800–30047BCF`, plus the 16 lookup widths from
 `30047BD8` and the table offsets indexed from `30063CA0`. One call
 to `read_fixed_huffman_symbol` consumes a source-valid variable-length
-codeword from a selected table. It does **not** currently support the
-rearrangements/dynamic trees in the remainder of `3000FCB0`.
+codeword from a selected table. The initial dynamic tree control flow is now source-reconstructed as `read_entropy_tree_prefix`: four selector bits, a zero-tree special case, and the branch/submode bits at `3000FD32–3000FDBF`. The resulting table permutations and dynamic symbol decoding are still incomplete.
 
 ## Asset-backed validation (local, not GitHub CI)
 
