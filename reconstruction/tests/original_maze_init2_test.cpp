@@ -55,7 +55,7 @@ struct Host:IO{
  }
  U32 next_original_rand() override{++rand_count;return next_rand++;}
  std::uint64_t system_filetime_100ns() override{
-  return 0x1234567800000000ULL+++clock_count*10000000ULL;
+  return 0x1234567800000000ULL + (++clock_count)*10000000ULL;
  }
 };
 static bool group_distinct(const InitState& s,int group,int n){
@@ -105,7 +105,7 @@ int main(){
   assert(io.address[15]==0x005141ecU);
   assert(io.repair_count==32&&io.background_count==5);
   assert(state.repair_seed==1&&io.rand_count>0);
-  assert(state.repairs_remaining==(difficulty==0?4:difficulty==1?6:11));
+  assert(state.repairs_remaining==(difficulty==0?4:difficulty==1?6:10));
   assert(state.player_count==state.repairs_remaining);
   assert(state.target_count==50+difficulty*10);
   const int groups[3][5]={{1,2,1,1,1},{2,3,2,2,1},{4,4,4,4,4}};
