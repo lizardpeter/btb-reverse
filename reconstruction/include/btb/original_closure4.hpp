@@ -14,7 +14,7 @@ struct Message {I32 kind{},wparam{},lparam{};};
 struct WindowState {
  U32 instance{},window{},accelerators{},sound_manager{},display_manager{},
      fullscreen_hook{},last_tick{},initial_seed{};
- I32 credits_state{},display_active{},destroy_requested{},time_slice{},pump_iterations{};
+ I32 credits_state{},display_active{},fullscreen_mode{},destroy_requested{},time_slice{},pump_iterations{};
  bool initialized{},hook_installed{},startup_failed{},shutdown_complete{},quit_message{};
 };
 class WindowIO {
