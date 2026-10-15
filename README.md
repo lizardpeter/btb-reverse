@@ -2,24 +2,23 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-15 UTC): **574/615 (93.3%)** discovered
-function reconstructions compile and link into the native game core,
-with **41 remaining** and **141 CTest tests passing**.
+Current compiled-source milestone (2026-10-15 UTC): **577/615 (93.8%)**
+discovered function reconstructions compile and link to the native game
+core; **38 remain** and **142 CTest tests pass**.
 
-The newest eight original-address source models cover DirectInput8
-initialization/polling, CRT process startup, SEH registration, Windows
-locale collation, `sprintf`, and floating-point conversion dispatch.
-[PR #55](https://github.com/lizardpeter/btb-reverse/pull/55)
-passes Linux C++26, Windows x86/x64 game-provider builds/tests, and
-Python CI.
+The latest three original gameplay source models reconstruct the Fireworks
+show playback coordinator (`00413450`), Spud Maze Pilchard pursuit/wander
+(`00423630`), and Squirrel actor placement/retrieval (`004273F0`).
+[PR #56](https://github.com/lizardpeter/btb-reverse/pull/56) passed Linux
+C++26, Windows x86/x64 native game/provider builds and Python CI.
 
-**0/615** functions are fully certified against retail behavior.
-Original executable ABI parity, actual native DirectInput8 provider wiring,
-the full game-flow loop and remaining activity implementations still need
-work. Compilation metrics are not equivalence metrics. See
-[the latest input/CRT batch](docs/original-input-crt8.md),
-[the previous UI/resource batch](docs/original-closure8.md), and
-[the original device batch](docs/original-device8.md).
+**0/615** original functions have full retail-behavior certification.
+DirectInput native provider wiring, original Bink execution, and the
+remaining game-flow and activity functions are unfinished. Compiled-source
+coverage must not be mistaken for original executable parity.
+See [the latest gameplay batch](docs/original-gameplay3.md),
+[the DirectInput/CRT batch](docs/original-input-crt8.md),
+and [the previous UI/resource batch](docs/original-closure8.md).
 
 ## Source material
 

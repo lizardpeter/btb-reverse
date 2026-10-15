@@ -21,6 +21,18 @@ host-safe bounded indexes where Ghidra's original register/stack recovery
 is ambiguous; unknown game-global semantics and exact original binary
 behavior remain separate validation tasks.
 
-Coverage remains **574/615** and these addresses remain `source_written`
-until CI validates Linux C++26, Python, and Windows x86/x64 targets. No
-original executable differential comparisons were added.
+These three source bodies are now **compiles** after CI validation (577/615,
+38 remaining). No original executable differential comparisons were added.
+
+## Validation
+
+The corrected source branch passed all four jobs in
+[CI run 38765856072](https://github.com/lizardpeter/btb-reverse/actions/runs/38765856072):
+Linux C++26 build and **142/142 CTest tests**, Python checks, Windows
+x64 native game/provider compilation and tests, and Windows x86 game/provider
+compilation and regression tests.
+
+This is source-level coverage: original x86 ABI and platform behavior
+comparisons added in this batch: **0**. The original retail executable
+does not execute in these tests. Full retail-equivalence certification
+remains **0/615**. Native driver admission remains to be integrated.
