@@ -17,6 +17,9 @@ public:
     NativePicklesMotionSource()=default;
     explicit NativePicklesMotionSource(retail::OriginalRetailRandom& game_rng) noexcept
         :shared_random_(&game_rng) {}
+    [[nodiscard]] bool begin_frame(std::string& error) override;
+    void commit_frame() noexcept override;
+    void rollback_frame() noexcept override;
     [[nodiscard]] bool initialize(
         const herding::Data& data,int difficulty,
         std::vector<herding::RetailEntityRecord32>& originals,
@@ -39,6 +42,15 @@ private:
     // never the platform-dependent host std::rand implementation.
     retail::OriginalRetailRandom standalone_random_{};
     retail::OriginalRetailRandom* shared_random_{};
+    struct FrameSnapshot {
+        herding::FoodType selected_food{herding::FoodType::None};
+        herding::RetailScrufftyPatrolState scruffty_patrol{};
+        std::vector<std::size_t> followers{};
+        herding::RetailTrackedTargetSlots tracked{};
+        int registration_counter{};
+        std::uint32_t original_rng_state{};
+    };
+    std::optional<FrameSnapshot> pending_frame_{};
     bool active_{};
     herding::FoodType selected_food_{herding::FoodType::None};
     herding::RetailScrufftyPatrolState scruffty_patrol_state_{};
