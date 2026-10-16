@@ -12,6 +12,7 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <string_view>
 
 int main() {
     namespace fs=std::filesystem;
@@ -177,5 +178,57 @@ END
     assert(game.globals().dispatcher.current_state==
            static_cast<int>(State::PlayAgainYesNoSetup));
     assert(!maze->player());
+    // Second native game session: place both middle-screen retail
+    // reference boxes at the real initial player location. The original
+    // first-match pickup must hide one box, freeze player movement, run
+    // the row-3..7 animation, then permit the next box to be collected.
+    std::string near_source=source;
+    const std::string original_boxes=
+        "89 98 8 549 98 9 60 314 8 563 314 9";
+    const auto at=near_source.find(original_boxes);
+    assert(at!=std::string::npos);
+    near_source.replace(at,original_boxes.size(),
+        "247 267 8 247 267 9 247 267 8 247 267 9");
+    std::ofstream(root/"loaddata"/"maze_nodes.txt")<<near_source;
+    fg::GameRoot pickup_game;
+    assert(pickup_game.select_profile(1));
+    auto pickup_driver=std::make_unique<fg::MazeDriver>(root,0);
+    auto* actual=pickup_driver.get();
+    pickup_game.install(fg::ActivityId::Maze,std::move(pickup_driver));
+    pickup_game.set_outer_state(State::MazeInit);
+    assert(pickup_game.advance({}).kind==fg::FrameKind::ActivityInitialized);
+    auto pickup=pickup_game.advance({.elapsed_centiseconds=100});
+    assert(pickup.effects.audio.size()==1);
+    pickup=pickup_game.advance({.elapsed_centiseconds=200});
+    assert(actual->boxes().remaining==4);
+    pickup=pickup_game.advance({.elapsed_centiseconds=300});
+    assert(pickup.kind==fg::FrameKind::ActivityUpdated);
+    assert(actual->boxes().remaining==3);
+    assert(actual->player()->frozen);
+    assert(pickup.effects.draws[0].source_asset==
+           "Data\\SubGameMaze\\MID_MAZE.bmp");
+    assert(pickup.effects.draws[1].source_asset==
+           "Data\\SubGameMaze\\box.bmp");
+    assert(pickup.effects.draws[2].source_asset==
+           "Data\\SubGameMaze\\player.bmp");
+    assert(pickup.effects.draws[2].source_rectangle);
+    assert(pickup.effects.draws[2].source_rectangle->top==3*128);
+    assert(pickup.effects.progress_writes.empty());
+    for(int ticks=0;ticks<81;++ticks) {
+        pickup=pickup_game.advance({
+            .elapsed_centiseconds=310+ticks,
+            .directional_input_bits=0x02});
+        assert(pickup.kind==fg::FrameKind::ActivityUpdated);
+        assert(actual->player()->x==247.0f);
+    }
+    assert(!actual->player()->frozen);
+    assert(!pickup.effects.audio.empty());
+    assert(pickup.effects.audio.back().sound_id==0x4d);
+    pickup=pickup_game.advance({.elapsed_centiseconds=420});
+    assert(actual->boxes().remaining==2);
+    assert(actual->player()->frozen);
+    assert(pickup.effects.progress_writes.empty());
+    assert(pickup_game.globals().player_progress[1].get(
+        btb::progress::Slot::Maze)==0);
     fs::remove_all(root);
 }
