@@ -135,17 +135,16 @@ std::optional<BinkFrameParity> compare_bink_yuva_reference(
     std::span<const std::uint8_t> packed_yuva420p) noexcept {
     constexpr std::size_t limit=64U*1024U*1024U;
     if(!native.width || !native.height ||
-       native.width>limit/native.height ||
-       (native.width%2) || (native.height%2))
+       native.width>limit/native.height)
         return std::nullopt;
     const auto full=native.width*native.height;
-    const auto quarter=full/4;
-    if(packed_yuva420p.size()!=2*full+2*quarter)
+    const auto chroma=((native.width+1)/2)*((native.height+1)/2);
+    if(packed_yuva420p.size()!=2*full+2*chroma)
         return std::nullopt;
     BinkFrameParity result{};
     std::size_t start=0;
     for(std::size_t plane=0;plane<4;++plane) {
-        const auto expected=(plane==1 || plane==2)?quarter:full;
+        const auto expected=(plane==1 || plane==2)?chroma:full;
         const auto& actual=native.planes[plane];
         if(actual.size()!=expected)
             return std::nullopt;
