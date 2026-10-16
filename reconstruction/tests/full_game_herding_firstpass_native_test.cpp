@@ -42,6 +42,10 @@ int main() {
         f<<"-1 -1\n";
         f<<"777 999\n-1 -1\n";
     }
+    static_assert(btb::herding::food_pickup_in_range(
+        btb::herding::FoodType::RabbitFood,350,390));
+    static_assert(!btb::herding::food_pickup_in_range(
+        btb::herding::FoodType::RabbitFood,365,394)); // exact 40px
     std::srand(123);
     for(int difficulty=0;difficulty<3;++difficulty) {
         fg::GameRoot game;
@@ -64,6 +68,17 @@ int main() {
         auto scene=game.advance({});
         assert(scene.kind==fg::FrameKind::ActivityUpdated);
         assert(!scene.effects.fatal_error);
+        // Original 0x4182B0 proximity triggers the Rabbit bag without
+        // requiring a guessed mouse click. Exact original x=350,y=390
+        // is strictly <40 from the source (365,354) bag hotspot.
+        assert(live->scene().selected_food==
+               btb::herding::FoodType::RabbitFood);
+        assert(!live->scene().visible_world_bags[1]);
+        bool original_pickup_voice=false;
+        for(const auto& audio:scene.effects.audio)
+            original_pickup_voice|=audio.sound_id==583||
+                                   audio.sound_id==610;
+        assert(original_pickup_voice);
         assert(live->scene().entities.size()==
                static_cast<std::size_t>(15+3*difficulty+
                    (difficulty>0?1:0)));
@@ -88,6 +103,8 @@ int main() {
         assert(live->scene().entities.front().x==351);
         assert(live->scene().entities.front().x_float==351.5f);
         assert(live->scene().entities.front().y==390);
+        assert(live->scene().selected_food==
+               btb::herding::FoodType::RabbitFood);
         scene=game.advance({.directional_input_bits=0x01});
         assert(live->scene().entities.front().x==350);
         assert(live->scene().entities.front().x_float==350.f);
