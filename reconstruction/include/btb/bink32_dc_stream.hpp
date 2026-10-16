@@ -37,4 +37,12 @@ struct BinkDcAcBlock {
 [[nodiscard]] std::optional<BinkDcAcBlock>
 decode_original_bink_block_from_dc_plane(
     BinkDcWordStream& dc_plane,LsbBitReader& ac_stream) noexcept;
+// A genuine branch of original 0x30010BF0, at 0x30010DA5..0x30010EBE.
+// For up to eight output samples, read the four-bit delta-width nibble.
+// When that nibble is zero, the original 0x30010E8D..0x30010EBE
+// repeats its previous signed 16-bit sample across the whole run.
+// Nonzero-width delta decoding is still outstanding; reject it here.
+[[nodiscard]] bool expand_original_bink_zero_delta_group(
+    LsbBitReader& source,std::int16_t previous_dc,
+    std::span<std::int16_t> output) noexcept;
 } // namespace btb::bink32_recovered
