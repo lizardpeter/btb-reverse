@@ -17,6 +17,10 @@ struct RoundInput {
     bool swing_animation_finished{};
     bool feedback_audio_finished{};
     std::uint32_t random_value{};
+    // Retail 0x00415080 state 0 recalculates aim from mouse X each frame:
+    // 0x58 - (pointer_x / 7), then arrow-key adjustments and clamping.
+    // Absent preserves direct/source unit-test aim control.
+    std::optional<int> source_mouse_aim{};
 };
 
 struct RoundFrame {
