@@ -29,8 +29,8 @@ void usage() {
       "[--reference-yuva reference.yuva] "
       "[--output-yuva native.yuva] "
       "[--max-frames N]\n"
-      "Reference format: consecutive raw yuva420p frames, "
-      "each in planar Y,U,V,A order.\n";
+      "Reference format: raw yuva420p for alpha movies or raw "
+      "yuv420p for opaque movies, both planar Y,U,V,(A).\n";
 }
 bool read_reference_frame(std::ifstream& source,
                           std::vector<std::uint8_t>& frame) {
@@ -52,9 +52,11 @@ constexpr std::array<const char*,4> kPlaneNames{"Y","U","V","A"};
 std::string first_failed_sjpi_stage(
     std::span<const std::uint8_t> video,
     std::size_t w,std::size_t h,
-    const BinkNativeYuVaFrame* last) {
-    const auto outer=parse_alpha_picture_entropy_prologue(video);
-    if(!outer)return "alpha/picture header";
+    const BinkNativeYuVaFrame* last,bool has_alpha) {
+    const auto outer=has_alpha
+        ?parse_alpha_picture_entropy_prologue(video):std::nullopt;
+    if((has_alpha && !outer) || video.size()<4)
+        return "alpha/picture header";
     const auto prev=[&](std::size_t index)
         -> std::span<const std::uint8_t> {
         return last?std::span<const std::uint8_t>(
@@ -68,16 +70,21 @@ std::string first_failed_sjpi_stage(
                ",packet_bit="+std::to_string(diagnostic.bit_offset)+
                ",source_line="+std::to_string(diagnostic.source_line);
     };
-    const auto alpha=decode_bink_picture_plane_at(
-        video,4,w,h,prev(3),&diagnostic);
-    if(!alpha)return "alpha plane entropy/block decode"+details();
-    if(alpha->next_plane_byte_offset!=outer->alpha_section_bytes)
-        return "alpha section length mismatch (decoded end="+
-            std::to_string(alpha->next_plane_byte_offset)+
-            ",declared end="+
-            std::to_string(outer->alpha_section_bytes)+")";
+    std::size_t first_y_tree=4;
+    if(has_alpha) {
+        const auto alpha=decode_bink_picture_plane_at(
+            video,4,w,h,prev(3),&diagnostic);
+        if(!alpha)
+            return "alpha plane entropy/block decode"+details();
+        if(alpha->next_plane_byte_offset!=outer->alpha_section_bytes)
+            return "alpha section length mismatch (decoded end="+
+                std::to_string(alpha->next_plane_byte_offset)+
+                ",declared end="+
+                std::to_string(outer->alpha_section_bytes)+")";
+        first_y_tree=outer->picture.initial_byte_offset;
+    }
     const auto y=decode_bink_picture_plane_at(
-        video,outer->picture.initial_byte_offset,w,h,prev(0),&diagnostic);
+        video,first_y_tree,w,h,prev(0),&diagnostic);
     if(!y)return "Y plane entropy/block decode"+details();
     const auto v=decode_bink_picture_plane_at(
         video,y->next_plane_byte_offset,w/2,h/2,prev(2),&diagnostic);
@@ -147,18 +154,18 @@ int main(int argc,char**argv) {
         std::cerr<<"BIK container validation failed\n";
         return 1;
     }
-    if((index->video_flags&0x00100000U)==0 ||
-       (index->header.width%16)!=0 ||
+    const bool has_alpha=(index->video_flags&0x00100000U)!=0;
+    if((index->header.width%16)!=0 ||
        (index->header.height%16)!=0) {
-        std::cerr<<"Only SJPi with alpha and aligned YUV420 "
-                    "dimensions is supported by this audit\n";
+        std::cerr<<"SJPi needs 16-aligned YUV420 dimensions\n";
         return 1;
     }
     const auto count=max_frames
         ? std::min(*max_frames,index->header.frame_count)
         : index->header.frame_count;
     const auto w=index->header.width,h=index->header.height;
-    const auto bytes_per_frame=(std::size_t(w)*h*5)/2;
+    const auto full_pixels=std::size_t(w)*h;
+    const auto bytes_per_frame=full_pixels*(has_alpha?5U:3U)/2U;
     std::ifstream reference;
     if(!reference_path.empty()) {
         reference.open(reference_path,std::ios::binary);
@@ -177,10 +184,16 @@ int main(int argc,char**argv) {
     }
     std::optional<BinkNativeYuVaFrame> previous;
     std::vector<std::uint8_t> reference_pixels(bytes_per_frame);
+    // Reference for an opaque stream is packed Y,U,V. The native
+    // API uses canonical Y,U,V,A; extend with known opaque 255s
+    // only for the comparison, never pretend A was encoded.
+    std::vector<std::uint8_t> canonical_reference(
+        full_pixels*5/2,255);
     std::size_t decoded_count=0,mismatched_frames=0;
     std::array<std::uint64_t,4> mismatch_totals{};
     std::cout<<"BIK "<<w<<"x"<<h<<" frames="<<index->header.frame_count
              <<" tracks="<<index->tracks.size()
+             <<" alpha="<<(has_alpha?"encoded":"opaque")
              <<" checking="<<count<<"\n";
     for(std::uint32_t number=1;number<=count;++number) {
         const auto encoded=split_encoded_frame(*index,data,number);
@@ -188,14 +201,15 @@ int main(int argc,char**argv) {
             std::cerr<<"Frame "<<number<<": malformed audio/video packet\n";
             return 2;
         }
-        auto frame=decode_bink_sjpi_yuva_frame(
-            encoded->video,w,h,previous?&*previous:nullptr);
+        auto frame=decode_bink_sjpi_video_frame(
+            encoded->video,w,h,has_alpha,
+            previous?&*previous:nullptr);
         if(!frame) {
             std::cerr<<"Frame "<<number
                      <<": native SJPi YUVA decode refused at "
                      <<first_failed_sjpi_stage(
                            encoded->video,w,h,
-                           previous?&*previous:nullptr)
+                           previous?&*previous:nullptr,has_alpha)
                      <<". Previous successfully decoded frames="
                      <<decoded_count<<". No pixel parity is claimed.\n";
             return 2;
@@ -210,8 +224,16 @@ int main(int argc,char**argv) {
                          <<number<<"\n";
                 return 1;
             }
+            if(!has_alpha) {
+                std::copy(reference_pixels.begin(),
+                          reference_pixels.end(),
+                          canonical_reference.begin());
+            }
             const auto parity=compare_bink_yuva_reference(
-                *frame,reference_pixels);
+                *frame,has_alpha
+                    ?std::span<const std::uint8_t>(reference_pixels)
+                    :std::span<const std::uint8_t>(
+                        canonical_reference));
             if(!parity) {
                 std::cerr<<"Invalid native/reference geometry at frame "
                          <<number<<"\n";
