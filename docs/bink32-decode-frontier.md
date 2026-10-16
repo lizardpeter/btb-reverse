@@ -308,6 +308,61 @@ are `0x30011C52..0x30011C5F`. The wider dynamic control-list
 state and complete outer coefficient loop remain unfinished.
 Do not interpret isolated opcode tests as bit-exact real-frame decoding.
 
+## Coefficient command-list loops recovered (2026-10-15)
+
+The original 2002 DLL at 0x30011B10 maintains **three distinct pointers**
+in its local command list: a prepend-able head ([esp+10]), an append-only
+end ([esp+20]), and the current scan pointer ([esp+24]). It seeds
+exactly six command bytes at 0x30011B9F..30011BD4:
+
+    10 60 B0 07 0B 0F
+
+Native `bink32_ac_command_pass.cpp` now implements an entire
+**single original magnitude-class pass** over this mutable command
+list, reusing all four reconstructed dispatch helpers:
+
+- Zero control bytes skip without consuming activation bits.
+- Every nonzero control first reads an activation bit; zero skips
+  while retaining the control for later passes.
+- Opcode 0 rewrites the current control to `base + 0x11`, emits or
+  defers four coefficient positions, and RETAINS the scan pointer.
+- Opcode 1 rewrites current control to `base + 0x02`, appends three
+  controls to the end pointer, and RETAINS the scan pointer.
+- Opcode 2 clears the current control, emits/defers four coefficients,
+  and advances the scan pointer.
+- Opcode 3 emits one signed coefficient, clears the control and advances.
+- A deferred coefficient is written to `--head` as opcode 3, becoming
+  eligible on a subsequent outer-loop pass, not automatically executed
+  during the same pass.
+
+A review of original x86 instructions `0x30011B9A–0x30011BF4` found
+and **corrected an earlier porting error**. EAX, the lower magnitude
+*bit count*, initially becomes `(1 << (mode-1)) - 1`. That can be
+larger than the position of the independently tracked magnitude-class
+WORD in `[esp+28]`. Earlier code rejected these real combinations,
+e.g. `width=7,class_bit=8`. This bogus check has been removed from
+both direct and four-coefficient helpers. The original `MOVSX EDI,DI`
++ optional `NEG` + `MOV WORD` wrapping behavior is now modeled via
+explicit unsigned 16-bit narrowing and signed reinterpretation.
+
+`bink32_ac_unit_pass.cpp` separately translates the **final +/-1
+coefficient pass** at `0x30012030..0x300122E7`, including the second
+four-way jump table at `0x3001242C`. Its operations follow the same
+mutable head/end/current model but use a single sign bit to emit +1 or
+-1 coefficients rather than magnitude-class integers. Both passes are
+transactional: on malformed/truncated input they restore the input
+cursor, coefficient array and original control-list state.
+
+The new native CTests cover the original six-byte seed, all four
+control opcodes, append/prepend ordering, multi-pass state reuse,
+source-consistent width/class combinations, 16-bit signed wrap,
+and truncation rollback.
+
+**Not yet implemented:** the complete outer-level loop that updates
+the magnitude class and repeats the first stage, the full coupling
+to the original codec's video-plane block scheduler, and actual
+retail-frame parity. No claim of DLL-free playable movies is made.
+
 ## Next implementation order
 
 1. Compare the reconstructed dynamic trees against the original x86 DLL
