@@ -217,6 +217,74 @@ int main(int argc,char**argv) {
     truncated.resize(truncated.size()-5);
     CHECK(!decode_bink_sjpi_yuva_frame(truncated,w,h));
     CHECK(decoded->planes[1]==reused->planes[1]);
+    {
+        // Exact display geometry from original BTB walkthroughs:
+        // 282x179 YUV420 without alpha. The codec allocates rounded
+        // 8x8 blocks at 288x184 luma and 144x96 chroma, and keeps
+        // the margins across frames even though they are invisible.
+        constexpr std::size_t width=282,height=179;
+        constexpr std::size_t pw=288,ph=184,cw=144,ch=96;
+        const auto make_odd=[](bool skip) {
+            std::vector<std::uint8_t> bytes{
+                0x12,0x34,0x56,0x78}; // SJPi picture DWORD
+            append(bytes,make_constant_plane(pw,ph,77,skip));
+            append(bytes,make_constant_plane(cw,ch,193,skip));
+            append(bytes,make_constant_plane(cw,ch,41,skip));
+            return bytes;
+        };
+        const auto odd_encoded=make_odd(false);
+        const auto odd=decode_bink_sjpi_video_frame(
+            odd_encoded,width,height,false);
+        CHECK(odd && !odd->source_has_alpha);
+        CHECK(odd->video_bytes_consumed==odd_encoded.size());
+        CHECK(odd->planes[0].size()==width*height);
+        CHECK(odd->planes[1].size()==141*90);
+        CHECK(odd->planes[2].size()==141*90);
+        CHECK(odd->planes[3].size()==width*height);
+        CHECK(odd->codec_planes[0].size()==pw*ph);
+        CHECK(odd->codec_planes[1].size()==cw*ch);
+        CHECK(odd->codec_planes[2].size()==cw*ch);
+        CHECK(odd->codec_plane_widths[0]==pw);
+        CHECK(odd->codec_plane_heights[0]==ph);
+        CHECK(std::all_of(odd->planes[0].begin(),
+                          odd->planes[0].end(),
+                          [](auto x){return x==77;}));
+        CHECK(std::all_of(odd->planes[1].begin(),
+                          odd->planes[1].end(),
+                          [](auto x){return x==41;}));
+        CHECK(std::all_of(odd->planes[2].begin(),
+                          odd->planes[2].end(),
+                          [](auto x){return x==193;}));
+        CHECK(std::all_of(odd->planes[3].begin(),
+                          odd->planes[3].end(),
+                          [](auto x){return x==255;}));
+        std::vector<std::uint8_t> odd_reference;
+        for(const auto& plane:odd->planes)
+            odd_reference.insert(odd_reference.end(),
+                                 plane.begin(),plane.end());
+        const auto parity=compare_bink_yuva_reference(
+            *odd,odd_reference);
+        CHECK(parity && parity->identical);
+        CHECK(parity->planes[0].compared_bytes==width*height);
+        CHECK(parity->planes[1].compared_bytes==141*90);
+        odd_reference.pop_back();
+        CHECK(!compare_bink_yuva_reference(*odd,odd_reference));
+
+        auto prior=*odd;
+        // An 8x8 codec margin is not an extra display pixel.
+        // Preserve it through an interframe SKIP operation.
+        prior.codec_planes[0][pw*ph-1]=159;
+        const auto skipped=decode_bink_sjpi_video_frame(
+            make_odd(true),width,height,false,&prior);
+        CHECK(skipped);
+        CHECK(skipped->planes==prior.planes);
+        CHECK(skipped->codec_planes[0].back()==159);
+        CHECK(!decode_bink_sjpi_video_frame(
+            make_odd(true),width,height,false));
+        prior.codec_planes[1].pop_back();
+        CHECK(!decode_bink_sjpi_video_frame(
+            make_odd(true),width,height,false,&prior));
+    }
     // Optional unmodified retail movie probe. No movie/DLL is
     // included in the public repository, and a decoder refusal
     // is reported as a refusal rather than disguised pixel parity.
