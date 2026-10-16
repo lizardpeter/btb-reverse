@@ -215,6 +215,14 @@ int main() {
                 e.kind==fg::HerdingObservedKind::JoinFollower &&
                 e.entity_index==1;
         assert(joined_first_sheep);
+        // Original 0x4175C5 join falls THROUGH to 0x417603:
+        // the newly admitted sheep moves in formation immediately,
+        // not with a fabricated one-frame delay.
+        assert(std::any_of(
+            observation.ordinary_follower_evidence.begin(),
+            observation.ordinary_follower_evidence.end(),
+            [](const auto& proof){ return proof.entity_index==1; }));
+        assert(observation.motion_records[1].movement_active==1);
         animals=observation.motion_records;
         const auto original_follow_pos=animals[1].x_float;
         assert(native.advance(data,{}, {},animals,observation,error));
