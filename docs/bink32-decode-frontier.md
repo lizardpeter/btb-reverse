@@ -117,6 +117,31 @@ complete Bink32 frame: the original `30012440` inverse-transform and
 residual-producing codec stages still need reconstruction before we
 can provide these compositors with actual decoded retail coefficients.
 
+## Decoded pixel output for the all-DC subset of the 8x8 inverse DCT
+
+`bink32_inverse_transform.cpp` now reconstructs the original decoder's
+DC-only first-pass optimization at `300113CE–300113FA`: when the seven
+non-DC coefficients of a vertical 8-sample column are zero, the original
+x86 reads the signed 16-bit DC coefficient, performs a low-32-bit
+multiply by the quantization scale, arithmetic-shifts it right by 11,
+and broadcasts the intermediate result to all eight rows.
+
+For the **entire 8x8 block containing only its DC coefficient**,
+`idct_dc_only_block8` continues through the horizontal pass's
+`(+127) >> 8` rounded low-byte result, yielding 64 actual
+pixel bytes. Tested positive, negative, zero, x86 product wrapping,
+and non-DC rejection. This is a deliberately limited source-derived
+subset of the full inverse DCT. It cannot reconstruct normal blocks
+with nonzero AC coefficients.
+
+The original interframe addition at `0x30012940` is separately
+reconstructed in `bink32_pixel_reconstruction.cpp`. It combines an
+8x8 residual block with the previous frame using exact unsigned-byte
+wraparound and valid row strides. This produces real pixel bytes from
+provided residuals; **it does not yet produce a complete retail frame
+from compressed bits**. The general AC inverse-transform and the main
+block mode scheduler remain missing.
+
 ## Next implementation order
 
 1. Compare the reconstructed dynamic trees against the original x86 DLL
