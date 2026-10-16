@@ -141,6 +141,53 @@ int main(int argc,char**argv) {
     CHECK(!compare_bink_yuva_reference(
         *decoded,std::span<const std::uint8_t>(
             raw_reference).first(raw_reference.size()-1)));
+    {
+        // The original SJPi can also omit alpha entirely. Its
+        // packet begins directly with a 32-bit picture control,
+        // rather than an alpha length and alpha plane. Remove the
+        // original alpha segment but preserve the picture DWORD.
+        const auto remove_alpha=[](
+            const std::vector<std::uint8_t>& with_alpha) {
+            CHECK(with_alpha.size()>=8);
+            const std::size_t start=
+                std::size_t(with_alpha[0]) |
+                (std::size_t(with_alpha[1])<<8) |
+                (std::size_t(with_alpha[2])<<16) |
+                (std::size_t(with_alpha[3])<<24);
+            CHECK(start>=4 && start+4<with_alpha.size());
+            return std::vector<std::uint8_t>(
+                with_alpha.begin()+static_cast<std::ptrdiff_t>(start),
+                with_alpha.end());
+        };
+        const auto opaque_packet=remove_alpha(encoded);
+        const auto opaque=decode_bink_sjpi_video_frame(
+            opaque_packet,w,h,false);
+        CHECK(opaque && !opaque->source_has_alpha);
+        CHECK(opaque->video_bytes_consumed==opaque_packet.size());
+        for(unsigned p=0;p<3;++p)
+            CHECK(opaque->planes[p]==decoded->planes[p]);
+        CHECK(opaque->planes[3].size()==w*h);
+        CHECK(std::all_of(opaque->planes[3].begin(),
+                          opaque->planes[3].end(),
+                          [](auto alpha){return alpha==255;}));
+        CHECK(opaque->plane_end_byte_offsets[3]==0);
+        CHECK(std::all_of(opaque->mode_counts[3].begin(),
+                          opaque->mode_counts[3].end(),
+                          [](auto count){return count==0;}));
+        // A second opaque frame can refer to previous Y/U/V, but
+        // never to an alpha section that did not exist in source.
+        const auto opaque_skip=remove_alpha(
+            make_sjpi_frame(w,h,{0,0,0,0},true));
+        const auto reused_opaque=decode_bink_sjpi_video_frame(
+            opaque_skip,w,h,false,&*opaque);
+        CHECK(reused_opaque && reused_opaque->planes==opaque->planes);
+        CHECK(!decode_bink_sjpi_video_frame(
+            opaque_skip,w,h,false));
+        CHECK(!decode_bink_sjpi_video_frame(
+            opaque_skip,w,h,false,&*decoded));
+        CHECK(!decode_bink_sjpi_video_frame(
+            skip,w,h,true,&*opaque));
+    }
     // An interframe encoded entirely with SKIP must reuse all four
     // previous source planes, including swapped V/U chroma order.
     const auto skip=make_sjpi_frame(w,h,{0,0,0,0},true);
