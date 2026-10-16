@@ -183,6 +183,49 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
                     }
                     return true;
                 }
+                if(pixels==BinkBlockMode::Run) {
+                    // Original 0x3000E400 reads a four-bit scan index
+                    // and then lengths+1 from the run bundle. Pattern
+                    // zero is the exact column-major serpentine scan.
+                    // Fail closed for the other fifteen scan patterns.
+                    const auto scan=bits.read(4);
+                    if(!scan || *scan!=0)return false;
+                    const auto emit=[&](std::size_t index,
+                                        std::uint8_t pixel) {
+                        const auto col=index/8;
+                        const auto ordinal=index%8;
+                        const auto r=(col&1U)?7-ordinal:ordinal;
+                        cmd.samples[r*8+col]=pixel;
+                    };
+                    std::size_t written=0;
+                    while(written<63) {
+                        const auto encoded=runs.take();
+                        if(!encoded)return false;
+                        const std::size_t n=std::size_t(*encoded)+1;
+                        if(n>64-written)return false;
+                        const auto repeat=bits.read(1);
+                        if(!repeat)return false;
+                        if(*repeat) {
+                            const auto color=colors.take();
+                            if(!color)return false;
+                            for(std::size_t i=0;i<n;++i)
+                                emit(written+i,*color);
+                        } else {
+                            for(std::size_t i=0;i<n;++i) {
+                                const auto color=colors.take();
+                                if(!color)return false;
+                                emit(written+i,*color);
+                            }
+                        }
+                        written+=n;
+                    }
+                    if(written==63) {
+                        const auto last=colors.take();
+                        if(!last)return false;
+                        emit(63,*last);
+                    }
+                    return written>=63;
+                }
                 return false;
             };
             if(mode==BinkBlockMode::Scaled) {
@@ -230,12 +273,13 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
             }
             case BinkBlockMode::Fill:
             case BinkBlockMode::Pattern:
+            case BinkBlockMode::Run:
             case BinkBlockMode::Raw:
                 if(!populate_pixels(mode))return fail(__LINE__);
                 break;
             default:
-                // DCT, residue, and run scan-order modes require
-                // upstream decoder integration before pixel output.
+                // DCT and residue modes remain deliberately
+                // unsupported until original transform data is wired.
                 return fail(__LINE__);
             }
             ++col;
