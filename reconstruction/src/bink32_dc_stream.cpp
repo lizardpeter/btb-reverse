@@ -36,4 +36,19 @@ std::optional<BinkDcAcBlock> decode_original_bink_block_from_dc_plane(
     ac_stream=ac;
     return result;
 }
+bool expand_original_bink_zero_delta_group(
+    LsbBitReader& source,std::int16_t previous_dc,
+    std::span<std::int16_t> output) noexcept {
+    // Original decoder 30010D94 chooses min(remaining_count, 8).
+    // 30010DA5..30010DD6 consumes a four-bit nibble.
+    // If it equals zero, 30010E8D..30010EBE performs REP STOSW
+    // with the PREVIOUS cumulative sample, no sign/delta bits.
+    if(output.empty() || output.size()>8)return false;
+    auto bits=source;
+    const auto encoded_width=bits.read(4);
+    if(!encoded_width || *encoded_width!=0)return false;
+    for(auto& v:output)v=previous_dc;
+    source=bits;
+    return true;
+}
 } // namespace btb::bink32_recovered
