@@ -16,12 +16,12 @@ struct ExpandedBlockRun {
     std::uint32_t huffman_symbols{}, repeat_commands{};
     bool filled_remainder{};
 };
-// Huffman value command path 0x30010262..0x30010364.
-// A bit 0 requests the next Huffman symbol; values 0..11 are literals,
-// 12..15 repeat the previous output value 4/8/12/32 times.
-// A bit 1 followed by a 4-bit value fills the remaining output.
-// This is a strict, transactional reconstruction of that one branch
-// of the original routine; other block coefficients remain incomplete.
+// Limited per-token EXPERIMENTAL command harness for studying the
+// recovered Huffman/runs. NOT the original retail Bink bundle framing:
+// original read_block_types consumes one immediate/Huffman branch bit
+// for the entire count-prefixed bundle, not before each Huffman symbol.
+// Source-correct retail decoding uses decode_bink_block_mode_values.
+// This helper remains available only for isolated synthetic tests.
 [[nodiscard]] std::optional<ExpandedBlockRun> expand_bink_value_commands(
     LsbBitReader& compressed,
     const DynamicHuffmanTree& tree,
