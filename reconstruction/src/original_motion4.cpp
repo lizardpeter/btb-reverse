@@ -225,7 +225,7 @@ void update_maze_spud_npc(Npc& s,IO& io){
    dropped.dropped_x=static_cast<I32>(s.position.x);
    dropped.dropped_y=static_cast<I32>(s.position.y);
    if(plan.collision_voice) sound(io,
-       0x5e+static_cast<I32>(io.random32()%2),10);
+       0x5e + static_cast<I32>(io.random32()%2),10);
   }
   break;
  }
