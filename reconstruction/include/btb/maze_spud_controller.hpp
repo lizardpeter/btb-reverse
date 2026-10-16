@@ -79,6 +79,12 @@ struct SpudSpawnWait {
 struct SpudPackageSlot {
     std::int32_t node_id{-1};
     std::int32_t status{};
+    // Original 20-byte slot at 0x00510A18 has two more int fields at
+    // offsets +12/+16. On status 3 they give the Spud-dropped box's
+    // live pixel location, rather than the standard source location.
+    std::int32_t reserved{};
+    std::int32_t dropped_x{};
+    std::int32_t dropped_y{};
 };
 
 inline constexpr std::int32_t kSpudAvailablePackageStatus = 1;

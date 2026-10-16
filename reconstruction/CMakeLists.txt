@@ -1206,6 +1206,16 @@ add_test(NAME full_game_native_session_source
 
 # Native source Maze first pass: actual original map parser, original
 # 0041B140 player movement, bitmap/timer effects and truthful timeout flow.
+# Original retail PE-backed 46px Maze package collision, stolen and dropped
+# status and final package win-counter semantics.
+add_executable(btb_maze_package_pickup_source_tests
+    tests/maze_package_pickup_source_test.cpp)
+target_link_libraries(btb_maze_package_pickup_source_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_maze_package_pickup_source_tests PRIVATE)
+add_test(NAME maze_package_pickup_source
+    COMMAND btb_maze_package_pickup_source_tests)
+
 add_executable(btb_full_game_maze_native_tests
     tests/full_game_maze_native_test.cpp)
 target_link_libraries(btb_full_game_maze_native_tests PRIVATE
