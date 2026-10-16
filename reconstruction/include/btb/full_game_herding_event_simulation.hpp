@@ -175,6 +175,10 @@ struct HerdingScrufftyPatrolEvidence {
 };
 
 struct HerdingObservedFrame {
+    // The production source supplies actual before/after evidence for
+    // every state-changing contact. Forbid accepting bare asserted
+    // events; deterministic scripted-source tests may opt out.
+    bool require_native_event_proofs{};
     std::optional<HerdingPicklesBoundaryEvidence> pickles_boundary_evidence{};
     // Optional, branch-specific probes for native 0x416C45/0x416DCE
     // steering. These are not manufactured for unrelated AI branches.
