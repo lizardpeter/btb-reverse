@@ -44,7 +44,7 @@ bink_zero_ac_idct_sample(std::int16_t dc,std::uint8_t selector) noexcept {
     const auto quant=original_quant_matrix(selector);
     if(!quant)return std::nullopt;
     const auto product=static_cast<std::uint32_t>(
-        static_cast<std::int64_t>(dc)*static_cast<std::int64_t>((*quant)->at(0)));
+        static_cast<std::int64_t>(dc)*static_cast<std::int64_t>((*quant)[0]));
     const auto scaled=std::bit_cast<std::int32_t>(product)>>11;
     const auto rounded=std::bit_cast<std::int32_t>(
         std::bit_cast<std::uint32_t>(scaled)+127U)>>8;
