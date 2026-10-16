@@ -60,8 +60,13 @@ std::string first_failed_sjpi_stage(
     const auto prev=[&](std::size_t index)
         -> std::span<const std::uint8_t> {
         return last?std::span<const std::uint8_t>(
-            last->planes[index]):std::span<const std::uint8_t>{};
+            last->codec_planes[index]):std::span<const std::uint8_t>{};
     };
+    const auto padded=[](std::size_t value) {
+        return ((value+7)/8)*8;
+    };
+    const auto pw=padded(w),ph=padded(h);
+    const auto cw=padded((w+1)/2),ch=padded((h+1)/2);
     BinkPlaneDecodeDiagnostic diagnostic{};
     const auto details=[&]() {
         return " row="+std::to_string(diagnostic.row)+
@@ -73,7 +78,7 @@ std::string first_failed_sjpi_stage(
     std::size_t first_y_tree=4;
     if(has_alpha) {
         const auto alpha=decode_bink_picture_plane_at(
-            video,4,w,h,prev(3),&diagnostic);
+            video,4,pw,ph,prev(3),&diagnostic);
         if(!alpha)
             return "alpha plane entropy/block decode"+details();
         if(alpha->next_plane_byte_offset!=outer->alpha_section_bytes)
@@ -84,14 +89,14 @@ std::string first_failed_sjpi_stage(
         first_y_tree=outer->picture.initial_byte_offset;
     }
     const auto y=decode_bink_picture_plane_at(
-        video,first_y_tree,w,h,prev(0),&diagnostic);
+        video,first_y_tree,pw,ph,prev(0),&diagnostic);
     if(!y)return "Y plane entropy/block decode"+details();
     const auto v=decode_bink_picture_plane_at(
-        video,y->next_plane_byte_offset,w/2,h/2,prev(2),&diagnostic);
+        video,y->next_plane_byte_offset,cw,ch,prev(2),&diagnostic);
     if(!v)return "V chroma plane entropy/block decode (start="+
         std::to_string(y->next_plane_byte_offset)+")"+details();
     const auto u=decode_bink_picture_plane_at(
-        video,v->next_plane_byte_offset,w/2,h/2,prev(1),&diagnostic);
+        video,v->next_plane_byte_offset,cw,ch,prev(1),&diagnostic);
     if(!u)return "U chroma plane entropy/block decode (start="+
         std::to_string(v->next_plane_byte_offset)+")"+details();
     return "post-plane validation (all 4 plane probes succeeded)";
@@ -155,17 +160,17 @@ int main(int argc,char**argv) {
         return 1;
     }
     const bool has_alpha=(index->video_flags&0x00100000U)!=0;
-    if((index->header.width%16)!=0 ||
-       (index->header.height%16)!=0) {
-        std::cerr<<"SJPi needs 16-aligned YUV420 dimensions\n";
-        return 1;
-    }
+    // Odd-size SJPi uses 8x8 codec-padding independently for Y and
+    // ceil-divided U/V. The frame decoder validates all resource
+    // and codec geometry bounds before accepting the packet.
     const auto count=max_frames
         ? std::min(*max_frames,index->header.frame_count)
         : index->header.frame_count;
     const auto w=index->header.width,h=index->header.height;
     const auto full_pixels=std::size_t(w)*h;
-    const auto bytes_per_frame=full_pixels*(has_alpha?5U:3U)/2U;
+    const auto chroma_pixels=(std::size_t(w+1)/2)*(std::size_t(h+1)/2);
+    const auto bytes_per_frame=full_pixels+2*chroma_pixels+
+        (has_alpha?full_pixels:0);
     std::ifstream reference;
     if(!reference_path.empty()) {
         reference.open(reference_path,std::ios::binary);
@@ -188,7 +193,7 @@ int main(int argc,char**argv) {
     // API uses canonical Y,U,V,A; extend with known opaque 255s
     // only for the comparison, never pretend A was encoded.
     std::vector<std::uint8_t> canonical_reference(
-        full_pixels*5/2,255);
+        2*full_pixels+2*chroma_pixels,255);
     std::size_t decoded_count=0,mismatched_frames=0;
     std::array<std::uint64_t,4> mismatch_totals{};
     std::cout<<"BIK "<<w<<"x"<<h<<" frames="<<index->header.frame_count
@@ -247,7 +252,7 @@ int main(int argc,char**argv) {
                     const auto& s=parity->planes[p];
                     mismatch_totals[p]+=s.different_bytes;
                     if(!s.different_bytes)continue;
-                    const auto pw=(p==1||p==2)?w/2:w;
+                    const auto pw=(p==1||p==2)?(w+1)/2:w;
                     std::cout<<" "<<kPlaneNames[p]
                         <<":different="<<s.different_bytes
                         <<",first_xy="<<(s.first_different_index%pw)
