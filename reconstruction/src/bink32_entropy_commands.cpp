@@ -486,14 +486,19 @@ decode_first_bink_picture_bundle_set(
     const auto motion_y=read_bink_signed_motion_bundle(
         reader,trees.trees[21],plane_width,max_bundle);
     if(!motion_y)return std::nullopt;
-    const auto dc_context=init_entropy_plane(
+    // Retail 0x3000E400 read_dcs(start_bits=11, has_sign):
+    // intra DC is initially unsigned; inter DC consumes a sign bit.
+    const auto intra_context=init_entropy_plane(
+        0,0x200U,static_cast<std::uint32_t>(plane_width),
+        11,1,false);
+    const auto inter_context=init_entropy_plane(
         0,0x200U,static_cast<std::uint32_t>(plane_width),
         11,1,true);
     const auto intra_dc=decode_original_bink_dc_context_packet(
-        reader,dc_context,max_bundle);
+        reader,intra_context,max_bundle);
     if(!intra_dc)return std::nullopt;
     const auto inter_dc=decode_original_bink_dc_context_packet(
-        reader,dc_context,max_bundle);
+        reader,inter_context,max_bundle);
     if(!inter_dc)return std::nullopt;
     const auto runs=read_bink_run_bundle(
         reader,trees.trees[22],plane_width,max_bundle);
