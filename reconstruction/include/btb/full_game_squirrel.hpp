@@ -52,5 +52,6 @@ private:
     int selected_choice_{-1};
     bool animating_{};
     bool complete_{};
+    int completion_stage_{};
 };
 } // namespace btb::full_game
