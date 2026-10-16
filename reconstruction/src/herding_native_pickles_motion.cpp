@@ -103,7 +103,10 @@ bool NativePicklesMotionSource::initialize(
         selected_food_=herding::FoodType::None;
         follower_indices_.clear();
         tracked_slots_=herding::RetailTrackedTargetSlots{};
-        remaining_to_register_=herding::initial_undelivered_animal_count(difficulty);
+        // Original InitializeHerdingActivity 0x00419600 writes ZERO
+        // to global 0x50B31C. It is an independent signed counter,
+        // not the number of animals remaining in the scene.
+        remaining_to_register_=0;
         // The original initializer resets its patrol waypoint, but not
         // the process-global frame movement latch 0x443B20.
         scruffty_patrol_state_.waypoint_index=0;
@@ -307,7 +310,7 @@ bool NativePicklesMotionSource::advance(
                 follower_indices_.begin(),follower_indices_.end(),i);
             const bool following=existing!=follower_indices_.end();
 
-            if(following && remaining_to_register_>0) {
+            if(following) {
                 herding::FollowerList ordinary{};
                 for(const auto slot:follower_indices_) {
                     if(!ordinary.add(static_cast<int>(slot))) {
