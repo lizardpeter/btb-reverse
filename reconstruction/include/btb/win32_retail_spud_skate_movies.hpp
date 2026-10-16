@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace btb::full_game {
 
@@ -58,6 +59,11 @@ private:
     Win32OriginalDirectDraw& draw_;
     std::filesystem::path root_;
     Win32OriginalBinkExports exports_{};
+    // Retail InitializeSpudSkateActivity 0x00424360 allocates a
+    // separate original byte buffer for every Bink and keeps it
+    // alive for the complete movie lifetime. OpenBinkMovieWithFallback
+    // then calls BinkOpen(buffer, 0x04000000).
+    std::array<std::vector<std::uint8_t>,5> movie_bytes_{};
     std::array<void*,5> handles_{};
     std::array<IDirectDrawSurface7*,5> surfaces_{};
     std::size_t selected_{};
