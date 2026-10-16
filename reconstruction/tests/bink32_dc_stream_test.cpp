@@ -346,9 +346,10 @@ int main() {
         CHECK(capped.bit_position()==0);
         // Missing sign bit must roll back the complete context record.
         TestBits too_short;
-        too_short.put(1,4);too_short.put(27,10); // 14 bits total
+        too_short.put(0,2); // two-bit prior stream prefix
+        too_short.put(1,4);too_short.put(27,10); // leaves no sign bit
         auto truncated=too_short.reader();
-        CHECK(truncated.skip(2)); // leaves precisely 14 bits incl. padding
+        CHECK(truncated.skip(2)); // now 14 intended bits remain
         CHECK(!decode_original_bink_dc_context_packet(
             truncated,4,11,true));
         CHECK(truncated.bit_position()==2);
