@@ -57,6 +57,7 @@ public:
     bool emit_tracked_approach_probe{};
     bool contradict_tracked_approach_probe{};
     bool emit_ordinary_follower_probe{};
+    std::size_t ordinary_proof_index{1};
     bool contradict_ordinary_follower_probe{};
     bool contradict_steering_probe{};
     bool contradict_heading_probe{};
@@ -139,16 +140,16 @@ public:
         frame.events=std::exchange(
             scheduled,std::vector<HerdingObservedEvent>{});
         if(emit_ordinary_follower_probe) {
-            const auto prior=current[1];
+            const auto prior=current[ordinary_proof_index];
             const auto planned=h::original_herding_ordinary_follower_step(
                 prior,current.front(),0);
             assert(planned);
-            frame.motion_records[1]=planned->moved;
+            frame.motion_records[ordinary_proof_index]=planned->moved;
             frame.ordinary_follower_evidence.push_back({
-                1,prior,planned->source_formation_target,0,
+                ordinary_proof_index,prior,planned->source_formation_target,0,
                 planned->holds_formation_position});
             if(contradict_ordinary_follower_probe)
-                frame.motion_records[1].x_float+=1.f;
+                frame.motion_records[ordinary_proof_index].x_float+=1.f;
         }
         if(emit_tracked_approach_probe) {
             const auto prior=current[1];
@@ -338,6 +339,23 @@ int main() {
     assert(sounds.size()==2);
     assert(sounds[0].sound_id==584);
     assert(sounds[1].sound_id==589);
+
+    // A source motion proof alone cannot justify an animal joining
+    // from far away. Species-correct food and the original strict
+    // signed-anchor <80 pixel proximity must BOTH be independently
+    // satisfied. Sheep #2 is far away from Pickles in this fixture.
+    source->ordinary_proof_index=2;
+    source->emit_ordinary_follower_probe=true;
+    source->require_native_proofs=true;
+    source->scheduled={event(HerdingObservedKind::JoinFollower,2)};
+    assert(!simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(error.find("correlated original")!=std::string::npos);
+    assert(scene.entities[2].behavior_state==0);
+    assert(remaining==9);
+    source->ordinary_proof_index=1;
+    source->emit_ordinary_follower_probe=false;
+    source->require_native_proofs=false;
 
     // The real native source cannot assert a home-tracked arrival
     // solely because its event says confirmed=true. Without a
