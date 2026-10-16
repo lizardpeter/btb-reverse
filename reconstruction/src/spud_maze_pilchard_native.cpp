@@ -72,7 +72,7 @@ PilchardFrame update_pilchard_native(
         static_cast<std::size_t>(difficulty)];
     if(s.spawn_wait==-1&&s.phase==0)
         s.spawn_wait=start_delay;
-    if(s.phase!=0 && s.screen!=bob.screen) {
+    if(s.phase>1 && s.screen!=bob.screen) {
         // Retail 00423630 keeps its off-screen actor briefly, then resets
         // it to ready-to-spawn; never collide with Bob on another screen.
         if(++s.offscreen_frames>500) {
