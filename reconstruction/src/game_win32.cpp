@@ -512,7 +512,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     LPWSTR* argv=CommandLineToArgvW(GetCommandLineW(),&count);
     bool legacy=false,smoke=false,skip_video=false,invalid_args=false;
     bool has_profile_slot=false;
-    int selected_profile=0;
+    int selected_profile=-1;
     std::optional<std::filesystem::path> chosen;
     if(argv){
         for(int i=1;i<count;++i){
