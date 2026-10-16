@@ -172,7 +172,7 @@ int main() {
             startup_fixture(),walkthrough_fixture()
         };
         std::istringstream sound_catalog(
-            "Data/sound/walkthrough_voice.wav 488\\n");
+            "Data/sound/walkthrough_voice.wav 488\n");
         assert(session.load_sound_catalog(sound_catalog).success);
         game.set_outer_state(State::GolfPregameSetup);
 
