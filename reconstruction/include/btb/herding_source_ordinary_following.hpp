@@ -7,6 +7,7 @@
 #include <bit>
 #include <cmath>
 #include <cstdint>
+#include <initializer_list>
 #include <limits>
 #include <optional>
 
@@ -84,6 +85,9 @@ original_herding_ordinary_follower_step(
 
     const double distance=std::hypot(
         static_cast<double>(ax-hx),static_cast<double>(ay-hy));
+    if(!std::isfinite(distance) ||
+       distance>std::numeric_limits<int>::max()-1024)
+        return std::nullopt;
     // Source 0x417657 converts *difference* to int, THEN abs(),
     // and enters the no-translation/slow-braking branch for <=2.
     const int desired=formation_ordinal*30+15;
