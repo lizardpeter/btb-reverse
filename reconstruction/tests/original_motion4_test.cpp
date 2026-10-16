@@ -1,5 +1,11 @@
 #include "btb/original_motion4.hpp"
 #include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#undef assert
+#define assert(expr) do { if(!(expr)) { \
+    std::fprintf(stderr,"original_motion4: %s at %s:%d\\n", \
+        #expr,__FILE__,__LINE__);std::abort();} } while(false)
 #include <cmath>
 #include <stdexcept>
 #include <string>
@@ -101,6 +107,49 @@ int main(){
   update_maze_spud_npc(s,io);
   assert(s.phase==btb::maze::SpudNpcPhase::SelectPackage);
   assert(s.packages[0][0].status==1);
+ }
+ {
+  // Confirm source 0x0041CCB0 uses the BOX-LOCATION table's node ID,
+  // rather than the 0..3 random location index as the path target.
+  Host io;Npc s{};s.screen=0;s.player_screen=0;s.difficulty=2;
+  s.spawn_wait=1;s.spawn_interval=800;
+  auto a=node(0,0,0);a.links={4,-1,-1,-1};
+  s.graphs[0].nodes={a,node(4,0,-2)};
+  s.packages[0][0]={2,1};
+  s.package_target_nodes[0][2]=4;s.has_box_target_nodes=true;
+  update_maze_spud_npc(s,io);
+  assert(s.phase==btb::maze::SpudNpcPhase::SelectPackage);
+  update_maze_spud_npc(s,io);
+  assert(s.phase==btb::maze::SpudNpcPhase::TravelToPackage);
+  assert(io.paths.back()==4);
+  s.phase=btb::maze::SpudNpcPhase::TravelCarryingPackage;
+  s.current_node=0;s.path={4};s.path_index=0;
+  s.selected_package=0;s.packages[0][0].status=2;
+  s.position={0.f,0.f};io.player_gap=10.0f;
+  update_maze_spud_npc(s,io);
+  assert(s.packages[0][0].status==btb::maze::kSpudDroppedPackageStatus);
+  assert(s.packages[0][0].dropped_x==
+         static_cast<I32>(s.position.x));
+  assert(s.packages[0][0].dropped_y==
+         static_cast<I32>(s.position.y));
+  assert(s.carry_active==0&&s.collision_latch==1);
+  assert(io.sounds.back()>=0x5e&&io.sounds.back()<=0x5f);
+  static_assert(btb::maze::kSourceNpcSpawnFrames[0]==3000);
+  static_assert(btb::maze::kSourceNpcSpawnFrames[1]==2000);
+  static_assert(btb::maze::kSourceNpcSpawnFrames[2]==800);
+ }
+ {
+  // Source 0x0041CCB0 phase 1 respawns Spud on Bob's current screen.
+  Host io;Npc s{};s.screen=0;s.player_screen=1;
+  s.phase=btb::maze::SpudNpcPhase::SelectPackage;
+  s.graphs[1].nodes={node(0,40,182),node(15,603,182)};
+  s.packages[1][0]={0,1};
+  s.package_target_nodes[1][0]=0;s.has_box_target_nodes=true;
+  update_maze_spud_npc(s,io);
+  assert(s.screen==1);
+  assert(s.phase==btb::maze::SpudNpcPhase::TravelToPackage);
+  assert(s.selected_package==0);
+  assert(!io.paths.empty()&&io.paths.back()==0);
  }
  {
   Host io;HerdAnimal s{};

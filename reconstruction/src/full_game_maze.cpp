@@ -1,5 +1,6 @@
 #include "btb/full_game_maze.hpp"
 #include "btb/maze_presentation.hpp"
+#include "btb/maze_runtime.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -49,7 +50,8 @@ public:
         };
     }
     original_motion4::U32 random32() override {
-        return static_cast<original_motion4::U32>(input_.random_value);
+        // Original 0x0042FFC4 dispatches the shared CRT rand stream.
+        return static_cast<original_motion4::U32>(std::rand());
     }
     void sound(original_motion4::I32 id,
                original_motion4::I32 priority,
@@ -61,15 +63,16 @@ public:
     void spud_spawn_delay_reset() override {
         throw std::logic_error("Spud Maze spawn reset in Maze driver");
     }
-    float npc_distance_to_player(const original_motion4::Npc&) override {
-        throw std::logic_error("Maze Spud NPC is not yet hosted");
+    float npc_distance_to_player(const original_motion4::Npc& npc) override {
+        return std::hypot(npc.position.x-player_.x,
+                          npc.position.y-player_.y);
     }
     void spud_repair_completed(original_motion4::I32,
                                original_motion4::I32) override {
         throw std::logic_error("Spud Maze repair in Maze driver");
     }
-    float actor_distance(float,float,float,float) override {
-        throw std::logic_error("Spud/Herding actor distance in Maze driver");
+    float actor_distance(float x,float y,float tx,float ty) override {
+        return std::hypot(x-tx,y-ty);
     }
     original_motion4::I32 integer_angle(
         original_motion4::I32,original_motion4::I32,
@@ -81,9 +84,12 @@ public:
         throw std::logic_error("Spud/Herding movement in Maze driver");
     }
     std::vector<original_motion4::I32> shortest_path(
-        const maze::ScreenGraph&,original_motion4::I32,
-        original_motion4::I32) override {
-        throw std::logic_error("Maze NPC shortest path is not yet hosted");
+        const maze::ScreenGraph& graph,original_motion4::I32 from,
+        original_motion4::I32 to) override {
+        auto route=maze::find_shortest_path_retail(graph,from,to);
+        if(!route)
+            throw std::runtime_error("original Maze Spud path unreachable");
+        return route->nodes;
     }
     void animal_collision_recovery(herding::RetailEntityRecord32&) override {
         throw std::logic_error("Herding collision in Maze driver");
@@ -165,6 +171,21 @@ bool MazeDriver::initialize(int player_index,std::string& error) {
         });
         player_=std::move(p);
         boxes_=std::move(allocated);
+        npc_={};
+        npc_.screen=1;
+        npc_.player_screen=1;
+        npc_.difficulty=difficulty_;
+        npc_.spawn_interval=maze::kSourceNpcSpawnFrames[
+            static_cast<std::size_t>(difficulty_)];
+        npc_.spawn_wait=npc_.spawn_interval;
+        npc_.offscreen_wait=npc_.spawn_interval;
+        npc_.graphs=parsed->screens;
+        npc_.packages=boxes_.screens;
+        npc_.has_box_target_nodes=true;
+        for(std::size_t screen=0;screen<3;++screen)
+            for(std::size_t location=0;location<4;++location)
+                npc_.package_target_nodes[screen][location]=
+                    parsed->box_locations[screen][location].node_id;
         input_mode_={};
         input_mode_.mouse_mode=false; // 0x00512124 initial 0
         mouse_debounce_={};
@@ -239,6 +260,20 @@ ActivityFrameOutput MazeDriver::draw() const {
         "Data\\SubGameMaze\\player.bmp",where.x,where.y,
         Rect{sprite.left,sprite.top,sprite.right,sprite.bottom},true
     });
+    // Retail DrawMazeActivity shows the live Spud sprite only after NPC
+    // phase 1 and only on the player's screen; hidden phases are not
+    // substituted with a fake actor standing on the map.
+    if(static_cast<int>(npc_.phase)>1 && npc_.screen==player_.screen) {
+        const auto spud_frame=maze::actor_source_rect(
+            npc_.animation_frame,npc_.current_direction);
+        const auto spud=maze::spud_destination(
+            npc_.position.x,npc_.position.y,0);
+        output.draws.push_back({
+            "Data\\SubGameMaze\\spud.bmp",spud.x,spud.y,
+            Rect{spud_frame.left,spud_frame.top,
+                 spud_frame.right,spud_frame.bottom},true
+        });
+    }
     const int initial=data_->timer_by_difficulty[
         static_cast<std::size_t>(difficulty_)];
     const auto timer=maze::timer_source_rect(
@@ -361,6 +396,15 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
                 pickup_animation_wait_=0;
             }
         }
+        // The original 0x0041D4D0 calls UpdateMazeSpudNPC after the
+        // player update every active frame, including frozen pickups.
+        // One shared package bank is authoritative for player and Spud.
+        npc_.player_screen=player_.screen;
+        npc_.packages=boxes_.screens;
+        MazePlayerPort spud_io(input,out,player_,input_mode_,
+                               mouse_debounce_,pointer_sampled_);
+        original_motion4::update_maze_spud_npc(npc_,spud_io);
+        boxes_.screens=npc_.packages;
     } catch(const std::exception& e) {
         out.fatal_error=std::string("original Maze player motion: ")+e.what();
         return out;
@@ -375,6 +419,7 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
 bool MazeDriver::unload(std::string& error) {
     data_.reset();
     player_={};
+    npc_={};
     boxes_={};
     input_mode_={};
     mouse_debounce_={};

@@ -143,11 +143,15 @@ void update_maze_spud_npc(Npc& s,IO& io){
  if(!gate.dispatch_state)return;
  switch(s.phase){
  case maze::SpudNpcPhase::SpawnWait:{
-  const auto step=maze::advance_spud_spawn_wait(60,s.spawn_wait);
+  const auto step=maze::advance_spud_spawn_wait(s.spawn_interval,s.spawn_wait);
   s.spawn_wait=step.frames_remaining;s.phase=step.next_phase;
   break;
  }
  case maze::SpudNpcPhase::SelectPackage:{
+  // Source 0x0041CCB0 state 1 sets 0x00444220 to the PLAYER'S
+  // current 0x00510D18 screen before spawning/selecting a target.
+  // Otherwise an off-screen reset can strand Spud in the previous map.
+  s.screen=s.player_screen;
   s.animation_frame=7;
   if(s.screen==1)s.current_node=maze::spud_random_edge_node(1,static_cast<I32>(io.random32()%2));
   else s.current_node=0;
@@ -156,12 +160,19 @@ void update_maze_spud_npc(Npc& s,IO& io){
               static_cast<float>(first.retail_position.y)};
   const auto& bank=s.packages[static_cast<std::size_t>(s.screen)];
   const auto n=maze::available_spud_package_count(bank);
-  if(n==0){s.phase=maze::SpudNpcPhase::SpawnWait;s.spawn_wait=60;break;}
+  if(n==0){s.phase=maze::SpudNpcPhase::SpawnWait;s.spawn_wait=s.spawn_interval;break;}
   const auto chosen=maze::select_spud_package_by_rank(bank,static_cast<I32>(io.random32()%static_cast<U32>(n)));
   if(!chosen)throw std::runtime_error("NPC package rank unresolved");
   s.selected_package=*chosen;
   sound(io,0x58);
-  set_npc_path(s,io,bank[static_cast<std::size_t>(*chosen)].node_id);
+  const auto location=bank[static_cast<std::size_t>(*chosen)].node_id;
+  if(location<0||location>=4)
+   throw std::out_of_range("original Maze Spud package location 0..3");
+  const auto target=s.has_box_target_nodes
+    ?s.package_target_nodes[static_cast<std::size_t>(s.screen)]
+                           [static_cast<std::size_t>(location)]
+    :location;
+  set_npc_path(s,io,target);
   s.phase=maze::SpudNpcPhase::TravelToPackage;
   s.animation_countdown=7;
   break;
@@ -206,7 +217,20 @@ void update_maze_spud_npc(Npc& s,IO& io){
     1,0,0);
   s.nearest_node_distance=plan.nearest_node_distance;
   if(plan.captured_waypoint){s.current_node=s.path[static_cast<std::size_t>(s.path_index)];s.phase=plan.next_phase;}
-  if(plan.drop_package){s.carry_active=0;s.collision_latch=1;}
+  if(plan.drop_package){
+   s.carry_active=0;s.collision_latch=1;
+   // Retail 0x0041D1CE stores status 3 and the Spud's actual
+   // truncated x/y into package-record offsets +12 and +16.
+   if(s.selected_package<0||s.selected_package>=4)
+    throw std::out_of_range("Spud dropped package index");
+   auto& dropped=s.packages[static_cast<std::size_t>(s.screen)]
+                           [static_cast<std::size_t>(s.selected_package)];
+   dropped.status=maze::kSpudDroppedPackageStatus;
+   dropped.dropped_x=static_cast<I32>(s.position.x);
+   dropped.dropped_y=static_cast<I32>(s.position.y);
+   if(plan.collision_voice) sound(io,
+       0x5e + static_cast<I32>(io.random32()%2),10);
+  }
   break;
  }
  case maze::SpudNpcPhase::ResetPath:{

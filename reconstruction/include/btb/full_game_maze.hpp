@@ -31,6 +31,9 @@ public:
     [[nodiscard]] const original_motion4::Player* player() const noexcept {
         return data_ ? &player_ : nullptr;
     }
+    [[nodiscard]] const original_motion4::Npc* npc() const noexcept {
+        return data_ ? &npc_ : nullptr;
+    }
     [[nodiscard]] int remaining_seconds() const noexcept {
         return remaining_seconds_;
     }
@@ -46,6 +49,7 @@ private:
     int player_index_{-1};
     std::unique_ptr<maze::Data> data_{};
     original_motion4::Player player_{};
+    original_motion4::Npc npc_{};
     maze::BoxAllocation boxes_{};
     maze::InputModeState input_mode_{};
     maze::DirectionalDebounce mouse_debounce_{};
