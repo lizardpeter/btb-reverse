@@ -4,6 +4,7 @@
 #include "btb/win32_native_bitmap_registry.hpp"
 #include "btb/win32_original_display_lifecycle.hpp"
 #include "btb/win32_original_main_window_proc.hpp"
+#include "btb/win32_retail_bink_provider.hpp"
 #include <cstdio>
 
 int main() {
@@ -108,6 +109,22 @@ int main() {
     if(btb::original_win32::main_window_proc_recompiled(
            nullptr,WM_DESTROY,0,0,state,invalid_display,
            display_error).has_value()||state.outer_state!=3)return 37;
+    // Exact video position is from retail PE32 0x428195/0x42819C,
+    // NOT estimated from the larger walkthrough mouse hover region.
+    if(btb::full_game::kOriginalWalkthroughMovieX!=63 ||
+       btb::full_game::kOriginalWalkthroughMovieY!=157 ||
+       btb::full_game::kOriginalWalkthroughMovieWidth!=282 ||
+       btb::full_game::kOriginalWalkthroughMovieHeight!=179)return 38;
+    // The real video decoder must never allocate a DD7 movie surface
+    // from an uninitialized display or pretend the frame was shown.
+    IDirectDrawSurface7* invalid_movie=nullptr;
+    if(invalid_display.create_bink_offscreen_surface(
+           282,179,invalid_movie,display_error) ||
+       invalid_movie!=nullptr || display_error.empty())return 39;
+    display_error.clear();
+    if(invalid_display.blit_bink_offscreen_surface(
+           nullptr,282,179,63,157,display_error) ||
+       display_error.empty())return 40;
 #endif
     return 0;
 }

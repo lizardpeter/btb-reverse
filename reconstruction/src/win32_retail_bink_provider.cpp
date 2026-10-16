@@ -2,6 +2,9 @@
 
 #if defined(_WIN32)
 #include <cstdint>
+#include <fstream>
+#include <limits>
+#include <vector>
 #include <string>
 #include <system_error>
 
@@ -24,6 +27,7 @@ using BinkCopyFn=std::int32_t (WINAPI*)(
 using BinkNextFn=void (WINAPI*)(void*);
 using BinkSurfaceFn=std::uint32_t (WINAPI*)(IDirectDrawSurface7*);
 using BinkSetAudioFn=std::int32_t (WINAPI*)(FARPROC,std::uint32_t);
+using BinkGotoFn=void (WINAPI*)(void*,std::uint32_t,std::uint32_t);
 
 template<class Fn>
 Fn require_export(Win32OriginalBinkExports& dll,
@@ -34,6 +38,7 @@ Fn require_export(Win32OriginalBinkExports& dll,
 }
 
 Win32RetailBinkProvider::~Win32RetailBinkProvider() {
+    release_walkthrough();
     close_global();
 }
 void Win32RetailBinkProvider::close_global() noexcept {
@@ -186,22 +191,188 @@ bool Win32RetailBinkProvider::service(
 #endif
 }
 
+void Win32RetailBinkProvider::release_walkthrough() noexcept {
+#if !defined(_WIN64)
+    if(walkthrough_) {
+        if(auto close=require_export<BinkCloseFn>(
+               exports_,"BinkClose"))
+            close(walkthrough_);
+        walkthrough_=nullptr;
+    }
+#endif
+    if(walkthrough_surface_) {
+        walkthrough_surface_->Release();
+        walkthrough_surface_=nullptr;
+    }
+    walkthrough_bytes_.clear();
+    walkthrough_has_frame_=false;
+    walkthrough_last_decoded_=0;
+    walkthrough_help_wav_.clear();
+}
+
 bool Win32RetailBinkProvider::open_walkthrough(
-    const std::filesystem::path&,const std::filesystem::path&,
+    const std::filesystem::path& movie,
+    const std::filesystem::path& help_wav,
     std::string& error) {
-    error="original instruction walkthrough Bink overlay requires "
-          "its separate 282x179 DirectDraw surface; no synthetic overlay";
-    return false;
+#if defined(_WIN64)
+    (void)movie;(void)help_wav;
+    return ensure_original_dll(error);
+#else
+    if(!ensure_original_dll(error))return false;
+    // The Ghidra-recovered 0x4281D0 loads at most 7,000,000
+    // original bytes into a process-owned memory allocation and
+    // opens Bink with exactly 0x04000000 (memory input).
+    // Keeping this buffer alive is mandatory until BinkClose.
+    release_walkthrough();
+    std::error_code ec;
+    if(!std::filesystem::is_regular_file(movie,ec)||ec ||
+       !std::filesystem::is_regular_file(help_wav,ec)||ec) {
+        error="original walkthrough Bink or accompanying speech asset missing";
+        return false;
+    }
+    std::ifstream source(movie,std::ios::binary|std::ios::ate);
+    if(!source) {
+        error="original walkthrough Bink file cannot be read";
+        return false;
+    }
+    const auto length=source.tellg();
+    constexpr std::streamoff kRetailMaxBytes=7000000;
+    if(length<=0||length>kRetailMaxBytes) {
+        error="original walkthrough Bink exceeds retail 7MB memory limit";
+        return false;
+    }
+    walkthrough_bytes_.resize(static_cast<std::size_t>(length));
+    source.seekg(0,std::ios::beg);
+    if(!source.read(
+            reinterpret_cast<char*>(walkthrough_bytes_.data()),
+            static_cast<std::streamsize>(walkthrough_bytes_.size()))) {
+        release_walkthrough();
+        error="failed to read original in-memory walkthrough Bink";
+        return false;
+    }
+    if(!renderer_.create_bink_offscreen_surface(
+           kOriginalWalkthroughMovieWidth,
+           kOriginalWalkthroughMovieHeight,walkthrough_surface_,error)) {
+        release_walkthrough();
+        return false;
+    }
+    const auto open=require_export<BinkOpenFn>(exports_,"BinkOpen");
+    if(!open) {
+        release_walkthrough();
+        error="original walkthrough BinkOpen export missing";
+        return false;
+    }
+    walkthrough_=open(
+        reinterpret_cast<const char*>(walkthrough_bytes_.data()),
+        0x04000000u);
+    if(!walkthrough_) {
+        release_walkthrough();
+        error="retail BinkOpen failed for 7MB-bounded walkthrough bytes";
+        return false;
+    }
+    const auto& header=*static_cast<OriginalBink32Header*>(walkthrough_);
+    if(header.width==0||header.height==0||
+       header.width>kOriginalWalkthroughMovieWidth||
+       header.height>kOriginalWalkthroughMovieHeight||
+       header.frames==0||header.frame_num==0||
+       header.frame_num>header.frames) {
+        release_walkthrough();
+        error="original in-memory walkthrough Bink header invalid";
+        return false;
+    }
+    walkthrough_help_wav_=help_wav;
+    walkthrough_has_frame_=false;
+    walkthrough_last_decoded_=0;
+    error.clear();
+    return true;
+#endif
 }
+
 bool Win32RetailBinkProvider::close_walkthrough(std::string& error) {
-    error="no original Bink walkthrough is currently open";
-    return false;
+    // The retail 0x4280D0 release path is safe even when an
+    // instruction screen was never opened or already exited.
+    release_walkthrough();
+    error.clear();
+    return true;
 }
+
+bool Win32RetailBinkProvider::decode_walkthrough_frame(
+    std::string& error) {
+#if defined(_WIN64)
+    error="walkthrough playback requires original x86 Bink DLL";
+    return false;
+#else
+    if(!walkthrough_) {
+        error="original walkthrough decoder is not active";
+        return false;
+    }
+    const auto wait=require_export<BinkFrameFn>(exports_,"BinkWait");
+    const auto decode=require_export<BinkFrameFn>(exports_,"BinkDoFrame");
+    const auto copy=require_export<BinkCopyFn>(
+        exports_,"BinkCopyToBuffer");
+    const auto format=require_export<BinkSurfaceFn>(
+        exports_,"BinkDDSurfaceType");
+    const auto next=require_export<BinkNextFn>(
+        exports_,"BinkNextFrame");
+    const auto goto_frame=require_export<BinkGotoFn>(
+        exports_,"BinkGoto");
+    if(!wait||!decode||!copy||!format||!next||!goto_frame) {
+        error="original walkthrough Bink frame/loop exports incomplete";
+        return false;
+    }
+    auto& header=*static_cast<OriginalBink32Header*>(walkthrough_);
+    // 0x428120 loops at the observed final Bink frame, using
+    // original BinkGoto(handle,1,0), NOT a synthetic time reset.
+    if(header.frame_num>=header.frames && walkthrough_has_frame_) {
+        goto_frame(walkthrough_,1,0);
+        walkthrough_has_frame_=false;
+    }
+    if(wait(walkthrough_)!=0) {
+        error.clear();
+        return true; // use previously decoded pixels this frame
+    }
+    (void)decode(walkthrough_);
+    DDSURFACEDESC2 desc{};
+    desc.dwSize=sizeof(desc);
+    const auto hr=walkthrough_surface_->Lock(
+        nullptr,&desc,DDLOCK_WAIT|DDLOCK_SURFACEMEMORYPTR,nullptr);
+    if(FAILED(hr)) {
+        error="original walkthrough Bink DD7 surface lock failed";
+        return false;
+    }
+    const auto type=format(walkthrough_surface_);
+    const auto copied=copy(walkthrough_,desc.lpSurface,
+        desc.lPitch,desc.dwHeight,0,0,type);
+    const auto unlocked=walkthrough_surface_->Unlock(nullptr);
+    if(FAILED(unlocked)||copied<0) {
+        error="original walkthrough Bink pixel copy/unlock failed";
+        return false;
+    }
+    walkthrough_has_frame_=true;
+    walkthrough_last_decoded_=header.frame_num;
+    if(header.frame_num<header.frames)next(walkthrough_);
+    error.clear();return true;
+#endif
+}
+
 bool Win32RetailBinkProvider::render_walkthrough_overlay(
     std::string& error) {
-    // A walkthrough cannot be opened until its native surface path
-    // is connected. Do not fabricate a Bink overlay or advance audio.
-    error.clear();return true;
+    if(!walkthrough_) {
+        error.clear();
+        return true;
+    }
+    if(!decode_walkthrough_frame(error))return false;
+    if(!walkthrough_has_frame_) {
+        error.clear();return true;
+    }
+    // These are NOT guessed center coordinates: actual retail
+    // PE32 0x00428195..0x004281A5 pushes (x=0x3F,y=0x9D)
+    // when invoking DecodeAndBlitBinkFrame(0x408F70). The
+    // original DD7 playback surface is 282x179 (0x4281D0).
+    return renderer_.blit_bink_offscreen_surface(
+        walkthrough_surface_,
+        kOriginalWalkthroughMovieWidth,kOriginalWalkthroughMovieHeight,
+        kOriginalWalkthroughMovieX,kOriginalWalkthroughMovieY,error);
 }
 
 } // namespace btb::full_game

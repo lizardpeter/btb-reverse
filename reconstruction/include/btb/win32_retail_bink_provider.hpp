@@ -7,9 +7,19 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
+#include <cstdint>
 #include <utility>
 
 namespace btb::full_game {
+
+// Retail PE32 `0x00428195..0x004281A5` pushes this exact
+// walkthrough blit origin and `0x004281D0` initializes the
+// independent DD7 playback surface at 282x179.
+inline constexpr int kOriginalWalkthroughMovieX=0x3f;
+inline constexpr int kOriginalWalkthroughMovieY=0x9d;
+inline constexpr int kOriginalWalkthroughMovieWidth=282;
+inline constexpr int kOriginalWalkthroughMovieHeight=179;
 
 // Interim retail-DLL-compatible playback: the native Bink
 // reconstruction can replace this provider without changing GameRoot.
@@ -35,11 +45,22 @@ public:
 
 private:
     [[nodiscard]] bool ensure_original_dll(std::string& error);
+    [[nodiscard]] bool decode_walkthrough_frame(std::string& error);
     void close_global() noexcept;
+    void release_walkthrough() noexcept;
     Win32OriginalDirectDraw& renderer_;
     std::filesystem::path root_;
     Win32OriginalBinkExports exports_{};
     void* global_{};
+    // Original 0x4281D0 owns the Bink movie's memory until close,
+    // a separate 282x179 DD7 surface, and a looping Bink handle.
+    std::vector<std::uint8_t> walkthrough_bytes_{};
+    IDirectDrawSurface7* walkthrough_surface_{};
+    void* walkthrough_{};
+    bool walkthrough_has_frame_{};
+    std::uint32_t walkthrough_last_decoded_{};
+    std::filesystem::path walkthrough_help_wav_{};
+
 };
 
 } // namespace btb::full_game
