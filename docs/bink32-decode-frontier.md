@@ -616,3 +616,29 @@ mode scheduling, motion compensation, color conversion, or frame-to-frame
 state of the complete `0x3000E400` decoder. It also has not been
 compared to actual retail output. It must not be advertised as a
 complete Bink decoder, or substituted for retail video playback.
+
+
+## Bounded native 16x16 pixel-raster assembler (2026-10-16)
+
+The DC-context-to-block bridge now also has a concrete framebuffer-level
+output path:
+
+- `rasterize_bink_blocks16` copies fully decoded original fixed-point
+  iDCT blocks into a tightly packed one-channel raster. Caller-specified
+  width/height are used for a **row-major harness**; edge blocks are clipped,
+  and malformed block counts/dimensions are rejected before writes.
+- `decode_original_bink_dc_context_raster16` feeds both native compressed
+  DC and AC streams through context decoding, original quant selection, and
+  16x16 iDCT into the new raster. **Neither cursor advances on a failed
+  record, wrong tile count, or a truncated late AC block.**
+- Memory is capped to 64 MiB per raster; multiplication and tile-count
+  checks precede allocation. CTests cover a 33x17 plane (six tiles), edge
+  clipping, invalid dimensions, count mismatch, and late corruption.
+
+**Crucial parity boundary:** Row-major placement here is an explicit
+integration/test convention, *not* recovered original `0x3000E400`
+frame-plane block traversal. A Bink frame has further plane modes,
+reference blocks, frame state, and potentially distinct tiling policies.
+This path is not enabled as a replacement for playback and must not be
+described as a retail frame decoder. The original scheduler and pixel
+comparison against the original DLL remain mandatory.
