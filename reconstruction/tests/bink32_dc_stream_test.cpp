@@ -7,6 +7,22 @@
 
 using namespace btb::bink32_recovered;
 #define CHECK(x) do {if(!(x)){std::fprintf(stderr,"Bink DC test %d: %s\n",__LINE__,#x);std::abort();}}while(0)
+struct TestBits {
+    std::array<std::uint8_t,64> data{};
+    std::size_t bit_count{};
+    void put(std::uint32_t value,unsigned width) {
+        for(unsigned i=0;i<width;++i) {
+            CHECK(bit_count<data.size()*8);
+            if((value>>i)&1U)
+                data[bit_count/8]|=static_cast<std::uint8_t>(1U<<(bit_count%8));
+            ++bit_count;
+        }
+    }
+    LsbBitReader reader() const {
+        return LsbBitReader(
+            std::span<const std::uint8_t>(data).first((bit_count+7)/8));
+    }
+};
 int main() {
     // Original Bink 3000F087 uses a raw little-endian 16-bit word,
     // signed only once reconstructed as coefficient[0].
@@ -88,6 +104,107 @@ int main() {
         std::array<std::int16_t,9> too_long{};
         CHECK(!expand_original_bink_zero_delta_group(source,123,too_long));
         CHECK(source.bit_position()==0);
+    }
+    {
+        // Source group 30010D94 consumes width4 and up to 8 signed
+        // deltas; zero magnitude does NOT consume a sign bit.
+        TestBits packed;
+        packed.put(4,4);
+        packed.put(1,4);packed.put(0,1); // +1
+        packed.put(3,4);packed.put(1,1); // -3
+        packed.put(0,4);                 // zero
+        packed.put(15,4);packed.put(0,1);// +15
+        auto bits=packed.reader();
+        std::array<std::int16_t,4> output{};
+        const auto previous=decode_original_bink_dc_delta_group(
+            bits,100,output);
+        constexpr std::array<std::int16_t,4> expected{101,98,98,113};
+        CHECK(previous&&*previous==113&&output==expected);
+        CHECK(bits.bit_position()==packed.bit_count&&packed.bit_count==23);
+        // A subsequent width-zero group starts at current bit offset
+        // and repeats the previous cumulative signed WORD.
+        packed.put(0,4);
+        auto sequential=packed.reader();
+        std::array<std::int16_t,4> first_four{};
+        const auto carry=decode_original_bink_dc_delta_group(
+            sequential,100,first_four);
+        CHECK(carry&&*carry==113);
+        std::array<std::int16_t,8> next_eight{};
+        const auto last=decode_original_bink_dc_delta_group(
+            sequential,*carry,next_eight);
+        CHECK(last&&*last==113&&sequential.bit_position()==27);
+        for(auto v:next_eight)CHECK(v==113);
+    }
+    {
+        // WORD stores in the original x86 wrap exactly at 16 bits.
+        TestBits packed;
+        packed.put(1,4);packed.put(1,1);packed.put(0,1);
+        auto bits=packed.reader();
+        std::array<std::int16_t,1> output{};
+        const auto wrap=decode_original_bink_dc_delta_group(
+            bits,32767,output);
+        CHECK(wrap&&*wrap==-32768&&output[0]==-32768);
+        CHECK(bits.bit_position()==6);
+    }
+    {
+        // Max encoded width nibble = 15, 15 low magnitude bits
+        // and conditional sign, including mixed signed samples.
+        TestBits packed;
+        packed.put(15,4);
+        packed.put(32767,15);packed.put(1,1);
+        packed.put(0,15);
+        auto bits=packed.reader();
+        std::array<std::int16_t,2> out{};
+        const auto decoded=decode_original_bink_dc_delta_group(
+            bits,1,out);
+        CHECK(decoded&&*decoded==-32766);
+        CHECK(out[0]==-32766&&out[1]==-32766);
+        CHECK(bits.bit_position()==35);
+        auto truncated=packed.reader();
+        CHECK(truncated.skip(7));
+        std::array<std::int16_t,8> values{};
+        values.fill(77);
+        CHECK(!decode_original_bink_dc_delta_group(truncated,123,values));
+        CHECK(truncated.bit_position()==7);
+        for(auto x:values)CHECK(x==77);
+    }
+    {
+        // Full controlled pipeline: compressed delta groups produce
+        // DC WORD bytes consumed by original AC+quant+iDCT block path.
+        TestBits widths;
+        widths.put(3,4);widths.put(4,3);widths.put(0,1); // DC4
+        widths.put(2,3);widths.put(1,1);               // DC2
+        auto stream=widths.reader();
+        std::array<std::int16_t,2> words{};
+        const auto carry=decode_original_bink_dc_delta_group(
+            stream,0,words);
+        CHECK(carry&&*carry==2&&words[0]==4&&words[1]==2);
+        std::array<std::uint8_t,4> bytes{};
+        for(std::size_t i=0;i<words.size();++i) {
+            const auto v=static_cast<std::uint16_t>(words[i]);
+            bytes[2*i]=static_cast<std::uint8_t>(v);
+            bytes[2*i+1]=static_cast<std::uint8_t>(v>>8);
+        }
+        BinkDcWordStream dc_stream{bytes,0};
+        const std::array<std::uint8_t,2> ac_bytes{0,0};
+        LsbBitReader ac_bits(ac_bytes);
+        for(unsigned i=0;i<2;++i) {
+            const auto result=decode_original_bink_block_from_dc_plane(
+                dc_stream,ac_bits);
+            CHECK(result&&result->dc==words[i]);
+            CHECK(result->decoded.ac.mode==0&&result->decoded.quant_selector==0);
+        }
+        CHECK(dc_stream.position==4&&ac_bits.bit_position()==16);
+    }
+    {
+        const std::array<std::uint8_t,1> one{0x0f};
+        LsbBitReader bits(one);
+        std::array<std::int16_t,9> too_long{};
+        CHECK(!decode_original_bink_dc_delta_group(bits,5,too_long));
+        CHECK(bits.bit_position()==0);
+        std::array<std::int16_t,1> one_word{88};
+        CHECK(!decode_original_bink_dc_delta_group(bits,5,one_word));
+        CHECK(bits.bit_position()==0&&one_word[0]==88);
     }
     std::puts("Bink original predecoded DC stream -> AC/quant IDCT 16x16 pixels: PASS");
 }
