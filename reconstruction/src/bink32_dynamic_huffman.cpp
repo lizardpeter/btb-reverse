@@ -113,4 +113,18 @@ std::optional<BlockEntropyTrees> read_block_entropy_trees(
     return output;
 }
 
+std::optional<VideoEntropyPrologue> parse_video_entropy_prologue(
+    std::span<const std::uint8_t> packet,
+    std::size_t initial_byte_offset) noexcept {
+    if(initial_byte_offset>packet.size()) return std::nullopt;
+    LsbBitReader cursor(packet.subspan(initial_byte_offset));
+    const auto trees=read_block_entropy_trees(cursor);
+    if(!trees) return std::nullopt;
+    VideoEntropyPrologue out{};
+    out.trees=*trees;
+    out.initial_byte_offset=initial_byte_offset;
+    out.final_bit_offset=initial_byte_offset*8+cursor.bit_position();
+    return out;
+}
+
 } // namespace btb::bink32_recovered
