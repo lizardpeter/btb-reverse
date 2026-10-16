@@ -90,11 +90,12 @@ int main(){
         constexpr std::array<std::uint8_t,2> cmds{3,7};
         auto state=*make_bink_ac_pending(cmds);
         const auto backup=state;
-        const std::array<std::uint8_t,1> stream{1};
+        const std::array<std::uint8_t,1> stream{0xa0};
         LsbBitReader bits(stream);
+        CHECK(bits.skip(5)); // only three bits remain
         std::array<std::int16_t,64> coeff{};coeff.fill(47);
         CHECK(!run_bink_ac_unit_pass(bits,state,coeff));
-        CHECK(bits.bit_position()==0&&state.head==backup.head);
+        CHECK(bits.bit_position()==5&&state.head==backup.head);
         CHECK(state.end==backup.end&&state.data==backup.data);
         for(auto v:coeff)CHECK(v==47);
     }
