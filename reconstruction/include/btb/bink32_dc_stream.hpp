@@ -45,4 +45,17 @@ decode_original_bink_block_from_dc_plane(
 [[nodiscard]] bool expand_original_bink_zero_delta_group(
     LsbBitReader& source,std::int16_t previous_dc,
     std::span<std::int16_t> output) noexcept;
+// Original 0x30010D94..0x30010ECE full short-group delta path:
+// one width nibble (0..15) followed by up to 8 signed magnitudes.
+// A nonzero magnitude consumes a sign bit. Each signed delta is
+// cumulatively added to the preceding sample and written as WORD.
+// Width zero simply repeats the preceding value. This helper starts
+// at the group-width nibble; higher-level 0x30010BF0 initial-plane
+// headers, output allocation, and previous-sample initialization
+// are NOT part of this routine and still need original-source wiring.
+// On failure output and compressed cursor are unchanged.
+[[nodiscard]] std::optional<std::int16_t>
+decode_original_bink_dc_delta_group(
+    LsbBitReader& source,std::int16_t previous_dc,
+    std::span<std::int16_t> output) noexcept;
 } // namespace btb::bink32_recovered
