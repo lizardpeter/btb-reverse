@@ -148,6 +148,10 @@ void update_maze_spud_npc(Npc& s,IO& io){
   break;
  }
  case maze::SpudNpcPhase::SelectPackage:{
+  // Source 0x0041CCB0 state 1 sets 0x00444220 to the PLAYER'S
+  // current 0x00510D18 screen before spawning/selecting a target.
+  // Otherwise an off-screen reset can strand Spud in the previous map.
+  s.screen=s.player_screen;
   s.animation_frame=7;
   if(s.screen==1)s.current_node=maze::spud_random_edge_node(1,static_cast<I32>(io.random32()%2));
   else s.current_node=0;
