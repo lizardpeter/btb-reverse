@@ -86,10 +86,14 @@ original_far_untracked_animal_roam_step(
 
     // UpdateHerdingAnimal computes animal sprite center and compares
     // it to Farmer Pickles' X and sprite bottom minus 20 pixels.
+    // 0x00416A30 uses (source_left-source_right)/2, which is
+    // NEGATIVE for standard positive-width sprite cells. Using an
+    // ordinary geometric center silently moves the 80px attraction
+    // boundary by a full sprite width.
     const std::int64_t animal_cx=
         static_cast<std::int64_t>(original.x)+
-        (static_cast<std::int64_t>(original.source_right)-
-         original.source_left)/2;
+        (static_cast<std::int64_t>(original.source_left)-
+         original.source_right)/2;
     const std::int64_t animal_cy=
         static_cast<std::int64_t>(original.y)+
         (static_cast<std::int64_t>(original.source_bottom)-
