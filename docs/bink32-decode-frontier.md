@@ -335,13 +335,15 @@ list, reusing all four reconstructed dispatch helpers:
   eligible on a subsequent outer-loop pass, not automatically executed
   during the same pass.
 
-A review of original x86 instructions `0x30011B9A–0x30011BF4` found
-and **corrected an earlier porting error**. EAX, the lower magnitude
-*bit count*, initially becomes `(1 << (mode-1)) - 1`. That can be
-larger than the position of the independently tracked magnitude-class
-WORD in `[esp+28]`. Earlier code rejected these real combinations,
-e.g. `width=7,class_bit=8`. This bogus check has been removed from
-both direct and four-coefficient helpers. The original `MOVSX EDI,DI`
+Further review of the original x86 instructions `0x30011B9A–0x30011BF4`
+corrected a **substantial earlier porting error**. EAX is initially
+1 for constructing the class WORD by `SHL`, but at
+`0x30011BE8 MOV AL,BL` it is **reset to the AC mode nibble** before
+`0x30011BF4 DEC EAX`. Consequently, low magnitude bit counts are
+`mode-1, mode-2, ..., 1`, whereas the separately stored class WORD
+starts at `1 << (mode-1)` and shifts right each pass. The previous
+power-of-two-derived read widths were incorrect. No shift-count
+rollover occurs for any of the sixteen 4-bit AC modes. The original `MOVSX EDI,DI`
 + optional `NEG` + `MOV WORD` wrapping behavior is now modeled via
 explicit unsigned 16-bit narrowing and signed reinterpretation.
 
@@ -363,49 +365,48 @@ the magnitude class and repeats the first stage, the full coupling
 to the original codec's video-plane block scheduler, and actual
 retail-frame parity. No claim of DLL-free playable movies is made.
 
-## Bounded full outer coefficient-loop scheduler (modes 0–6)
+## All 16 original AC coefficient modes — corrected outer scheduler
 
-`bink32_ac_outer_levels.cpp` now reconstructs the original
-`0x30011B10` mode extraction, mutable command-list magnitude
-iterations, and final +/-1 pass **for supported mode nibbles 0–6**.
+The original x86 disassembly of `0x30011B10` establishes the
+following exact register sequence:
 
-The caller must still supply a decoded DC coefficient, which is
-preserved while the decoder zero-initializes the other 63
-coefficients as the original x86 does at `0x30011B3D..30011B48`.
+```asm
+30011B9A  mov eax,1
+30011BB7  dec ecx             ; ECX originally contains mode nibble
+30011BB8  shl eax,cl         ; class bit = 1 << (mode - 1)
+30011BD5  mov [esp+28],eax   ; independently tracked class WORD
+30011BE8  mov al,bl          ; CRITICAL: overwrite EAX with mode
+30011BF4  dec eax            ; first low-bit read width = mode - 1
+30012020  sar word [esp+28],1
+30012025  dec ecx            ; next pass, mode - 2 bits
+3001202A  jne 30011BF0
+```
 
-The 4-bit mode is read first:
-- Mode 0 bypasses both passes and returns zero AC coefficients.
-- Mode 1 executes only the terminal signed-unit pass.
-- Modes 2–6 execute `mode-1` first-stage passes followed by
-  the signed-unit pass. The source initializes the high class bit
-  as `1 << (mode-1)` and the first EAX bit count as that value
-  minus one; EAX decrements each iteration while the 16-bit
-  magnitude-class WORD shifts right one bit.
+The earlier port mistakenly used `(1 << (mode-1))-1` as the low-bit
+read width. That made modes 7–15 look impossible because it conflated
+the *class magnitude* with the *number of bits read*.
 
-For example, mode 4 uses magnitude read widths **7, 6, 5** and
-high-class bits **8, 4, 2**, followed by the +/-1 pass.
-The earlier C++ implementation's assumption that the read width
-had to be below the class-bit position was wrong and is now
-corrected.
+`bink32_ac_outer_levels.cpp` has now corrected the bit count and
+supports the **entire encoded mode nibble range 0–15**, always
+transactionally. A zero-mode header skips all AC work; mode 1 invokes
+the final signed-unit pass only. For every mode 2–15, there are
+exactly `mode-1` magnitude passes, with class bits beginning at
+`1 << (mode-1)` and read widths `mode-1, mode-2, ..., 1`,
+then one signed-unit pass. The maximum read width is 14 bits,
+so neither 32-bit x86 shift masking nor >31-bit bitreader widths
+are needed.
 
-Modes 7–15 are deliberately rejected without input changes:
-the 2002 decoder uses 32-bit register shifts whose hardware
-shift-count modulo-32 behavior requires separate analysis,
-and silently generalizing it would invent unsupported
-bit consumption. All stages use transactional local copies.
+The tests now cover all sixteen modes. Mode 4 exercises a nonzero
+coefficient with high class bit 8 and **3** low bits; mode 15
+executes 14 magnitude passes and writes a nonzero negative
+signed-16 coefficient using class bit 16384 and **14** low bits.
+These fixtures additionally verify exact bit cursor positions and
+transactional rejection of truncated streams.
 
-New test cases include every supported mode, nonzero AC coefficient
-output, the original six-command list under repeated passes,
-malformed input, and an explicit test connecting the first-stage
-command pass, final sign pass, exact original quant table selector
-and the inverse transform to produce a 16x16 output block from
-**controlled synthetic compressed bits**.
-
-This is an important step toward a complete `0x30011B10`
-translation, but upstream DC decoding, full original video
-macroblock scheduling, modes 7–15, video output parity, YUV
-plane assembly and audio all remain incomplete. A complete
-retail movie frame has **not** been certified.
+This closes the mode-range gap in the *isolated coefficient scheduler*,
+not in Bink frame playback. A full retail video frame is still not
+certified: DC extraction, macroblock mode traversal, reference-frame
+and plane assembly, and original runtime bit-position parity remain.
 
 ## Next implementation order
 
