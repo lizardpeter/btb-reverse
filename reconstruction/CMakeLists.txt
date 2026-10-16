@@ -942,6 +942,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_dynamic_huffman.cpp
     src/bink32_entropy_commands.cpp
     src/bink32_signed_coefficients.cpp
+    src/bink32_pixel_reconstruction.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1704,6 +1705,13 @@ add_executable(btb_bink32_signed_coefficients_tests tests/bink32_signed_coeffici
 target_link_libraries(btb_bink32_signed_coefficients_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_signed_coefficients_tests PRIVATE)
 add_test(NAME bink32_original_signed_coefficients COMMAND btb_bink32_signed_coefficients_tests)
+# Source-derived output pixels: Bink 2002 0x30012940 residual + reference
+# frame, with 8x8 strides and true mod-256 arithmetic.
+add_executable(btb_bink32_pixel_reconstruction_tests tests/bink32_pixel_reconstruction_test.cpp)
+target_link_libraries(btb_bink32_pixel_reconstruction_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_pixel_reconstruction_tests PRIVATE)
+add_test(NAME bink32_original_pixel_residual COMMAND btb_bink32_pixel_reconstruction_tests)
+
 
 
 
