@@ -49,7 +49,8 @@ struct RetailFollowerApproachStep {
 [[nodiscard]] inline std::optional<RetailFollowerApproachStep>
 original_herding_follower_approach(
     const RetailEntityRecord32& original,
-    Vec2i tracked_point) noexcept {
+    Vec2i tracked_point,
+    Vec2i original_actor_anchor) noexcept {
 
     if (!is_herd_animal(original.entity_type()) ||
         !std::isfinite(original.x_float) ||
@@ -59,8 +60,10 @@ original_herding_follower_approach(
         return std::nullopt;
     }
 
-    const auto dx=static_cast<std::int64_t>(original.x)-tracked_point.x;
-    const auto dy=static_cast<std::int64_t>(original.y)-tracked_point.y;
+    const auto dx=static_cast<std::int64_t>(
+        original_actor_anchor.x)-tracked_point.x;
+    const auto dy=static_cast<std::int64_t>(
+        original_actor_anchor.y)-tracked_point.y;
 
     // Original 0x415D30 calculates FSQRT from integer deltas; for
     // practical retail map coordinates d^2 < 900 is equivalent to
@@ -78,7 +81,8 @@ original_herding_follower_approach(
     }
 
     const auto heading=original_herding_integer_heading(
-        original.x,original.y,tracked_point.x,tracked_point.y);
+        original_actor_anchor.x,original_actor_anchor.y,
+        tracked_point.x,tracked_point.y);
     if (!heading) return std::nullopt;
 
     const auto movement=original_herding_steering_step(
@@ -122,6 +126,17 @@ original_herding_follower_approach(
     return RetailFollowerApproachStep{
         updated,false,false,0,advanced
     };
+}
+
+// Retain the original historical source-fixture overload for callers
+// supplying a record already expressed in actor-space. Real native
+// gameplay MUST supply its signed half-sprite anchor explicitly.
+[[nodiscard]] inline std::optional<RetailFollowerApproachStep>
+original_herding_follower_approach(
+    const RetailEntityRecord32& original,
+    Vec2i tracked_point) noexcept {
+    return original_herding_follower_approach(
+        original,tracked_point,Vec2i{original.x,original.y});
 }
 
 // The 0x417309 arrival path consumes one rand() AFTER its strict

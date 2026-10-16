@@ -53,6 +53,8 @@ public:
     bool emit_navigation_probe{};
     bool contradict_navigation_probe{};
     bool emit_steering_probe{};
+    bool emit_tracked_approach_probe{};
+    bool contradict_tracked_approach_probe{};
     bool contradict_steering_probe{};
     bool contradict_heading_probe{};
     bool emit_recovery_probe{};
@@ -103,6 +105,23 @@ public:
         }
         frame.events=std::exchange(
             scheduled,std::vector<HerdingObservedEvent>{});
+        if(emit_tracked_approach_probe) {
+            const auto prior=current[1];
+            const auto target=
+                h::original_herding_species_registration_point(
+                    prior.entity_type());
+            const auto anchor=
+                h::original_herding_animal_tracking_anchor(prior);
+            assert(target && anchor);
+            const auto prediction=h::original_herding_follower_approach(
+                prior,*target,*anchor);
+            assert(prediction && !prediction->reached_tracked_point);
+            frame.motion_records[1]=prediction->updated;
+            frame.tracked_approach_evidence.push_back({
+                1,prior,*target,*anchor,false});
+            if(contradict_tracked_approach_probe)
+                frame.motion_records[1].x_float+=1.f;
+        }
         if (emit_steering_probe) {
             const auto original=current[1];
             const h::Vec2i original_target{
@@ -274,6 +293,25 @@ int main() {
     assert(sounds.size()==2);
     assert(sounds[0].sound_id==584);
     assert(sounds[1].sound_id==589);
+
+    // A source-follower entering its tracked-target branch is
+    // independently checked for the exact registration-point
+    // (736,183), signed sprite anchor and source motion. A forged
+    // position must fail the transaction without modifying game state.
+    source->emit_tracked_approach_probe=true;
+    assert(simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    const auto tracked_x=scene.entities[1].x_float;
+    const auto tracked_speed=scene.entities[1].movement_speed;
+    assert(tracked_speed>0.0f);
+    source->contradict_tracked_approach_probe=true;
+    assert(!simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(error.find("tracked-target movement")!=std::string::npos);
+    assert(scene.entities[1].x_float==tracked_x);
+    assert(scene.entities[1].movement_speed==tracked_speed);
+    source->emit_tracked_approach_probe=false;
+    source->contradict_tracked_approach_probe=false;
 
     // Native dog/animal collision is not symmetric AABB overlap.
     // Even an externally asserted event must contain 0x4169A0 ordered

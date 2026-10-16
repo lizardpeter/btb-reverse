@@ -412,6 +412,80 @@ bool HerdingEventSimulation::advance(
             return false;
         }
     }
+    // Independent replay of the retail 0x41721E tracked-target branch.
+    // Its <30 arrival burns an original RNG call, removes only tracked
+    // membership, emits a distinct 0->1 event, and never advances the
+    // same animal's route state 10+N on this tick.
+    for(const auto& probe:observed.tracked_approach_evidence) {
+        if(probe.entity_index==0 ||
+           probe.entity_index>=candidate.entities().size()) {
+            error="tracked home approach source references invalid animal";
+            return false;
+        }
+        const auto& prior=candidate.entities()[probe.entity_index];
+        const auto target=
+            herding::original_herding_species_registration_point(
+                prior.entity_type());
+        const auto anchor=
+            herding::original_herding_animal_tracking_anchor(prior);
+        if(!target || !anchor ||
+           target->x!=probe.registered_point.x ||
+           target->y!=probe.registered_point.y ||
+           anchor->x!=probe.source_actor_anchor.x ||
+           anchor->y!=probe.source_actor_anchor.y ||
+           prior.entity_id!=probe.before.entity_id ||
+           prior.x!=probe.before.x || prior.y!=probe.before.y ||
+           prior.x_float!=probe.before.x_float ||
+           prior.y_float!=probe.before.y_float ||
+           prior.behavior_state!=0 ||
+           !candidate.followers().contains(
+                static_cast<int>(probe.entity_index))) {
+            error="tracked home original anchor, point or follower prestate invalid";
+            return false;
+        }
+        const auto source_step=herding::original_herding_follower_approach(
+            probe.before,*target,*anchor);
+        if(!source_step ||
+           source_step->reached_tracked_point!=probe.arrived) {
+            error="retail tracked 30-unit approach branch disagrees with source";
+            return false;
+        }
+        const auto& actual=observed.motion_records[probe.entity_index];
+        const bool has_arrival=std::any_of(
+            observed.events.begin(),observed.events.end(),
+            [&](const auto& event) {
+                return event.kind==HerdingObservedKind::TrackedTargetArrived &&
+                    event.entity_index==probe.entity_index;
+            });
+        if(has_arrival!=probe.arrived) {
+            error="tracked arrival event missing original <30 proof";
+            return false;
+        }
+        if(probe.arrived) {
+            if(actual.x!=prior.x || actual.y!=prior.y ||
+               actual.behavior_state!=0) {
+                error="tracked arrival must not move or allocate route same tick";
+                return false;
+            }
+        } else {
+            constexpr float kOriginalX87Tolerance=0.001f;
+            if(actual.x!=source_step->updated.x ||
+               actual.y!=source_step->updated.y ||
+               actual.direction!=source_step->updated.direction ||
+               actual.animation_frame!=source_step->updated.animation_frame ||
+               actual.animation_frame_countdown!=
+                   source_step->updated.animation_frame_countdown ||
+               actual.movement_active!=source_step->updated.movement_active ||
+               std::fabs(actual.x_float-
+                    source_step->updated.x_float)>kOriginalX87Tolerance ||
+               std::fabs(actual.y_float-
+                    source_step->updated.y_float)>kOriginalX87Tolerance ||
+               actual.movement_speed!=source_step->updated.movement_speed) {
+                error="native tracked-target movement differs from original 0x4172B0";
+                return false;
+            }
+        }
+    }
     // The source's 80-unit non-follower gate and default eight-vector
     // locomotion are checked before any state mutation is committed.
     // A close-range/edge-of-map candidate MUST NOT masquerade as

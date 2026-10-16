@@ -15,6 +15,10 @@ namespace btb::herding {
 // The source tests the SECOND array before the FIRST at
 // 0x41721E..0x417249. They must never be merged.
 //
+// The independent signed source counter 0x50B31C is ZERO after retail
+// initialization, then -1, -2, etc. as animals register. It is NOT
+// the undelivered animal count held at 0x510764.
+//
 // When an ordinary follower is within strictly 150 units of the
 // species point (0x50B2F4 + entity_type*8), 0x417290..0x4172AB
 // searches first vacant tracked slot. 0x417586 then records its
@@ -98,7 +102,13 @@ struct RetailTrackedTargetSlots {
         const FollowerList& ordinary_followers,
         int& remaining_to_register) noexcept {
 
-        if (entity_index<0 || remaining_to_register<=0) {
+        // Retail starts global 0x50B31C at ZERO and decrements it
+        // on EVERY successful tracked admission. Negative values are
+        // valid; never treat this as an unsigned population budget.
+        // Reject INT_MIN rather than invoke signed C++ overflow.
+        if (entity_index<0 ||
+            remaining_to_register==
+                std::numeric_limits<std::int32_t>::min()) {
             return {RetailTrackedAdmissionStatus::InvalidInput,-1,
                     remaining_to_register,false};
         }

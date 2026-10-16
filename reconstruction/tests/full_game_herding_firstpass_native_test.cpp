@@ -5,6 +5,8 @@
 #include "btb/herding_source_far_roam.hpp"
 #include "btb/herding_source_attraction.hpp"
 #include "btb/herding_source_temporary_target.hpp"
+#include "btb/herding_source_registration_point.hpp"
+#include "btb/herding_source_follower_approach.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -145,7 +147,66 @@ int main() {
         for(const auto& e:observation.events)
             assert(!(e.kind==fg::HerdingObservedKind::JoinFollower &&
                      e.entity_index==1)); // no repeated join/voice
+        // Simulate a follower physically reaching the genuine sheep
+        // registration area (not a new synthetic gameplay shortcut).
+        // The original two-list dispatcher admits it on one tick,
+        // steers on the NEXT tick, and then emits state 0->1 only
+        // after strictly <30 from point (736,183).
         animals=observation.motion_records;
+        animals[1].x=760;animals[1].y=210;
+        animals[1].x_float=760.f;animals[1].y_float=210.f;
+        const auto registered_point=
+            btb::herding::original_herding_species_registration_point(
+                btb::herding::EntityType::Sheep);
+        assert(registered_point && registered_point->x==736 &&
+               registered_point->y==183);
+        assert(native.advance(data,{}, {},animals,observation,error));
+        assert(observation.tracked_approach_evidence.empty());
+        animals=observation.motion_records;
+        const auto tracked_before=animals[1];
+        assert(native.advance(data,{}, {},animals,observation,error));
+        assert(observation.tracked_approach_evidence.size()==1);
+        assert(!observation.tracked_approach_evidence.front().arrived);
+        const auto expected_approach=
+            btb::herding::original_herding_follower_approach(
+                tracked_before,*registered_point,
+                *btb::herding::original_herding_animal_tracking_anchor(
+                    tracked_before));
+        assert(expected_approach);
+        assert(observation.motion_records[1].x_float==
+               expected_approach->updated.x_float);
+        animals=observation.motion_records;
+        // Place the actor at the actual source target, correcting for
+        // the signed original half-sprite X/Y anchor.
+        animals[1].x=736+(animals[1].source_right-
+            animals[1].source_left)/2;
+        animals[1].y=183-(animals[1].source_bottom-
+            animals[1].source_top)/2;
+        animals[1].x_float=static_cast<float>(animals[1].x);
+        animals[1].y_float=static_cast<float>(animals[1].y);
+        assert(native.advance(data,{}, {},animals,observation,error));
+        assert(observation.tracked_approach_evidence.size()==1);
+        assert(observation.tracked_approach_evidence.front().arrived);
+        bool arrived_once=false;
+        for(const auto& e:observation.events)
+            arrived_once |=
+                e.kind==fg::HerdingObservedKind::TrackedTargetArrived &&
+                e.entity_index==1;
+        assert(arrived_once);
+        animals=observation.motion_records;
+        // In the actual game the recovered event machine owns the
+        // state transition. Test its following-frame state-one route
+        // handoff without double-emitting tracked arrival.
+        animals[1].behavior_state=1;
+        assert(native.advance(data,{}, {},animals,observation,error));
+        bool entered_route=false;
+        for(const auto& e:observation.events)
+            entered_route |=
+                e.kind==fg::HerdingObservedKind::EnterHomeRoute &&
+                e.entity_index==1;
+        assert(entered_route);
+        animals=observation.motion_records;
+        animals[1].behavior_state=0; // other fixture checks food release
         animals[0].x=365;animals[0].y=354;
         animals[0].x_float=365.f;animals[0].y_float=354.f;
         assert(native.advance(data,{}, {},animals,observation,error));
