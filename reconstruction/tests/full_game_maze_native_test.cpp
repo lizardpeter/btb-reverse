@@ -88,8 +88,8 @@ END
     frame=game.advance({.elapsed_centiseconds=24500});
     assert(maze->remaining_seconds()<0);
     assert(frame.effects.audio.back().sound_id==0x56);
-    frame=game.advance({.elapsed_centiseconds=24600,
-                        .managed_sound_playing=true});
+    frame=game.advance({.managed_sound_playing=true,
+                        .elapsed_centiseconds=24600});
     assert(!frame.effects.save_and_unload);
     frame=game.advance({.elapsed_centiseconds=24700});
     assert(!frame.effects.save_and_unload);
