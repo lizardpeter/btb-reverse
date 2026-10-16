@@ -24,9 +24,12 @@ namespace btb::full_game {
 namespace {
 struct HerdingOriginalInitServices final :
     original_herding_init::IO {
-    explicit HerdingOriginalInitServices(const herding::Data& source)
-        :data(source) {}
+    explicit HerdingOriginalInitServices(
+        const herding::Data& source,
+        retail::OriginalRetailRandom& shared_rng)
+        :data(source),random(shared_rng) {}
     const herding::Data& data;
+    retail::OriginalRetailRandom& random;
     std::uint32_t handles{};
 
     herding::Data load_original_coordinate_data() override {
@@ -47,7 +50,7 @@ struct HerdingOriginalInitServices final :
     void key_bitmap(
         std::uint32_t,std::uint32_t,std::uint32_t) override {}
     std::uint32_t original_random32() override {
-        return static_cast<std::uint32_t>(std::rand());
+        return static_cast<std::uint32_t>(random.next_rand());
     }
     float original_angle_to_radians(
         std::int32_t facing) override {
@@ -93,7 +96,8 @@ bool NativePicklesMotionSource::initialize(
     try {
         original_herding_init::State native{};
         native.difficulty=difficulty;
-        HerdingOriginalInitServices io(data);
+        HerdingOriginalInitServices io(
+            data,shared_random_?*shared_random_:standalone_random_);
         original_herding_init::initialize_herding(native,io);
         if(!native.initialized||native.entities.empty()||
            io.handles!=18)
@@ -180,7 +184,7 @@ bool NativePicklesMotionSource::advance(
             event.kind=HerdingObservedKind::PickUpFood;
             event.food=food;
             event.retail_trigger_confirmed=true;
-            event.random_mod_2=std::rand()%2;
+            event.random_mod_2=retail_next_random()%2;
             // Original food changes release ALL existing ordinary
             // followers in first-vacant slot order. After the voice
             // selection RNG, retail consumes two rand()%400 values
@@ -189,7 +193,7 @@ bool NativePicklesMotionSource::advance(
             event.follower_release_random.resize(source.size());
             for(const auto index:follower_indices_) {
                 event.follower_release_random[index]={
-                    std::rand()%400,std::rand()%400};
+                    retail_next_random()%400,retail_next_random()%400};
             }
             observed.events.push_back(std::move(event));
             follower_indices_.clear();
@@ -336,7 +340,7 @@ bool NativePicklesMotionSource::advance(
                         return false;
                     }
                     // Arrival consumes one discarded original rand.
-                    static_cast<void>(std::rand());
+                    static_cast<void>(retail_next_random());
                     HerdingObservedEvent arrival{};
                     arrival.kind=HerdingObservedKind::TrackedTargetArrived;
                     arrival.entity_index=i;
@@ -397,22 +401,22 @@ bool NativePicklesMotionSource::advance(
                     event.retail_rect_contact=HerdingCollisionEvidence{
                         herding::original_herding_entity_rect(before),
                         herding::original_herding_entity_rect(dog)};
-                    event.random_mod_400=std::rand()%400;
+                    event.random_mod_400=retail_next_random()%400;
 
                     // Source 0x417A43..0x417AF7: the x86 branch
                     // first tests parity, conditionally makes another
                     // parity call, then chooses the final sound. Do
                     // NOT collapse this to one rand()%N: the shared
                     // original random stream must consume each draw.
-                    if((std::rand()%2)==0) {
-                        if((std::rand()%2)==0)
+                    if((retail_next_random()%2)==0) {
+                        if((retail_next_random()%2)==0)
                             event.source_verified_sound_id=
-                                0x250+(std::rand()%2);
+                                0x250+(retail_next_random()%2);
                         else
                             event.source_verified_sound_id=0x264;
                     } else {
                         event.source_verified_sound_id=
-                            0x266+(std::rand()%2);
+                            0x266+(retail_next_random()%2);
                     }
                     observed.events.push_back(std::move(event));
                     follower_indices_.erase(
@@ -444,7 +448,7 @@ bool NativePicklesMotionSource::advance(
                 joined.kind=HerdingObservedKind::JoinFollower;
                 joined.entity_index=i;
                 joined.retail_trigger_confirmed=true;
-                joined.random_mod_2=std::rand()%2;
+                joined.random_mod_2=retail_next_random()%2;
                 observed.events.push_back(std::move(joined));
                 follower_indices_.push_back(i);
                 // The follower's close-range physics will be brought
