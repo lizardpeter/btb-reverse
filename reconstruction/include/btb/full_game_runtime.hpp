@@ -209,6 +209,20 @@ struct ActivityFrameOutput {
     std::optional<std::string> fatal_error{};
 };
 
+// Native service bridge for the actual retail 0x0042E110 five-sign selector.
+// The service records drawing/audio through the same source-game effects
+// used by every minigame; it does not execute DirectDraw from the GameRoot.
+class NativeProfileScreenDriver : public profiles::ProfileScreenServices {
+public:
+    [[nodiscard]] virtual bool begin_frame(
+        const ActivityFrameInput&,ActivityFrameOutput&,std::string&) = 0;
+    [[nodiscard]] virtual bool end_frame(std::string&) = 0;
+    [[nodiscard]] virtual std::span<const Rect>
+        blue_font_rectangles() const noexcept = 0;
+    [[nodiscard]] virtual std::span<const Rect>
+        badge_rectangles() const noexcept = 0;
+};
+
 // Each activity translates its own original native effects into shared
 // commands. The root must not execute an activity without a registered driver.
 class FrontEndDriver {
@@ -298,6 +312,8 @@ public:
 
     void install(ActivityId id, std::unique_ptr<ActivityDriver> driver);
     void install_activity_select(std::unique_ptr<FrontEndDriver> driver);
+    void install_profile_screen(
+        std::unique_ptr<NativeProfileScreenDriver> driver);
     [[nodiscard]] bool install_generic_front_end_pair(
         game_flow::State setup_state,
         std::unique_ptr<FrontEndDriver> driver);
@@ -341,6 +357,8 @@ private:
         GameFrame& result) noexcept;
     std::array<std::unique_ptr<ActivityDriver>, kActivityCount> drivers_{};
     std::unique_ptr<FrontEndDriver> activity_select_driver_{};
+    std::unique_ptr<NativeProfileScreenDriver> profile_screen_driver_{};
+    profiles::ProfileScreenState profile_screen_state_{};
     std::array<std::unique_ptr<FrontEndDriver>,game_flow::kStateCount>
         generic_front_end_drivers_{};
     std::array<bool,game_flow::kStateCount>
