@@ -1400,6 +1400,7 @@ if(WIN32)
         src/win32_native_bitmap_registry.cpp
         src/win32_original_directsound.cpp
         src/win32_original_bink_exports.cpp
+        src/win32_retail_bink_provider.cpp
         src/win32_original_game_device.cpp
         src/win32_original_platform_link.cpp
         src/win32_recompiled_host.cpp
