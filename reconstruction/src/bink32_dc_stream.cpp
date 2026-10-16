@@ -120,4 +120,57 @@ std::optional<OriginalBinkDcPlane> decode_original_bink_dc_delta_plane(
     source=bits;
     return result;
 }
+std::optional<OriginalBinkDcPlane> decode_original_bink_dc_context_packet(
+    LsbBitReader& source,unsigned count_width,unsigned value_width,
+    bool signed_values,std::size_t maximum_output_words) {
+    // 30010C07 reads an output sample count using context +0x28.
+    // 30010C74 handles count==0 immediately.
+    // 30010C91..30010D6C reads the first sample with context +0x08
+    // and optional sign (context +0x0C), then 30010D74 stores
+    // its first WORD. 30010D94 runs delta groups for count-1.
+    constexpr std::size_t kMaximumWords=1U<<20;
+    if(!count_width || count_width>24 || !value_width ||
+       value_width>16 || !maximum_output_words ||
+       maximum_output_words>kMaximumWords)
+        return std::nullopt;
+    auto bits=source;
+    const auto begin=bits.bit_position();
+    const auto encoded_count=bits.read(count_width);
+    if(!encoded_count || *encoded_count>maximum_output_words)
+        return std::nullopt;
+    const auto count=static_cast<std::size_t>(*encoded_count);
+    OriginalBinkDcPlane result{};
+    if(count==0) {
+        result.consumed_bits=bits.bit_position()-begin;
+        source=bits;
+        return result;
+    }
+    const auto first_magnitude_bits=value_width-(signed_values?1U:0U);
+    const auto first_magnitude=bits.read(first_magnitude_bits);
+    if(!first_magnitude)return std::nullopt;
+    std::int32_t initial=static_cast<std::int32_t>(*first_magnitude);
+    if(signed_values && initial!=0) {
+        const auto sign=bits.read(1);
+        if(!sign)return std::nullopt;
+        if(*sign)initial=-initial;
+    }
+    const auto first_word=static_cast<std::uint16_t>(initial);
+    const auto first=std::bit_cast<std::int16_t>(first_word);
+    result.signed_words_le.reserve(count*2);
+    result.signed_words_le.push_back(static_cast<std::uint8_t>(first_word));
+    result.signed_words_le.push_back(static_cast<std::uint8_t>(first_word>>8));
+    if(count>1) {
+        const auto tail=decode_original_bink_dc_delta_plane(
+            bits,first,count-1);
+        if(!tail)return std::nullopt;
+        result.signed_words_le.insert(result.signed_words_le.end(),
+            tail->signed_words_le.begin(),tail->signed_words_le.end());
+        result.final_sample=tail->final_sample;
+    } else {
+        result.final_sample=first;
+    }
+    result.consumed_bits=bits.bit_position()-begin;
+    source=bits;
+    return result;
+}
 } // namespace btb::bink32_recovered
