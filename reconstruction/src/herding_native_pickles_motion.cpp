@@ -5,6 +5,8 @@
 #include <cmath>
 #include <cstdlib>
 #include <exception>
+#include <stdexcept>
+#include <string>
 #include <utility>
 
 namespace btb::full_game {
