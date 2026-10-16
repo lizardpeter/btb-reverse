@@ -595,6 +595,89 @@ bool HerdingEventSimulation::advance(
             }
         }
     }
+    // Independently replay EVERY real ordinary follower formation
+    // step before importing movement and Scruffty distraction events.
+    // Original 0x510770 starts at zero for each activity update, so
+    // the reported formation order itself is checked, not trusted.
+    int expected_following_ordinal=0;
+    for(const auto& probe:observed.ordinary_follower_evidence) {
+        const bool was_following=candidate.followers().contains(
+            static_cast<int>(probe.entity_index));
+        const bool joined_on_this_frame=std::any_of(
+            observed.events.begin(),observed.events.end(),
+            [&](const auto& event) {
+                return event.kind==HerdingObservedKind::JoinFollower &&
+                    event.entity_index==probe.entity_index &&
+                    event.retail_trigger_confirmed;
+            });
+        if(probe.entity_index==0 ||
+           probe.entity_index>=candidate.entities().size() ||
+           observed.motion_records.empty() ||
+           probe.formation_ordinal!=expected_following_ordinal++ ||
+           (!was_following && !joined_on_this_frame)) {
+            error="original ordinary follower membership/formation slot invalid";
+            return false;
+        }
+        const auto& original=candidate.entities()[probe.entity_index];
+        // A source target timeout from 1 -> 0 is handled before
+        // ordinary dispatch on that same frame. There is no stale
+        // target steering: allow exactly that pre-dispatch decrement.
+        const bool expired_this_frame=
+            original.temporary_target_timer==1 &&
+            probe.before.temporary_target_timer==0;
+        if(original.entity_id!=probe.before.entity_id ||
+           original.type!=probe.before.type ||
+           original.behavior_state!=0 ||
+           original.x!=probe.before.x ||
+           original.y!=probe.before.y ||
+           original.x_float!=probe.before.x_float ||
+           original.y_float!=probe.before.y_float ||
+           original.direction!=probe.before.direction ||
+           original.movement_speed!=probe.before.movement_speed ||
+           original.animation_frame!=probe.before.animation_frame ||
+           original.animation_frame_countdown!=
+                probe.before.animation_frame_countdown ||
+           (!expired_this_frame &&
+            original.temporary_target_timer!=
+                probe.before.temporary_target_timer)) {
+            error="ordinary follower frame prior state contradicted by source";
+            return false;
+        }
+        const auto expected=
+            herding::original_herding_ordinary_follower_step(
+                probe.before,observed.motion_records.front(),
+                probe.formation_ordinal);
+        if(!expected ||
+           expected->source_formation_target.x!=
+               probe.formation_target.x ||
+           expected->source_formation_target.y!=
+               probe.formation_target.y ||
+           expected->holds_formation_position!=probe.held_position) {
+            error="native ordinary follower orbit and source spacing invalid";
+            return false;
+        }
+        const auto& actual=observed.motion_records[probe.entity_index];
+        constexpr float kX87ApproximationTolerance=0.001f;
+        if(actual.x!=expected->moved.x ||
+           actual.y!=expected->moved.y ||
+           actual.direction!=expected->moved.direction ||
+           actual.movement_active!=1 ||
+           actual.animation_frame!=expected->moved.animation_frame ||
+           actual.animation_frame_countdown!=
+               expected->moved.animation_frame_countdown ||
+           actual.behavior_state!=0 ||
+           std::fabs(actual.x_float-expected->moved.x_float)>
+               kX87ApproximationTolerance ||
+           std::fabs(actual.y_float-expected->moved.y_float)>
+               kX87ApproximationTolerance ||
+           std::fabs(actual.movement_speed-
+               expected->moved.movement_speed)>
+               kX87ApproximationTolerance) {
+            error="native animal ordinary formation differs from retail source";
+            return false;
+        }
+    }
+
     // The source's 80-unit non-follower gate and default eight-vector
     // locomotion are checked before any state mutation is committed.
     // A close-range/edge-of-map candidate MUST NOT masquerade as

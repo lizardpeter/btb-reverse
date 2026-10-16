@@ -10,6 +10,7 @@
 #include "btb/herding_source_home_motion.hpp"
 #include "btb/herding_source_delivered_animation.hpp"
 #include "btb/herding_retail_rect_contact.hpp"
+#include "btb/herding_source_ordinary_following.hpp"
 
 #include <algorithm>
 #include <array>
@@ -224,6 +225,9 @@ bool NativePicklesMotionSource::advance(
     const auto source_far_animal_roam=[&]() -> bool {
         const auto& hero=observed.motion_records.front();
         const auto nav=data.retail_transformed_group0();
+        // Original UpdateHerdingActivity 0x00418FA2 resets global
+        // 0x00510770 on EACH frame, not when the minigame starts.
+        int formation_ordinal=0;
         for(std::size_t i=1;i<observed.motion_records.size();++i) {
             auto before=observed.motion_records[i];
             if(!herding::is_herd_animal(before.entity_type()))
@@ -354,7 +358,7 @@ bool NativePicklesMotionSource::advance(
 
             const auto existing=std::find(
                 follower_indices_.begin(),follower_indices_.end(),i);
-            const bool following=existing!=follower_indices_.end();
+            bool following=existing!=follower_indices_.end();
 
             if(following) {
                 herding::FollowerList ordinary{};
@@ -380,6 +384,48 @@ bool NativePicklesMotionSource::advance(
                     error="source registered animal to invalid tracked list";
                     return false;
                 }
+            }
+            const auto contact=herding::original_herding_food_attraction_contact(
+                before,hero,selected_food_,following);
+            if(!contact) {
+                error="invalid original herd-animal 80px attraction probe";
+                return false;
+            }
+            if(*contact) {
+                if(follower_indices_.size()>=20) {
+                    error="original ordinary follower table is full";
+                    return false;
+                }
+                HerdingObservedEvent joined{};
+                joined.kind=HerdingObservedKind::JoinFollower;
+                joined.entity_index=i;
+                joined.retail_trigger_confirmed=true;
+                joined.random_mod_2=retail_next_random()%2;
+                observed.events.push_back(std::move(joined));
+                follower_indices_.push_back(i);
+                // Original joins and starts formation on the same
+                // frame, before the collision pass at 0x4179BF.
+                following=true;
+            }
+
+            if(following) {
+                // This is the original 0x417603..0x417994 circular
+                // formation, NOT arbitrary chase-player steering.
+                // It advances real float and pixel positions before
+                // the original post-movement Scruffty collision.
+                const auto step=
+                    herding::original_herding_ordinary_follower_step(
+                        before,hero,formation_ordinal);
+                if(!step) {
+                    error="original ordinary follower formation step invalid";
+                    return false;
+                }
+                observed.ordinary_follower_evidence.push_back({
+                    i,before,step->source_formation_target,
+                    formation_ordinal,step->holds_formation_position});
+                observed.motion_records[i]=step->moved;
+                before=step->moved;
+                ++formation_ordinal;
             }
             // Original 0x4179BF..0x417B10 checks animal-FIRST,
             // Scruffty-SECOND corners. Overlap alone is insufficient:
@@ -433,29 +479,8 @@ bool NativePicklesMotionSource::advance(
                    follower_indices_.end())
                     continue;
             }
-            const auto contact=herding::original_herding_food_attraction_contact(
-                before,hero,selected_food_,following);
-            if(!contact) {
-                error="invalid original herd-animal 80px attraction probe";
-                return false;
-            }
-            if(*contact) {
-                if(follower_indices_.size()>=20) {
-                    error="original ordinary follower table is full";
-                    return false;
-                }
-                HerdingObservedEvent joined{};
-                joined.kind=HerdingObservedKind::JoinFollower;
-                joined.entity_index=i;
-                joined.retail_trigger_confirmed=true;
-                joined.random_mod_2=retail_next_random()%2;
-                observed.events.push_back(std::move(joined));
-                follower_indices_.push_back(i);
-                // The follower's close-range physics will be brought
-                // online separately; do not substitute default drift.
-                continue;
-            }
             if(following)continue;
+
             const auto step=herding::original_far_untracked_animal_roam_step(
                 before,hero,nav);
             switch(step.coverage) {

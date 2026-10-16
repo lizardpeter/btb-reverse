@@ -11,6 +11,7 @@
 #include "btb/herding_source_delivered_animation.hpp"
 #include "btb/herding_retail_rect_contact.hpp"
 #include "btb/retail_crt_random.hpp"
+#include "btb/herding_source_ordinary_following.hpp"
 
 #include <algorithm>
 #include <cstdio>
@@ -111,6 +112,56 @@ int main() {
             btb::herding::RetailFarAnimalRoamCoverage::AdvancedWithinPolygon);
         assert(far.animal.x_float>sheep.x_float);
     }
+    // Recovered x86 0x417603 follower-slot geometry and source
+    // speed response: slot 0 holds at 15 source units; beyond that
+    // it steers into Pickles' own facing-dependent orbit.
+    {
+        btb::herding::RetailEntityRecord32 hero{};
+        hero.type=static_cast<int>(btb::herding::EntityType::FarmerPickles);
+        hero.x=500;hero.y=500;
+        hero.source_bottom=100;
+        hero.direction=2;
+        btb::herding::RetailEntityRecord32 animal{};
+        animal.type=static_cast<int>(btb::herding::EntityType::Sheep);
+        animal.source_right=100;
+        animal.source_bottom=80;
+        animal.x=525;animal.y=520;
+        animal.x_float=525.f;animal.y_float=520.f;
+        animal.movement_speed=0.5f;
+        animal.animation_frame_countdown=100;
+        const auto held=
+            btb::herding::original_herding_ordinary_follower_step(
+                animal,hero,0);
+        assert(held && held->holds_formation_position);
+        assert(held->moved.x==525 && held->moved.y==520);
+        assert(held->moved.direction==2);
+        assert(held->moved.movement_speed<animal.movement_speed);
+        assert(held->moved.movement_active==1);
+        assert(held->source_formation_ordinal==0);
+
+        animal.x=630;animal.y=520;
+        animal.x_float=630.f;animal.y_float=520.f;
+        animal.movement_speed=0.f;
+        const auto following=
+            btb::herding::original_herding_ordinary_follower_step(
+                animal,hero,0);
+        assert(following && !following->holds_formation_position);
+        assert(following->source_formation_target.x==445);
+        // The retail float radian constant is slightly larger than
+        // mathematical pi/180. At 270 degrees this moves target Y
+        // a fraction below 560, and original FTOL truncates to 559.
+        assert(following->source_formation_target.y==559);
+        assert(following->moved.movement_speed>0.f);
+        assert(following->moved.x_float<animal.x_float);
+        // The formation slot applies two different spacing formulas:
+        // orbit radius=slot*25+15 and speed gap=slot*50+15.
+        const auto second=
+            btb::herding::original_herding_ordinary_follower_step(
+                animal,hero,1);
+        assert(second && !second->holds_formation_position);
+        assert(second->source_formation_target.x==420);
+    }
+
     // This native source adapter test places the retail Pickles
     // character first at a genuine Sheep food bag and then in the
     // exact original <80 attraction radius of spawned sheep #1.
@@ -167,8 +218,25 @@ int main() {
                 e.kind==fg::HerdingObservedKind::JoinFollower &&
                 e.entity_index==1;
         assert(joined_first_sheep);
+        // Original 0x4175C5 join falls THROUGH to 0x417603:
+        // the newly admitted sheep moves in formation immediately,
+        // not with a fabricated one-frame delay.
+        assert(std::any_of(
+            observation.ordinary_follower_evidence.begin(),
+            observation.ordinary_follower_evidence.end(),
+            [](const auto& proof){ return proof.entity_index==1; }));
+        assert(observation.motion_records[1].movement_active==1);
         animals=observation.motion_records;
+        const auto original_follow_pos=animals[1].x_float;
         assert(native.advance(data,{}, {},animals,observation,error));
+        const auto proof=std::find_if(
+            observation.ordinary_follower_evidence.begin(),
+            observation.ordinary_follower_evidence.end(),
+            [](const auto& step){return step.entity_index==1;});
+        assert(proof!=observation.ordinary_follower_evidence.end());
+        assert(observation.motion_records[1].movement_active==1);
+        assert(observation.motion_records[1].movement_speed>0.f);
+        assert(observation.motion_records[1].x_float!=original_follow_pos);
         for(const auto& e:observation.events)
             assert(!(e.kind==fg::HerdingObservedKind::JoinFollower &&
                      e.entity_index==1)); // no repeated join/voice

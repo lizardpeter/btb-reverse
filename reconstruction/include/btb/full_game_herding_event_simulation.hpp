@@ -14,6 +14,7 @@
 #include "btb/herding_source_registration_point.hpp"
 #include "btb/herding_source_home_motion.hpp"
 #include "btb/herding_source_delivered_animation.hpp"
+#include "btb/herding_source_ordinary_following.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -104,6 +105,17 @@ struct HerdingFarRoamEvidence {
     herding::RetailEntityRecord32 before{};
 };
 
+// Full ordinary-follower formation branch from 0x417603..0x417994.
+// The native entity world motion is independently replayed using
+// Pickles' post-navigation pose and source per-frame follower ordinal.
+struct HerdingOrdinaryFollowerEvidence {
+    std::size_t entity_index{};
+    herding::RetailEntityRecord32 before{};
+    herding::Vec2i formation_target{};
+    int formation_ordinal{};
+    bool held_position{};
+};
+
 // On the original tracked-target list, a follower runs the source
 // <30 registration-point approach. The state-one arrival is emitted
 // as an event after movement import, never forged as a source-state
@@ -159,6 +171,7 @@ struct HerdingObservedFrame {
     std::vector<HerdingSteeringEvidence> steering_evidence{};
     std::vector<HerdingRoamingRecoveryEvidence> recovery_evidence{};
     std::vector<HerdingFarRoamEvidence> far_roam_evidence{};
+    std::vector<HerdingOrdinaryFollowerEvidence> ordinary_follower_evidence{};
     std::vector<HerdingTrackedApproachEvidence> tracked_approach_evidence{};
     std::vector<HerdingHomeMotionEvidence> home_motion_evidence{};
     std::vector<HerdingDeliveredAnimationEvidence> delivered_animation_evidence{};
