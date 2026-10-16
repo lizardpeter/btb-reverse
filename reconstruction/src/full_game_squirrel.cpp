@@ -190,15 +190,20 @@ ActivityFrameOutput SquirrelDriver::draw() const {
         sprite(out,"allconveyor.bmp",xy.x,xy.y,
             as_rect(squirrel::run_piece_source_rect(choice.piece_id)));
     }
+    // This is the actual 8772x92 original Squirrel sprite sheet.
+    // Native assembly motion uses the recovered source x/y deltas
+    // (0x00514F94 and 0x00514F98). The idle/active frame is in the
+    // original 102px horizontal cell layout, not the 89px conveyor atlas.
+    if(const auto origin=squirrel::source_squirrel_start_position(
+          connectors_[static_cast<std::size_t>(level_)][0])) {
+        const int frame=animating_?assembly_.sprite_frame:0;
+        if(const auto rect=squirrel::source_squirrel_frame_rect(frame))
+            sprite(out,"squriel_1_86.bmp",
+                origin->x+assembly_.x,origin->y+assembly_.y,
+                Rect{rect->left,rect->top,rect->right,rect->bottom});
+    }
     if(animating_) {
-        // The retail squirrel/run animation is a 95-tick four-phase
-        // sequence, keyed from the actual selected connector IDs.
-        // Its dedicated squirrel sprite runtime still needs source
-        // frame-table closure, so only the authored run geometry is
-        // presented here, not a fabricated animal frame.
-        if(assembly_.sprite_mode>=0) {
-            sprite(out,"hook.bmp",squirrel::kLoftyArmSwingX,0);
-        }
+        sprite(out,"hook.bmp",squirrel::kLoftyArmSwingX,0);
     }
     for(const auto& border:squirrel::kFinalBorderDraws) {
         const auto* image=squirrel::surface_binding(border.surface);
