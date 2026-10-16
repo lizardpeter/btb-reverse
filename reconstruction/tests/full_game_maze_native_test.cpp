@@ -93,6 +93,14 @@ END
     assert(maze->player()->screen==1);
     assert(maze->player()->node==8);
     assert(maze->player()->x==247.0f&&maze->player()->y==267.0f);
+    assert(maze->npc());
+    assert(maze->npc()->phase==btb::maze::SpudNpcPhase::SpawnWait);
+    assert(maze->npc()->screen==1);
+    assert(maze->npc()->spawn_interval==3000);
+    assert(maze->npc()->spawn_wait==3000);
+    assert(maze->npc()->has_box_target_nodes);
+    assert(maze->npc()->package_target_nodes[1][0]==8);
+    assert(maze->npc()->package_target_nodes[1][1]==9);
     assert(maze->boxes().total==4);
     assert(maze->boxes().remaining==4);
     assert(maze->boxes().screens[0][0].node_id>=0);
