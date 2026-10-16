@@ -950,6 +950,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_ac_group4.cpp
     src/bink32_ac_command_pass.cpp
     src/bink32_ac_unit_pass.cpp
+    src/bink32_ac_outer_levels.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1760,6 +1761,13 @@ add_executable(btb_bink32_ac_unit_pass_tests tests/bink32_ac_unit_pass_test.cpp)
 target_link_libraries(btb_bink32_ac_unit_pass_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_ac_unit_pass_tests PRIVATE)
 add_test(NAME bink32_original_AC_unit_pass COMMAND btb_bink32_ac_unit_pass_tests)
+# Real Bink 0x30011B10 outer mode scheduler for source-supported
+# modes 0..6, including mutable control levels and final +/-1 pass.
+add_executable(btb_bink32_ac_outer_levels_tests tests/bink32_ac_outer_levels_test.cpp)
+target_link_libraries(btb_bink32_ac_outer_levels_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_ac_outer_levels_tests PRIVATE)
+add_test(NAME bink32_original_AC_outer_levels COMMAND btb_bink32_ac_outer_levels_tests)
+
 
 
 
