@@ -53,6 +53,10 @@ int main() {
         game.install(fg::ActivityId::Herding,std::move(driver));
         game.set_outer_state(State::HerdingInit);
         auto first=game.advance({});
+        if(first.kind!=fg::FrameKind::ActivityInitialized)
+            std::fprintf(stderr,"Pets Corner init: frame=%d error=%s state=%d\\n",
+                static_cast<int>(first.kind),first.error.c_str(),
+                game.globals().dispatcher.current_state);
         assert(first.kind==fg::FrameKind::ActivityInitialized);
         assert(game.globals().dispatcher.current_state==
                static_cast<int>(State::HerdingRun));
