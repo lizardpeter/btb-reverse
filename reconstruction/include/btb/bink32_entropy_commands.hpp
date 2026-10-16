@@ -3,6 +3,7 @@
 // portions of the native block data reader. Not a complete video decoder.
 // Original repeated-value opcode table is at VA 0x30047BDC.
 #include "btb/bink32_dynamic_huffman.hpp"
+#include "btb/bink32_dc_stream.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -156,5 +157,25 @@ read_bink_color_bundle(
     std::size_t plane_width,std::uint8_t previous_high_nibble=0,
     bool early_signed_color_format=false,
     std::size_t maximum_values=1U<<18);
+
+
+// Decode the FIRST bundle refill for all nine original picture-plane
+// sources in order, without inventing any block traversal or pixel data.
+// This gives the unresolved 0x3000E400 scheduler a bounded source-native
+// value pool, and exposes the precise next compressed bit position.
+struct BinkPictureFirstBundleSet {
+    BinkAlphaPictureEntropy prologue{};
+    BinkBlockTypeBundle types{}, scaled_subtypes{};
+    BinkColorBundle colors{};
+    BinkPatternBundle patterns{};
+    BinkSignedMotionBundle motion_x{},motion_y{};
+    OriginalBinkDcPlane intra_dc{},inter_dc{};
+    BinkRunBundle runs{};
+    std::size_t next_picture_bit_offset{};
+};
+[[nodiscard]] std::optional<BinkPictureFirstBundleSet>
+decode_first_bink_picture_bundle_set(
+    std::span<const std::uint8_t> video_packet,
+    std::size_t plane_width,std::size_t plane_height);
 
 } // namespace btb::bink32_recovered
