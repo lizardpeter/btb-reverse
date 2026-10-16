@@ -139,4 +139,13 @@ decode_original_bink_dc_context_raster16(
     const EntropyPlaneSetup& context,
     std::size_t width,std::size_t height);
 
+// Serial-stream harness: one contiguous LSB stream containing a DC
+// context followed by its block AC/quant records. This models a possible
+// source handoff order and consumes the same cursor throughout. Actual
+// packet boundaries/order still require 0x3000E400 retail confirmation.
+[[nodiscard]] std::optional<BinkDecodedRaster16>
+decode_original_bink_serial_context_raster16(
+    LsbBitReader& video_bits,const EntropyPlaneSetup& context,
+    std::size_t width,std::size_t height);
+
 } // namespace btb::bink32_recovered
