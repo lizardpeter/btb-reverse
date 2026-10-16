@@ -48,6 +48,40 @@ bool write_frame(std::ofstream& target,
     return true;
 }
 constexpr std::array<const char*,4> kPlaneNames{"Y","U","V","A"};
+
+std::string first_failed_sjpi_stage(
+    std::span<const std::uint8_t> video,
+    std::size_t w,std::size_t h,
+    const BinkNativeYuVaFrame* last) {
+    const auto outer=parse_alpha_picture_entropy_prologue(video);
+    if(!outer)return "alpha/picture header";
+    const auto prev=[&](std::size_t index)
+        -> std::span<const std::uint8_t> {
+        return last?std::span<const std::uint8_t>(
+            last->planes[index]):std::span<const std::uint8_t>{};
+    };
+    const auto alpha=decode_bink_picture_plane_at(
+        video,4,w,h,prev(3));
+    if(!alpha)return "alpha plane entropy/block decode";
+    if(alpha->next_plane_byte_offset!=outer->alpha_section_bytes)
+        return "alpha section length mismatch (decoded end="+
+            std::to_string(alpha->next_plane_byte_offset)+
+            ",declared end="+
+            std::to_string(outer->alpha_section_bytes)+")";
+    const auto y=decode_bink_picture_plane_at(
+        video,outer->picture.initial_byte_offset,w,h,prev(0));
+    if(!y)return "Y plane entropy/block decode";
+    const auto v=decode_bink_picture_plane_at(
+        video,y->next_plane_byte_offset,w/2,h/2,prev(2));
+    if(!v)return "V chroma plane entropy/block decode (start="+
+        std::to_string(y->next_plane_byte_offset)+")";
+    const auto u=decode_bink_picture_plane_at(
+        video,v->next_plane_byte_offset,w/2,h/2,prev(1));
+    if(!u)return "U chroma plane entropy/block decode (start="+
+        std::to_string(v->next_plane_byte_offset)+")";
+    return "post-plane validation (all 4 plane probes succeeded)";
+}
+
 } // namespace
 int main(int argc,char**argv) {
     if(argc<2) {usage();return 1;}
@@ -150,12 +184,15 @@ int main(int argc,char**argv) {
             encoded->video,w,h,previous?&*previous:nullptr);
         if(!frame) {
             std::cerr<<"Frame "<<number
-                     <<": native SJPi YUVA decode refused. "
-                     "Previous successfully decoded frames="
+                     <<": native SJPi YUVA decode refused at "
+                     <<first_failed_sjpi_stage(
+                           encoded->video,w,h,
+                           previous?&*previous:nullptr)
+                     <<". Previous successfully decoded frames="
                      <<decoded_count<<". No pixel parity is claimed.\n";
             return 2;
         }
-        if(output && !write_frame(output,*frame)) {
+        if(output.is_open() && !write_frame(output,*frame)) {
             std::cerr<<"Cannot write native frame "<<number<<"\n";
             return 1;
         }
