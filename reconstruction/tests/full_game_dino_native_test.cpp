@@ -6,7 +6,7 @@
 #include <cstdlib>
 #undef assert
 #define assert(expr) do {if(!(expr)){ \
-  std::fprintf(stderr,"native Dino assertion: %s (%s:%d)\\n",\
+  std::fprintf(stderr,"native Dino assertion: %s (%s:%d)\n",\
       #expr,__FILE__,__LINE__);std::abort();}} while(false)
 #include <filesystem>
 #include <fstream>
@@ -40,7 +40,7 @@ void retail_level(const fs::path& root,const char* species,
     const auto folder=root/"Data"/"SubGameDino"/"Dino"/species/difficulty;
     fs::create_directories(folder);
     std::ofstream(folder/"dino.txt")
-        << "1\\n100 100\\n10 10\\n80 300\\n-1 -1\\n0\\n";
+        << "1\n100 100\n10 10\n80 300\n-1 -1\n0\n";
     write_bitmap(folder/"Piece0.bmp");
     write_bitmap(folder/"background.bmp",640,480);
     touch(root/"Data"/"SubGameDino"/"Bob.bmp");
@@ -122,7 +122,7 @@ int main() {
                btb::progress::Slot::DinoRaptor);
         assert(frame.effects.shared_completion_code==1);
         assert(game.globals().shared_completion_code==1);
-        assert(draw_has(frame.effects,"data\\\\subgamedino\\\\vel.bmp"));
+        assert(draw_has(frame.effects,"data\\subgamedino\\vel.bmp"));
         assert(game.globals().player_progress[1].values[
             static_cast<std::size_t>(btb::progress::Slot::DinoRaptor)]==1);
 
