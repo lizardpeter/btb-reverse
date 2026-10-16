@@ -770,3 +770,50 @@ Next indispensable frontier: align the full `0x3000E400` bundle
 reader and block-mode scheduler with this picture entropy cursor,
 produce Y/U/V resolved commands, then compare a real retail
 frame's decoded pixels against a verified original decoder.
+
+
+## Retail block-type bundles and native skip-only luma planes (2026-10-16)
+
+Connected the corrected SJPi picture entropy start to the actual first
+compressed **block-type** bundle. The original
+`0x3000FC00` count-width context (`0x200` base, width in 8x8 blocks),
+combined with Huffman tree zero from the 23-tree prologue, feeds
+`read_bink_block_type_bundle`. The bundle parser now consumes a real
+bitstream count, supports zero-count termination, direct four-bit fills,
+Huffman literals and 4/8/12/32 repeats, and transactionally rejects
+malformed/truncated input. `decode_first_bink_picture_block_types`
+connects this directly to the alpha-bearing video packet.
+
+A more consequential constrained decode is
+`decode_bink_skip_only_picture_luma`. It reads **every**
+compressed block-type refill while walking all 8x8 rows, verifies that
+all selected types are skip, verifies that the remaining eight bundle
+types are empty in the first row, and performs the original 32-bit
+plane boundary alignment. Only on complete success does it copy a
+provided prior 8-bit luma frame into the result. It explicitly refuses
+unsupported non-skip blocks, nonempty auxiliary bundles, missing
+references, partial row refills, or malformed alignment. It does not
+synthesize pixels or make speculative interframe predictions.
+
+An independent read-only structural probe of the user's unmodified
+`designstartup.bik` located **25/227 complete skip-only luma planes**:
+frames 2–11, 83–85, and 216–227. For each, nine original
+compressed block-type bundles expand to 4,800 8x8 skip commands:
+`560 * 8 + 320`. The eight other bundle counts in the first row are
+zero. The original picture-plane byte cursor advances to byte
+offset **96** after 32-bit alignment. Both a normal bundle and
+skip-only luma full-plane regression have been added to the C++26
+test suite; the optional original-file tests can report decoded mode
+counts and supported full skip-only frames.
+
+**Critical limitations:** The provided previous luma image must already
+exist; the codec still cannot independently recover frame 1 or the
+moving scenes. This does not handle chroma/alpha pixels, colors,
+patterns, nontrivial motion, DCT, additional plane headers or audio,
+and cannot yet replace Bink playback. Independent Python inspection
+of the 25 candidate frames is structural corroboration, not a claim
+of original-DLL bit-by-bit pixel parity. Neither movie contents nor
+original proprietary binaries are committed to the repository.
+
+Source reference: FFmpeg libavcodec/bink.c, `read_block_types`,
+`read_bundle`, `bink_decode_plane` row-by-row bundle refill.
