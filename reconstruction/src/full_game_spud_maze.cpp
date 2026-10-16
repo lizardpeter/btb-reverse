@@ -168,6 +168,13 @@ bool SpudMazeDriver::initialize(int player,std::string& error) {
             throw std::runtime_error("invalid original Spud Maze timer");
         bob_=std::move(actor);
         data_=std::move(loaded);
+        pilchard_={};
+        pilchard_.spawn_wait=data_->spud_spawn_times[
+            static_cast<std::size_t>(difficulty_)];
+        hammer_={};
+        hammer_.hammer_held=true;
+        hammer_.current_screen=0;
+        hammer_.bob_direction=bob_.facing;
         player_=player;
         repairs_remaining_=damaged.repairs_remaining;
         total_repairs_=damaged.repairs_remaining;
@@ -223,6 +230,26 @@ ActivityFrameOutput SpudMazeDriver::draw() const {
         static_cast<int>(bob_.y)-41,
         Rect{frame*83,row*83,(frame+1)*83,(row+1)*83},true
     });
+    // Source Pilchard sheet is 6084x256: thirty-nine 156px animation
+    // columns with 128px direction bands (0x004227F0).
+    if(pilchard_.phase>=2 && pilchard_.screen==bob_.screen) {
+        const int col=std::clamp(pilchard_.animation_frame,0,38);
+        const int row=pilchard_.roaming_direction==3?1:0;
+        out.draws.push_back({
+            "Data\\SubGameSpudMaze\\pilchard.bmp",
+            static_cast<int>(pilchard_.x)-78,
+            static_cast<int>(pilchard_.y)-64,
+            Rect{col*156,row*128,(col+1)*156,(row+1)*128},true
+        });
+    }
+    if(!hammer_.hammer_held&&hammer_.hammer_dropped &&
+       hammer_.hammer.screen==bob_.screen) {
+        out.draws.push_back({
+            "Data\\SubGameSpudMaze\\hammer.bmp",
+            hammer_.hammer.x,hammer_.hammer.y-30,
+            std::nullopt,true
+        });
+    }
     // 0x004227F0 submits border after Bob and track repairs, then timer
     // and the original sequence of 20px hammer-icons.
     out.draws.push_back({
@@ -323,8 +350,29 @@ ActivityFrameOutput SpudMazeDriver::advance(
                 bob_.animation=9;
             }
         }
+        // Retail 0x00423F40 calls the Pilchard source phase machine
+        // after updating Bob and drawing the active scene. Maintain a
+        // single live collision state for hammer possession/cooldown.
+        const spud_maze::PilchardBob bob{
+            bob_.screen,bob_.facing,bob_.x,bob_.y,
+            repair_cycles_remaining_>0
+        };
+        const auto pilot=spud_maze::update_pilchard_native(
+            pilchard_,hammer_,*data_,difficulty_,bob,
+            []{return static_cast<std::uint32_t>(std::rand());});
+        for(const auto& effect:pilot.sound_and_hammer) {
+            if(effect.op==maze_spud_batch::Op::PlayManagedSound)
+                out.audio.push_back({
+                    AudioOperation::ManagedSoundId,{},
+                    effect.argument,effect.priority,effect.arbitration
+                });
+        }
+        if(pilot.hammer_dropped)
+            bob_.repair_tool_engaged=false;
+        if(spud_maze::pickup_dropped_hammer(hammer_,bob))
+            bob_.repair_tool_engaged=true;
     } catch(const std::exception& e) {
-        out.fatal_error=std::string("Spud Maze source Bob: ")+e.what();
+        out.fatal_error=std::string("Spud Maze source Bob/Pilchard: ")+e.what();
         return out;
     }
     auto frame=draw();
@@ -334,6 +382,8 @@ ActivityFrameOutput SpudMazeDriver::advance(
 
 bool SpudMazeDriver::unload(std::string& error) {
     bob_={};
+    pilchard_={};
+    hammer_={};
     data_.reset();
     player_=-1;
     repairs_remaining_=0;
