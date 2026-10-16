@@ -2,6 +2,7 @@
 
 #include "btb/full_game_herding_presentation.hpp"
 #include "btb/herding_data.hpp"
+#include "btb/retail_crt_random.hpp"
 
 #include <filesystem>
 #include <memory>
@@ -37,10 +38,12 @@ public:
     HerdingDriver(
         std::filesystem::path original_subgame1_directory,
         std::unique_ptr<HerdingSimulationProvider> simulation,
-        int default_difficulty = 0)
+        int default_difficulty = 0,
+        retail::OriginalRetailRandom* shared_original_random = nullptr)
         : directory_(std::move(original_subgame1_directory)),
           simulation_(std::move(simulation)),
-          difficulty_(default_difficulty) {}
+          difficulty_(default_difficulty),
+          shared_random_(shared_original_random) {}
 
     void configure_menu_state(
         const RetailMenuState& menu) noexcept override {
@@ -76,6 +79,11 @@ private:
     int completion_stage_{};
     bool initialized_{};
     bool startup_audio_emitted_{};
+    // Host-owned original MSVC CRT stream. Only the original terminal
+    // line dispatch consumes a draw, and only AFTER speech is idle
+    // and no undelivered animals remain. Null preserves deterministic
+    // explicit frame random_value in standalone source fixtures.
+    retail::OriginalRetailRandom* shared_random_{};
 };
 
 } // namespace btb::full_game
