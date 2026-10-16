@@ -55,6 +55,8 @@ public:
     bool emit_steering_probe{};
     bool emit_tracked_approach_probe{};
     bool contradict_tracked_approach_probe{};
+    bool emit_ordinary_follower_probe{};
+    bool contradict_ordinary_follower_probe{};
     bool contradict_steering_probe{};
     bool contradict_heading_probe{};
     bool emit_recovery_probe{};
@@ -105,6 +107,18 @@ public:
         }
         frame.events=std::exchange(
             scheduled,std::vector<HerdingObservedEvent>{});
+        if(emit_ordinary_follower_probe) {
+            const auto prior=current[1];
+            const auto planned=h::original_herding_ordinary_follower_step(
+                prior,current.front(),0);
+            assert(planned);
+            frame.motion_records[1]=planned->moved;
+            frame.ordinary_follower_evidence.push_back({
+                1,prior,planned->source_formation_target,0,
+                planned->holds_formation_position});
+            if(contradict_ordinary_follower_probe)
+                frame.motion_records[1].x_float+=1.f;
+        }
         if(emit_tracked_approach_probe) {
             const auto prior=current[1];
             const auto target=
@@ -312,6 +326,24 @@ int main() {
     assert(scene.entities[1].movement_speed==tracked_speed);
     source->emit_tracked_approach_probe=false;
     source->contradict_tracked_approach_probe=false;
+
+    // The native ordinary-following branch is independently replayed
+    // from the exact per-frame formation slot and retail Pickles pose.
+    // Forge one subpixel movement to certify transactional rejection.
+    source->emit_ordinary_follower_probe=true;
+    assert(simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    const auto orbit_x=scene.entities[1].x_float;
+    const auto orbit_speed=scene.entities[1].movement_speed;
+    assert(orbit_speed>tracked_speed);
+    source->contradict_ordinary_follower_probe=true;
+    assert(!simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(error.find("ordinary formation differs")!=std::string::npos);
+    assert(scene.entities[1].x_float==orbit_x);
+    assert(scene.entities[1].movement_speed==orbit_speed);
+    source->emit_ordinary_follower_probe=false;
+    source->contradict_ordinary_follower_probe=false;
 
     // Native dog/animal collision is not symmetric AABB overlap.
     // Even an externally asserted event must contain 0x4169A0 ordered
