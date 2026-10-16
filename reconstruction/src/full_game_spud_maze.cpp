@@ -307,7 +307,7 @@ ActivityFrameOutput SpudMazeDriver::advance(
                     bob_.hazard_lock=false;
                     bob_.animation=0;
                     repair_animation_frames_=0;
-        repair_cycles_remaining_=0;
+                    repair_cycles_remaining_=0;
                     if(repairs_remaining_<=0)
                         throw std::logic_error(
                             "retail Spud Maze repair counter underflow");
@@ -339,6 +339,7 @@ bool SpudMazeDriver::unload(std::string& error) {
     repairs_remaining_=0;
     total_repairs_=0;
     repair_animation_frames_=0;
+    repair_cycles_remaining_=0;
     spawned_pilchard_delay_=0;
     timer_origin_=-1;
     exit_phase_=0;
