@@ -4,6 +4,20 @@
 
 namespace btb::full_game {
 
+bool OriginalCompletionMovieCatalog::read(std::istream& in,std::string& error) {
+    std::array<std::string,8> next{};
+    for (auto& name:next) {
+        if (!(in>>name) || name=="NULL") {
+            error="completedmovie.txt requires eight original Bink paths";return false;
+        }
+    }
+    std::string extra;
+    if ((in>>extra) || in.bad()) {
+        error="completedmovie.txt has extra or unreadable records";return false;
+    }
+    files_=std::move(next);loaded_=true;error.clear();return true;
+}
+
 bool OriginalStartupMovieCatalog::read(
     std::istream& in, std::string& error) {
 

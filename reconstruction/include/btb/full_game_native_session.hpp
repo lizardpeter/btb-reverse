@@ -18,11 +18,12 @@ struct PhysicalFrameObservation {
     ManagedSoundObservation managed{};
     bool any_managed_voice_playing{};
     bool global_movie_finished{};
+    bool backing_track_playing{};
 };
 
 enum class PhysicalPresentationStage {
     ObserveDevice, GameAdvance, MovieResolve, MovieOpen,
-    MovieClose, AssetResolve, SubmitAudio, SubmitDraw, Present
+    MovieClose, AssetResolve, SubmitAudio, SubmitDraw, Present, Print
 };
 
 struct PhysicalPresentationError {
@@ -59,6 +60,10 @@ public:
         const std::vector<ResolvedDraw>& draws,
         std::string& error) = 0;
     [[nodiscard]] virtual bool present(std::string& error) = 0;
+    [[nodiscard]] virtual bool print_frame(
+        const std::filesystem::path&,std::string& error) {
+        error="original backbuffer printing provider unavailable";return false;
+    }
 };
 
 struct NativeSessionFrame {
@@ -82,11 +87,12 @@ public:
         NativeGameDevice& device,
         OriginalAssetResolver resolver,
         OriginalStartupMovieCatalog startups,
-        OriginalWalkthroughCatalog walkthroughs)
+        OriginalWalkthroughCatalog walkthroughs,
+        OriginalCompletionMovieCatalog completions={})
         : root_(root),device_(device),
           effects_(std::move(resolver)),
           startups_(std::move(startups)),
-          walkthroughs_(std::move(walkthroughs)) {}
+          walkthroughs_(std::move(walkthroughs)),completions_(std::move(completions)) {}
 
     [[nodiscard]] CatalogLoadResult load_sound_catalog(
         std::istream& original_list) {
@@ -122,6 +128,7 @@ private:
     GameEffectPipeline effects_;
     OriginalStartupMovieCatalog startups_{};
     OriginalWalkthroughCatalog walkthroughs_{};
+    OriginalCompletionMovieCatalog completions_{};
     bool walkthrough_open_{};
     bool failed_{};
     bool pending_present_{};

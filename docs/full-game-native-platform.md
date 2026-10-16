@@ -108,16 +108,14 @@ decode original global Bink movies into the common backbuffer and
 compose looping walkthroughs **after** the instruction BMP drawing.
 
 The original `binkw32.dll` and its real ABI are indispensable.
-`win32_original_bink_exports.hpp/.cpp` safely loads an explicit
-absolute path to that named DLL and checks twelve Bink exports, including
-legacy decorated `stdcall` names. That loader intentionally does not
-assume the layout of the opaque `BINK*` object or pretend that it
-has decoded any movie frames.
-
-The **actual Bink frame-copy/timing provider is still not written**.
-The original game uses an x86 Win32 DLL; native 64-bit code cannot
-load that same original binary in-process. Either an x86 bridge or a
-separately verified binary-compatible 64-bit decoder will be required.
+`Win32OriginalBinkMovie` now loads the installed DLL by absolute path,
+checks twelve exports (including decorated `stdcall` names), and decodes
+global and walkthrough frames into the DirectDraw7 presentation path. The
+walkthrough is a separate looping stream layered after the instruction
+screen. Its audio, timing, frame-copy ABI and pixel placement still need
+comparison against the retail executable. The DLL is x86, so the original
+movie provider only works in the Windows x86 build; x64 movie playback
+remains unavailable.
 
 ## Test and compilation status
 
@@ -135,17 +133,18 @@ This test uses a recording provider only for **source behavior**. It
 does not render pixels, call COM, decode Bink, or establish that Windows
 linking, live audio, GPU surfaces, or actual retail gameplay passes.
 
-**No full-game compile, link, Windows execution, render capture, or
-physical device regression was performed** under the user's instruction
-to defer compilation until the complete game source is ready.
-The Windows source files have deliberately not been added to the
-Dinosaur-only CMake preview. Do not count them as verified executable
-functionality.
+The current checkout builds in C++26 with GCC 14.2 on Linux and Clang
+22.1.8 targeting Windows x86. The Windows GUI executable and native
+DirectDraw/DirectSound/Bink provider link successfully. All 162 registered
+Linux CTests pass. The native Dinosaur driver also exercises all nine
+downloaded retail levels through pickup, rejected/correct drops, completion
+and the certificate request. These source traces do not certify Windows
+execution, pixels, audible output, or whole-game retail parity.
 
 ## Next native blockers
 
-1. Recover and connect the original Bink DLL ABI and
-   `OriginalBinkProvider` pixel-copy, looping, timing, and close rules.
+1. Verify the connected original Bink DLL ABI, pixel copy, looping, timing
+   and audio against the retail executable on Windows x86.
 2. Complete original menu overlay/depressed/hover frames and Help UI
    geometry and audio, not just full-background BMPs.
 3. Connect the eight other original activity driver implementations and
@@ -170,10 +169,11 @@ tests, the source has **not been compiled or executed**.
 
 ### Important release boundary
 
-These sources are staged, **not compiled or linked into the existing
-Dinosaur-only native preview target**. The exact original Bink runtime
-still requires the matching DLL (or verified codec) and real copied-frame
-surface adapter; the new export resolver is not that adapter.
+These sources are compiled and linked into the default native Windows
+host. The older Dinosaur GDI preview requires an explicit legacy flag.
+Five activities still lack complete registered adapters, the profile/sign
+workflow is not hosted, and Park Designer still needs its native editor
+service. The full game is not release complete.
 
 The present source bridge uses DirectSound8 COM buffers and GDI-backed
 uploads to DirectDraw7 source surfaces as a modern Win32 replacement

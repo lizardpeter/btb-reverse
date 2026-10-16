@@ -37,6 +37,8 @@ passed every gate: Linux C++26 native core and **148/148 CTests**,
 Python tools, Windows x86 native game/Win32 provider builds and tests,
 and Windows x64 native game/provider builds and regression.
 
-The compiled-source count is **595/615 (96.7%)**; **20** remain.
+The compiled-source milestone is **615/615 (100%)**. This counts the
+reconstructed source models and does not certify original-game behavioral
+parity or native x86 ABI linkage.
 Original executable differential checks added in this patch: **0**.
 Fully retail-verified functions: **0/615**.

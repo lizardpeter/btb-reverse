@@ -70,11 +70,15 @@ int main() {
 
     // The frontend is not silently bypassed into a minigame.
     game.set_outer_state(State::ActivitySelectSetup);
-    assert(game.advance({}).kind == FrameKind::FrontEndRequiresAdapter);
+    const auto no_select = game.advance({});
+    assert(no_select.kind == FrameKind::FrontEndRequiresAdapter);
+    assert(no_select.error.find("activity_select_setup") != std::string::npos);
 
     game.set_outer_state(State::BobsBandInit);
     auto no_band = game.advance({});
     assert(no_band.kind == FrameKind::ActivityRequiresAdapter);
+    assert(no_band.error.find("bobs_band") != std::string::npos);
+    assert(no_band.error.find("activity_init") != std::string::npos);
 
     auto driver = std::make_unique<ScriptedDino>();
     auto* original = driver.get();

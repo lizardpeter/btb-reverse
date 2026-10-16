@@ -2,19 +2,18 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-15 UTC): **595/615 (96.7%)**
-original discovered function source models compile and link to the native
-game core. **20 remain**, and **148 CTest tests pass**.
+Current compiled-source milestone (2026-10-15 UTC): **615/615 (100%)**
+original-address source models are marked compiled and linked to the native
+game core. The final four models were promoted after Linux C++26, Python,
+Windows x86 and x64 CI passed on the upstream branch before the local Bink
+integration work in this checkout.
 
-The newest four original-address source models cover Maze player movement
-(`0041B140`), Spud Maze Bob movement and repairs (`00421360`), the
-eight-state Maze Spud NPC (`0041CCB0`), and source-confirmed home-route
-behavior in the Herding animal update (`00416A30`). [PR #62](https://github.com/lizardpeter/btb-reverse/pull/62)
-passed Linux C++26, Python, Windows x86 and x64 native game/provider CI.
-These source bodies reuse recovered Maze node/proximity, Spud NPC phase,
-and Herding home-route algorithms.
-
-**0/615** original bodies have full retail behavioral certification.
+This is a source-model build milestone, not a complete game recompilation or
+retail-equivalence claim. **0/615** original bodies have full retail
+behavioral certification, and the native host still lacks five activity
+drivers, the five-sign profile flow, and verified DirectDraw/DirectSound/Bink
+parity. See [the native-host limitations](docs/native-host-boot-and-input.md)
+and [the full-game platform boundary](docs/full-game-native-platform.md).
 The remaining x87 branches, Herding roam/follower dispatcher paths, native
 game-driver admission, and original executable differential comparisons
 remain unfinished. Compiled-source coverage is not original-binary parity.

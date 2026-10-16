@@ -258,6 +258,17 @@ ActivityFrameOutput FireworksDriver::advance(
     return output;
 }
 
+ActivityFrameOutput FireworksDriver::render_modal(const ActivityFrameInput& input) {
+    ActivityFrameOutput output;
+    if (!layout_) { output.fatal_error="Fireworks modal entered before initialization";return output; }
+    const auto frame=fireworks::run_retail_editor_frame(editor_,sequence_,*layout_,
+        input.pointer_x,input.pointer_y);
+    for (const auto& command:frame.draw_commands) output.draws.push_back(convert_draw(command));
+    for (const auto& tick:frame.placement_ticks)
+        if (tick.sound_id) append_sound(output,*tick.sound_id);
+    return output;
+}
+
 bool FireworksDriver::unload(std::string& error) {
     if (!layout_) {
         error.clear();

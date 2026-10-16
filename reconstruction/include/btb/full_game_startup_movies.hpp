@@ -45,4 +45,16 @@ private:
     bool initialized_{};
 };
 
+// Independent eight-entry loaddata/completedmovie.txt table at 0x0048daf0.
+class OriginalCompletionMovieCatalog {
+public:
+    [[nodiscard]] bool read(std::istream& in,std::string& error);
+    [[nodiscard]] const std::string* movie(int index) const noexcept {
+        return loaded_ && index>=0 && index<8?&files_[static_cast<std::size_t>(index)]:nullptr;
+    }
+private:
+    std::array<std::string,8> files_{};
+    bool loaded_{};
+};
+
 } // namespace btb::full_game

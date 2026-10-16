@@ -58,6 +58,13 @@ bool ParkDesignerDriver::initialize(int player_index,std::string& error) {
     }
 }
 
+ActivityFrameOutput ParkDesignerDriver::render_modal(const ActivityFrameInput&) {
+    ActivityFrameOutput output;std::string error;
+    if (!bounds_ || !service_ || !service_->render(state_.save,*bounds_,output,error))
+        output.fatal_error=error.empty()?"Park Designer modal underlay provider missing":error;
+    return output;
+}
+
 ActivityFrameOutput ParkDesignerDriver::advance(const ActivityFrameInput& input) {
     ActivityFrameOutput output{};
     if(!initialized()) {

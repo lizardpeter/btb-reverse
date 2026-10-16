@@ -4,6 +4,24 @@
 
 namespace btb::full_game {
 
+std::optional<Draw> original_menu_backdrop(
+    game_flow::State setup,const OriginalUiBitmapCatalog& table) {
+    using game_flow::State;
+    switch (setup) {
+    case State::DinoChooserSetup: return table.backdrop(8);
+    case State::SpudChooserSetup: return table.backdrop(9);
+    case State::AdventureChooserSetup: return table.backdrop(12);
+    case State::MusicChooserSetup: return table.backdrop(22);
+    case State::PlayAgainYesNoSetup:
+        return Draw{"Data/ui/playagain/playagainnodiff.bmp",0,0,{},true};
+    case State::PlayAgainDifficultySetup:
+        return Draw{"Data/ui/playagain/playagain3.bmp",0,0,{},true};
+    case State::FireworksReplayChoiceSetup:
+        return Draw{"Data/ui/editplay/Fireworkplayagain.bmp",0,0,{},true};
+    default: return std::nullopt;
+    }
+}
+
 bool OriginalUiBitmapCatalog::read(
     std::istream& in, std::string& error) {
 

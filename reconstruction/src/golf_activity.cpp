@@ -39,16 +39,14 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
         break;
 
     case RoundState::PowerMeter:
-        // Aim and power confirmation are separate UI actions. A confirmed
-        // frame freezes the previously displayed power; all other frames
-        // advance using the difficulty-dependent native oscillation.
+        // 00415080 updates the meter before checking the input pulse,
+        // including the confirmation frame.
+        advance_power_meter(
+            power_,direction_,
+            data_.power_bar_speed_by_difficulty[
+                static_cast<std::size_t>(difficulty_)]);
         if (input.accept_power) {
             state_ = RoundState::LaunchSetup;
-        } else {
-            advance_power_meter(
-                power_,direction_,
-                data_.power_bar_speed_by_difficulty[
-                    static_cast<std::size_t>(difficulty_)]);
         }
         break;
 

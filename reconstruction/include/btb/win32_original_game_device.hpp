@@ -65,6 +65,8 @@ public:
         const std::vector<ResolvedDraw>& draws,
         std::string& error) override;
     [[nodiscard]] bool present(std::string& error) override;
+    [[nodiscard]] bool print_frame(
+        const std::filesystem::path& bitmap,std::string& error) override;
 
 private:
     Win32OriginalDirectDraw& draw_;

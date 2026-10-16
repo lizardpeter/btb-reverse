@@ -41,6 +41,7 @@ NativeSessionFrame NativeGameSession::tick(
     }
 
     input.managed_sound_playing = physical.any_managed_voice_playing;
+    input.backing_track_playing = physical.backing_track_playing;
     // The real Bink device owns end-of-stream / input-to-skip signaling.
     // Never artificially complete 13/14 just to make the game advance.
     root_.globals().dispatcher.global_movie_finished =
@@ -83,11 +84,25 @@ NativeSessionFrame NativeGameSession::tick(
             return frame;
         }
         auto movie=resolve_movie(entry->movie);
-        auto help=resolve_movie(entry->spoken_help);
-        if (!movie || !help) {
+        if (!movie) {
             fail(frame,PhysicalPresentationStage::MovieResolve,error);
             return frame;
         }
+        // Retail OpenWalkthroughMovie (004281D0) opens the Bink here;
+        // UpdateWalkthroughMovie (00428120) requests the help voice only
+        // upon hovering. Missing spoken-help audio must not prevent a
+        // genuine walkthrough Bink from opening. Do not manufacture a WAV
+        // or silently ignore malformed/unsafe source paths.
+        const auto help=effects_.assets().resolve(entry->spoken_help);
+        if (!help.found() &&
+            help.status != AssetResolutionStatus::Missing) {
+            fail(frame,PhysicalPresentationStage::MovieResolve,
+                 "invalid walkthrough help WAV path: "+entry->spoken_help+
+                 " ("+help.error+")");
+            return frame;
+        }
+        const std::filesystem::path help_path =
+            help.found() ? help.absolute_path : std::filesystem::path{};
         if (walkthrough_open_ &&
             !device_.close_walkthrough_movie(error)) {
             fail(frame,PhysicalPresentationStage::MovieClose,error);
@@ -97,12 +112,30 @@ NativeSessionFrame NativeGameSession::tick(
             frame.walkthrough_closed = true;
             walkthrough_open_ = false;
         }
-        if (!device_.open_walkthrough_movie(*movie,*help,error)) {
+        if (!device_.open_walkthrough_movie(*movie,help_path,error)) {
             fail(frame,PhysicalPresentationStage::MovieOpen,error);
             return frame;
         }
         walkthrough_open_ = true;
         frame.walkthrough_opened = true;
+    }
+
+    std::optional<std::string> direct_movie=game.original_global_movie_asset;
+    if (game.original_global_completion_movie_index) {
+        const auto* name=completions_.movie(*game.original_global_completion_movie_index);
+        if (!name) {
+            fail(frame,PhysicalPresentationStage::MovieResolve,
+                "original completedmovie.txt entry unavailable");return frame;
+        }
+        direct_movie=*name;
+    }
+    if (direct_movie) {
+        auto file=resolve_movie(*direct_movie);
+        if (!file) { fail(frame,PhysicalPresentationStage::MovieResolve,error);return frame; }
+        if (!device_.open_global_movie(*file,error)) {
+            fail(frame,PhysicalPresentationStage::MovieOpen,error);return frame;
+        }
+        frame.global_movie_opened=true;
     }
 
     if (game.original_global_intro_movie_index) {
@@ -164,13 +197,17 @@ NativeSessionFrame NativeGameSession::tick(
     // intercepted waiting for that movie, do not clear the Bink pixels
     // with a synthetic empty gameplay/UI draw list before present.
     const auto mode=root_.globals().dispatcher.generic_screen_mode;
-    const bool global_movie_frame =
-        frame.prepared.game.kind == FrameKind::Intercept &&
-        (mode == 13 || mode == 14);
+    const bool global_movie_frame = frame.prepared.game.original_global_movie_frame ||
+        (frame.prepared.game.kind == FrameKind::Intercept &&
+         (mode == 13 || mode == 14));
     if (!global_movie_frame &&
         !device_.draw_ordered(frame.prepared.resources.draws,error)) {
         fail(frame,PhysicalPresentationStage::SubmitDraw,error);
         return frame;
+    }
+    if (frame.prepared.game.effects.print_frame &&
+        !device_.print_frame(effects_.assets().installed_root()/"PrintMe.bmp",error)) {
+        fail(frame,PhysicalPresentationStage::Print,error);return frame;
     }
     if(defer_present) {
         pending_present_=true;

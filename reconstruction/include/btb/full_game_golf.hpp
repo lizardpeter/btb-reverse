@@ -56,6 +56,7 @@ private:
     int player_index_{-1};
     std::unique_ptr<golf::Round> round_{};
     std::optional<golf::RoundInput> queued_input_{};
+    int swing_ticks_{}; // 00415080 state 99: nine ticks per frame, eight frames.
 };
 
 } // namespace btb::full_game

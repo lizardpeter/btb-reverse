@@ -1,8 +1,10 @@
 #include "btb/win32_recompiled_host.hpp"
 #if defined(_WIN32)
 #include "btb/win32_original_game_device.hpp"
+#include "btb/win32_original_bink_movie.hpp"
 #include "btb/full_game_front_end.hpp"
 #include "btb/full_game_golf.hpp"
+#include "btb/full_game_dinosaur.hpp"
 #include "btb/full_game_fireworks.hpp"
 #include "btb/full_game_bobs_band.hpp"
 #include "btb/full_game_park_designer.hpp"
@@ -33,36 +35,12 @@ namespace btb::full_game {
 namespace {
 namespace fs=std::filesystem;
 
-// No original movie handle is opened. Nonmovie activity frames can run,
-// but a Bink request is a hard failure. Never signal a movie as "finished"
-// without decoding its actual frames.
-class MissingOriginalBinkDecoder final : public OriginalBinkProvider {
-public:
-    bool service(bool& finished,std::string& error) override {
-        finished=false;error.clear();return true; // no movie is active
-    }
-    bool open_global(const fs::path&,std::string& error) override {
-        error="original 32-bit Bink movie decoder is not connected";return false;
-    }
-    bool open_walkthrough(const fs::path&,const fs::path&,
-                          std::string& error) override {
-        error="original Bink walkthrough decoder is not connected";return false;
-    }
-    bool close_walkthrough(std::string& error) override {
-        error="no original Bink walkthrough decoder was opened";return false;
-    }
-    bool render_walkthrough_overlay(std::string& error) override {
-        // All attempted walkthrough opens fail above, so no overlay exists.
-        error.clear();return true;
-    }
-};
-
 struct Host {
     HWND window{};
     fs::path root{};
     Win32OriginalDirectDraw graphics{};
     Win32OriginalDirectSound audio{};
-    MissingOriginalBinkDecoder movies{};
+    Win32OriginalBinkMovie movies;
     std::unique_ptr<Win32OriginalGameDevice> device{};
     GameRoot game{};
     std::unique_ptr<NativeGameSession> session{};
@@ -70,10 +48,12 @@ struct Host {
     int pointer_x{320},pointer_y{240};
     NativeHostInput native_input{};
     bool running{};
+    bool frame_active{},cursor_hidden{};
     original_win32::RetailWindowState retail_window{};
     original_active_frame::State original_frame{};
 
-    explicit Host(fs::path original_root):root(std::move(original_root)) {}
+    explicit Host(fs::path original_root):root(std::move(original_root)),
+        movies(root,graphics,audio) {}
 
     [[nodiscard]] static bool parse_bitmap_names(
         const fs::path& loaddata,OriginalUiBitmapCatalog& bitmaps,
@@ -96,6 +76,7 @@ struct Host {
         return starts.read(startup,error)&&walk.read(walkthrough,error);
     }
     [[nodiscard]] bool start(std::string& out_error) {
+        game.globals().random.apply_original_startup_tick_count(GetTickCount());
         std::error_code ec;
         if(!fs::is_directory(root,ec)||ec) {
             out_error="original game installation directory does not exist";
@@ -117,6 +98,12 @@ struct Host {
         OriginalWalkthroughCatalog walkthroughs;
         if(!parse_movies(loaddata,startups,walkthroughs,out_error))
             return false;
+        OriginalCompletionMovieCatalog completions;
+        std::ifstream completion_movies(loaddata/"completedmovie.txt");
+        if (!completion_movies || !completions.read(completion_movies,out_error)) {
+            if (out_error.empty()) out_error="original completedmovie.txt missing";
+            return false;
+        }
 
         // Original address 0042A2C0 state 04: screen 1 is the activity
         // selection hit-area table, and bitmap source slot 2 is the authored
@@ -131,8 +118,9 @@ struct Host {
 
         // All ten original pregame states have independently recovered
         // bitmap names, walkthrough indexes, and back/start action maps.
-        // The separate source-backed Bink service currently rejects movie
-        // requests, but game logic is no longer blocked by missing UI drivers.
+        // The x86 native Bink provider decodes original movies through the
+        // installed retail DLL. Movie ABI and pixel parity still need
+        // differential validation against the retail executable.
         for(const auto& entry:kRetailPregamePairs){
             const auto index=static_cast<std::size_t>(entry.screen);
             auto driver=make_original_pregame_screen_driver(
@@ -145,35 +133,15 @@ struct Host {
             }
         }
 
-        // Four source-confirmed subgame choice screens and three replay
-        // screens use different bitmap-table offsets from their UI enum IDs.
-        // Preserve the original names and never substitute a generic menu.
-        struct MenuBackdrop {
-            game_flow::State setup;
-            std::size_t background;
-        };
-        constexpr std::array<MenuBackdrop,7> menu_backdrops{{
-            {game_flow::State::DinoChooserSetup,8},
-            {game_flow::State::MusicChooserSetup,22},
-            {game_flow::State::SpudChooserSetup,9},
-            {game_flow::State::AdventureChooserSetup,12},
-            {game_flow::State::PlayAgainYesNoSetup,19},
-            {game_flow::State::PlayAgainDifficultySetup,20},
-            {game_flow::State::FireworksReplayChoiceSetup,21},
-        }};
-        for(const auto& mapping:menu_backdrops){
-            const auto* spec=generic_front_end_pair_for_state(
-                mapping.setup);
-            if(!spec){
-                out_error="original chooser state not in recovered registry";
-                return false;
-            }
-            const auto index=static_cast<std::size_t>(spec->screen);
+        // Choosers use the table; 0042A2C0 loads the three replay images
+        // directly. Retained table slots 19..21 are not their live paths.
+        for(const auto& spec:kGenericFrontEndPairs){
+            const auto index=static_cast<std::size_t>(spec.screen);
             auto driver=std::make_unique<GenericUiScreenDriver>(
-                catalog,spec->screen,std::vector<int>(catalog.counts[index],0));
-            if(!driver->configure_backdrop(bitmaps,mapping.background) ||
+                catalog,spec.screen,std::vector<int>(catalog.counts[index],0));
+            if(!driver->configure_original_menu_backdrop(spec.setup,bitmaps) ||
                !game.install_generic_front_end_pair(
-                   mapping.setup,std::move(driver))){
+                   spec.setup,std::move(driver))){
                 out_error="original chooser bitmap mapping failed";
                 return false;
             }
@@ -184,6 +152,8 @@ struct Host {
         // complete motion/runtime providers are linked.
         game.install(ActivityId::Golf,std::make_unique<GolfDriver>(
             root/"Data"/"SubGameGolf",0));
+        game.install(ActivityId::Dinosaur,std::make_unique<DinosaurDriver>(
+            root,game.globals().random));
         game.install(ActivityId::Fireworks,std::make_unique<FireworksDriver>(
             root/"Data"/"SubGameFirework",root/"profiles"));
         game.install(ActivityId::BobsBand,std::make_unique<BobsBandDriver>(
@@ -204,7 +174,7 @@ struct Host {
             graphics,audio,movies);
         session=std::make_unique<NativeGameSession>(
             game,*device,OriginalAssetResolver{root},
-            std::move(startups),std::move(walkthroughs));
+            std::move(startups),std::move(walkthroughs),std::move(completions));
 
         std::ifstream sounds(root/"Data"/"sound"/"binklist.txt");
         if(!sounds) sounds.open(root/"loaddata"/"binklist.txt");
@@ -241,6 +211,16 @@ struct Host {
             if(frame.failure){
                 h.error=frame.failure->message;
                 return false;
+            }
+            const auto& effects=frame.prepared.game.effects;
+            h.cursor_hidden=effects.hide_system_cursor;
+            SetCursor(h.cursor_hidden?nullptr:LoadCursorW(nullptr,MAKEINTRESOURCEW(32512)));
+            if (effects.pointer_warp && GetActiveWindow()==h.window) {
+                RECT client{};GetClientRect(h.window,&client);
+                POINT pointer{(*effects.pointer_warp)[0]*(client.right-client.left)/640,
+                              (*effects.pointer_warp)[1]*(client.bottom-client.top)/480};
+                ClientToScreen(h.window,&pointer);SetCursorPos(pointer.x,pointer.y);
+                h.pointer_x=(*effects.pointer_warp)[0];h.pointer_y=(*effects.pointer_warp)[1];
             }
             return frame.ready_for_present;
         };
@@ -344,26 +324,44 @@ LRESULT CALLBACK native_window_proc(
         host->set_pointer(lp);host->native_input.release_mouse();return 0;
     case WM_KEYDOWN:
         host->native_input.key_down(
-            static_cast<unsigned>(wp),(lp&0x40000000)!=0);
+            static_cast<unsigned>(wp),(lp&0x40000000)!=0,
+            static_cast<unsigned>((lp>>16)&0xff),(lp&0x01000000)!=0);
         if(wp==VK_ESCAPE)DestroyWindow(hwnd);
         return 0;
     case WM_KEYUP:
-        host->native_input.key_up(static_cast<unsigned>(wp));return 0;
+        host->native_input.key_up(static_cast<unsigned>(wp),
+            static_cast<unsigned>((lp>>16)&0xff),(lp&0x01000000)!=0);return 0;
     case WM_CHAR:
         host->native_input.character(static_cast<unsigned>(wp));return 0;
     case WM_KILLFOCUS:
         host->native_input.lose_focus();return 0;
     case WM_TIMER:
-        if(wp==kNativeTimer&&!host->step()){
-            const auto message=host->error.empty()
-              ? "Native game could not submit a complete source frame"
-              : host->error;
-            MessageBoxA(hwnd,message.c_str(),
-              "Reconstructed game stopped at unsupported native dependency",
-              MB_OK|MB_ICONERROR);
-            DestroyWindow(hwnd);
+        if(wp==kNativeTimer){
+            // MessageBox pumps nested Win32 messages. Disarm the timer
+            // before opening an error dialog so queued timer notifications
+            // cannot open an unbounded cascade of dialogs.
+            if(!host->running || host->frame_active)return 0;
+            host->frame_active=true;
+            const bool complete=host->step();
+            host->frame_active=false;
+            if(!complete){
+                host->running=false;
+                KillTimer(hwnd,kNativeTimer);
+                const auto message=host->error.empty()
+                  ? "Native game could not submit a complete source frame"
+                  : host->error;
+                MessageBoxA(hwnd,message.c_str(),
+                  "Reconstructed game stopped at unsupported native dependency",
+                  MB_OK|MB_ICONERROR);
+                DestroyWindow(hwnd);
+            }
         }
         return 0;
+    case WM_SETCURSOR:
+        if (LOWORD(lp)==HTCLIENT && host->cursor_hidden) {
+            SetCursor(nullptr);return TRUE;
+        }
+        return DefWindowProcW(hwnd,msg,wp,lp);
     case WM_PAINT:{
         // The original display is owned and presented by DirectDraw7.
         // GDI must not paint over the game surface.

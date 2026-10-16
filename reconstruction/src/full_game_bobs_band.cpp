@@ -133,6 +133,14 @@ Draw BobsBandDriver::convert_draw(
     return out;
 }
 
+ActivityFrameOutput BobsBandDriver::render_modal(const ActivityFrameInput& input) {
+    ActivityFrameOutput output;
+    if (!activity_) { output.fatal_error="Bob's Band modal entered before initialization";return output; }
+    for (const auto& draw:activity_->render_paused(input.frame_delta,input.random_value).layers)
+        output.draws.push_back(convert_draw(draw));
+    return output;
+}
+
 ActivityFrameOutput BobsBandDriver::advance(
     const ActivityFrameInput& input) {
 

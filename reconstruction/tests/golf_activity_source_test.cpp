@@ -82,11 +82,11 @@ int main() {
     assert(frame.power == 12);
     frame = round.advance({.accept_power=true});
     assert(frame.state == RoundState::LaunchSetup);
-    assert(frame.power == 12);
+    assert(frame.power == 18);
     frame = round.advance({});
     assert(frame.state == RoundState::SwingAnimationDelay);
     assert(frame.ball.angle_degrees == 0);
-    assert(frame.ball.speed == 504);
+    assert(frame.ball.speed == 506);
 
     // No invented animation countdown: physics remains gated until original
     // host reports its eight-by-eight swing sequence completion.

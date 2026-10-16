@@ -112,16 +112,27 @@ int main() {
     auto delete_all = root.advance(click(130,440));
     assert(delete_all.effects.open_yes_no_confirmation);
     assert(delete_all.effects.yes_no_context == 3);
-    auto deny = ActivityFrameInput{};
-    deny.confirmation_resolved = true;
-    root.advance(deny);
+    // Hover and click the real No button; the shared modal must redraw the
+    // editor and return the result on the following source frame.
+    auto modal=root.advance({.pointer_x=350,.pointer_y=280});
+    assert(modal.kind==FrameKind::Intercept);
+    assert(modal.effects.draws[modal.effects.draws.size()-2].source_asset=="Data/ui/DeleteFireworks.bmp");
+    assert(modal.effects.draws.back().source_asset=="Data/ui/playagain/panosel.bmp");
+    modal=root.advance({.pointer_x=350,.pointer_y=280,.click_pulse=true,
+        .pointer_button_held=true});
+    assert(modal.clear_input_pulse);
+    assert(!root.globals().dispatcher.generic_yes_no_active);
+    static_cast<void>(root.advance({}));
     assert(live->sequence().occupied_count() == 1);
     delete_all = root.advance(click(130,440));
     assert(delete_all.effects.open_yes_no_confirmation);
-    auto confirm = ActivityFrameInput{};
-    confirm.confirmation_resolved = true;
-    confirm.confirmation_yes = true;
-    root.advance(confirm);
+    modal=root.advance({.pointer_x=250,.pointer_y=280});
+    assert(modal.effects.draws.back().source_asset=="Data/ui/playagain/payessel.bmp");
+    modal=root.advance({.pointer_x=250,.pointer_y=280,.click_pulse=true,
+        .pointer_button_held=true});
+    assert(modal.clear_input_pulse);
+    // Even a queued editor click must be consumed when resuming the activity.
+    static_cast<void>(root.advance(click(210,185)));
     assert(live->sequence().occupied_count() == 0);
 
     // Save and reload the actual 18 signed little-endian 32-bit cells.

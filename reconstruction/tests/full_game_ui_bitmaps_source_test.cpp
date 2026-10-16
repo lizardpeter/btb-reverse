@@ -52,6 +52,17 @@ END.bmp
     assert(draw->x == 0 && draw->y == 0);
     assert(!draw->color_keyed);
 
+    using btb::game_flow::State;
+    assert(original_menu_backdrop(State::DinoChooserSetup,table)->source_asset==
+        "Data\\ui\\subact\\ddsubsel.bmp");
+    assert(original_menu_backdrop(State::PlayAgainYesNoSetup,table)->source_asset==
+        "Data/ui/playagain/playagainnodiff.bmp");
+    assert(original_menu_backdrop(State::PlayAgainDifficultySetup,table)->source_asset==
+        "Data/ui/playagain/playagain3.bmp");
+    assert(original_menu_backdrop(State::FireworksReplayChoiceSetup,table)->source_asset==
+        "Data/ui/editplay/Fireworkplayagain.bmp");
+    assert(!original_menu_backdrop(State::DinoRun,table));
+
     std::istringstream truncated("Data\\ui\\loading\\loading1.bmp\nEND.bmp\n");
     assert(!table.read(truncated,error));
     assert(!error.empty());

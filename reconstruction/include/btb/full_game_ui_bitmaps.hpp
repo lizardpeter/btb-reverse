@@ -29,4 +29,9 @@ private:
     bool loaded_{};
 };
 
+// The three replay screens load hard-coded paths in 0042A2C0, not the
+// retained uiBitmapName slots 19..21. Choosers still use the real table.
+[[nodiscard]] std::optional<Draw> original_menu_backdrop(
+    game_flow::State setup,const OriginalUiBitmapCatalog& table);
+
 } // namespace btb::full_game

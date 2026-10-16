@@ -551,6 +551,11 @@ target_link_libraries(btb_game PRIVATE btb_game_session)
 if(WIN32)
     target_compile_definitions(btb_game PRIVATE UNICODE _UNICODE)
     target_link_libraries(btb_game PRIVATE user32 gdi32 msimg32 comdlg32)
+    if(NOT MSVC)
+        # The game entry point is wWinMain; GNU Windows CRTs otherwise
+        # select the narrow WinMain startup even with UNICODE defined.
+        target_link_options(btb_game PRIVATE -municode -Wl,--subsystem,windows)
+    endif()
 else()
     # Linux smoke mode exercises the same game-session and activity libraries.
     add_test(NAME game_executable_smoke COMMAND btb_game --smoke)
@@ -598,6 +603,7 @@ add_library(btb_full_game_root_source
     src/full_game_runtime.cpp
     src/full_game_profiles.cpp
     src/full_game_profile_name_entry.cpp
+    src/full_game_confirmation.cpp
 )
 target_include_directories(btb_full_game_root_source PUBLIC include)
 btb_require_cpp26(btb_full_game_root_source PUBLIC)
@@ -1031,6 +1037,7 @@ add_library(btb_recompiled_core STATIC
     src/full_game_resources.cpp
     src/full_game_bobs_band.cpp
     src/full_game_golf.cpp
+    src/full_game_dinosaur.cpp
     src/golf_activity.cpp
     src/full_game_herding.cpp
     src/full_game_herding_event_simulation.cpp
@@ -1163,6 +1170,21 @@ btb_require_cpp26(btb_full_game_native_session_source_tests PRIVATE)
 add_test(NAME full_game_native_session_source
     COMMAND btb_full_game_native_session_source_tests)
 
+# The runtime driver and round tests were present but were not built or
+# registered. Exercise physical-input completion as part of the game gate.
+add_executable(btb_full_game_golf_source_tests tests/full_game_golf_source_test.cpp)
+target_link_libraries(btb_full_game_golf_source_tests PRIVATE btb_recompiled_core)
+add_test(NAME full_game_golf_source COMMAND btb_full_game_golf_source_tests)
+add_executable(btb_golf_activity_source_tests tests/golf_activity_source_test.cpp)
+target_link_libraries(btb_golf_activity_source_tests PRIVATE btb_recompiled_core)
+add_test(NAME golf_activity_source COMMAND btb_golf_activity_source_tests)
+add_executable(btb_full_game_dinosaur_source_tests tests/full_game_dinosaur_source_test.cpp)
+target_link_libraries(btb_full_game_dinosaur_source_tests PRIVATE btb_recompiled_core)
+add_test(NAME full_game_dinosaur_source COMMAND btb_full_game_dinosaur_source_tests)
+add_executable(btb_full_game_ui_bitmaps_source_tests tests/full_game_ui_bitmaps_source_test.cpp)
+target_link_libraries(btb_full_game_ui_bitmaps_source_tests PRIVATE btb_recompiled_core)
+add_test(NAME full_game_ui_bitmaps_source COMMAND btb_full_game_ui_bitmaps_source_tests)
+
 add_executable(btb_original_media15_tests
     tests/original_media15_test.cpp)
 target_link_libraries(btb_original_media15_tests PRIVATE btb_recompiled_core)
@@ -1262,6 +1284,10 @@ add_test(NAME retail_pure_runtime_vectors COMMAND btb_retail_pure_runtime_vector
     "${CMAKE_CURRENT_SOURCE_DIR}/../analysis/reconstruction/retail-pure-runtime-vectors.txt")
 
 foreach(test_target IN ITEMS btb_profile_name_entry_tests
+        btb_native_host_input_tests btb_full_game_golf_source_tests btb_golf_activity_source_tests
+        btb_full_game_dinosaur_source_tests
+        btb_full_game_fireworks_source_tests
+        btb_full_game_ui_bitmaps_source_tests
         btb_full_game_profiles_source_tests btb_bobs_band_source_tests
         btb_original_profile_screen_tests btb_original_runtime16_tests btb_original_string8_tests)
     # These regressions use assert, including state-changing expressions.
@@ -1284,11 +1310,13 @@ if(WIN32)
     add_library(btb_original_win32_platform STATIC
         src/win32_original_imports3.cpp
         src/win32_original_directdraw.cpp
+        src/win32_original_print.cpp
         src/original_recompiled_bitmaps.cpp
         src/win32_recompiled_graphics.cpp
         src/win32_native_bitmap_registry.cpp
         src/win32_original_directsound.cpp
         src/win32_original_bink_exports.cpp
+        src/win32_original_bink_movie.cpp
         src/win32_original_game_device.cpp
         src/win32_original_platform_link.cpp
         src/win32_recompiled_host.cpp
@@ -1298,7 +1326,7 @@ if(WIN32)
     target_include_directories(btb_original_win32_platform PUBLIC include)
     btb_require_cpp26(btb_original_win32_platform PUBLIC)
     target_link_libraries(btb_original_win32_platform PUBLIC
-        btb_recompiled_core ddraw dxguid dsound winmm ole32 gdi32 user32)
+        btb_recompiled_core btb_printing_system ddraw dxguid dsound winmm ole32 gdi32 user32 comdlg32)
     target_link_libraries(btb_game PRIVATE btb_original_win32_platform)
 
     target_link_libraries(btb_game PRIVATE shell32)

@@ -72,8 +72,10 @@ public:
     int sound_count{};
     int draw_count{};
     int present_count{};
+    int print_count{};
     bool fail_draw{};
     bool fail_present{};
+    bool fail_print{};
     std::string last_movie{};
     std::string last_help{};
     std::vector<Draw> received_draws{};
@@ -120,6 +122,12 @@ public:
         if(fail_present){error="forced native presentation failure";return false;}
         error.clear();return true;
     }
+    bool print_frame(const fs::path& path,std::string& error) override {
+        assert(draw_count>0 && path.filename()=="PrintMe.bmp");
+        ++print_count;
+        if (fail_print) { error="forced original print failure";return false; }
+        return true;
+    }
 };
 
 class Instruction final : public FrontEndDriver {
@@ -143,6 +151,18 @@ public:
         return result;
     }
 };
+
+class AudioObservationProbe final : public ActivityDriver {
+public:
+    bool backing{},voice{},print{};
+    bool initialize(int,std::string&) override { return true; }
+    ActivityFrameOutput advance(const ActivityFrameInput& input) override {
+        backing=input.backing_track_playing;
+        voice=input.managed_sound_playing;
+        ActivityFrameOutput output;output.print_frame=print;return output;
+    }
+    bool unload(std::string&) override { return true; }
+};
 }
 
 int main() {
@@ -157,6 +177,84 @@ int main() {
     touch(directory,"data/sound/help_0.wav");
     touch(directory,"Data/movies/start_0.bik");
     touch(directory,"Data/ui/original.bmp");
+    touch(directory,"Data/movies/completed_1.bik");
+    touch(directory,"data/movies/sceneset.bik");
+
+    {
+        OriginalCompletionMovieCatalog movies;
+        std::ostringstream text;
+        for (int i=0;i<8;++i) text<<"Data/movies/completed_"<<i<<".bik\n";
+        std::istringstream input(text.str());std::string error;
+        assert(movies.read(input,error));
+        GameRoot game;
+        game.globals().shared_completion_code=1;
+        game.globals().completion_return_state=0x10;
+        game.set_outer_state(State::SharedMovieTransition);
+        Device device;device.sample.global_movie_finished=true;
+        NativeGameSession session(game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture(),movies);
+        auto frame=session.tick({},false,false);
+        assert(!frame.failure && frame.global_movie_opened);
+        assert(device.last_movie.ends_with("completed_1.bik"));
+        assert(game.globals().shared_completion_code==-2 && device.draw_count==0);
+        assert(game.globals().dispatcher.current_state==0x40);
+        device.sample.global_movie_finished=false;
+        frame=session.tick({},false,false);
+        assert(!frame.failure && !frame.global_movie_opened);
+        assert(device.global_open==1 && device.draw_count==0);
+        device.sample.global_movie_finished=true;
+        frame=session.tick({},false,false);
+        assert(!frame.failure && game.globals().dispatcher.current_state==0x10);
+        assert(game.globals().shared_completion_code==-1);
+        assert(game.globals().completion_return_state==-1);
+        assert(device.draw_count==0 && device.present_count==3);
+    }
+    {
+        GameRoot game;game.set_outer_state(State::SceneSetMovieTransition);
+        Device device;device.sample.global_movie_finished=true;
+        NativeGameSession session(game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture());
+        auto frame=session.tick({},false,false);
+        assert(!frame.failure && frame.global_movie_opened);
+        assert(device.last_movie.ends_with("sceneset.bik"));
+        assert(game.globals().dispatcher.current_state==0x41);
+        device.sample.global_movie_finished=false;
+        frame=session.tick({},false,false);
+        assert(!frame.failure && !frame.global_movie_opened && device.draw_count==0);
+        device.sample.global_movie_finished=true;
+        frame=session.tick({},false,false);
+        assert(!frame.failure && game.globals().dispatcher.current_state==4);
+        assert(device.global_open==1 && device.draw_count==0);
+    }
+
+    {
+        GameRoot game;
+        assert(game.select_profile(0));
+        auto driver=std::make_unique<AudioObservationProbe>();
+        auto* probe=driver.get();
+        game.install(ActivityId::BobsBand,std::move(driver));
+        game.set_outer_state(State::BobsBandInit);
+        Device device;
+        NativeGameSession session(game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture());
+        assert(!session.tick({},false,false).failure);
+        device.sample.backing_track_playing=true;
+        device.sample.any_managed_voice_playing=true;
+        assert(!session.tick({},false,false).failure);
+        assert(probe->backing && probe->voice);
+        device.sample.backing_track_playing=false;
+        device.sample.any_managed_voice_playing=false;
+        // Caller defaults must be overwritten by the physical device.
+        assert(!session.tick({.managed_sound_playing=true,
+            .backing_track_playing=true},false,false).failure);
+        assert(!probe->backing && !probe->voice);
+        probe->print=true;
+        assert(!session.tick({},false,false).failure);
+        assert(device.print_count==1);
+        device.fail_print=true;
+        const auto failed=session.tick({},false,false);
+        assert(failed.failure && failed.failure->stage==PhysicalPresentationStage::Print);
+    }
 
     {
         GameRoot game;
@@ -210,6 +308,33 @@ int main() {
         assert(!unhosted.submitted);
         assert(session.failed());
     }
+
+    // The original loader does not require the spoken-help WAV to open
+    // a Bink. The help sound is requested later when hovering over video.
+    // This reproduces retail installations that lack a help WAV while
+    // retaining the real Bink and preventing synthetic audio substitution.
+    fs::remove(directory/"data/sound/help_5.wav");
+    {
+        GameRoot game;
+        assert(game.select_profile(0));
+        assert(game.install_pregame_front_end_pair(
+            State::GolfPregameSetup,std::make_unique<Instruction>()));
+        game.globals().menu.selected_subgame=1;
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture()
+        };
+        game.set_outer_state(State::GolfPregameSetup);
+        const auto no_help=session.tick({},false,false);
+        assert(!no_help.failure);
+        assert(no_help.submitted);
+        assert(no_help.walkthrough_opened);
+        assert(device.walk_open==1);
+        assert(device.last_help.empty());
+        assert(device.last_movie.find("bink_5.bik")!=std::string::npos);
+    }
+    touch(directory,"data/sound/help_5.wav");
 
     {
         GameRoot game;

@@ -6,10 +6,10 @@
 namespace btb::original_profiles_fireworks2 {
 namespace {
 constexpr std::array<std::pair<U32,std::string_view>,7> kFixedBitmaps{{
- {0x0051b39cU,R"(Data\ui\blue_name_boxed_font.bmp)"},
- {0x0051b3a4U,R"(Data\ui\enter_name_boxed_font.bmp)"},
- {0x0051993cU,R"(Data\ui\certificate_boxed_font.bmp)"},
- {0x00519958U,R"(Data\ui\tool_icons.bmp)"},
+ {0x0051b39cU,R"(Data\ui\blue name boxed font.bmp)"},
+ {0x0051b3a4U,R"(Data\ui\enter name boxed font.bmp)"},
+ {0x0051993cU,R"(Data\ui\certificate boxed font.bmp)"},
+ {0x00519958U,R"(Data\ui\tool icons.bmp)"},
  {0x0051b398U,R"(Data\ui\fonttools.bmp)"},
  {0x0051c260U,R"(Data\ui\Hourglass.bmp)"},
  {0x00519938U,R"(Data\SubGameDYP\delcurs.bmp)"}

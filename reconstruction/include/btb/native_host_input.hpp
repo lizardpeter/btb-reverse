@@ -9,6 +9,7 @@
 namespace btb::full_game {
 struct NativeHostInput {
  std::array<std::uint8_t,256> keys{};
+ std::array<std::uint8_t,256> scan_keys{};
  bool pointer_held{};
  bool click_pulse{};
  int typed_character{-1};
@@ -16,15 +17,17 @@ struct NativeHostInput {
  bool clock_started{};
  void press_mouse() noexcept {pointer_held=true;click_pulse=true;}
  void release_mouse() noexcept {pointer_held=false;}
- void key_down(unsigned key,bool repeated) noexcept {
+ void key_down(unsigned key,bool repeated,unsigned scan=0,bool extended=false) noexcept {
   if(key>=keys.size())return;
   keys[key]=0x80;
+  if(scan>0 && scan<0x80)scan_keys[scan|(extended?0x80U:0U)]=0x80;
   // Original Golf/manual uses Space as another primary-click pulse.
   // WM_KEYDOWN autorepeat must not generate repeated activations.
   if(key==0x20&&!repeated)click_pulse=true;
  }
- void key_up(unsigned key) noexcept {
+ void key_up(unsigned key,unsigned scan=0,bool extended=false) noexcept {
   if(key<keys.size())keys[key]=0;
+  if(scan>0 && scan<0x80)scan_keys[scan|(extended?0x80U:0U)]=0;
  }
  void character(unsigned unicode) noexcept {
   // The current source game accepts a byte for profile-name text.
@@ -32,14 +35,16 @@ struct NativeHostInput {
   if(unicode>=0x20&&unicode<=0x7e)typed_character=static_cast<int>(unicode);
  }
  void lose_focus() noexcept {
-  keys.fill(0);pointer_held=false;click_pulse=false;typed_character=-1;
+  keys.fill(0);scan_keys.fill(0);pointer_held=false;click_pulse=false;typed_character=-1;
  }
  [[nodiscard]] ActivityFrameInput sample(
     int x,int y,std::uint32_t monotonic_ms) noexcept {
   if(!clock_started){initial_tick=monotonic_ms;clock_started=true;}
   ActivityFrameInput out{};
   out.pointer_x=x;out.pointer_y=y;
-  out.keyboard_state=keys;
+  // Retail name entry consumes DirectInput scan codes (A=0x1e,
+  // Backspace=0x0e), while directional input uses virtual keys above.
+  out.keyboard_state=scan_keys;
   out.pointer_button_held=pointer_held;
   out.directional_input_bits=static_cast<std::uint8_t>(
       (keys[0x25]?0x01:0) | (keys[0x27]?0x02:0) |

@@ -152,6 +152,8 @@ void GameRoot::apply_effects(
     if (output.next_replay_class) {
         globals_.menu.replay_class = *output.next_replay_class;
     }
+    if (output.next_completion_return_state)
+        globals_.completion_return_state=*output.next_completion_return_state;
     if (output.shared_completion_code) {
         globals_.shared_completion_code = *output.shared_completion_code;
     }
@@ -169,6 +171,14 @@ void GameRoot::apply_effects(
     }
     if (output.yes_no_context) {
         globals_.ui_context = *output.yes_no_context;
+    }
+    if (output.open_yes_no_confirmation) {
+        shared_game_batch_9::YesNo modal;
+        modal.phase=1;modal.context=globals_.ui_context;modal.bitmap_loaded=true;
+        // Immediate constants in 00429CE5..00429D2B, inclusive hit tests.
+        modal.buttons={shared_game_batch_9::Rect{220,260,305,312},
+                       shared_game_batch_9::Rect{334,260,417,312}};
+        confirmation_modal_=modal;
     }
     if (output.next_outer_state) {
         globals_.dispatcher.current_state = *output.next_outer_state;
@@ -237,6 +247,14 @@ void GameRoot::consume_pregame_action(
 }
 
 GameFrame GameRoot::advance(const ActivityFrameInput& input) {
+    if (confirmation_result_) {
+        auto resumed=input;
+        resumed.confirmation_resolved=true;
+        resumed.confirmation_yes=*confirmation_result_;
+        resumed.click_pulse=false;
+        confirmation_result_.reset();
+        return advance(resumed);
+    }
     GameFrame result;
     // The original shared Yes/No screen owns the modal while unresolved.
     // Once the physical UI reports a completed choice, release that overlay
@@ -271,11 +289,42 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
         return result;
     }
     if (!dispatch.dispatch) {
+        if (dispatch.intercept==game_flow::Intercept::GenericYesNo && confirmation_modal_)
+            return advance_confirmation_overlay(effective_input,std::move(result));
         result.kind = FrameKind::Intercept;
         return result;
     }
 
     const auto& state = *dispatch.dispatch;
+    if (state.state==game_flow::State::SharedMovieTransition) {
+        result.kind=FrameKind::FrontEndUpdated;
+        result.original_global_movie_frame=true;
+        auto& completion=globals_.shared_completion_code;
+        if (completion>=0) {
+            result.original_global_completion_movie_index=completion;
+            completion=-2;
+            globals_.dispatcher.global_movie_finished=false;
+        } else if (completion==-1 || globals_.dispatcher.global_movie_finished) {
+            globals_.dispatcher.current_state=globals_.completion_return_state==-1?
+                4:globals_.completion_return_state;
+            globals_.completion_return_state=-1;
+            completion=-1;result.state_changed=true;
+        }
+        return result;
+    }
+    if (state.state==game_flow::State::SceneSetMovieTransition) {
+        result.kind=FrameKind::FrontEndUpdated;
+        result.original_global_movie_frame=true;
+        if (!scene_set_movie_open_) {
+            result.original_global_movie_asset="data/movies/sceneset.bik";
+            globals_.dispatcher.global_movie_finished=false;
+            scene_set_movie_open_=true;
+        } else if (globals_.dispatcher.global_movie_finished) {
+            globals_.dispatcher.current_state=4;
+            scene_set_movie_open_=false;result.state_changed=true;
+        }
+        return result;
+    }
     if (state.state == game_flow::State::PlayerProfileAndNameEntry && name_entry_) {
         return advance_profile_name_entry(effective_input,std::move(result));
     }
@@ -289,6 +338,9 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
 
         if (!activity_select_driver_) {
             result.kind = FrameKind::FrontEndRequiresAdapter;
+            result.error = "missing native screen adapter for " +
+                std::string(game_flow::descriptor(
+                    static_cast<std::int32_t>(state.state))->role);
             return result;
         }
         if (!globals_.active_profile) {
@@ -344,6 +396,9 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
         auto* driver = generic_front_end_drivers_[key].get();
         if (!driver) {
             result.kind = FrameKind::FrontEndRequiresAdapter;
+            result.error = "missing native screen adapter for " +
+                std::string(game_flow::descriptor(
+                    static_cast<std::int32_t>(state.state))->role);
             return result;
         }
         if (!globals_.active_profile) {
@@ -457,10 +512,16 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
     const auto index = static_cast<std::size_t>(activity->id);
     if (!drivers_[index]) {
         result.kind = FrameKind::ActivityRequiresAdapter;
+        result.error = "missing native activity driver for " +
+            std::string(activity->module) + " at " +
+            std::string(game_flow::descriptor(
+                static_cast<std::int32_t>(state.state))->role);
         return result;
     }
     if (!globals_.active_profile) {
         result.kind = FrameKind::InactiveProfile;
+        result.error = "native activity " + std::string(activity->module) +
+            " has no active player profile";
         return result;
     }
 
@@ -508,6 +569,14 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
         return result;
     }
     result.kind = FrameKind::ActivityUpdated;
+
+    // 00415830 marks the shared Adventure completion only when Maze is
+    // already complete; the owning root has the other activity's record.
+    if (activity->id==ActivityId::Golf && result.effects.save_and_unload &&
+        result.effects.next_outer_state==static_cast<int>(game_flow::State::PlayAgainYesNoSetup) &&
+        globals_.player_progress[static_cast<std::size_t>(*globals_.active_profile)].
+            get(progress::Slot::Maze)==1)
+        result.effects.shared_completion_code=3;
 
     if (result.effects.save_and_unload &&
         result.effects.next_outer_state ==

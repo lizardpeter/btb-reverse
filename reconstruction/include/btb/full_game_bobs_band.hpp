@@ -44,6 +44,7 @@ public:
     [[nodiscard]] ActivityFrameOutput advance(
         const ActivityFrameInput& input) override;
     [[nodiscard]] bool unload(std::string& error) override;
+    [[nodiscard]] ActivityFrameOutput render_modal(const ActivityFrameInput&) override;
 
     [[nodiscard]] const bobs_band::Activity* activity() const noexcept {
         return activity_.get();

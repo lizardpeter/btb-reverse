@@ -11,6 +11,8 @@
 #include "btb/profile_name_entry.hpp"
 #include "btb/original_profile_screen.hpp"
 #include "btb/original_help2.hpp"
+#include "btb/retail_crt_random.hpp"
+#include "btb/shared_ui_native_9.hpp"
 
 #include <array>
 #include <cstddef>
@@ -198,6 +200,7 @@ struct ActivityFrameOutput {
     std::optional<std::int32_t> next_ui_context{};
     std::optional<std::int32_t> next_saved_state{};
     std::optional<std::int32_t> next_replay_class{};
+    std::optional<std::int32_t> next_completion_return_state{};
     bool save_and_unload{};
     bool open_yes_no_confirmation{};
     bool open_progress_screen{};
@@ -207,6 +210,9 @@ struct ActivityFrameOutput {
     // Runtime provider failures must not silently submit a partially
     // reconstructed activity frame as if the original game succeeded.
     std::optional<std::string> fatal_error{};
+    std::optional<std::array<int,2>> pointer_warp{};
+    bool hide_system_cursor{};
+    bool print_frame{};
 };
 
 // Each activity translates its own original native effects into shared
@@ -237,16 +243,23 @@ public:
         int player_index, std::string& error) = 0;
     [[nodiscard]] virtual ActivityFrameOutput advance(
         const ActivityFrameInput& input) = 0;
+    [[nodiscard]] virtual ActivityFrameOutput render_modal(const ActivityFrameInput&) {
+        ActivityFrameOutput output;
+        output.fatal_error="original modal underlay renderer unavailable";
+        return output;
+    }
     [[nodiscard]] virtual bool unload(std::string& error) = 0;
 };
 
 struct GameGlobals {
+    retail::OriginalRetailRandom random{};
     game_flow::DispatcherInput dispatcher{};
     std::array<progress::Record, progress::kPlayerCount> player_progress{};
     profiles::ProfileTable profile_metadata{};
     std::optional<int> active_profile{};
     progress::FinaleGate finale_gate{};
     int shared_completion_code{-1};
+    int completion_return_state{-1}; // original DAT_00446ce8
     RetailMenuState menu{};
     std::int32_t retained_herding_difficulty{}; // 0x51C340
     bool spud_skate_start_latch{}; // 0x51C32C
@@ -280,6 +293,9 @@ struct GameFrame {
     std::optional<int> original_walkthrough_index{};
     std::optional<std::size_t> original_pregame_backdrop_slot{};
     std::optional<int> original_global_intro_movie_index{};
+    std::optional<int> original_global_completion_movie_index{};
+    std::optional<std::string> original_global_movie_asset{};
+    bool original_global_movie_frame{};
     std::optional<ReplayPreparationPlan> replay_preparation{};
     std::string error{};
     bool clear_input_pulse{};
@@ -330,6 +346,7 @@ public:
     [[nodiscard]] bool unload_current(std::string& error);
 
 private:
+    [[nodiscard]] GameFrame advance_confirmation_overlay(const ActivityFrameInput&,GameFrame);
     [[nodiscard]] GameFrame advance_profile_name_entry(
         const ActivityFrameInput&,GameFrame);
     void apply_effects(const ActivityFrameOutput& output) noexcept;
@@ -354,6 +371,9 @@ private:
     std::array<Rect,6> name_entry_badges_{};
     int name_entry_phase_{};
     int name_entry_blink_{};
+    bool scene_set_movie_open_{};
+    std::optional<shared_game_batch_9::YesNo> confirmation_modal_{};
+    std::optional<bool> confirmation_result_{};
 };
 
 } // namespace btb::full_game

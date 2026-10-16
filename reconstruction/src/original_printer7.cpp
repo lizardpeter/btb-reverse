@@ -14,7 +14,8 @@ Error::Error(const char* message):std::runtime_error(message) {
     auto allocate=[](std::size_t n)->void*{return std::malloc(n);};
     original_runtime16::construct_exception(object_.base,"",allocate);
     try {original_string8::assign_buffer(object_.text,message,static_cast<U32>(std::strlen(message)),heap_);}
-    catch(...) {original_crt17::exception_destruct(object_.base,0x43b5bc,std::free);throw;}
+    catch(...) {original_crt17::exception_destruct(object_.base,0x43b5bc,
+        +[](void* pointer) noexcept { std::free(pointer); });throw;}
     object_.base.vtable=0x43b328;
 }
 Error::Error(const Error& other):std::runtime_error(other){original_exception9::copy_runtime(object_,other.object_,heap_);}

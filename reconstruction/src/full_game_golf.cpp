@@ -1,6 +1,7 @@
 #include "btb/full_game_golf.hpp"
 
 #include <exception>
+#include <algorithm>
 #include <fstream>
 #include <utility>
 
@@ -33,6 +34,7 @@ bool GolfDriver::initialize(int player_index, std::string& error) {
         round_ = std::move(candidate);
         player_index_ = player_index;
         queued_input_.reset();
+        swing_ticks_ = 0;
         error.clear();
         return true;
     } catch (const std::exception& exception) {
@@ -81,20 +83,21 @@ ActivityFrameOutput GolfDriver::compose_frame(
             true
         });
     }
-    // Bob's actual frame depends on retail aim/swing animation; this
-    // source neutral request displays only the current first source frame,
-    // while the native animation adapter is pending.
+    // 00414C16: column DAT_0050ad90; row trunc(44 - aim / 2.0).
+    // The x87 operands omitted by Ghidra are visible in the original PE32.
+    const int bob_frame = std::min(swing_ticks_/9,8);
+    const int bob_width = course.bob_frame_size_retail.x;
+    const int bob_height = course.bob_frame_size_retail.y;
+    const int bob_left = bob_frame*bob_width;
+    const int bob_top = static_cast<int>(44.0-state.aim/2.0)*bob_height;
     out.draws.push_back({
         course.bob_sprite_path,
         course.bob_position.x,
         course.bob_position.y,
-        Rect{0,0,
-            course.bob_frame_size_retail.x,
-            course.bob_frame_size_retail.y},
+        Rect{bob_left,bob_top,bob_left+bob_width,bob_top+bob_height},
         true
     });
 
-    (void)state;
     return out;
 }
 
@@ -106,14 +109,26 @@ ActivityFrameOutput GolfDriver::advance(
         return out;
     }
 
-    // Input translation is a separate retail-DirectInput/UI responsibility.
-    // No guessed click-zone/aim-angle mapping is embedded in this driver.
     auto action = queued_input_.value_or(golf::RoundInput{});
+    if (!queued_input_) {
+        if (round_->state() == golf::RoundState::Aim) {
+            // 00415080: absolute pointer angle, then the original shared
+            // direction-mask adjustment (Right/Down before Left/Up).
+            int aim = golf::clamp_aim(88-input.pointer_x/7);
+            if (input.directional_input_bits&10) --aim;
+            else if (input.directional_input_bits&5) ++aim;
+            action.aim_delta = golf::clamp_aim(aim)-round_->aim();
+        }
+        if (round_->state() == golf::RoundState::SwingAnimationDelay)
+            action.swing_animation_finished = ++swing_ticks_ >= 72;
+        action.feedback_audio_finished = !input.managed_sound_playing;
+    }
+    if (round_->state() == golf::RoundState::LaunchSetup ||
+        round_->state() == golf::RoundState::Aim)
+        swing_ticks_ = 0;
     // The original BBC game manual confirms that either mouse button
     // (or Space Bar, translated by the host into the input pulse) enters
     // the power-meter phase on the first press and locks it on the second.
-    // We still require explicit native input translation for left/right
-    // aim movement and for animation/audio completion.
     if (!queued_input_ && input.click_pulse) {
         if (round_->state() == golf::RoundState::Aim) {
             action.accept_aim = true;
@@ -141,6 +156,7 @@ ActivityFrameOutput GolfDriver::advance(
         out.next_saved_state =
             static_cast<int>(game_flow::State::GolfInit);
         out.next_replay_class = 1;
+        out.next_completion_return_state=static_cast<int>(game_flow::State::AdventureChooserSetup);
         out.next_outer_state = static_cast<int>(
             game_flow::State::PlayAgainYesNoSetup);
     }
@@ -150,6 +166,7 @@ ActivityFrameOutput GolfDriver::advance(
 bool GolfDriver::unload(std::string& error) {
     round_.reset();
     queued_input_.reset();
+    swing_ticks_ = 0;
     player_index_ = -1;
     error.clear();
     return true;

@@ -151,6 +151,7 @@ data\subgamegolf\wendy.bmp
     assert(game.globals().dispatcher.current_state == 0x3C);
     assert(game.globals().dispatcher.saved_state == 0x36);
     assert(game.globals().menu.replay_class == 1);
+    assert(game.globals().completion_return_state==0x1c);
     assert(!handle->round()); // released once, never duplicated
 
     // Original 0x3F replay difficulty action -32 writes value 2 into
@@ -166,6 +167,62 @@ data\subgamegolf\wendy.bmp
     assert(handle->round()->attempts_remaining() == 5);
     std::string error;
     assert(game.unload_current(error));
+
+    // Exercise the native route with ordinary physical inputs, never
+    // queue_control(): every shot must leave state 99 and wait for the
+    // measured managed voice before beginning the next attempt.
+    game.globals().menu.replay_active_latch = false;
+    game.globals().player_progress[0].values[61]=1;
+    game.set_outer_state(btb::game_flow::State::GolfInit);
+    step = game.advance({});
+    assert(step.kind == FrameKind::ActivityInitialized);
+    step = game.advance({.pointer_x=196});
+    assert(handle->round()->aim()==60);
+    const auto& bob = step.effects.draws.back();
+    assert(bob.source_rectangle);
+    assert(bob.source_rectangle->left==0);
+    assert(bob.source_rectangle->top==14*174);
+    step = game.advance({.pointer_x=196,.directional_input_bits=2});
+    assert(handle->round()->aim()==59);
+    for (int shot=0; shot<5; ++shot) {
+        step = game.advance({.pointer_x=616,.click_pulse=true});
+        assert(handle->round()->aim()==0);
+        step = game.advance({.click_pulse=true});
+        step = game.advance({});
+        assert(handle->round()->state()==btb::golf::RoundState::SwingAnimationDelay);
+        for (int tick=1; tick<72; ++tick) {
+            step = game.advance({});
+            assert(handle->round()->state()==btb::golf::RoundState::SwingAnimationDelay);
+        }
+        step = game.advance({});
+        assert(handle->round()->state()==btb::golf::RoundState::BallFlight);
+        int limit=200;
+        while (handle->round()->state()==btb::golf::RoundState::BallFlight && --limit>0)
+            step = game.advance({});
+        assert(limit>0);
+        step = game.advance({}); // landing -> feedback
+        step = game.advance({}); // submit measured managed voice request
+        assert(step.effects.audio.size()==1);
+        for (int tick=0; tick<3; ++tick) {
+            step = game.advance({.managed_sound_playing=true});
+            assert(handle->round()->state()==btb::golf::RoundState::ScoreAndFeedback);
+            assert(step.effects.audio.empty());
+        }
+        step = game.advance({.managed_sound_playing=false});
+        assert(handle->round()->state()==btb::golf::RoundState::ResetNextAttempt);
+        step = game.advance({});
+    }
+    assert(step.effects.save_and_unload);
+    assert(game.globals().dispatcher.current_state==0x3c);
+    assert(!handle->round());
+
+    assert(game.globals().shared_completion_code==3);
+    game.set_outer_state(btb::game_flow::State::SharedMovieTransition);
+    step=game.advance({});
+    assert(step.original_global_completion_movie_index==3);
+    game.globals().dispatcher.global_movie_finished=true;
+    step=game.advance({});
+    assert(game.globals().dispatcher.current_state==0x1c);
 
     fs::remove_all(root);
 }

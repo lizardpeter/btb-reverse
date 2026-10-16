@@ -267,6 +267,44 @@ bool Win32OriginalDirectDraw::restore_lost_surfaces(
     return true;
 }
 
+bool Win32OriginalDirectDraw::blit_decoded_bink32(
+    const void* pixels,unsigned width,unsigned height,int x,int y,
+    std::string& error) {
+    if(!initialized()||!pixels||width==0||height==0||
+       width>2048||height>2048) {
+        error="Bink frame destination is not a live DirectDraw backbuffer";
+        return false;
+    }
+    // GetDC/ReleaseDC lets GDI convert source 32-bit BGRA into the
+    // original 16/32-bit DirectDraw surface selected for this game window.
+    HDC surface_dc{};
+    const auto hr=backbuffer_->GetDC(&surface_dc);
+    if(FAILED(hr)) {
+        error=hresult_description("DirectDraw Bink backbuffer GetDC",hr);
+        return false;
+    }
+    BITMAPINFO bmi{};
+    bmi.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth=static_cast<LONG>(width);
+    bmi.bmiHeader.biHeight=-static_cast<LONG>(height); // top-down Bink
+    bmi.bmiHeader.biPlanes=1;
+    bmi.bmiHeader.biBitCount=32;
+    bmi.bmiHeader.biCompression=BI_RGB;
+    const auto rows=StretchDIBits(
+       surface_dc,x,y,static_cast<int>(width),static_cast<int>(height),
+       0,0,static_cast<int>(width),static_cast<int>(height),
+       pixels,&bmi,DIB_RGB_COLORS,SRCCOPY);
+    const auto release=backbuffer_->ReleaseDC(surface_dc);
+    if(rows==GDI_ERROR||rows==0||FAILED(release)) {
+        error=FAILED(release)
+            ? hresult_description("DirectDraw Bink ReleaseDC",release)
+            : "original Bink frame pixels failed GDI to DirectDraw transfer";
+        return false;
+    }
+    error.clear();
+    return true;
+}
+
 bool Win32OriginalDirectDraw::render_ordered(
     const std::vector<ResolvedDraw>& stream,std::string& error) {
 

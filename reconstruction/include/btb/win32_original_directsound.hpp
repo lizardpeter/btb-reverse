@@ -38,10 +38,14 @@ public:
     [[nodiscard]] bool observe(
         ManagedSoundObservation& managed,
         bool& any_managed_voice_playing,
+        bool& backing_track_playing,
         std::string& error);
     [[nodiscard]] bool apply(
         const ResolvedSoundEffect& effect,std::string& error);
     void shutdown() noexcept;
+    [[nodiscard]] IDirectSound8* native_device_for_bink() const noexcept {
+        return sound_;
+    }
 
 private:
     [[nodiscard]] bool create_wave_buffer(

@@ -18,13 +18,13 @@ initialize/run pairs:
 | Game-owned module | Retail outer states | Source-level recovery | Unified host integration |
 |---|---|---|---|
 | Herding / Pets Corner | `0x0E / 0x0F` | data/runtime/AI helper/presentation models | **Partial source driver**: real herd.txt, native render layers, sound 581, completion/progress 50; requires unrecovered full entity-AI provider |
-| Dinosaur | `0x14 / 0x15` | data, runtime, presentation and animation | Partial playable source host; retail visual/audio not complete |
+| Dinosaur | `0x14 / 0x15` | data, runtime, presentation and animation | Registered native driver using 00409E00; all nine retail levels exercised through completion; native pixel/audio parity unverified |
 | Spud Skate | `0x1A / 0x1B` | data/runtime/presentation models | Not hosted |
 | Maze | `0x20 / 0x21` | data, movement, Spud NPC, presentation and transition models | Not hosted |
-| Fireworks | `0x24 / 0x25` | layout, editor and sequence models | Not hosted |
+| Fireworks | `0x24 / 0x25` | layout, editor and sequence models | Registered source driver; retail UI/audio and runtime parity unverified |
 | Squirrel | `0x28 / 0x29` | data, runtime and presentation models | Not hosted |
 | Bob's Band | `0x2E / 0x2F` | editor, 5x24 grid, sequence I/O, 5 machine animations, 3 conductors and 24s sequencer | **Source-integrated** with the new shared 68-state root; actual bitmap/audio platform callbacks still not bound |
-| Park Designer | `0x32 / 0x33` | data/runtime models | Not hosted |
+| Park Designer | `0x32 / 0x33` | data/runtime models | Registered source driver; original editor/render service is still missing |
 | Golf | `0x36 / 0x37` | data/runtime + **new full-game round lifecycle, exact scoring and fixed-five-attempt source driver** | **Source-integrated** in `GameRoot`; source-backed partial presentation; exact input/animation and sound devices remain unbound |
 | Spud Maze | `0x3A / 0x3B` | data/runtime models | Not hosted |
 
@@ -290,14 +290,18 @@ The new Win32 platform source is in:
   backing audio and individual activity sounds.
 - `win32_original_game_device.hpp/.cpp`: binds both physical devices
   to `NativeGameSession`; requires an actual original Bink provider.
-- `win32_original_bink_exports.hpp/.cpp`: strict source loader for
-  exact original `binkw32.dll` exports. This is **not Bink decoding**.
+- `win32_original_bink_exports.hpp/.cpp` and
+  `win32_original_bink_movie.hpp/.cpp`: strict loader for the original
+  `binkw32.dll` plus global and looping walkthrough frame decoding through
+  DirectDraw7. Runtime ABI, audible movie audio and pixel parity remain
+  unverified; the original DLL is x86-only.
 - `full_game_blt_clip.hpp`: 640×480 native sprite source/destination
   clipping for partially offscreen original game animations.
 
-The original Bink DLL, its complete calling ABI and independent decoded
-frame-copy service are **not verified/hosted**. Additionally, the
-seven activities with no newly unified driver plus Herding's still-missing full entity AI and the exact screen-specific
+The original Bink frame path is now hosted in the Windows x86 native game,
+but actual retail movie playback and pixel/audio parity are **not verified**.
+Additionally, four activities still have no unified driver, alongside
+Herding's still-missing full entity AI and the exact screen-specific
 overlay sprite composition remain significant blockers. The existing
 Dinosaur-only preview is unchanged.
 

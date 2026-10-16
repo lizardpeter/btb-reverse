@@ -36,13 +36,14 @@ and x64 builds compile this source and its test.
 ## **Not** a finished full-game implementation
 
 The native runtime currently has registered source activity drivers for
-Golf, Fireworks, Bob's Band and Park Designer. Six activities, including
-Dinosaur in this native pipeline, still lack complete registered runtime
-adapters. The existing Herding driver requires a missing real motion/
-collision provider. The original Bink service lacks a working decoder;
-gameplay/menu transitions requesting a movie terminate with an explicit
-error rather than silently skipping it. Original profile-selection screens
-and some runtime GUI/backend paths are also unfinished.
+Dinosaur, Golf, Fireworks, Bob's Band and Park Designer. Five activities
+still lack complete registered runtime adapters. The existing Herding driver requires a missing real motion/
+collision provider. The Windows x86 host now decodes global and walkthrough
+movies through the installed original `Exe/binkw32.dll` and presents their
+frames through DirectDraw7. Bink playback, movie audio and walkthrough inset
+placement still need retail differential validation, and the x64 host cannot
+load this 32-bit DLL. Original profile-selection screens and some runtime
+GUI/backend paths are also unfinished.
 
 **615/615 compiled source models is not 615/615 live x86 ABI linkage or
 verified behavioral equivalence.** This work fixes the primary executable

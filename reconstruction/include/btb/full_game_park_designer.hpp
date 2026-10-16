@@ -42,6 +42,7 @@ public:
     [[nodiscard]] bool initialize(int player_index,std::string& error) override;
     [[nodiscard]] ActivityFrameOutput advance(const ActivityFrameInput& input) override;
     [[nodiscard]] bool unload(std::string& error) override;
+    [[nodiscard]] ActivityFrameOutput render_modal(const ActivityFrameInput&) override;
 
     void request_exit(bool shutdown = false) noexcept {
         state_.exit_requested=!shutdown;

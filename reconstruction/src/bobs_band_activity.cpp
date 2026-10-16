@@ -181,13 +181,19 @@ BandFrame Activity::advance(FrameInput input) {
         }
     }
 
-    machines_.advance(input.frame_delta);
+    result.layers=render_paused(input.frame_delta,input.random_value).layers;
+    return result;
+}
+
+BandFrame Activity::render_paused(int frame_delta,int random_value) {
+    BandFrame result;
+    machines_.advance(frame_delta);
 
     int conductor_frame = 0;
     if (editor_.state() == InternalState::Playback) {
         conductor_frame = playback_.animation_frame();
     } else {
-        static_cast<void>(editor_conductor_.advance(input.random_value));
+        static_cast<void>(editor_conductor_.advance(random_value));
         conductor_frame = editor_conductor_.frame;
     }
 

@@ -31,6 +31,7 @@ public:
     [[nodiscard]] ActivityFrameOutput advance(
         const ActivityFrameInput& input) override;
     [[nodiscard]] bool unload(std::string& error) override;
+    [[nodiscard]] ActivityFrameOutput render_modal(const ActivityFrameInput&) override;
 
     [[nodiscard]] bool initialized() const noexcept {
         return layout_.has_value();

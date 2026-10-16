@@ -25,6 +25,11 @@ namespace btb::full_game {
 // instruction-screen variant to use for an unknown pregame route.
 class GenericUiScreenDriver final : public FrontEndDriver {
 public:
+    [[nodiscard]] bool configure_original_menu_backdrop(
+        game_flow::State setup,const OriginalUiBitmapCatalog& table) {
+        backdrop_=original_menu_backdrop(setup,table);
+        return backdrop_.has_value();
+    }
     GenericUiScreenDriver(
         GenericUiCatalog catalog,
         front_end::Screen screen,

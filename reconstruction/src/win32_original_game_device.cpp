@@ -7,7 +7,8 @@ bool Win32OriginalGameDevice::observe(
     PhysicalFrameObservation& out,std::string& error) {
 
     if (!audio_.observe(
-            out.managed,out.any_managed_voice_playing,error)) {
+            out.managed,out.any_managed_voice_playing,
+            out.backing_track_playing,error)) {
         return false;
     }
     // The real Bink provider services decode/timing before the restored
@@ -40,15 +41,24 @@ bool Win32OriginalGameDevice::apply_sound(
 bool Win32OriginalGameDevice::draw_ordered(
     const std::vector<ResolvedDraw>& stream,std::string& error) {
 
-    if (!draw_.render_ordered(stream,error)) {
-        return false;
-    }
-    // Source-backed looping walkthrough Bink overlays belong above the
-    // original instructional background and button surfaces.
-    return bink_.render_walkthrough_overlay(error);
+    // Original video decoding happens during observe(), before GameRoot.
+    // Only the final present must overlay buffered Bink pixels; global
+    // movie intercepts skip ordered draw entirely.
+    return draw_.render_ordered(stream,error);
+}
+
+bool Win32OriginalGameDevice::print_frame(
+    const std::filesystem::path& bitmap,std::string& error) {
+    return draw_.print_frame(bitmap,error);
 }
 
 bool Win32OriginalGameDevice::present(std::string& error) {
+    // Global Bink mode 13/14 intentionally bypasses draw_ordered().
+    // Display the last real decoded frame even on those intercepted ticks.
+    // For instruction screens this overlays the source-backed UI last.
+    if (!bink_.render_walkthrough_overlay(error)) {
+        return false;
+    }
     return draw_.present(error);
 }
 

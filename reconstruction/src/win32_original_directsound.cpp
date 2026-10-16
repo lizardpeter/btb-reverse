@@ -259,6 +259,7 @@ void Win32OriginalDirectSound::reap_finished_samples() noexcept {
 bool Win32OriginalDirectSound::observe(
     ManagedSoundObservation& managed,
     bool& any_managed_voice_playing,
+    bool& backing_track_playing,
     std::string& error) {
 
     if (!sound_) {
@@ -268,6 +269,16 @@ bool Win32OriginalDirectSound::observe(
     reap_finished_samples();
     managed={};
     any_managed_voice_playing=false;
+    backing_track_playing=false;
+    if (backing_) {
+        DWORD status=0;
+        const auto hr=backing_->GetStatus(&status);
+        if (FAILED(hr)) {
+            error=hr_error("GetStatus original backing track",hr);
+            return false;
+        }
+        backing_track_playing=(status&DSBSTATUS_PLAYING)!=0;
+    }
     for (std::size_t i=0;i<slots_.size();++i) {
         auto* const buffer=slots_[i];
         if (!buffer) {

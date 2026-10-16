@@ -50,6 +50,7 @@ public:
     [[nodiscard]] const Data& data() const noexcept { return data_; }
     [[nodiscard]] RoundState state() const noexcept { return state_; }
     [[nodiscard]] BallMotion ball() const noexcept { return ball_; }
+    [[nodiscard]] int aim() const noexcept { return aim_; }
     [[nodiscard]] int difficulty() const noexcept { return difficulty_; }
     [[nodiscard]] int attempts_remaining() const noexcept {
         return attempts_remaining_;
@@ -64,7 +65,7 @@ private:
     int difficulty_{};
     RoundState state_{RoundState::Aim};
     BallMotion ball_{};
-    int aim_{};
+    int aim_{60}; // 004145F0 initializes DAT_0050ada8 to 0x3c.
     int power_{};
     int direction_{1};
     int attempts_remaining_{kRetailInitialAttempts};

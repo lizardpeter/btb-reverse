@@ -80,6 +80,7 @@ public:
     }
 
     [[nodiscard]] BandFrame advance(FrameInput input);
+    [[nodiscard]] BandFrame render_paused(int frame_delta,int random_value);
     void leave_to_play_again() noexcept;
     [[nodiscard]] std::string active_sequence_filename() const;
     void restore_saved_composition(Composition source) noexcept {
