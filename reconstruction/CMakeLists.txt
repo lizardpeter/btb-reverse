@@ -951,6 +951,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_ac_command_pass.cpp
     src/bink32_ac_unit_pass.cpp
     src/bink32_ac_outer_levels.cpp
+    src/bink32_ac_block_pixels.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1767,6 +1768,13 @@ add_executable(btb_bink32_ac_outer_levels_tests tests/bink32_ac_outer_levels_tes
 target_link_libraries(btb_bink32_ac_outer_levels_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_ac_outer_levels_tests PRIVATE)
 add_test(NAME bink32_original_AC_outer_levels COMMAND btb_bink32_ac_outer_levels_tests)
+# End-to-end subset: original AC mode 0..15 and pending-command passes
+# -> all 16 original quant matrices -> integer iDCT -> 16x16 pixels.
+add_executable(btb_bink32_ac_block_pixels_tests tests/bink32_ac_block_pixels_test.cpp)
+target_link_libraries(btb_bink32_ac_block_pixels_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_ac_block_pixels_tests PRIVATE)
+add_test(NAME bink32_original_all_modes_to_pixels COMMAND btb_bink32_ac_block_pixels_tests)
+
 
 
 
