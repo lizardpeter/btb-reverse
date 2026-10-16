@@ -70,10 +70,12 @@ struct Host {
     int pointer_x{320},pointer_y{240};
     NativeHostInput native_input{};
     bool running{};
+    bool skip_video{};
     original_win32::RetailWindowState retail_window{};
     original_active_frame::State original_frame{};
 
-    explicit Host(fs::path original_root):root(std::move(original_root)) {}
+    explicit Host(fs::path original_root,bool skip)
+        :root(std::move(original_root)),skip_video(skip) {}
 
     [[nodiscard]] static bool parse_bitmap_names(
         const fs::path& loaddata,OriginalUiBitmapCatalog& bitmaps,
@@ -204,7 +206,7 @@ struct Host {
             graphics,audio,movies);
         session=std::make_unique<NativeGameSession>(
             game,*device,OriginalAssetResolver{root},
-            std::move(startups),std::move(walkthroughs));
+            std::move(startups),std::move(walkthroughs),skip_video);
 
         std::ifstream sounds(root/"Data"/"sound"/"binklist.txt");
         if(!sounds) sounds.open(root/"loaddata"/"binklist.txt");
@@ -383,8 +385,9 @@ LRESULT CALLBACK native_window_proc(
 } // namespace
 
 int run_recompiled_native_game(
-    HINSTANCE instance,const fs::path& original_root,int show) {
-    Host host(original_root);
+    HINSTANCE instance,const fs::path& original_root,int show,
+    bool skip_video) {
+    Host host(original_root,skip_video);
     WNDCLASSEXW cls{};
     cls.cbSize=sizeof(cls);
     cls.hInstance=instance;
