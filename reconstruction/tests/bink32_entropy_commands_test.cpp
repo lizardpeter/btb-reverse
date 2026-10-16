@@ -208,6 +208,53 @@ int main(int argc,char**argv) {
         CHECK(end&&end->end_of_bundle&&end->modes.empty());
         CHECK(end->bits_consumed==10&&ended.bit_position()==10);
     }
+    {
+        // Model the actual 640x480 retail skip-only luma structure:
+        // nine compressed blocks of type zero (8x560 + 320), eight
+        // empty auxiliary bundles on the first row, and 32-bit plane
+        // alignment. This is full source-driven luma *copy* semantics.
+        Writer picture;
+        for(unsigned i=0;i<23;++i)picture.write(0,4);
+        constexpr unsigned columns=80,rows=60;
+        for(unsigned row=0;row<rows;++row) {
+            if(row%7==0) {
+                picture.write(row==56?320:560,10);
+                picture.write(1,1);picture.write(0,4);
+            }
+            if(row==0) {
+                for(auto width_bits:{10U,13U,11U,10U,10U,10U,10U,13U})
+                    picture.write(0,width_bits);
+            }
+        }
+        CHECK(picture.bits==330);
+        std::vector<std::uint8_t> video(52,0);
+        video[0]=48;
+        video.insert(video.end(),picture.bytes.begin(),picture.bytes.end());
+        video.resize(96,0); // 22 final alignment bits
+        std::vector<std::uint8_t> previous(640*480);
+        for(std::size_t i=0;i<previous.size();++i)
+            previous[i]=static_cast<std::uint8_t>(i*17U);
+        const auto copied=decode_bink_skip_only_picture_luma(
+            video,640,480,previous);
+        CHECK(copied && copied->luma==previous);
+        CHECK(copied->block_types_decoded==4800);
+        CHECK(copied->bundles_decoded==9);
+        CHECK(copied->next_plane_byte_offset==96);
+        CHECK(!decode_bink_skip_only_picture_luma(
+            video,640,480,std::span<const std::uint8_t>(previous).first(100)));
+        CHECK(!decode_bink_skip_only_picture_luma(
+            std::span<const std::uint8_t>(video).first(94),
+            640,480,previous));
+        auto corrupt=video;
+        // First auxiliary bundle length starts at bit 52*8 + 107 =
+        // byte 65 bit 3. Change count=0 to count=1, disallowing the
+        // skip-only fast path before a false result can be published.
+        constexpr std::size_t auxiliary_first_bit=52*8+92+15;
+        corrupt[auxiliary_first_bit/8] |=
+            static_cast<std::uint8_t>(1U<<(auxiliary_first_bit%8));
+        CHECK(!decode_bink_skip_only_picture_luma(
+            corrupt,640,480,previous));
+    }
     // Optional unmodified retail-movie validation. GitHub CI does not
     // contain commercial assets; pass local BIK filenames to this binary.
     for(int arg=1;arg<argc;++arg) {
