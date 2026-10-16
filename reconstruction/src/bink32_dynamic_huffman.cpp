@@ -34,8 +34,11 @@ std::optional<DynamicHuffmanTree> read_dynamic_huffman_tree(
     tree.selector=prefix->selector;
     auto& out=tree.symbol_permutation;
     if(!tree.selector) {
-        // Original 3000FD32 fills sixteen zeros.
-        out.fill(0);
+        // Selector zero is the implicit identity permutation. The
+        // 0x3000FD32 initialization of the work array is not a request
+        // to map every Huffman symbol to zero (FFmpeg read_tree, 257-260).
+        for(std::size_t i=0;i<out.size();++i)
+            out[i]=static_cast<std::uint8_t>(i);
     } else if(prefix->branch_mode==1) {
         // Original 3000FFE7..300100C2: read a 3-bit length minus one,
         // then chosen 4-bit symbols. Fill unused symbols in ascending order.
