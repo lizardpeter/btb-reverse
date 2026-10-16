@@ -56,6 +56,12 @@ int main() {
         assert(begin.actor_visible);
         assert(!begin.sound_and_hammer.empty());
         assert(begin.sound_and_hammer[0].op==mb::Op::PlayManagedSound);
+        // Verified original 0x0043B378 10.0f multiplier; hard speed 2
+        // moves 20 pixels toward a graph waypoint per physical tick.
+        begin=sm::update_pilchard_native(
+            active,hammer,source,2,{0,1,400.f,200.f,false},rand);
+        assert(active.phase==2);
+        assert(active.y==220.f);
 
         // Original Pilchard collision is strictly less than 60 px,
         // cannot steal during repair or when Bob Y >= 360.
