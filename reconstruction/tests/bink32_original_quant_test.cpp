@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <span>
+#include <utility>
 
 using namespace btb::bink32_recovered;
 #define CHECK(x) do {if(!(x)){std::fprintf(stderr,"Original quant table test line %d: %s\n",__LINE__,#x);std::abort();}}while(0)
@@ -61,5 +62,27 @@ int main() {
     CHECK(!bink_idct_original_quant(
         std::span<const std::int16_t>(coeff).first(63),0));
     CHECK(!bink_idct_original_quant(coeff,16));
+    // Original video block caller consumes a four-bit quant index.
+    // Exercise two selectors packed into one compressed byte (0xB3).
+    const std::array<std::uint8_t,1> compressed{0xb3};
+    LsbBitReader quant_bits(compressed);
+    const auto first=decode_original_quantized_block(quant_bits,coeff);
+    const auto expected3=bink_idct_original_quant(coeff,3);
+    CHECK(first&&expected3&&*first==*expected3);
+    CHECK(quant_bits.bit_position()==4);
+    const auto second=decode_original_quantized_block(quant_bits,coeff);
+    const auto expected11=bink_idct_original_quant(coeff,11);
+    CHECK(second&&expected11&&*second==*expected11);
+    CHECK(quant_bits.bit_position()==8);
+    CHECK(!decode_original_quantized_block(quant_bits,coeff));
+    CHECK(quant_bits.bit_position()==8);
+    LsbBitReader short_bits(compressed);
+    CHECK(short_bits.skip(5));
+    CHECK(!decode_original_quantized_block(short_bits,coeff));
+    CHECK(short_bits.bit_position()==5);
+    LsbBitReader invalid_input(compressed);
+    CHECK(!decode_original_quantized_block(
+        invalid_input,std::span<const std::int16_t>(coeff).first(63)));
+    CHECK(invalid_input.bit_position()==0);
     std::puts("Bink original 16 quantization tables + AC iDCT: PASS");
 }
