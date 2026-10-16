@@ -23,6 +23,7 @@ namespace btb::full_game {
  if(key>='1' && key<='9')return 0x02U+(key-'1');
  if(key=='0')return 0x0b;
  switch(key) {
+ case 0x1b:return 0x01;  // Escape / DIK_ESCAPE
  case 0x08:return 0x0e;  // Backspace
  case 0x10:case 0xa0:return 0x2a; // Shift / LShift
  case 0xa1:return 0x36;  // RShift
