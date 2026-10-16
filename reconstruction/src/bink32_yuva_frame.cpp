@@ -1,4 +1,5 @@
 #include "btb/bink32_yuva_frame.hpp"
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -76,5 +77,51 @@ std::optional<BinkNativeYuVaFrame> decode_bink_sjpi_yuva_frame(
     store(BinkYuvaPlane::U,*u);
     output.video_bytes_consumed=u->next_plane_byte_offset;
     return output;
+}
+
+std::optional<BinkFrameParity> compare_bink_yuva_reference(
+    const BinkNativeYuVaFrame& native,
+    std::span<const std::uint8_t> packed_yuva420p) noexcept {
+    constexpr std::size_t limit=64U*1024U*1024U;
+    if(!native.width || !native.height ||
+       native.width>limit/native.height ||
+       (native.width%2) || (native.height%2))
+        return std::nullopt;
+    const auto full=native.width*native.height;
+    const auto quarter=full/4;
+    if(packed_yuva420p.size()!=2*full+2*quarter)
+        return std::nullopt;
+    BinkFrameParity result{};
+    std::size_t start=0;
+    for(std::size_t plane=0;plane<4;++plane) {
+        const auto expected=(plane==1 || plane==2)?quarter:full;
+        const auto& actual=native.planes[plane];
+        if(actual.size()!=expected)
+            return std::nullopt;
+        auto& stats=result.planes[plane];
+        stats.compared_bytes=expected;
+        stats.first_different_index=expected;
+        for(std::size_t i=0;i<expected;++i) {
+            const auto reference=packed_yuva420p[start+i];
+            const auto value=actual[i];
+            if(value==reference)continue;
+            if(stats.different_bytes==0) {
+                stats.first_different_index=i;
+                stats.first_native=value;
+                stats.first_reference=reference;
+            }
+            ++stats.different_bytes;
+            const auto distance=std::max(value,reference)-
+                std::min(value,reference);
+            stats.maximum_absolute_difference=
+                std::max<std::uint8_t>(
+                    stats.maximum_absolute_difference,distance);
+            stats.sum_absolute_differences+=distance;
+        }
+        result.total_different_bytes+=stats.different_bytes;
+        start+=expected;
+    }
+    result.identical=result.total_different_bytes==0;
+    return result;
 }
 } // namespace btb::bink32_recovered
