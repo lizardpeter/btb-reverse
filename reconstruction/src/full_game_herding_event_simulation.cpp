@@ -77,6 +77,18 @@ bool apply_confirmed_event(
                   "animal-first four-corner contact";
             return false;
         }
+        // The original reaction branch 0x417A52..0x417AF7 can
+        // only emit one of these five sound IDs. A caller-supplied
+        // unrelated ID must not bypass the recovered event contract.
+        if(event.source_verified_sound_id>=0 &&
+           event.source_verified_sound_id!=0x250 &&
+           event.source_verified_sound_id!=0x251 &&
+           event.source_verified_sound_id!=0x264 &&
+           event.source_verified_sound_id!=0x266 &&
+           event.source_verified_sound_id!=0x267) {
+            error="Scruffty sound selection is outside retail reaction set";
+            return false;
+        }
         step=staged.scruffty_distraction(
             event.entity_index,event.random_mod_400,true);
         break;
