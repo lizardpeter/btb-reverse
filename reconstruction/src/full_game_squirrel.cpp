@@ -153,6 +153,27 @@ ActivityFrameOutput SquirrelDriver::draw() const {
         squirrel::kLoftyArmSwingX,squirrel::kLoftyArmSwingY,
         Rect{0,0,squirrel::kArmSwingFrameWidth,
                   squirrel::kArmSwingFrameHeight});
+    // 0x004267B0 renders the four static connector pieces using source
+    // frame IDs 18/4/17. Unlike conveyor piece IDs these indices are
+    // already direct all.bmp sprite-sheet cells, not transposed IDs.
+    for(std::size_t i=0;i<squirrel::kConnectorDestinations.size();++i) {
+        const int connector=connectors_[
+            static_cast<std::size_t>(level_)][i];
+        if(connector<0||connector>=3) {
+            out.fatal_error="retail Squirrel connector outside 0..2";
+            return out;
+        }
+        const int id=squirrel::kConnectorPieceIds[
+            static_cast<std::size_t>(connector)];
+        const auto& dest=squirrel::kConnectorDestinations[i];
+        sprite(out,"all.bmp",dest.x,dest.y,
+            Rect{id*89,0,(id+1)*89,133});
+    }
+    if(level_==difficulty_) {
+        if(const auto nut=squirrel::nut_pile_destination(
+                connectors_[static_cast<std::size_t>(level_)][3]))
+            sprite(out,"nutpile.bmp",nut->x,nut->y);
+    }
     for(int i=0;i<placed_count_;++i) {
         const int id=placed_piece_ids_[
             static_cast<std::size_t>(level_)*4+
