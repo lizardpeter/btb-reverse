@@ -8,6 +8,7 @@
 #include "btb/herding_source_follower_approach.hpp"
 #include "btb/herding_source_registration_point.hpp"
 #include "btb/herding_source_home_motion.hpp"
+#include "btb/herding_source_delivered_animation.hpp"
 
 #include <algorithm>
 #include <array>
@@ -255,6 +256,18 @@ bool NativePicklesMotionSource::advance(
                 before=recovery->moved;
             }
 
+            if(before.behavior_state==99) {
+                const auto animation=
+                    herding::original_herding_delivered_animal_animation(
+                        before);
+                if(!animation) {
+                    error="original delivered animal sprite update invalid";
+                    return false;
+                }
+                observed.motion_records[i]=animation->updated;
+                observed.delivered_animation_evidence.push_back({i,before});
+                continue;
+            }
             if(before.behavior_state==1) {
                 // Original state-one dispatch allocates route 10+N on
                 // a later update than the <30 tracked-point arrival.
