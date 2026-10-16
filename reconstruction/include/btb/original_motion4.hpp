@@ -39,6 +39,7 @@ struct Npc {
  // The package slot stores a 0..3 index; the retail pathfinder uses the
  // separately loaded maze_nodes.txt box-location NODE ID for that index.
  std::array<std::array<I32,4>,3> package_target_nodes{};
+ bool has_box_target_nodes{};
  std::vector<I32> path{};
 };
 struct HerdAnimal {
