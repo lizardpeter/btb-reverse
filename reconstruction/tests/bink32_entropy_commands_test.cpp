@@ -269,6 +269,8 @@ int main(int argc,char**argv) {
         const auto index=parse_container_index(movie);
         CHECK(index);
         std::uint64_t frames=0,values=0,zero_fill=0,complete_skip_luma=0;
+        std::uint64_t complete_first_bundle_sets=0,first_row_color_values=0;
+        std::uint64_t first_row_motion_values=0,first_row_pattern_values=0;
         std::vector<std::uint8_t> previous(
             std::size_t(index->header.width)*index->header.height,0x7d);
         for(std::uint32_t i=1;i<=index->header.frame_count;++i) {
@@ -281,6 +283,17 @@ int main(int argc,char**argv) {
             CHECK(decoded->next_picture_bit_offset<=frame->video.size()*8);
             ++frames;
             values+=decoded->first_bundle.modes.size();
+            const auto all_bundles=decode_first_bink_picture_bundle_set(
+                frame->video,index->header.width,index->header.height);
+            if(all_bundles) {
+                ++complete_first_bundle_sets;
+                first_row_color_values+=all_bundles->colors.values.size();
+                first_row_motion_values+=all_bundles->motion_x.values.size()+
+                    all_bundles->motion_y.values.size();
+                first_row_pattern_values+=all_bundles->patterns.values.size();
+                CHECK(all_bundles->next_picture_bit_offset<=
+                      frame->video.size()*8);
+            }
             const auto skip=decode_bink_skip_only_picture_luma(
                 frame->video,index->header.width,index->header.height,
                 previous);
@@ -304,6 +317,11 @@ int main(int argc,char**argv) {
             static_cast<unsigned long long>(values),
             static_cast<unsigned long long>(zero_fill),
             static_cast<unsigned long long>(complete_skip_luma));
+        std::printf("Retail nine-bundle row probes: %llu frames, %llu colors, %llu motion values, %llu pattern bytes\\n",
+            static_cast<unsigned long long>(complete_first_bundle_sets),
+            static_cast<unsigned long long>(first_row_color_values),
+            static_cast<unsigned long long>(first_row_motion_values),
+            static_cast<unsigned long long>(first_row_pattern_values));
     }
     {
         // Original motion bundle: length, one constant flag, one signed
