@@ -956,6 +956,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_block_modes.cpp
     src/bink32_video_planes.cpp
     src/bink32_simple_picture.cpp
+    src/bink32_yuva_frame.cpp
     src/bink32_residue.cpp
     src/bink32_dct_coefficients.cpp
     src/bink32_dct_pixels.cpp
@@ -1807,6 +1808,13 @@ add_executable(btb_bink32_simple_picture_tests tests/bink32_simple_picture_test.
 target_link_libraries(btb_bink32_simple_picture_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_simple_picture_tests PRIVATE)
 add_test(NAME bink32_compressed_simple_picture_luma COMMAND btb_bink32_simple_picture_tests)
+
+# Native SJPi original compressed frame assembly in A/Y/V/U order,
+# decoded canonical Y/U/V/A, preserving complete reference history.
+add_executable(btb_bink32_yuva_frame_tests tests/bink32_yuva_frame_test.cpp)
+target_link_libraries(btb_bink32_yuva_frame_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_yuva_frame_tests PRIVATE)
+add_test(NAME bink32_original_sjpi_yuva_frame COMMAND btb_bink32_yuva_frame_tests)
 
 # Original Bink1 sparse signed residue bitplane reader.
 add_executable(btb_bink32_residue_tests tests/bink32_residue_test.cpp)
