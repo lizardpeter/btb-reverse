@@ -1156,6 +1156,16 @@ add_test(NAME original_crt10 COMMAND btb_original_crt10_tests)
 
 # Previously orphaned source-native-session tests are now compiled
 # and run on every supported architecture, with checks active in Release.
+# Native source Dinosaur retail asset/drag-drop/progress regression.
+# Test only; original proprietary bitmaps are not committed to the repo.
+add_executable(btb_full_game_dino_native_tests
+    tests/full_game_dino_native_test.cpp)
+target_link_libraries(btb_full_game_dino_native_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_full_game_dino_native_tests PRIVATE)
+add_test(NAME full_game_dino_native
+    COMMAND btb_full_game_dino_native_tests)
+
 add_executable(btb_full_game_native_session_source_tests
     tests/full_game_native_session_source_test.cpp)
 target_link_libraries(btb_full_game_native_session_source_tests PRIVATE
