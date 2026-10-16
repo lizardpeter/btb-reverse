@@ -1741,6 +1741,12 @@ add_executable(btb_bink32_ac_group4_tests tests/bink32_ac_group4_test.cpp)
 target_link_libraries(btb_bink32_ac_group4_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_ac_group4_tests PRIVATE)
 add_test(NAME bink32_original_AC_group4 COMMAND btb_bink32_ac_group4_tests)
+# Deterministic 50k-input malformed bitstream rollback and cursor invariants.
+add_executable(btb_bink32_ac_group4_fuzz_tests tests/bink32_ac_group4_fuzz_test.cpp)
+target_link_libraries(btb_bink32_ac_group4_fuzz_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_ac_group4_fuzz_tests PRIVATE)
+add_test(NAME bink32_original_AC_50k_invariants COMMAND btb_bink32_ac_group4_fuzz_tests)
+
 
 
 
