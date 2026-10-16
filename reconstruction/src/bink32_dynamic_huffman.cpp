@@ -127,4 +127,31 @@ std::optional<VideoEntropyPrologue> parse_video_entropy_prologue(
     return out;
 }
 
+std::optional<BinkAlphaPictureEntropy>
+parse_alpha_picture_entropy_prologue(
+    std::span<const std::uint8_t> video_packet) noexcept {
+    // SJPi v'i' + alpha: the first DWORD corresponds to the leading
+    // alpha section. It is an aligned byte count to the next 32-bit
+    // picture-control word for the examined 2002 BTB retail video.
+    if(video_packet.size()<8)return std::nullopt;
+    const std::uint32_t alpha_bytes=
+        std::uint32_t(video_packet[0]) |
+        (std::uint32_t(video_packet[1])<<8) |
+        (std::uint32_t(video_packet[2])<<16) |
+        (std::uint32_t(video_packet[3])<<24);
+    if(alpha_bytes<8 || (alpha_bytes&3U)!=0 ||
+       alpha_bytes>video_packet.size()-4)
+        return std::nullopt;
+    const auto base=static_cast<std::size_t>(alpha_bytes);
+    const auto control=
+        std::uint32_t(video_packet[base]) |
+        (std::uint32_t(video_packet[base+1])<<8) |
+        (std::uint32_t(video_packet[base+2])<<16) |
+        (std::uint32_t(video_packet[base+3])<<24);
+    const auto picture=parse_video_entropy_prologue(
+        video_packet,base+4);
+    if(!picture)return std::nullopt;
+    return BinkAlphaPictureEntropy{base,control,*picture};
+}
+
 } // namespace btb::bink32_recovered
