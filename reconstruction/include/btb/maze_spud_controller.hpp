@@ -79,6 +79,10 @@ struct SpudSpawnWait {
 struct SpudPackageSlot {
     std::int32_t node_id{-1};
     std::int32_t status{};
+    // Original 20-byte package records contain two dropped-box coordinate
+    // fields at +12/+16, written by Spud phase 5 on player collision.
+    std::int32_t dropped_x{};
+    std::int32_t dropped_y{};
 };
 
 inline constexpr std::int32_t kSpudAvailablePackageStatus = 1;
