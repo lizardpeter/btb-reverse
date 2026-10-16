@@ -40,11 +40,11 @@ int main() {
     frame=fresh.advance(typed);
     assert(frame.kind==fg::FrameKind::FrontEndUpdated);
     for(const auto& draw:frame.effects.draws)
-        assert(draw.source_asset!="Data/ui/blue_name_boxed_font.bmp");
+        assert(draw.source_asset!="Data/ui/blue name boxed font.bmp");
     frame=fresh.advance({});
     bool has_glyph=false;
     for(const auto& draw:frame.effects.draws) {
-        if(draw.source_asset=="Data/ui/blue_name_boxed_font.bmp") {
+        if(draw.source_asset=="Data/ui/blue name boxed font.bmp") {
             has_glyph=true;
             assert(draw.x==318 && draw.y==200 && draw.source_rectangle->bottom==11);
         }
