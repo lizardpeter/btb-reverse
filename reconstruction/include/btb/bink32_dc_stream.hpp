@@ -99,4 +99,20 @@ decode_original_bink_dc_context_packet(
 decode_original_bink_dc_context_packet(
     LsbBitReader& source,const EntropyPlaneSetup& context,
     std::size_t maximum_output_words=1U<<20);
+// Batch handoff: one compressed original DC context record produces its
+// signed WORD stream, then every WORD is submitted to the existing
+// original AC/quant/iDCT decoder. This is an INTRA block-subset bridge,
+// not the 0x3000E400 block scheduler or a complete retail frame.
+// Both independent compressed cursors commit only if every block succeeds.
+struct BinkDcContextBlocks {
+    OriginalBinkDcPlane dc_plane{};
+    std::vector<BinkDcAcBlock> blocks{};
+    std::size_t ac_bits_consumed{};
+};
+[[nodiscard]] std::optional<BinkDcContextBlocks>
+decode_original_bink_dc_context_blocks(
+    LsbBitReader& dc_bits,LsbBitReader& ac_bits,
+    const EntropyPlaneSetup& context,
+    std::size_t maximum_blocks=4096);
+
 } // namespace btb::bink32_recovered
