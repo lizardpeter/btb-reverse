@@ -817,3 +817,71 @@ original proprietary binaries are committed to the repository.
 
 Source reference: FFmpeg libavcodec/bink.c, `read_block_types`,
 `read_bundle`, `bink_decode_plane` row-by-row bundle refill.
+
+
+## Moving-frame entropy corrections and all nine bundle readers (2026-10-16)
+
+Two critical source cross-checks against the independent FFmpeg Bink1
+decoder corrected the previous synthetic-only code:
+
+1. Selector zero in the 2002 Bink dynamic-tree header denotes the
+   **identity symbol permutation**, not a sixteen-entry map to zero.
+   The earlier `read_dynamic_huffman_tree` implementation incorrectly
+   forced every decoded symbol to zero. That masked nonzero block modes.
+   A new test verifies a genuine four-bit fixed-table symbol survives
+   selector zero unchanged.
+2. The original block-type bundle decoder reads **one immediate/Huffman
+   selection bit for the entire count-prefixed bundle**. The earlier
+   `decode_bink_block_mode_values` path wrongly expected one selection
+   bit per symbol. It now processes one branch bit, a uniform 4-bit
+   fill, or a Huffman sequence with 4/8/12/32-length repeats.
+
+Added bounded, transactional native decoders for the other original
+Bink1 bundle classes:
+
+- `read_bink_signed_motion_bundle`: original per-bundle count,
+  uniform or Huffman magnitudes, with a conditional sign bit only for
+  nonzero motion. Applies to both X and Y sources.
+- `read_bink_pattern_bundle`: one count and two Huffman nibbles
+  (low first) per pattern byte.
+- `read_bink_run_bundle`: one count with a uniform four-bit run value
+  or one Huffman nibble per entry.
+- `read_bink_color_bundle`: 16 original adaptive high-nibble trees
+  selected by the previous high nibble, plus its separate low-nibble
+  tree. Preserves high-nibble state for subsequent refills, and
+  supports the older pre-'i' signed/recentered color interpretation.
+  SJPi stores the raw color byte, without that older recentering.
+
+`decode_first_bink_picture_bundle_set` now parses the alpha-aware
+picture header and **the first refill of all nine source bundles**
+in recovered order: block types, scaled subtypes, colors, patterns,
+motion X, motion Y, intra DC, inter DC, and run values. It exposes
+the exact next compressed bit position and all decoded value pools.
+Synthetic C++26 tests exercise nontrivial colors, signed motion,
+patterns, fill blocks, uniform runs, both empty DC contexts, and
+truncation rollback; separate tests cover individual malformed,
+bounded and end-marker paths.
+
+An independent reference decoder run on the unmodified retail
+`designstartup.bik`, forced through the Bink demuxer, confirms
+640x480 `yuva420p` video. The first eleven frames have identical
+gray-frame MD5 `90aeded9922cf8946ea7858635493724` (0-based frames
+0..10), whereas frame 12 changes. This independently supports
+the earlier skip-only compressed-luma finding, but does not prove
+bit-identical native output because the native first independently
+decoded picture is still missing.
+
+**Still missing:** scheduling all successive refills and matching
+bundle values to 8x8/16x16 commands, the real frame 1 intra reconstruction,
+complete Y/U/V/alpha assembly, original video-to-buffer color conversion,
+and Bink audio decode. The legacy `expand_bink_value_commands` helper
+remains as a limited artificial per-token command test; it is **not**
+used for original block-type bundle decoding. No claim of complete
+retail frame playback, original DLL differential parity or DLL-free
+movie rendering is justified yet.
+
+Reference implementation:
+https://ffmpeg.org/doxygen/8.0/libavcodec_2bink_8c_source.html
+(`read_tree`, `read_motion_values`, `read_block_types`,
+`read_patterns`, `read_colors`, `read_dcs`,
+`bink_decode_plane`).
