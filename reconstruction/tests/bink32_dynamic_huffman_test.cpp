@@ -34,7 +34,13 @@ int main(int argc,char**argv) {
         const auto tree=read_dynamic_huffman_tree(r);
         CHECK(tree&&tree->selector==0&&tree->consumed_bits==4);
         CHECK(r.bit_position()==4);
-        for(const auto x:tree->symbol_permutation)CHECK(x==0);
+        for(unsigned i=0;i<16;++i)CHECK(tree->symbol_permutation[i]==i);
+        // An unconfigured tree does not erase the original fixed
+        // Huffman alphabet; 4-bit table zero code 5 must stay 5.
+        const std::array<std::uint8_t,1> encoded{5};
+        LsbBitReader symbols(encoded);
+        const auto five=read_dynamic_huffman_symbol(symbols,*tree);
+        CHECK(five && five->value==5 && symbols.bit_position()==4);
     }
     for(unsigned submode=0;submode<4;++submode) {
         Bits b;b.put(1,4);b.put(0,1);b.put(submode,2);
@@ -101,7 +107,7 @@ int main(int argc,char**argv) {
         CHECK(set&&set->consumed_bits==92&&reader.bit_position()==92);
         for(const auto& tree:set->trees) {
             CHECK(tree.selector==0);
-            for(const auto symbol:tree.symbol_permutation)CHECK(symbol==0);
+            for(unsigned s=0;s<16;++s)CHECK(tree.symbol_permutation[s]==s);
         }
         auto truncated=encoded.reader();
         CHECK(truncated.skip(8));
