@@ -16,15 +16,35 @@ namespace {
 // fails loudly: absent world simulation must never masquerade as success.
 class MazePlayerPort final : public original_motion4::IO {
 public:
-    MazePlayerPort(const ActivityFrameInput& in,ActivityFrameOutput& output)
-        :input_(in),output_(output) {}
+    MazePlayerPort(const ActivityFrameInput& in,ActivityFrameOutput& output,
+                   original_motion4::Player& player,
+                   maze::InputModeState& mode,
+                   maze::DirectionalDebounce& debounce,
+                   bool& pointer_sampled)
+        :input_(in),output_(output),player_(player),mode_(mode),
+         debounce_(debounce),pointer_sampled_(pointer_sampled) {}
 
     original_motion4::Input player_input(bool spud_maze) override {
         if(spud_maze)throw std::logic_error("Spud Maze input in Maze driver");
-        const auto bits=input_.directional_input_bits;
+        // Original 0x0041AF60 starts in keyboard mode. The first native
+        // sample captures the source cursor instead of spuriously
+        // interpreting the default (0,0) as a user mouse move.
+        if(!pointer_sampled_) {
+            mode_.remembered_mouse_x=input_.pointer_x;
+            mode_.remembered_mouse_y=input_.pointer_y;
+            pointer_sampled_=true;
+        }
+        const auto resolved=maze::compute_player_input_direction(
+            mode_,debounce_,{
+                player_.x,player_.y,
+                input_.pointer_x,input_.pointer_y,
+                input_.directional_input_bits
+            });
+        // Capture logic in 0x0041B140 uses the entry mode for THIS frame.
+        // Mode switches become active for the following call only.
+        player_.mouse_mode=resolved.path==maze::InputPath::Mouse;
         return {
-            (bits&0x02U)?1:(bits&0x01U)?-1:0,
-            (bits&0x08U)?1:(bits&0x04U)?-1:0,
+            resolved.intent.x,resolved.intent.y,
             input_.pointer_button_held,input_.click_pulse
         };
     }
@@ -75,6 +95,10 @@ public:
 private:
     const ActivityFrameInput& input_;
     ActivityFrameOutput& output_;
+    original_motion4::Player& player_;
+    maze::InputModeState& mode_;
+    maze::DirectionalDebounce& debounce_;
+    bool& pointer_sampled_;
 };
 }
 
@@ -141,6 +165,10 @@ bool MazeDriver::initialize(int player_index,std::string& error) {
         });
         player_=std::move(p);
         boxes_=std::move(allocated);
+        input_mode_={};
+        input_mode_.mouse_mode=false; // 0x00512124 initial 0
+        mouse_debounce_={};
+        pointer_sampled_=false;
         remaining_seconds_=
             parsed->timer_by_difficulty[static_cast<std::size_t>(difficulty_)];
         data_=std::move(parsed);
@@ -281,7 +309,8 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
         return out;
     }
     try {
-        MazePlayerPort io(input,out);
+        MazePlayerPort io(input,out,player_,input_mode_,
+                          mouse_debounce_,pointer_sampled_);
         original_motion4::update_maze_player(player_,io);
     } catch(const std::exception& e) {
         out.fatal_error=std::string("original Maze player motion: ")+e.what();
@@ -298,6 +327,9 @@ bool MazeDriver::unload(std::string& error) {
     data_.reset();
     player_={};
     boxes_={};
+    input_mode_={};
+    mouse_debounce_={};
+    pointer_sampled_=false;
     player_index_=-1;
     timer_started_=false;
     intro_done_=false;
