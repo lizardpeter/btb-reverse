@@ -145,7 +145,7 @@ block mode scheduler remain missing.
 ## General 8x8 iDCT for nonzero AC coefficients (2026-10-15)
 
 The source-derived x86 translation in
-\`reconstruction/src/bink32_full_idct.cpp\` now implements
+`reconstruction/src/bink32_full_idct.cpp` now implements
 **the entire 0x30011350..0x30011715 integer inverse DCT path**, rather
 than only its DC-only fast path. This includes:
 
@@ -153,8 +153,8 @@ than only its DC-only fast path. This includes:
   signed arithmetic right shift by 11, and the original DC-only column
   shortcut when the other seven original coefficients are zero.
 - Original 8-point even/odd butterflies with signed fixed-point
-  constants \`0xB50\`, \`0x8A9\`, \`0xEC8\`, \`-0x14E8\`.
-- Second-pass horizontal butterfly with wrapping \`(+127) >> 8\`
+  constants `0xB50`, `0x8A9`, `0xEC8`, `-0x14E8`.
+- Second-pass horizontal butterfly with wrapping `(+127) >> 8`
   conversion to unsigned 8-bit output.
 - Actual x86 2x horizontal and vertical pixel replication, producing
   **16x16 bytes from one 8x8 coefficient block**, visible in duplicated
@@ -162,7 +162,7 @@ than only its DC-only fast path. This includes:
 - Explicit modulo-2^32 arithmetic for ADD/SUB/IMUL to avoid C++ signed
   overflow undefined behavior; exact input-length preflight.
 
-The standalone \`bink32_original_general_idct\` regression includes
+The standalone `bink32_original_general_idct` regression includes
 DC-only compatibility, vertical/horizontal nonzero AC, arbitrary 64-
 coefficient mixed blocks, independently computed output hashes, and
 all four 2x2 output-replica positions. GCC and Clang local builds passed
