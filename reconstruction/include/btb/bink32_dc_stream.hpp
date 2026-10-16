@@ -74,4 +74,22 @@ struct OriginalBinkDcPlane {
 decode_original_bink_dc_delta_plane(
     LsbBitReader& source,std::int16_t previous_dc,
     std::size_t sample_count);
+// Original 0x30010BF0: decode a complete DC context record from
+// its bitstream when the caller supplies the two *original context*
+// bit widths (both computed by 0x3000FC00):
+// - count_width: first variable-count field (context +0x28).
+// - value_width: first sample's unsigned width (context +0x08).
+// - signed_values: if context +0x0C != 0, the first value uses
+//   (value_width-1) magnitude bits and an optional sign bit;
+//   otherwise it uses value_width bits, unsigned.
+// A count of zero encodes no samples. For count>0 the first value
+// is emitted as signed WORD, followed by the recovered 8-sample
+// delta groups for count-1 entries. The previous sample need no
+// longer be invented or externally supplied.
+// Original 0x3000FC00 context initialization and the actual frame
+// block traversal must still be connected to this helper.
+[[nodiscard]] std::optional<OriginalBinkDcPlane>
+decode_original_bink_dc_context_packet(
+    LsbBitReader& source,unsigned count_width,unsigned value_width,
+    bool signed_values,std::size_t maximum_output_words=1U<<20);
 } // namespace btb::bink32_recovered
