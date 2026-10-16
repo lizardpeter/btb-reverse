@@ -80,4 +80,25 @@ std::optional<std::uint8_t> read_bink_signed_sample(
     bits=probe;
     return sample;
 }
+std::optional<DecodedBinkBlockModes> decode_bink_block_mode_values(
+    LsbBitReader& compressed,const DynamicHuffmanTree& tree,
+    std::size_t count,std::uint8_t previous_mode) {
+    if(!count || count>(1U<<20) || previous_mode>9)
+        return std::nullopt;
+    auto probe=compressed;
+    DecodedBinkBlockModes decoded{};
+    decoded.values.resize(count);
+    const auto r=expand_bink_value_commands(
+        probe,tree,decoded.values,previous_mode);
+    if(!r)return std::nullopt;
+    // The original 4-bit command alphabet can emit literal 10/11
+    // although those are not valid standard Bink1 pixel block types.
+    if(std::any_of(decoded.values.begin(),decoded.values.end(),
+        [](std::uint8_t v){return v>9;}))
+        return std::nullopt;
+    decoded.statistics=*r;
+    compressed=probe;
+    return decoded;
+}
+
 } // namespace btb::bink32_recovered
