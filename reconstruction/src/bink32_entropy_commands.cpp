@@ -162,4 +162,76 @@ decode_first_bink_picture_block_types(
     return output;
 }
 
+std::optional<BinkSkipLumaFrame>
+decode_bink_skip_only_picture_luma(
+    std::span<const std::uint8_t> video_packet,
+    std::size_t width,std::size_t height,
+    std::span<const std::uint8_t> previous_luma) {
+    // A deliberately narrow retail-decodable subset. Avoid claiming
+    // support for other block modes or bundle-value substreams.
+    constexpr std::size_t kMaximumPlaneBytes=64U*1024U*1024U;
+    if(!width || !height || width>16384 || height>16384 ||
+       width%8 || height%8 || width>kMaximumPlaneBytes/height ||
+       previous_luma.size()!=width*height)
+        return std::nullopt;
+    const auto prologue=parse_alpha_picture_entropy_prologue(video_packet);
+    if(!prologue)return std::nullopt;
+    const auto columns=width/8,rows=height/8;
+    LsbBitReader bits(video_packet.subspan(
+        prologue->picture.initial_byte_offset));
+    if(!bits.skip(prologue->picture.trees.consumed_bits))
+        return std::nullopt;
+    const auto count_width=[&](std::uint32_t multiplier,
+                               std::size_t context_width) {
+        return init_entropy_plane(
+            0,0x200U,static_cast<std::uint32_t>(context_width),
+            4,multiplier,false).table_bit_width;
+    };
+    // Original first-row read order from 0x3000E400:
+    // subordinate modes, color, pattern, motion X/Y,
+    // intra/inter DC, then run. Every one must be empty for
+    // this skip-only specialization.
+    const std::array<std::uint32_t,8> other_widths{
+        count_width(1,width/2),count_width(64,width),
+        count_width(8,width),count_width(1,width),
+        count_width(1,width),count_width(1,width),
+        count_width(1,width),count_width(48,width)
+    };
+    std::size_t remaining=0,decoded=0,bundles=0;
+    for(std::size_t row=0;row<rows;++row) {
+        if(!remaining) {
+            const auto next=read_bink_block_type_bundle(
+                bits,prologue->picture.trees.trees[0],width,
+                columns*rows-decoded);
+            if(!next || next->end_of_bundle || next->modes.empty() ||
+               next->modes.size()%columns!=0 ||
+               !std::all_of(next->modes.begin(),next->modes.end(),
+                            [](std::uint8_t x){return x==0;}))
+                return std::nullopt;
+            remaining=next->modes.size();
+            ++bundles;
+        }
+        if(row==0) {
+            for(const auto width_bits:other_widths) {
+                const auto bundle_count=bits.read(width_bits);
+                if(!bundle_count || *bundle_count!=0)
+                    return std::nullopt;
+            }
+        }
+        if(remaining<columns)return std::nullopt;
+        remaining-=columns;
+        decoded+=columns;
+    }
+    if(remaining || decoded!=columns*rows || !bits.align(4))
+        return std::nullopt;
+    BinkSkipLumaFrame result{};
+    result.luma.assign(previous_luma.begin(),previous_luma.end());
+    result.block_types_decoded=decoded;
+    result.bundles_decoded=bundles;
+    result.next_plane_byte_offset=
+        prologue->picture.initial_byte_offset+
+        bits.bit_position()/8;
+    return result;
+}
+
 } // namespace btb::bink32_recovered
