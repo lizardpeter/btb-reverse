@@ -1,6 +1,8 @@
 #include "btb/bink32_simple_picture.hpp"
 #include "btb/bink32_run_scan.hpp"
 #include "btb/bink32_residue.hpp"
+#include "btb/bink32_dct_coefficients.hpp"
+#include "btb/bink32_original_quant.hpp"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -31,6 +33,23 @@ template<class T> struct SourcePool {
         return values[cursor++];
     }
 };
+// The Bink1 8x8 integer IDCT has an exact DC-only fast path:
+// quantize its DC word, then each of the eight identical row results
+// uses the decoder's (value + 127) >> 8 rounding operation.
+// The original 2002 DLL quant tables' DC column matches Bink1
+// intra/inter quant tables at all 16 selectors. AC-bearing DCT blocks
+// must use the full separate 8x8 transform and are NOT accepted here.
+[[nodiscard]] std::optional<std::uint8_t>
+bink_zero_ac_idct_sample(std::int16_t dc,std::uint8_t selector) noexcept {
+    const auto quant=original_quant_matrix(selector);
+    if(!quant)return std::nullopt;
+    const auto product=static_cast<std::uint32_t>(
+        static_cast<std::int64_t>(dc)*static_cast<std::int64_t>((*quant)->at(0)));
+    const auto scaled=std::bit_cast<std::int32_t>(product)>>11;
+    const auto rounded=std::bit_cast<std::int32_t>(
+        std::bit_cast<std::uint32_t>(scaled)+127U)>>8;
+    return static_cast<std::uint8_t>(rounded);
+}
 std::vector<std::int16_t> dc_words(const OriginalBinkDcPlane& plane) {
     std::vector<std::int16_t> words;
     words.reserve(plane.signed_words_le.size()/2);
@@ -180,6 +199,17 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
                     }
                     return true;
                 }
+                if(pixels==BinkBlockMode::Intra) {
+                    const auto dc=intra_dc.take();
+                    if(!dc)return false;
+                    const auto dct=decode_bink_dct_coefficients(bits,*dc);
+                    if(!dct || dct->changed_count!=0)return false;
+                    const auto value=bink_zero_ac_idct_sample(
+                        *dc,dct->quant_selector);
+                    if(!value)return false;
+                    cmd.samples.fill(*value);
+                    return true;
+                }
                 if(pixels==BinkBlockMode::Run) {
                     // Original Bink1: a four-bit pattern selects one
                     // of sixteen exact 64-coordinate scan orders.
@@ -278,6 +308,24 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
                 }
                 break;
             }
+            case BinkBlockMode::Intra:
+                if(!populate_pixels(mode))return std::nullopt;
+                break;
+            case BinkBlockMode::Inter: {
+                const auto mx=motion_x.take();
+                const auto my=motion_y.take();
+                const auto dc=inter_dc.take();
+                if(!mx || !my || !dc)return std::nullopt;
+                const auto dct=decode_bink_dct_coefficients(bits,*dc);
+                if(!dct || dct->changed_count!=0)return std::nullopt;
+                const auto value=bink_zero_ac_idct_sample(
+                    *dc,dct->quant_selector);
+                if(!value)return std::nullopt;
+                cmd.motion_x=*mx;
+                cmd.motion_y=*my;
+                cmd.residuals.fill(std::bit_cast<std::int8_t>(*value));
+                break;
+            }
             case BinkBlockMode::Fill:
             case BinkBlockMode::Pattern:
             case BinkBlockMode::Run:
@@ -285,8 +333,8 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
                 if(!populate_pixels(mode))return std::nullopt;
                 break;
             default:
-                // DCT intra/inter require original quantized transform
-                // coupling before their reconstructed pixels are safe.
+                // AC-bearing DCT still requires the verified 8x8
+                // inverse transform and coefficient quantization.
                 return std::nullopt;
             }
             ++col;
