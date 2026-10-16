@@ -943,6 +943,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_entropy_commands.cpp
     src/bink32_signed_coefficients.cpp
     src/bink32_pixel_reconstruction.cpp
+    src/bink32_inverse_transform.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1711,6 +1712,12 @@ add_executable(btb_bink32_pixel_reconstruction_tests tests/bink32_pixel_reconstr
 target_link_libraries(btb_bink32_pixel_reconstruction_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_pixel_reconstruction_tests PRIVATE)
 add_test(NAME bink32_original_pixel_residual COMMAND btb_bink32_pixel_reconstruction_tests)
+# Bink32 original 0x300113CE partial 8x8 IDCT (DC-only column fast path).
+add_executable(btb_bink32_inverse_transform_tests tests/bink32_inverse_transform_test.cpp)
+target_link_libraries(btb_bink32_inverse_transform_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_inverse_transform_tests PRIVATE)
+add_test(NAME bink32_original_idct_dc_only COMMAND btb_bink32_inverse_transform_tests)
+
 
 
 
