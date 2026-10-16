@@ -220,7 +220,9 @@ END
     assert(pickup.effects.draws[2].source_asset==
            "Data\\SubGameMaze\\player.bmp");
     assert(pickup.effects.draws[2].source_rectangle);
-    assert(pickup.effects.draws[2].source_rectangle->top==3*128);
+    assert(pickup.effects.draws[2].source_rectangle->left==3*128);
+    assert(pickup.effects.draws[2].source_rectangle->top==
+           actual->player()->facing*128);
     assert(pickup.effects.progress_writes.empty());
     for(int ticks=0;ticks<81;++ticks) {
         pickup=pickup_game.advance({
