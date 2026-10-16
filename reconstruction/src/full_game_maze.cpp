@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <iterator>
 #include <stdexcept>
@@ -132,7 +133,14 @@ bool MazeDriver::initialize(int player_index,std::string& error) {
         p.mouse_mode=false;
         for(std::size_t i=0;i<3;++i)
             p.graphs[i]=parsed->screens[i];
+        // Source 0x0041A730 samples original CRT rand()%4 repeatedly for
+        // each screen until every active package has a unique location.
+        // The original executable uses the CRT's live PRNG state.
+        auto allocated=maze::allocate_source_boxes(difficulty_,[] {
+            return static_cast<unsigned>(std::rand());
+        });
         player_=std::move(p);
+        boxes_=std::move(allocated);
         remaining_seconds_=
             parsed->timer_by_difficulty[static_cast<std::size_t>(difficulty_)];
         data_=std::move(parsed);
@@ -164,6 +172,24 @@ ActivityFrameOutput MazeDriver::draw() const {
     output.draws.push_back({
         std::string(background->filename),0,0,std::nullopt,false
     });
+    // Source 0x0041C110 draws the four package slots for this screen
+    // before the animated player. Active boxes use the +0x510D20
+    // reference-point table parsed after END in maze_nodes.txt.
+    const auto screen_index=static_cast<std::size_t>(player_.screen);
+    for(const auto& slot:boxes_.screens[screen_index]) {
+        if(slot.node_id<0)continue;
+        if(slot.status==maze::kSpudAvailablePackageStatus) {
+            const auto& reference=data_->box_locations[screen_index][
+                static_cast<std::size_t>(slot.node_id)];
+            output.draws.push_back({
+                "Data\\SubGameMaze\\box.bmp",
+                reference.position.x-8,reference.position.y-8,
+                std::nullopt,true
+            });
+        }
+        // Status 3 is the source Spud-dropped box; the NPC adapter will
+        // supply its live x/y. Never invent a position before that exists.
+    }
     const auto sprite=maze::actor_source_rect(player_.facing,0);
     const auto where=maze::player_destination(player_.x,player_.y);
     output.draws.push_back({
@@ -180,12 +206,10 @@ ActivityFrameOutput MazeDriver::draw() const {
             Rect{timer.left,timer.top,timer.right,timer.bottom},true
         });
     }
-    // Retail draws 4/8/12 target markers, distinguishing collected
-    // packages with smallbox.bmp. NPC/package capture is not connected
-    // yet, so only the real ghost-marker state is represented here.
+    // Source HUD is derived from the same real package bank, not an
+    // independent invented counter. Collection remains unconnected.
     for(const auto& marker:maze::package_progress_markers(
-            maze::kPackageCountByDifficulty[
-                static_cast<std::size_t>(difficulty_)],0)) {
+            boxes_.total,boxes_.total-boxes_.remaining)) {
         const auto* image=maze::surface_binding(marker.surface);
         if(image)
             output.draws.push_back({
@@ -273,6 +297,7 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
 bool MazeDriver::unload(std::string& error) {
     data_.reset();
     player_={};
+    boxes_={};
     player_index_=-1;
     timer_started_=false;
     intro_done_=false;
