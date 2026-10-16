@@ -1,0 +1,207 @@
+#include "btb/bink32_simple_picture.hpp"
+#include <algorithm>
+#include <array>
+#include <bit>
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <utility>
+#include <vector>
+
+namespace btb::bink32_recovered {
+namespace {
+template<class T> struct SourcePool {
+    std::vector<T> values{};
+    std::size_t cursor{};
+    std::size_t refills{};
+    bool ended{};
+    [[nodiscard]] bool needs_refill() const noexcept {
+        return !ended && cursor==values.size();
+    }
+    void refill(std::vector<T> next,bool end) {
+        values=std::move(next);
+        cursor=0;
+        ended=end;
+        ++refills;
+    }
+    [[nodiscard]] std::optional<T> take() noexcept {
+        if(cursor==values.size())return std::nullopt;
+        return values[cursor++];
+    }
+};
+std::vector<std::int16_t> dc_words(const OriginalBinkDcPlane& plane) {
+    std::vector<std::int16_t> words;
+    words.reserve(plane.signed_words_le.size()/2);
+    for(std::size_t i=0;i+1<plane.signed_words_le.size();i+=2) {
+        auto raw=static_cast<std::uint16_t>(
+            plane.signed_words_le[i] |
+            std::uint16_t(plane.signed_words_le[i+1])<<8);
+        words.push_back(std::bit_cast<std::int16_t>(raw));
+    }
+    return words;
+}
+} // namespace
+
+std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
+    std::span<const std::uint8_t> video_packet,
+    std::size_t width,std::size_t height,
+    std::span<const std::uint8_t> previous_luma) {
+    constexpr std::size_t kMaxPixels=64U*1024U*1024U;
+    constexpr std::size_t kMaxTiles=1U<<20;
+    if(!width || !height || width>16384 || height>16384 ||
+       (width%8)!=0 || (height%8)!=0 ||
+       width>kMaxPixels/height ||
+       (!previous_luma.empty() && previous_luma.size()!=width*height))
+        return std::nullopt;
+    const auto columns=width/8,rows=height/8;
+    if(columns>kMaxTiles/rows)return std::nullopt;
+    const auto tiles=columns*rows;
+    // Each 8x8 pixel block may consume up to 64 color samples.
+    const auto maximum_samples=std::min(kMaxPixels,width*height);
+    const auto prologue=parse_alpha_picture_entropy_prologue(video_packet);
+    if(!prologue)return std::nullopt;
+    const auto& trees=prologue->picture.trees.trees;
+    LsbBitReader bits(video_packet.subspan(
+        prologue->picture.initial_byte_offset));
+    if(!bits.skip(prologue->picture.trees.consumed_bits))
+        return std::nullopt;
+
+    SourcePool<std::uint8_t> types{},subtypes{},colors{},patterns{},runs{};
+    SourcePool<std::int8_t> motion_x{},motion_y{};
+    SourcePool<std::int16_t> intra_dc{},inter_dc{};
+    std::uint8_t last_color_high=0;
+    const auto intra_context=init_entropy_plane(
+        0,0x200U,static_cast<std::uint32_t>(width),11,1,false);
+    const auto inter_context=init_entropy_plane(
+        0,0x200U,static_cast<std::uint32_t>(width),11,1,true);
+
+    std::vector<BinkBlockCommand> commands(tiles);
+    BinkSimplePictureLuma result{};
+
+    // Bink 0x3000E400 checks all nine bundle refill sources at EACH
+    // row boundary, in strict sequence. Ended sources cannot restart.
+    for(std::size_t row=0;row<rows;++row) {
+        if(types.needs_refill()) {
+            auto b=read_bink_block_type_bundle(bits,trees[0],width,tiles);
+            if(!b)return std::nullopt;
+            types.refill(std::move(b->modes),b->end_of_bundle);
+        }
+        if(subtypes.needs_refill()) {
+            auto b=read_bink_block_type_bundle(bits,trees[1],width/2,tiles);
+            if(!b)return std::nullopt;
+            subtypes.refill(std::move(b->modes),b->end_of_bundle);
+        }
+        if(colors.needs_refill()) {
+            // read_bink_color_bundle requires the full tree set,
+            // including sixteen adaptive high-nibble contexts.
+            auto b=read_bink_color_bundle(
+                bits,prologue->picture.trees,width,last_color_high,
+                false,maximum_samples);
+            if(!b)return std::nullopt;
+            last_color_high=b->next_high_nibble;
+            colors.refill(std::move(b->values),b->end_of_bundle);
+        }
+        if(patterns.needs_refill()) {
+            auto b=read_bink_pattern_bundle(
+                bits,trees[19],width,maximum_samples);
+            if(!b)return std::nullopt;
+            patterns.refill(std::move(b->values),b->end_of_bundle);
+        }
+        if(motion_x.needs_refill()) {
+            auto b=read_bink_signed_motion_bundle(
+                bits,trees[20],width,tiles);
+            if(!b)return std::nullopt;
+            motion_x.refill(std::move(b->values),b->end_of_bundle);
+        }
+        if(motion_y.needs_refill()) {
+            auto b=read_bink_signed_motion_bundle(
+                bits,trees[21],width,tiles);
+            if(!b)return std::nullopt;
+            motion_y.refill(std::move(b->values),b->end_of_bundle);
+        }
+        if(intra_dc.needs_refill()) {
+            auto b=decode_original_bink_dc_context_packet(
+                bits,intra_context,tiles);
+            if(!b)return std::nullopt;
+            auto v=dc_words(*b);
+            intra_dc.refill(std::move(v),b->signed_words_le.empty());
+        }
+        if(inter_dc.needs_refill()) {
+            auto b=decode_original_bink_dc_context_packet(
+                bits,inter_context,tiles);
+            if(!b)return std::nullopt;
+            auto v=dc_words(*b);
+            inter_dc.refill(std::move(v),b->signed_words_le.empty());
+        }
+        if(runs.needs_refill()) {
+            auto b=read_bink_run_bundle(bits,trees[22],width,
+                                        maximum_samples);
+            if(!b)return std::nullopt;
+            runs.refill(std::move(b->values),b->end_of_bundle);
+        }
+
+        for(std::size_t col=0;col<columns;++col) {
+            auto next_mode=types.take();
+            if(!next_mode || *next_mode>=result.mode_counts.size())
+                return std::nullopt;
+            ++result.mode_counts[*next_mode];
+            auto& cmd=commands[row*columns+col];
+            cmd.mode=static_cast<BinkBlockMode>(*next_mode);
+            switch(cmd.mode) {
+            case BinkBlockMode::Skip:
+                break;
+            case BinkBlockMode::Motion: {
+                const auto mx=motion_x.take();
+                const auto my=motion_y.take();
+                if(!mx || !my)return std::nullopt;
+                cmd.motion_x=*mx;
+                cmd.motion_y=*my;
+                break;
+            }
+            case BinkBlockMode::Fill: {
+                const auto color=colors.take();
+                if(!color)return std::nullopt;
+                cmd.fill=*color;
+                break;
+            }
+            case BinkBlockMode::Pattern: {
+                for(auto& color:cmd.pattern_colors) {
+                    const auto v=colors.take();
+                    if(!v)return std::nullopt;
+                    color=*v;
+                }
+                for(auto& row_mask:cmd.pattern_rows) {
+                    const auto v=patterns.take();
+                    if(!v)return std::nullopt;
+                    row_mask=*v;
+                }
+                break;
+            }
+            case BinkBlockMode::Raw:
+                for(auto& sample:cmd.samples) {
+                    const auto v=colors.take();
+                    if(!v)return std::nullopt;
+                    sample=*v;
+                }
+                break;
+            default:
+                // Real DCT / residue / run and 16x16 scaled modes must
+                // be reconstructed before they can emit trustworthy pixels.
+                return std::nullopt;
+            }
+        }
+    }
+    if(!bits.align(4))return std::nullopt;
+    auto output=compose_bink_mode_plane(width,height,commands,previous_luma);
+    if(!output)return std::nullopt;
+    result.image=std::move(*output);
+    result.source_refills={
+        types.refills,subtypes.refills,colors.refills,patterns.refills,
+        motion_x.refills,motion_y.refills,intra_dc.refills,
+        inter_dc.refills,runs.refills
+    };
+    result.next_plane_byte_offset=
+        prologue->picture.initial_byte_offset+bits.bit_position()/8;
+    return result;
+}
+} // namespace btb::bink32_recovered
