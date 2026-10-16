@@ -1132,3 +1132,56 @@ References: FFmpeg `libavcodec/bink.c` `read_dct_coeffs`,
 and `bink_idct_put_c`; `libavcodec/binkdata.h` quantizer
 DC coefficients. The reference implementation is used for
 structural cross-checking, not as a linked runtime dependency.
+
+
+## Full Bink1 8x8 intra/inter AC transform integration (2026-10-16)
+
+The previous DC-only DCT restriction is now superseded. Added
+`reconstruction/include/btb/bink32_dct_pixels.hpp` and
+`reconstruction/src/bink32_dct_pixels.cpp`: **both** 16×64
+original Bink1 intra and inter quantization tables, kept distinct.
+The public Bink1 table reference in `libavcodec/binkdata.h`
+has been independently checked with two complete FNV-1a
+numeric-table fingerprints at compile time. No retail binary,
+original movie bytes, FFmpeg subprocess, or external decoder is
+required at runtime.
+
+Bink1 quantization tables are indexed by *Bink coefficient scan
+ordinal*, while the previously recovered original signed integer
+8x8 inverse DCT is indexed by *raster coefficient offset*. The
+new reconstruction first rearranges weights through the original
+64-entry Bink DCT scan permutation. The original 2002 DLL integer
+8x8 butterfly already exists in `bink_idct_16x16`, which explicitly
+duplicates each output sample twice in both directions. Taking
+the upper-left byte of each duplicated 2x2 region recovers its
+underlying 8x8 result, preserving x86 32-bit intermediate wrap
+and fixed-point rounding. Inter coefficients are decoded with the
+separate **inter**, not intra, quantizer; inter output is added to
+motion-compensated reference pixels modulo 256.
+
+The compressed-picture scheduler now reads full AC bit planes and
+reconstructs INTRA and INTER 8x8 pixels, plus Scaled 16x16 INTRA,
+rather than rejecting nonzero AC. Its existing independently
+derived DC-only transform shortcut is retained as a pixel-by-pixel
+cross-check for zero-AC blocks.
+
+New C++26 regressions compare full 8x8 decoded pixel-array FNV-1a
+fingerprints against independently calculated reference results.
+They include AC coefficients +16 and -16, intra/inter selector
+0 and 15, a shared DC-only coefficient and quantizer-overflow
+rejection. A compressed-packet integration case now emits
+a genuine signed AC-bearing INTRA block and checks nonuniform
+pixels; reference-motion INTER and 2x-scaled INTRA tests remain.
+
+**Verification boundary:** complete native decoding of an arbitrary
+retail Bink movie is not yet established. Correct full
+frame/plane scheduling, alpha/YUV surface integration, frame
+history, audio and game playback still need end-to-end retail
+differential tests. The C++ synthetic-packet tests are not a
+certificate that the original DLL and this decoder yield
+identical pixels for every retail frame.
+
+Reference-format provenance: FFmpeg
+`libavcodec/binkdata.h` (functional numeric intra/inter quant
+tables), `libavcodec/bink.c` (scan-index quant weighting),
+and `libavcodec/binkdsp.c` (8x8 integer inverse transform).
