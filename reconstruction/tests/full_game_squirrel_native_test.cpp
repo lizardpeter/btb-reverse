@@ -44,6 +44,26 @@ int main() {
         assert(game.globals().dispatcher.current_state==
                static_cast<int>(State::SquirrelRun));
         assert(driver->level()==0);
+        auto rendered=game.advance({});
+        assert(rendered.kind==fg::FrameKind::ActivityUpdated);
+        int connector_art=0,nut_piles=0,conveyor_art=0;
+        for(const auto& draw:rendered.effects.draws) {
+            if(draw.source_asset=="Data\\SubGameSquirrel\\all.bmp" &&
+               draw.source_rectangle &&
+               (draw.x==36||draw.x==196||draw.x==356||draw.x==516)) {
+                ++connector_art;
+                assert(draw.source_rectangle->right-
+                       draw.source_rectangle->left==89);
+                assert(draw.source_rectangle->bottom==133);
+            }
+            if(draw.source_asset=="Data\\SubGameSquirrel\\nutpile.bmp")
+                ++nut_piles;
+            if(draw.source_asset=="Data\\SubGameSquirrel\\conveyor.bmp")
+                ++conveyor_art;
+        }
+        assert(connector_art==4);
+        assert(nut_piles==(difficulty==0?1:0));
+        assert(conveyor_art==1);
         for(int selected=0;selected<3*(difficulty+1);++selected) {
             const int level=selected/3;
             assert(driver->level()==level);
