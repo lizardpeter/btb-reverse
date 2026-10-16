@@ -1,4 +1,5 @@
 #include "btb/bink32_ac_unit_pass.hpp"
+#include "btb/bink32_original_quant.hpp"
 #include <array>
 #include <cstdint>
 #include <cstdio>
@@ -113,6 +114,41 @@ int main(){
         const auto unit=run_bink_ac_unit_pass(bits,state,coeff);
         CHECK(unit&&unit->consumed_bits==2&&bits.bit_position()==3);
         CHECK(coeff[0]==1&&unit->remaining_commands==0);
+    }
+    {
+        // First native TWO-STAGE coefficient path through real original
+        // 4-bit quantization selection and source-derived inverse DCT.
+        // Controlled synthetic compressed bits, NOT a retail movie frame.
+        constexpr std::array<std::uint8_t,1> initial_cmds{
+            std::uint8_t((8U<<2)|3U)
+        };
+        auto state=*make_bink_ac_pending(initial_cmds);
+        Writer encoded;
+        encoded.put(0,1);   // skip direct command in magnitude pass
+        encoded.put(1,1);   // activate it in final +/-1 pass
+        encoded.put(0,1);   // +1 AC at coefficient 8
+        encoded.put(15,4);  // original quantization matrix #15
+        auto bits=encoded.reader();
+        std::array<std::int16_t,64> coeff{};
+        coeff[0]=128; // upstream DC source still not implemented
+        const auto first=run_bink_ac_command_pass(bits,state,coeff,7,8);
+        CHECK(first&&first->remaining_commands==1);
+        CHECK(bits.bit_position()==1);
+        const auto second=run_bink_ac_unit_pass(bits,state,coeff);
+        CHECK(second&&second->written_coefficients==1);
+        CHECK(coeff[0]==128&&coeff[8]==1);
+        CHECK(bits.bit_position()==3);
+        const auto pixels=decode_original_quantized_block(bits,coeff);
+        CHECK(pixels&&bits.bit_position()==7);
+        const auto expected=bink_idct_original_quant(coeff,15);
+        CHECK(expected&&*pixels==*expected);
+        for(std::size_t y=0;y<16;y+=2)
+            for(std::size_t x=0;x<16;x+=2) {
+                const auto sample=(*pixels)[y*16+x];
+                CHECK(sample==(*pixels)[y*16+x+1]);
+                CHECK(sample==(*pixels)[(y+1)*16+x]);
+                CHECK(sample==(*pixels)[(y+1)*16+x+1]);
+            }
     }
     std::puts("Bink 2002 final +/-1 AC command-list pass: PASS");
 }
