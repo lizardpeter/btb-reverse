@@ -17,6 +17,18 @@ struct BinkSimplePictureLuma {
     std::array<std::size_t,9> source_refills{};
     std::size_t next_plane_byte_offset{};
 };
+// Decode one Bink1 plane from its exact 23-tree header byte offset.
+// This supports alpha and both half-resolution chroma planes as well
+// as full-resolution Y. All output offsets are absolute packet bytes.
+// Unlike the alpha-aware wrapper below, this does not skip any leading
+// picture-control DWORD: the caller must supply the tree start.
+[[nodiscard]] std::optional<BinkSimplePictureLuma>
+decode_bink_picture_plane_at(
+    std::span<const std::uint8_t> video_packet,
+    std::size_t entropy_tree_byte_offset,
+    std::size_t width,std::size_t height,
+    std::span<const std::uint8_t> previous_plane={});
+
 // Decode a complete 8-bit luma plane using Skip, Motion, Fill, Pattern,
 // Raw, signed spatial Residue, full Intra/Inter DCT, all sixteen
 // source-defined RUN scans, and source-backed
