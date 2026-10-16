@@ -957,6 +957,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_video_planes.cpp
     src/bink32_simple_picture.cpp
     src/bink32_yuva_frame.cpp
+    src/bink32_native_video_stream.cpp
     src/bink32_residue.cpp
     src/bink32_dct_coefficients.cpp
     src/bink32_dct_pixels.cpp
