@@ -1,4 +1,6 @@
 #include "btb/bink32_dc_stream.hpp"
+#include <algorithm>
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -50,5 +52,39 @@ bool expand_original_bink_zero_delta_group(
     for(auto& v:output)v=previous_dc;
     source=bits;
     return true;
+}
+std::optional<std::int16_t> decode_original_bink_dc_delta_group(
+    LsbBitReader& source,std::int16_t previous_dc,
+    std::span<std::int16_t> output) noexcept {
+    // Original 0x30010D94 handles at most 8 samples per group.
+    // Original 0x30010DA5..0x30010DD6 consumes a 4-bit
+    // unsigned width, then 0x30010DE2..0x30010E86 reads one
+    // magnitude plus conditional sign per sample.
+    if(output.empty() || output.size()>8)return std::nullopt;
+    auto bits=source;
+    const auto width=bits.read(4);
+    if(!width)return std::nullopt;
+    std::array<std::int16_t,8> scratch{};
+    std::uint16_t previous=std::bit_cast<std::uint16_t>(previous_dc);
+    for(std::size_t i=0;i<output.size();++i) {
+        std::uint32_t magnitude=0;
+        if(*width) {
+            const auto encoded=bits.read(*width);
+            if(!encoded)return std::nullopt;
+            magnitude=*encoded;
+        }
+        if(magnitude) {
+            const auto sign=bits.read(1);
+            if(!sign)return std::nullopt;
+            const auto delta=static_cast<std::uint16_t>(
+                *sign ? -static_cast<std::int32_t>(magnitude)
+                      : static_cast<std::int32_t>(magnitude));
+            previous=static_cast<std::uint16_t>(previous+delta);
+        }
+        scratch[i]=std::bit_cast<std::int16_t>(previous);
+    }
+    std::copy_n(scratch.begin(),output.size(),output.begin());
+    source=bits;
+    return std::bit_cast<std::int16_t>(previous);
 }
 } // namespace btb::bink32_recovered
