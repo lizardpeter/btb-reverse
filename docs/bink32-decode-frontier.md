@@ -280,6 +280,32 @@ outer-loop transitions, exact original runtime bit-cursor parity, and
 movie-frame assembly still need implementation. We do not claim the
 result is a complete decoder or DLL-free working video.
 
+## Additional nonzero-AC opcode 2 (group-of-four)
+
+The original `0x30011C93` branch from jump table `0x3001241C`
+handles **four consecutive coefficient positions**. Each begins
+with a 1-bit decision:
+
+- Zero: read the current magnitude-class low bits, OR with the
+  original outer-loop high bit, then read its sign and store a
+  signed 16-bit coefficient at `base_slot + {0,1,2,3}`.
+- One: defer that slot by placing `(slot << 2) | 3` in the
+  pending-control stack rather than decoding its magnitude now.
+
+The original x86 grows the pending-command buffer backward from
+its end pointer (`0x30011CC6`, `0x30011D7D`, `0x30011EEB`).
+`bink32_ac_group4.cpp` implements this order faithfully, including
+a bounded four-coefficient scratch transaction and all-or-nothing
+bit cursor/output writes. The new CTest covers mixed positive/negative
+coefficients, postponed commands, all deferred, truncated input,
+slot bounds and unchanged state on failure.
+
+Together with `bink32_ac_nonzero.cpp`, native C++ now recovers
+jump-table **branches 1, 2 and 3** of the original `0x30011C4B`
+dispatch at the isolated-operation level. Branch 0, dynamic control
+list mutation and the full outer coefficient loop remain unfinished.
+Do not interpret isolated opcode tests as bit-exact real-frame decoding.
+
 ## Next implementation order
 
 1. Compare the reconstructed dynamic trees against the original x86 DLL
