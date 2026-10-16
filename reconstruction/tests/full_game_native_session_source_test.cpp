@@ -172,7 +172,7 @@ int main() {
             startup_fixture(),walkthrough_fixture()
         };
         std::istringstream sound_catalog(
-            "Data/sound/walkthrough_voice.wav 488\n");
+            "Data/sound/walkthrough_voice.wav 489\n");
         assert(session.load_sound_catalog(sound_catalog).success);
         game.set_outer_state(State::GolfPregameSetup);
 
@@ -195,7 +195,7 @@ int main() {
                "Data/ui/original.bmp");
 
         // Active Golf pregame's original 0x00428120 checks x=50..364,
-        // y=141..349 and dispatches DAT_00446FD8=0x1E8 through the
+        // y=141..349 and dispatches DAT_00446FD8=0x1E9 through the
         // same managed audio/asset system as all game narration.
         auto hovering=session.tick(
             {.pointer_x=63,.pointer_y=157},false,false);
@@ -203,7 +203,7 @@ int main() {
         assert(!hovering.prepared.game.effects.audio.empty());
         const auto& spoken=hovering.prepared.game.effects.audio.back();
         assert(spoken.operation==AudioOperation::ManagedSoundId);
-        assert(spoken.sound_id==0x1e8);
+        assert(spoken.sound_id==0x1e9);
         assert(spoken.priority==0x5a);
         assert(spoken.arbitration_class==1);
         assert(device.sound_count>0);
