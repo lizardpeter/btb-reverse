@@ -13,6 +13,7 @@
 #include "btb/herding_source_follower_approach.hpp"
 #include "btb/herding_source_registration_point.hpp"
 #include "btb/herding_source_home_motion.hpp"
+#include "btb/herding_source_delivered_animation.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -126,6 +127,11 @@ struct HerdingHomeMotionEvidence {
     bool arrived{};
 };
 
+struct HerdingDeliveredAnimationEvidence {
+    std::size_t entity_index{};
+    herding::RetailEntityRecord32 before{};
+};
+
 // The original 0x416F57 branch executes before generic behavior
 // dispatch whenever a herd animal has +0x58 > 0. Record its unmodified
 // pre-branch entity so the verified adapter can independently check
@@ -155,6 +161,7 @@ struct HerdingObservedFrame {
     std::vector<HerdingFarRoamEvidence> far_roam_evidence{};
     std::vector<HerdingTrackedApproachEvidence> tracked_approach_evidence{};
     std::vector<HerdingHomeMotionEvidence> home_motion_evidence{};
+    std::vector<HerdingDeliveredAnimationEvidence> delivered_animation_evidence{};
     std::vector<HerdingTemporaryTargetEvidence> temporary_target_evidence{};
     std::optional<HerdingScrufftyPatrolEvidence> scruffty_patrol_evidence{};
     // Same ordering/entity IDs as the original 0x64-byte record table;
