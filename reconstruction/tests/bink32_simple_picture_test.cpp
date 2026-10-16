@@ -457,8 +457,9 @@ int main(int argc,char**argv) {
         CHECK(std::all_of(amplified->image.pixels.begin(),
                           amplified->image.pixels.end(),
                           [](auto p){return p==44;}));
-        // Nonzero AC requires a complete 8x8 transform. Fail
-        // closed instead of substituting the 2x scaled iDCT.
+        // Nonzero AC now uses the true Bink1 intra matrix
+        // and the recovered original integer 8x8 butterfly,
+        // rather than substituting a DC-only fill.
         Bits ac=encoded;
         ac.bits-=8;ac.bytes.resize((ac.bits+7)/8);
         // The prior quantized DCT bits must be replaced, not
@@ -469,12 +470,17 @@ int main(int argc,char**argv) {
                 ac.bytes[bit/8]&=static_cast<std::uint8_t>(
                     ~(1U<<(bit%8)));
         }
-        ac.put(1,4);
+        ac.put(5,4); // one signed coefficient of magnitude 16
         for(unsigned n=0;n<3;++n)ac.put(0,1);
-        ac.put(1,1);ac.put(0,1); // scan1 coefficient +1
-        ac.put(0,1);ac.put(0,1);
-        ac.put(0,4);
-        CHECK(!decode_bink_simple_picture_luma(packet(ac),8,8));
+        ac.put(1,1);ac.put(0,4);ac.put(0,1); // scan1 +16
+        ac.put(0,1);ac.put(0,1); // scan2/3 inactive
+        ac.put(0,4); // quant selector 0
+        const auto ac_image=decode_bink_simple_picture_luma(
+            packet(ac),8,8);
+        CHECK(ac_image && ac_image->mode_counts[5]==1);
+        CHECK(ac_image->image.pixels.size()==64);
+        CHECK(ac_image->image.pixels!=image->image.pixels);
+        CHECK(ac_image->image.pixels[0]!=ac_image->image.pixels[7]);
     }
     {
         // INTER DCT: source X/Y motion prediction is copied first,
