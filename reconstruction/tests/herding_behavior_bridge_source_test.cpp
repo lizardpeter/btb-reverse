@@ -1,4 +1,5 @@
 #include "btb/herding_behavior_bridge.hpp"
+#include "btb/herding_source_home_arrival.hpp"
 
 #include <cassert>
 #include <vector>
@@ -124,8 +125,12 @@ int main() {
             auto relocated=home.entities()[id];
             const auto initial_target=h::home_entrance_target(
                 relocated.entity_type());
-            relocated.x=initial_target.x;
-            relocated.y=initial_target.y;
+            const auto source_entrance=
+                h::original_herding_home_entity_origin_for_target(
+                    relocated.entity_type(),initial_target);
+            assert(source_entrance);
+            relocated.x=source_entrance->x;
+            relocated.y=source_entrance->y;
             relocated.x_float=static_cast<float>(relocated.x);
             relocated.y_float=static_cast<float>(relocated.y);
             assert(home.apply_source_motion(id,relocated));
@@ -139,8 +144,12 @@ int main() {
                 relocated.entity_type(),20+n);
             assert(final_target);
             relocated=home.entities()[id];
-            relocated.x=final_target->x;
-            relocated.y=final_target->y;
+            const auto source_inside=
+                h::original_herding_home_entity_origin_for_target(
+                    relocated.entity_type(),*final_target);
+            assert(source_inside);
+            relocated.x=source_inside->x;
+            relocated.y=source_inside->y;
             relocated.x_float=static_cast<float>(relocated.x);
             relocated.y_float=static_cast<float>(relocated.y);
             assert(home.apply_source_motion(id,relocated));
