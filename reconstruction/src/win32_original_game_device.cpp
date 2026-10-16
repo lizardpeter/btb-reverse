@@ -43,6 +43,11 @@ bool Win32OriginalGameDevice::draw_ordered(
     if (!draw_.render_ordered(stream,error)) {
         return false;
     }
+    // Original Spud Skate's selected 600x380 decoded Bink stream is
+    // composited at (20,20) over the source BMP backdrop. This never
+    // replaces/forges activity frames or skips the actual movie decoder.
+    if(activity_movie_overlay_ && !activity_movie_overlay_(error))
+        return false;
     // Source-backed looping walkthrough Bink overlays belong above the
     // original instructional background and button surfaces.
     return bink_.render_walkthrough_overlay(error);

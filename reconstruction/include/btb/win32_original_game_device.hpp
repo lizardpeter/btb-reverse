@@ -3,6 +3,8 @@
 #if defined(_WIN32)
 #include "btb/full_game_native_session.hpp"
 #include "btb/win32_original_directdraw.hpp"
+#include <functional>
+#include <utility>
 #include "btb/win32_original_directsound.hpp"
 
 #include <filesystem>
@@ -45,8 +47,10 @@ public:
     Win32OriginalGameDevice(
         Win32OriginalDirectDraw& draw,
         Win32OriginalDirectSound& audio,
-        OriginalBinkProvider& bink)
-        : draw_(draw),audio_(audio),bink_(bink) {}
+        OriginalBinkProvider& bink,
+        std::function<bool(std::string&)> activity_movie_overlay={})
+        : draw_(draw),audio_(audio),bink_(bink),
+          activity_movie_overlay_(std::move(activity_movie_overlay)) {}
 
     [[nodiscard]] bool observe(
         PhysicalFrameObservation& out,std::string& error) override;
@@ -70,6 +74,7 @@ private:
     Win32OriginalDirectDraw& draw_;
     Win32OriginalDirectSound& audio_;
     OriginalBinkProvider& bink_;
+    std::function<bool(std::string&)> activity_movie_overlay_{};
 };
 
 } // namespace btb::full_game

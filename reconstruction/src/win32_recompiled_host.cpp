@@ -9,6 +9,7 @@
 #include "btb/full_game_squirrel.hpp"
 #include "btb/full_game_herding.hpp"
 #include "btb/full_game_spud_skate.hpp"
+#include "btb/win32_retail_spud_skate_movies.hpp"
 #include "btb/full_game_herding_event_simulation.hpp"
 #include "btb/herding_native_pickles_motion.hpp"
 #include "btb/retail_crt_random.hpp"
@@ -71,6 +72,9 @@ struct Host {
     // The original 2002 binkw32.dll is directly callable from
     // the native x86 build; the x64 build rejects that ABI safely.
     Win32RetailBinkProvider movies;
+    // Borrowed pointer; the actual decoder is owned by SpudSkateDriver.
+    // GameDevice only asks it to blit the currently decoded surface.
+    Win32RetailSpudSkateMovies* skate_movies{};
     // Native Herding consumes the original 0x42FFC4 MSVC rand stream.
     // This state is owned by the host, not independently reseeded by
     // any animal, level, or minigame. Other activity providers still
@@ -229,13 +233,16 @@ struct Host {
             std::make_unique<SpudMazeDriver>(root,0));
         game.install(ActivityId::Squirrel,
             std::make_unique<SquirrelDriver>(root,0));
-        // Tenth retail game driver now exists and is source-tested.
-        // There is still NO multi-stream Spud Skate Bink renderer in
-        // this host: passing nullptr intentionally fails admission
-        // rather than fabricating movie frames or progress.
+        // Use the original x86 Bink DLL for all FOUR synchronized
+        // stunt-quality tracks and the fifth end.bik track, with
+        // actual decoded DD7 buffers (not fabricated frame numbers).
+        // x64 fails explicitly until a compatible native decoder.
+        auto skate_backend=
+            std::make_unique<Win32RetailSpudSkateMovies>(graphics,root);
+        skate_movies=skate_backend.get();
         game.install(ActivityId::SpudSkate,
             std::make_unique<SpudSkateDriver>(
-                root,nullptr,&original_game_random));
+                root,std::move(skate_backend),&original_game_random));
         // Source-backed initial Pets Corner scene and Pickles navigation.
         // Autonomous animal delivery remains fail-closed (no fake wins).
         game.install(ActivityId::Herding,
@@ -268,7 +275,10 @@ struct Host {
             game.set_outer_state(game_flow::State::PlayerProfileAndNameEntry);
         }
         device=std::make_unique<Win32OriginalGameDevice>(
-            graphics,audio,movies);
+            graphics,audio,movies,
+            [this](std::string& error)->bool {
+                return !skate_movies || skate_movies->blit_selected(error);
+            });
         session=std::make_unique<NativeGameSession>(
             game,*device,OriginalAssetResolver{root},
             std::move(startups),std::move(walkthroughs),skip_video);
