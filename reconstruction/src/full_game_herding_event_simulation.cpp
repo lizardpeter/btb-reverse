@@ -601,12 +601,20 @@ bool HerdingEventSimulation::advance(
     // the reported formation order itself is checked, not trusted.
     int expected_following_ordinal=0;
     for(const auto& probe:observed.ordinary_follower_evidence) {
+        const bool was_following=candidate.followers().contains(
+            static_cast<int>(probe.entity_index));
+        const bool joined_on_this_frame=std::any_of(
+            observed.events.begin(),observed.events.end(),
+            [&](const auto& event) {
+                return event.kind==HerdingObservedKind::JoinFollower &&
+                    event.entity_index==probe.entity_index &&
+                    event.retail_trigger_confirmed;
+            });
         if(probe.entity_index==0 ||
            probe.entity_index>=candidate.entities().size() ||
            observed.motion_records.empty() ||
            probe.formation_ordinal!=expected_following_ordinal++ ||
-           !candidate.followers().contains(
-               static_cast<int>(probe.entity_index))) {
+           (!was_following && !joined_on_this_frame)) {
             error="original ordinary follower membership/formation slot invalid";
             return false;
         }
