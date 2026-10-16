@@ -10,6 +10,7 @@
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -72,6 +73,23 @@ int main(int argc,char**argv) {
             max_frames=parsed;
         } else {
             usage();return 1;
+        }
+    }
+    // Never permit an output path to alias the supplied original
+    // BIK or reference. The retail inputs are strictly read-only.
+    if(!output_path.empty()) {
+        const auto normalized=[](const std::string& name) {
+            std::error_code ec;
+            const auto p=std::filesystem::weakly_canonical(name,ec);
+            return ec
+                ?std::filesystem::absolute(name).lexically_normal()
+                :p;
+        };
+        if(normalized(output_path)==normalized(movie_path) ||
+           (!reference_path.empty() &&
+            normalized(output_path)==normalized(reference_path))) {
+            std::cerr<<"Output YUVA must not overwrite a BIK or reference\\n";
+            return 1;
         }
     }
     std::ifstream source(movie_path,std::ios::binary);
