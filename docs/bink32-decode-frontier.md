@@ -56,6 +56,14 @@ without the original DLL, FFmpeg, or external processes. The repository
 also has a synthetic, release-safe CTest for packet corruption and
 cross-byte bit reads, and an exhaustive 976-entry fixed Huffman table test.
 
+The native dynamic-tree constructor was additionally exercised on a
+**candidate video-control-word boundary (four bytes into each video packet)**
+for all 1,590 retail frames. All 1,590 yielded 23 bounded tree contexts;
+6,516 selectors were nonzero and 5,571 symbol permutations were nonidentity.
+This is a structural smoke test, not yet proof that the 23 tree reads begin
+at the exact same offset used by the 2002 decoder. Bit-exact frame timing,
+coefficient decoding and pixel parity remain unverified.
+
 **Important:** These figures certify bitstream packet routing, *not* 1,590
 decoded video frames or 1,590 audio waveforms.
 
