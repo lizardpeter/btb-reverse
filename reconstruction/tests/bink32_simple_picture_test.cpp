@@ -67,6 +67,11 @@ int main(int argc,char**argv) {
     encoded.put(0,10); // unsigned intra DC: no values
     encoded.put(0,10); // signed inter DC: no values
     encoded.put(0,10); // run bundle: no values
+    // At the second row boundary both first-row motion bundles are
+    // exhausted; original read_motion_values reads a zero count for
+    // each even though row 1 has no motion blocks.
+    encoded.put(0,10); // second-row motion X end marker
+    encoded.put(0,10); // second-row motion Y end marker
     const auto compressed_bits=encoded.bits;
     auto video=packet(encoded);
     std::vector<std::uint8_t> reference(24*16);
@@ -80,7 +85,9 @@ int main(int argc,char**argv) {
     CHECK(decoded->mode_counts[0]==2 && decoded->mode_counts[2]==1);
     CHECK(decoded->mode_counts[6]==1 && decoded->mode_counts[8]==1);
     CHECK(decoded->mode_counts[9]==1);
-    for(auto refills:decoded->source_refills)CHECK(refills==1);
+    for(std::size_t source=0;source<decoded->source_refills.size();++source)
+        CHECK(decoded->source_refills[source]==
+              (source==4 || source==5 ? 2U : 1U));
     CHECK(decoded->next_plane_byte_offset==
           52+((compressed_bits+31)/32)*4);
     const auto& px=decoded->image.pixels;
@@ -178,6 +185,8 @@ int main(int argc,char**argv) {
         scaled.put(0,10);scaled.put(0,10); // X / Y
         scaled.put(0,10);scaled.put(0,10); // intra/inter DC
         scaled.put(0,10); // run
+        scaled.put(0,10); // second-row subtype end
+        scaled.put(0,10); // second-row color end
         const auto full=decode_bink_simple_picture_luma(
             packet(scaled),16,16);
         CHECK(full && full->mode_counts[1]==2);
@@ -199,6 +208,8 @@ int main(int argc,char**argv) {
         wrong.put(0,10);wrong.put(0,10);
         wrong.put(0,10);wrong.put(0,10);
         wrong.put(0,10);
+        wrong.put(0,10); // subtype exhausted at row 1
+        wrong.put(0,10); // color exhausted at row 1
         CHECK(!decode_bink_simple_picture_luma(packet(wrong),16,16));
     }
     {
@@ -217,6 +228,9 @@ int main(int argc,char**argv) {
         source.put(0,10);source.put(0,10); // motion
         source.put(0,10);source.put(0,10); // DC
         source.put(0,10); // run
+        source.put(0,10); // subtype exhausted at row 1
+        source.put(0,10); // colors exhausted at row 1
+        source.put(0,10); // patterns exhausted at row 1
         const auto image=decode_bink_simple_picture_luma(
             packet(source),16,16);
         CHECK(image && image->mode_counts[1]==2);
@@ -243,6 +257,8 @@ int main(int argc,char**argv) {
         source.put(0,10);source.put(0,10);
         source.put(0,10);source.put(0,10);
         source.put(0,10);
+        source.put(0,10); // subtype exhausted at row 1
+        source.put(0,10); // colors exhausted at row 1
         const auto image=decode_bink_simple_picture_luma(
             packet(source),16,16);
         CHECK(image && image->mode_counts[1]==2);
