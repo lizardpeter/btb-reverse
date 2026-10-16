@@ -87,5 +87,22 @@ int main() {
         CHECK(symbol&&symbol->value==9&&symbol->consumed_bits==1);
         CHECK(reader.bit_position()==1);
     }
+    {
+        // The source original calls the 16-symbol tree setup 23 times
+        // at 3000E582..3000E682 before decoding block coefficients.
+        Bits encoded;
+        for(unsigned i=0;i<23;++i)encoded.put(0,4);
+        auto reader=encoded.reader();
+        const auto set=read_block_entropy_trees(reader);
+        CHECK(set&&set->consumed_bits==92&&reader.bit_position()==92);
+        for(const auto& tree:set->trees) {
+            CHECK(tree.selector==0);
+            for(const auto symbol:tree.symbol_permutation)CHECK(symbol==0);
+        }
+        auto truncated=encoded.reader();
+        CHECK(truncated.skip(8));
+        CHECK(!read_block_entropy_trees(truncated));
+        CHECK(truncated.bit_position()==8);
+    }
     std::puts("Original Bink dynamic Huffman permutation and merge: PASS");
 }
