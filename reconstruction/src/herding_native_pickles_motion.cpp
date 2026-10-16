@@ -3,7 +3,9 @@
 #include "btb/original_herding_init.hpp"
 #include "btb/herding_source_scruffty_patrol.hpp"
 #include "btb/herding_source_pickles_animation.hpp"
+#include "btb/herding_source_attraction.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdlib>
@@ -96,6 +98,7 @@ bool NativePicklesMotionSource::initialize(
             originals.push_back(convert_original_entity(item));
         active_=true;
         selected_food_=herding::FoodType::None;
+        follower_indices_.clear();
         // The original initializer resets its patrol waypoint, but not
         // the process-global frame movement latch 0x443B20.
         scruffty_patrol_state_.waypoint_index=0;
@@ -167,10 +170,18 @@ bool NativePicklesMotionSource::advance(
             event.food=food;
             event.retail_trigger_confirmed=true;
             event.random_mod_2=std::rand()%2;
-            // There are no invented follower records in the native
-            // first-pass source. The event processor supplies the
-            // exact original food-selection transition and voice.
+            // Original food changes release ALL existing ordinary
+            // followers in first-vacant slot order. After the voice
+            // selection RNG, retail consumes two rand()%400 values
+            // per follower. The event bridge validates and commits
+            // the exact 200-frame wander target/clear transition.
+            event.follower_release_random.resize(source.size());
+            for(const auto index:follower_indices_) {
+                event.follower_release_random[index]={
+                    std::rand()%400,std::rand()%400};
+            }
             observed.events.push_back(std::move(event));
+            follower_indices_.clear();
             selected_food_=food;
             break;
         }
@@ -202,6 +213,32 @@ bool NativePicklesMotionSource::advance(
             const auto before=observed.motion_records[i];
             if(!herding::is_herd_animal(before.entity_type()))
                 continue;
+            const auto existing=std::find(
+                follower_indices_.begin(),follower_indices_.end(),i);
+            const bool following=existing!=follower_indices_.end();
+            const auto contact=herding::original_herding_food_attraction_contact(
+                before,hero,selected_food_,following);
+            if(!contact) {
+                error="invalid original herd-animal 80px attraction probe";
+                return false;
+            }
+            if(*contact) {
+                if(follower_indices_.size()>=20) {
+                    error="original ordinary follower table is full";
+                    return false;
+                }
+                HerdingObservedEvent joined{};
+                joined.kind=HerdingObservedKind::JoinFollower;
+                joined.entity_index=i;
+                joined.retail_trigger_confirmed=true;
+                joined.random_mod_2=std::rand()%2;
+                observed.events.push_back(std::move(joined));
+                follower_indices_.push_back(i);
+                // The follower's close-range physics will be brought
+                // online separately; do not substitute default drift.
+                continue;
+            }
+            if(following)continue;
             const auto step=herding::original_far_untracked_animal_roam_step(
                 before,hero,nav);
             switch(step.coverage) {
@@ -260,8 +297,8 @@ bool NativePicklesMotionSource::advance(
     }
     player.movement_active=1;
 
-    // Source-confirmed food pickup and Scruffty patrol are supported,
-    // but animal contact/follower delivery is unhosted: no fake wins.
+    // Source-confirmed food pickup, animal attraction and Scruffty
+    // patrol are active; follower steering/deliveries are not faked.
     source_food_pickup();
     if(!animate_pickles()||!source_far_animal_roam())return false;
     error.clear();
@@ -271,6 +308,7 @@ bool NativePicklesMotionSource::advance(
 bool NativePicklesMotionSource::unload(std::string& error) {
     active_=false;
     selected_food_=herding::FoodType::None;
+    follower_indices_.clear();
     error.clear();
     return true;
 }

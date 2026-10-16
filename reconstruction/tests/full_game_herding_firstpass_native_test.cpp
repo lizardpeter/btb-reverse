@@ -3,6 +3,7 @@
 #include "btb/herding_native_pickles_motion.hpp"
 #include "btb/herding_source_pickles_animation.hpp"
 #include "btb/herding_source_far_roam.hpp"
+#include "btb/herding_source_attraction.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -101,6 +102,65 @@ int main() {
         assert(far.coverage==
             btb::herding::RetailFarAnimalRoamCoverage::AdvancedWithinPolygon);
         assert(far.animal.x_float>sheep.x_float);
+    }
+    // This native source adapter test places the retail Pickles
+    // character first at a genuine Sheep food bag and then in the
+    // exact original <80 attraction radius of spawned sheep #1.
+    // No synthetic click or fake home/delivery event is supplied.
+    {
+        std::ifstream infile(root/"Data"/"SubGame1"/"herd.txt");
+        assert(infile.good());
+        auto data=btb::herding::parse_data(infile);
+        fg::NativePicklesMotionSource native{};
+        std::vector<btb::herding::RetailEntityRecord32> animals{};
+        std::string error{};
+        std::srand(123);
+        assert(native.initialize(data,0,animals,error));
+        assert(animals.size()==15);
+        animals[0].x=240;animals[0].y=414;
+        animals[0].x_float=240.f;animals[0].y_float=414.f;
+        fg::HerdingObservedFrame observation{};
+        assert(native.advance(data,{}, {},animals,observation,error));
+        bool selected_sheep=false;
+        for(const auto& e:observation.events)
+            selected_sheep |= e.kind==fg::HerdingObservedKind::PickUpFood &&
+                              e.food==FoodType::SheepFood;
+        assert(selected_sheep);
+        animals=observation.motion_records;
+        animals[0].x=500;animals[0].y=520;
+        animals[0].x_float=500.f;animals[0].y_float=520.f;
+        const auto near=btb::herding::original_herding_food_attraction_contact(
+            animals[1],animals[0],FoodType::SheepFood,false);
+        assert(near.has_value()&&*near);
+        assert(native.advance(data,{}, {},animals,observation,error));
+        bool joined_first_sheep=false;
+        for(const auto& e:observation.events)
+            joined_first_sheep |=
+                e.kind==fg::HerdingObservedKind::JoinFollower &&
+                e.entity_index==1;
+        assert(joined_first_sheep);
+        animals=observation.motion_records;
+        assert(native.advance(data,{}, {},animals,observation,error));
+        for(const auto& e:observation.events)
+            assert(!(e.kind==fg::HerdingObservedKind::JoinFollower &&
+                     e.entity_index==1)); // no repeated join/voice
+        animals=observation.motion_records;
+        animals[0].x=365;animals[0].y=354;
+        animals[0].x_float=365.f;animals[0].y_float=354.f;
+        assert(native.advance(data,{}, {},animals,observation,error));
+        bool released_on_food_change=false;
+        for(const auto& e:observation.events) {
+            if(e.kind!=fg::HerdingObservedKind::PickUpFood ||
+               e.food!=FoodType::RabbitFood)continue;
+            released_on_food_change=true;
+            assert(e.follower_release_random.size()==animals.size());
+            assert(e.follower_release_random[1].x_mod_400>=0);
+            assert(e.follower_release_random[1].x_mod_400<400);
+            assert(e.follower_release_random[1].y_mod_400>=0);
+            assert(e.follower_release_random[1].y_mod_400<400);
+        }
+        assert(released_on_food_change);
+        assert(native.unload(error));
     }
     std::srand(123);
     for(int difficulty=0;difficulty<3;++difficulty) {
