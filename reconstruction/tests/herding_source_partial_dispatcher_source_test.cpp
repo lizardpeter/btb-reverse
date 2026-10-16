@@ -39,6 +39,21 @@ int main() {
     assert(rng.state()==1);
     assert(!source.tracked().contains(3));
 
+    // The retail update first decrements a 1-tick target to zero.
+    // That exposes ordinary follower logic, which this partial
+    // dispatcher rightly classifies as uncovered, not invalid.
+    auto last_tick=animal(3,100,100);
+    last_tick.temporary_target_timer=1;
+    last_tick.target_x=900;
+    last_tick.target_y=900;
+    const auto expired=source.advance(
+        3,last_tick,ordinary,{200,100},rng);
+    assert(expired.branch==
+           h::CoveredAnimalBranch::UncoveredOriginalBranch);
+    assert(!expired.covered());
+    assert(expired.entity.temporary_target_timer==0);
+    assert(expired.entity.x==100 && expired.entity.y==100);
+
     // With no temporary target, original ordinary-follower table
     // registers the animal for tracked approach when distance <150.
     auto sheep=animal(3,100,100);

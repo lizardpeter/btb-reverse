@@ -4,6 +4,7 @@
 #include "btb/herding_source_scruffty_patrol.hpp"
 #include "btb/herding_source_pickles_animation.hpp"
 #include "btb/herding_source_attraction.hpp"
+#include "btb/herding_source_temporary_target.hpp"
 
 #include <algorithm>
 #include <array>
@@ -202,17 +203,50 @@ bool NativePicklesMotionSource::advance(
         hero.animation_frame_countdown=animation->countdown;
         return true;
     };
-    // The outer retail Herding activity performs this default
-    // displacement AFTER Pickles movement and food selection. Only
-    // the verified far/non-follower branch is enabled. Source AI
-    // near Pickles and group-3 wall recovery remain unmodified.
+    // Original dispatch runs temporary escape targeting BEFORE
+    // ordinary animal roaming/attraction. Released animals therefore
+    // move in the real world until their source <120 return condition
+    // clears the timer. Other uncovered animal AI stays unmodified.
     const auto source_far_animal_roam=[&]() -> bool {
         const auto& hero=observed.motion_records.front();
         const auto nav=data.retail_transformed_group0();
         for(std::size_t i=1;i<observed.motion_records.size();++i) {
-            const auto before=observed.motion_records[i];
+            auto before=observed.motion_records[i];
             if(!herding::is_herd_animal(before.entity_type()))
                 continue;
+
+            // Original UpdateHerdingAnimal 0x416F57 gives an animal
+            // with a positive temporary target exclusive steering
+            // priority over food attraction, following and free roam.
+            // This state is set when Pickles changes food, and must
+            // actually move the released animal in subsequent frames.
+            if(before.temporary_target_timer>0) {
+                const auto recovery=
+                    herding::original_herding_temporary_target_update(before);
+                if(!recovery) {
+                    error="retail released-animal temporary target invalid";
+                    return false;
+                }
+                observed.motion_records[i]=recovery->moved;
+                if(recovery->branch_taken) {
+                    observed.temporary_target_evidence.push_back({
+                        i,before,recovery->early_return});
+                    // Both the <120 arrival and distant +0x58
+                    // branches RETURN from original animal update.
+                    // Never combine with attraction or generic roam.
+                    continue;
+                }
+                // Source countdown 1 -> 0 resumes ordinary animal
+                // dispatch on this same frame. The motion validator
+                // still independently verifies any ensuing far-roam.
+                if(!recovery->continue_normal_update ||
+                   recovery->moved.temporary_target_timer!=0) {
+                    error="original target timer expiration differs from source";
+                    return false;
+                }
+                before=recovery->moved;
+            }
+
             const auto existing=std::find(
                 follower_indices_.begin(),follower_indices_.end(),i);
             const bool following=existing!=follower_indices_.end();
