@@ -21,4 +21,12 @@ struct AcGroup4 {
     LsbBitReader& source, std::uint8_t& command,
     unsigned low_magnitude_bits, std::uint16_t high_magnitude_bit,
     std::span<std::int16_t> coefficients) noexcept;
+// Original opcode-0 jump at 0x30011C52 rewrites its original control
+// byte to (old & 0xfc) + 0x11, then falls through to the same four-slot
+// decisions as opcode 2. On failure neither control nor bits are changed.
+[[nodiscard]] std::optional<AcGroup4> decode_bink_ac_group4_0(
+    LsbBitReader& source, std::uint8_t& command,
+    unsigned low_magnitude_bits, std::uint16_t high_magnitude_bit,
+    std::span<std::int16_t> coefficients) noexcept;
+
 } // namespace btb::bink32_recovered
