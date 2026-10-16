@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include <utility>
 
 namespace btb::bink32_recovered {
 std::optional<ExpandedBlockRun> expand_bink_value_commands(
@@ -99,6 +100,66 @@ std::optional<DecodedBinkBlockModes> decode_bink_block_mode_values(
     decoded.statistics=*r;
     compressed=probe;
     return decoded;
+}
+
+std::optional<BinkBlockTypeBundle> read_bink_block_type_bundle(
+    LsbBitReader& bits,const DynamicHuffmanTree& type_tree,
+    std::size_t plane_width,std::size_t maximum_values) {
+    if(!plane_width || plane_width>16384 || !maximum_values ||
+       maximum_values>(1U<<20))return std::nullopt;
+    // Original 0x3000FC00 derives the count width from 512 + plane
+    // width in 8x8 blocks; the first original bundle uses this context.
+    const auto context=init_entropy_plane(
+        0,0x200U,static_cast<std::uint32_t>(plane_width),4,1,false);
+    if(!context.table_bit_width || context.table_bit_width>24)
+        return std::nullopt;
+    auto probe=bits;
+    const auto start=probe.bit_position();
+    const auto count=probe.read(context.table_bit_width);
+    if(!count || *count>maximum_values)return std::nullopt;
+    BinkBlockTypeBundle bundle{};
+    bundle.encoded_count=*count;
+    if(*count==0) {
+        bundle.end_of_bundle=true;
+    } else {
+        const auto expanded=decode_bink_block_mode_values(
+            probe,type_tree,*count,0);
+        if(!expanded)return std::nullopt;
+        bundle.modes=std::move(expanded->values);
+        bundle.commands=expanded->statistics;
+    }
+    bundle.bits_consumed=probe.bit_position()-start;
+    bits=probe;
+    return bundle;
+}
+std::optional<BinkFirstPictureBlockTypes>
+decode_first_bink_picture_block_types(
+    std::span<const std::uint8_t> video_packet,
+    std::size_t plane_width,std::size_t plane_height) {
+    if(!plane_width || !plane_height || plane_width>16384 ||
+       plane_height>16384 || plane_width>(64U*1024U*1024U)/plane_height)
+        return std::nullopt;
+    const auto columns=(plane_width+7)/8;
+    const auto rows=(plane_height+7)/8;
+    if(columns>(1U<<20)/rows)return std::nullopt;
+    const auto prologue=parse_alpha_picture_entropy_prologue(video_packet);
+    if(!prologue)return std::nullopt;
+    auto picture=video_packet.subspan(
+        prologue->picture.initial_byte_offset);
+    LsbBitReader reader(picture);
+    if(!reader.skip(prologue->picture.trees.consumed_bits))
+        return std::nullopt;
+    const auto modes=read_bink_block_type_bundle(
+        reader,prologue->picture.trees.trees[0],
+        plane_width,columns*rows);
+    if(!modes)return std::nullopt;
+    BinkFirstPictureBlockTypes output{};
+    output.prologue=std::move(*prologue);
+    output.first_bundle=std::move(*modes);
+    output.next_picture_bit_offset=
+        output.prologue.picture.initial_byte_offset*8+
+        reader.bit_position();
+    return output;
 }
 
 } // namespace btb::bink32_recovered
