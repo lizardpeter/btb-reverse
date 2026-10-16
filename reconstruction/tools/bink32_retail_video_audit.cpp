@@ -60,25 +60,33 @@ std::string first_failed_sjpi_stage(
         return last?std::span<const std::uint8_t>(
             last->planes[index]):std::span<const std::uint8_t>{};
     };
+    BinkPlaneDecodeDiagnostic diagnostic{};
+    const auto details=[&]() {
+        return " row="+std::to_string(diagnostic.row)+
+               ",col="+std::to_string(diagnostic.column)+
+               ",mode="+std::to_string(unsigned(diagnostic.mode))+
+               ",packet_bit="+std::to_string(diagnostic.bit_offset)+
+               ",source_line="+std::to_string(diagnostic.source_line);
+    };
     const auto alpha=decode_bink_picture_plane_at(
-        video,4,w,h,prev(3));
-    if(!alpha)return "alpha plane entropy/block decode";
+        video,4,w,h,prev(3),&diagnostic);
+    if(!alpha)return "alpha plane entropy/block decode"+details();
     if(alpha->next_plane_byte_offset!=outer->alpha_section_bytes)
         return "alpha section length mismatch (decoded end="+
             std::to_string(alpha->next_plane_byte_offset)+
             ",declared end="+
             std::to_string(outer->alpha_section_bytes)+")";
     const auto y=decode_bink_picture_plane_at(
-        video,outer->picture.initial_byte_offset,w,h,prev(0));
-    if(!y)return "Y plane entropy/block decode";
+        video,outer->picture.initial_byte_offset,w,h,prev(0),&diagnostic);
+    if(!y)return "Y plane entropy/block decode"+details();
     const auto v=decode_bink_picture_plane_at(
-        video,y->next_plane_byte_offset,w/2,h/2,prev(2));
+        video,y->next_plane_byte_offset,w/2,h/2,prev(2),&diagnostic);
     if(!v)return "V chroma plane entropy/block decode (start="+
-        std::to_string(y->next_plane_byte_offset)+")";
+        std::to_string(y->next_plane_byte_offset)+")"+details();
     const auto u=decode_bink_picture_plane_at(
-        video,v->next_plane_byte_offset,w/2,h/2,prev(1));
+        video,v->next_plane_byte_offset,w/2,h/2,prev(1),&diagnostic);
     if(!u)return "U chroma plane entropy/block decode (start="+
-        std::to_string(v->next_plane_byte_offset)+")";
+        std::to_string(v->next_plane_byte_offset)+")"+details();
     return "post-plane validation (all 4 plane probes succeeded)";
 }
 
