@@ -1035,6 +1035,7 @@ add_library(btb_recompiled_core STATIC
     src/full_game_spud_maze.cpp
     src/spud_maze_pilchard_native.cpp
     src/full_game_squirrel.cpp
+    src/full_game_spud_skate.cpp
     src/full_game_dino.cpp
     src/full_game_profile_screen_native.cpp
     src/golf_activity.cpp
@@ -1374,6 +1375,14 @@ foreach(test_target IN ITEMS btb_profile_name_entry_tests
         target_compile_options(${test_target} PRIVATE -UNDEBUG)
     endif()
 endforeach()
+
+add_executable(btb_full_game_spud_skate_native_tests
+    tests/full_game_spud_skate_native_test.cpp)
+target_link_libraries(btb_full_game_spud_skate_native_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_full_game_spud_skate_native_tests PRIVATE)
+add_test(NAME full_game_spud_skate_native
+    COMMAND btb_full_game_spud_skate_native_tests)
 
 # Test actual linked game executable on every supported platform,
 # including original x86 Windows (not only a library-linked test program).
