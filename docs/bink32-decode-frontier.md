@@ -218,6 +218,31 @@ bit-exact video-frame parity with the 2002 DLL. Runtime playback
 must continue using the original DLL until frame and audio decoding
 have been independently certified.
 
+## Source-native pixel generation for the original zero-AC block type
+
+The coefficient unpacking routine at `0x30011B10` reads an AC-mode
+nibble and clears the scratch space for coefficients 1–63.
+When the nibble is zero, control reaches `0x30012030`, then jumps
+to `0x300122E7` without decoding any AC coefficients. The original
+caller has already initialized the DC coefficient at offset zero,
+which this routine deliberately preserves.
+
+`decode_bink_zero_ac_block` now implements this exact limited
+path: given the **already-decoded DC value**, it transactionally reads
+the zero-AC mode nibble, then the next four-bit original quant selector,
+chooses the recovered 64-entry quant matrix, and runs the general
+integer inverse transform. Tests cover all-DC outputs for matrix
+indices 0, 1, and 15, and fail-closed behavior for nonzero modes and
+truncated bitstreams.
+
+This is the first source-backed chain that can generate a complete
+16x16 block of sample bytes using the original coefficient mode and
+quantization bits. **It is not complete frame playback:** the upstream
+DC decoding, nonzero-AC branches, macroblock scheduler, color-plane
+combination, reference-frame handling, and audio are still outstanding.
+Pixel parity against a running copy of the retail DLL has not yet
+been demonstrated.
+
 ## Next implementation order
 
 1. Compare the reconstructed dynamic trees against the original x86 DLL
