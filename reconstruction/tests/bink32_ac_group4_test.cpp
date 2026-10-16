@@ -63,5 +63,31 @@ int main() {
         CHECK(!decode_bink_ac_group4_2(bits,ctrl,0,1,coeff));
         CHECK(bits.bit_position()==0&&ctrl==3);
     }
+    {
+        // Original case 0 rewrites its control, then uses case 2's
+        // four-position decision chain (fallthrough from 30011C5F).
+        Writer encoded;for(unsigned j=0;j<4;++j)encoded.write(1,1);
+        auto bits=encoded.reader();
+        std::array<std::int16_t,64> coeff{};coeff.fill(6);
+        std::uint8_t ctrl=20U<<2;
+        const auto r=decode_bink_ac_group4_0(bits,ctrl,0,1,coeff);
+        CHECK(r&&r->deferred_count==4&&r->written_count==0);
+        CHECK(ctrl==((20U<<2)+0x11U));
+        CHECK(r->deferred_commands[0]==((23U<<2)|3U));
+        CHECK(r->deferred_commands[3]==((20U<<2)|3U));
+        CHECK(bits.bit_position()==4);
+        for(auto v:coeff)CHECK(v==6);
+    }
+    {
+        std::array<std::uint8_t,1> b{0};LsbBitReader bits(b);
+        std::array<std::int16_t,64> coeff{};coeff.fill(17);
+        std::uint8_t ctrl=0;
+        CHECK(!decode_bink_ac_group4_0(bits,ctrl,8,256,coeff));
+        CHECK(ctrl==0&&bits.bit_position()==0);
+        for(auto v:coeff)CHECK(v==17);
+        ctrl=2;
+        CHECK(!decode_bink_ac_group4_0(bits,ctrl,0,1,coeff));
+    }
+
     std::puts("Bink original AC group-of-four coefficient/control decoding: PASS");
 }
