@@ -82,26 +82,48 @@ bool SquirrelDriver::generate_choices(std::string& error) {
         static_cast<std::size_t>(placed_count_));
     const auto mix=squirrel::conveyor_mix(
         static_cast<squirrel::Difficulty>(difficulty_));
-    const auto table=squirrel::kOuterVariantPermutations[
+    const auto variant=squirrel::kOuterVariantPermutations[
         static_cast<std::size_t>(random_bounded(7))];
-    // Original choices contain 3 correct/0 decoy (easy),
-    // 3 correct/1 decoy (medium), 2 correct/2 decoy (hard).
-    // Exact random ordering and conveyor sliding remain under recovery.
+    // Retail 0x00426F30 generates two groups before randomly
+    // interleaving them with repeated rand()&1 draws. Never put all
+    // correct options first as a fixed or trivially guessable order.
+    std::array<squirrel::ConnectorPair,4> corrects{};
+    std::array<squirrel::ConnectorPair,4> decoys{};
+    for(int i=0;i<mix.correct_items;++i)
+        corrects[static_cast<std::size_t>(i)]=required;
+    for(int i=0;i<mix.decoy_items;++i) {
+        auto& pair=decoys[static_cast<std::size_t>(i)];
+        do {pair.from=random_bounded(3);}
+            while(pair.from==required.from);
+        do {pair.to=random_bounded(3);}
+            while(pair.to==required.to);
+    }
+    int correct_idx=0,decoy_idx=0;
     for(int i=0;i<mix.total_items();++i) {
-        const bool correct=i<mix.correct_items;
-        auto pair=required;
-        if(!correct) {
-            // Original generator rerolls each connector until BOTH differ
-            // from the required pair, not merely one or the other.
-            do {pair.from=random_bounded(3);}
-                while(pair.from==required.from);
-            do {pair.to=random_bounded(3);}
-                while(pair.to==required.to);
+        // The source rerolls its choice bit until there are slots left
+        // in the selected group. Cap broken PRNG providers fail closed.
+        bool pick_correct=false;
+        bool selected=false;
+        for(int attempt=0;attempt<4096;++attempt) {
+            pick_correct=(std::rand()&1U)==0U;
+            if(pick_correct?correct_idx<mix.correct_items:
+                            decoy_idx<mix.decoy_items) {
+                selected=true;
+                break;
+            }
         }
+        if(!selected) {
+            error="original Squirrel choice RNG did not select a live group";
+            return false;
+        }
+        const auto& pair=pick_correct
+            ?corrects[static_cast<std::size_t>(correct_idx++)]
+            :decoys[static_cast<std::size_t>(decoy_idx++)];
         choices_[static_cast<std::size_t>(i)]={
             squirrel::encode_piece_id({
-                table[static_cast<std::size_t>(i)],pair.from,pair.to
-            }),correct,true
+                variant[static_cast<std::size_t>(i)],
+                pair.from,pair.to
+            }),pick_correct,true
         };
     }
     return true;
