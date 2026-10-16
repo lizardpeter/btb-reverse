@@ -95,4 +95,33 @@ decode_bink_skip_only_picture_luma(
     std::size_t plane_width,std::size_t plane_height,
     std::span<const std::uint8_t> previous_luma);
 
+
+// The original 0x3000E400 motion bundles (X and Y) each encode a
+// context-sized count followed by ONE constant/entropy branch bit.
+// Each nonzero magnitude has its own sign bit; zero has no sign bit.
+struct BinkSignedMotionBundle {
+    std::vector<std::int8_t> values{};
+    std::uint32_t encoded_count{};
+    std::size_t bits_consumed{};
+    bool end_of_bundle{};
+    bool constant_bundle{};
+};
+[[nodiscard]] std::optional<BinkSignedMotionBundle>
+read_bink_signed_motion_bundle(
+    LsbBitReader& bits,const DynamicHuffmanTree& tree,
+    std::size_t plane_width,std::size_t maximum_values=1U<<18);
+
+// The pattern bundle is a count followed by pairs of original Huffman
+// nibbles; the low nibble is coded first. No immediate-value branch.
+struct BinkPatternBundle {
+    std::vector<std::uint8_t> values{};
+    std::uint32_t encoded_count{};
+    std::size_t bits_consumed{};
+    bool end_of_bundle{};
+};
+[[nodiscard]] std::optional<BinkPatternBundle>
+read_bink_pattern_bundle(
+    LsbBitReader& bits,const DynamicHuffmanTree& tree,
+    std::size_t plane_width,std::size_t maximum_values=1U<<18);
+
 } // namespace btb::bink32_recovered
