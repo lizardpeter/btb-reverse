@@ -4,7 +4,6 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -47,29 +46,25 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
     std::span<const std::uint8_t> video_packet,
     std::size_t width,std::size_t height,
     std::span<const std::uint8_t> previous_luma) {
-    const auto fail=[](int line)->std::optional<BinkSimplePictureLuma> {
-        std::fprintf(stderr,"Bink simple-picture rejection at %d\\n",line);
-        return std::nullopt;
-    };
     constexpr std::size_t kMaxPixels=64U*1024U*1024U;
     constexpr std::size_t kMaxTiles=1U<<20;
     if(!width || !height || width>16384 || height>16384 ||
        (width%8)!=0 || (height%8)!=0 ||
        width>kMaxPixels/height ||
        (!previous_luma.empty() && previous_luma.size()!=width*height))
-        return fail(__LINE__);
+        return std::nullopt;
     const auto columns=width/8,rows=height/8;
-    if(columns>kMaxTiles/rows)return fail(__LINE__);
+    if(columns>kMaxTiles/rows)return std::nullopt;
     const auto tiles=columns*rows;
     // Each 8x8 pixel block may consume up to 64 color samples.
     const auto maximum_samples=std::min(kMaxPixels,width*height);
     const auto prologue=parse_alpha_picture_entropy_prologue(video_packet);
-    if(!prologue)return fail(__LINE__);
+    if(!prologue)return std::nullopt;
     const auto& trees=prologue->picture.trees.trees;
     LsbBitReader bits(video_packet.subspan(
         prologue->picture.initial_byte_offset));
     if(!bits.skip(prologue->picture.trees.consumed_bits))
-        return fail(__LINE__);
+        return std::nullopt;
 
     SourcePool<std::uint8_t> types{},subtypes{},colors{},patterns{},runs{};
     SourcePool<std::int8_t> motion_x{},motion_y{};
@@ -88,12 +83,12 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
     for(std::size_t row=0;row<rows;++row) {
         if(types.needs_refill()) {
             auto b=read_bink_block_type_bundle(bits,trees[0],width,tiles);
-            if(!b)return fail(__LINE__);
+            if(!b)return std::nullopt;
             types.refill(std::move(b->modes),b->end_of_bundle);
         }
         if(subtypes.needs_refill()) {
             auto b=read_bink_block_type_bundle(bits,trees[1],width/2,tiles);
-            if(!b)return fail(__LINE__);
+            if(!b)return std::nullopt;
             subtypes.refill(std::move(b->modes),b->end_of_bundle);
         }
         if(colors.needs_refill()) {
@@ -102,46 +97,46 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
             auto b=read_bink_color_bundle(
                 bits,prologue->picture.trees,width,last_color_high,
                 false,maximum_samples);
-            if(!b)return fail(__LINE__);
+            if(!b)return std::nullopt;
             last_color_high=b->next_high_nibble;
             colors.refill(std::move(b->values),b->end_of_bundle);
         }
         if(patterns.needs_refill()) {
             auto b=read_bink_pattern_bundle(
                 bits,trees[19],width,maximum_samples);
-            if(!b)return fail(__LINE__);
+            if(!b)return std::nullopt;
             patterns.refill(std::move(b->values),b->end_of_bundle);
         }
         if(motion_x.needs_refill()) {
             auto b=read_bink_signed_motion_bundle(
                 bits,trees[20],width,tiles);
-            if(!b)return fail(__LINE__);
+            if(!b)return std::nullopt;
             motion_x.refill(std::move(b->values),b->end_of_bundle);
         }
         if(motion_y.needs_refill()) {
             auto b=read_bink_signed_motion_bundle(
                 bits,trees[21],width,tiles);
-            if(!b)return fail(__LINE__);
+            if(!b)return std::nullopt;
             motion_y.refill(std::move(b->values),b->end_of_bundle);
         }
         if(intra_dc.needs_refill()) {
             auto b=decode_original_bink_dc_context_packet(
                 bits,intra_context,tiles);
-            if(!b)return fail(__LINE__);
+            if(!b)return std::nullopt;
             auto v=dc_words(*b);
             intra_dc.refill(std::move(v),b->signed_words_le.empty());
         }
         if(inter_dc.needs_refill()) {
             auto b=decode_original_bink_dc_context_packet(
                 bits,inter_context,tiles);
-            if(!b)return fail(__LINE__);
+            if(!b)return std::nullopt;
             auto v=dc_words(*b);
             inter_dc.refill(std::move(v),b->signed_words_le.empty());
         }
         if(runs.needs_refill()) {
             auto b=read_bink_run_bundle(bits,trees[22],width,
                                         maximum_samples);
-            if(!b)return fail(__LINE__);
+            if(!b)return std::nullopt;
             runs.refill(std::move(b->values),b->end_of_bundle);
         }
 
@@ -151,7 +146,7 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
         for(std::size_t col=0;col<columns;) {
             const auto encoded=types.take();
             if(!encoded || *encoded>=result.mode_counts.size())
-                return fail(__LINE__);
+                return std::nullopt;
             ++result.mode_counts[*encoded];
             const auto mode=static_cast<BinkBlockMode>(*encoded);
             auto& cmd=commands[row*columns+col];
@@ -229,7 +224,7 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
                 return false;
             };
             if(mode==BinkBlockMode::Scaled) {
-                if(col&1U || col+1>=columns)return fail(__LINE__);
+                if(col&1U || col+1>=columns)return std::nullopt;
                 if(row&1U) {
                     // Original odd-row scaled marker has no new
                     // pixels. Verify it covers the previous anchor.
@@ -238,19 +233,19 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
                        cmd.mode!=BinkBlockMode::Covered ||
                        commands[row*columns+col+1].mode!=
                            BinkBlockMode::Covered)
-                        return fail(__LINE__);
+                        return std::nullopt;
                     col+=2;
                     continue;
                 }
-                if(row+1>=rows)return fail(__LINE__);
+                if(row+1>=rows)return std::nullopt;
                 const auto subtype=subtypes.take();
-                if(!subtype)return fail(__LINE__);
+                if(!subtype)return std::nullopt;
                 cmd.mode=BinkBlockMode::Scaled;
                 cmd.scaled_submode=static_cast<BinkBlockMode>(*subtype);
                 // These three source-backed scaled payloads already
                 // have an exact nearest-neighbor 2x pixel compositor.
                 if(!populate_pixels(cmd.scaled_submode))
-                    return fail(__LINE__);
+                    return std::nullopt;
                 commands[row*columns+col+1].mode=BinkBlockMode::Covered;
                 commands[(row+1)*columns+col].mode=BinkBlockMode::Covered;
                 commands[(row+1)*columns+col+1].mode=BinkBlockMode::Covered;
@@ -258,7 +253,7 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
                 continue;
             }
             if(cmd.mode==BinkBlockMode::Covered)
-                return fail(__LINE__);
+                return std::nullopt;
             cmd.mode=mode;
             switch(mode) {
             case BinkBlockMode::Skip:
@@ -266,7 +261,7 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
             case BinkBlockMode::Motion: {
                 const auto mx=motion_x.take();
                 const auto my=motion_y.take();
-                if(!mx || !my)return fail(__LINE__);
+                if(!mx || !my)return std::nullopt;
                 cmd.motion_x=*mx;
                 cmd.motion_y=*my;
                 break;
@@ -275,19 +270,19 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
             case BinkBlockMode::Pattern:
             case BinkBlockMode::Run:
             case BinkBlockMode::Raw:
-                if(!populate_pixels(mode))return fail(__LINE__);
+                if(!populate_pixels(mode))return std::nullopt;
                 break;
             default:
                 // DCT and residue modes remain deliberately
                 // unsupported until original transform data is wired.
-                return fail(__LINE__);
+                return std::nullopt;
             }
             ++col;
         }
     }
-    if(!bits.align(4))return fail(__LINE__);
+    if(!bits.align(4))return std::nullopt;
     auto output=compose_bink_mode_plane(width,height,commands,previous_luma);
-    if(!output)return fail(__LINE__);
+    if(!output)return std::nullopt;
     result.image=std::move(*output);
     result.source_refills={
         types.refills,subtypes.refills,colors.refills,patterns.refills,
