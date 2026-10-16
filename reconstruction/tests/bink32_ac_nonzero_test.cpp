@@ -58,11 +58,36 @@ int main() {
   CHECK(!decode_bink_ac_direct3(bits,cmd,15,16384,coeff));
   CHECK(!decode_bink_ac_direct3(bits,cmd,2,3,coeff));
   CHECK(!decode_bink_ac_direct3(bits,cmd,14,4096,coeff));
-  CHECK(!decode_bink_ac_direct3(bits,cmd,0,32768,coeff));
+  CHECK(!decode_bink_ac_direct3(bits,cmd,32,32768,coeff));
   CHECK(!decode_bink_ac_direct3(bits,cmd,0,1,std::span<std::int16_t>(coeff).first(63)));
   cmd=5;
   CHECK(!decode_bink_ac_direct3(bits,cmd,0,1,coeff));
   CHECK(bits.bit_position()==0&&cmd==5);
+ }
+ {
+  // Actual 30011BF4 makes EAX = (1 << (mode-1))-1 for the
+  // outer AC coefficient pass. Mode 4 has EAX=7 and class bit=8;
+  // the previous fake restriction (1 << 7)<=8 rejected it.
+  Bits encoded;encoded.write(0x52,7);encoded.write(1,1);
+  auto bits=encoded.reader();
+  std::array<std::int16_t,64> coeff{};
+  std::uint8_t command=(12U<<2)|3U;
+  const auto v=decode_bink_ac_direct3(bits,command,7,8,coeff);
+  CHECK(v&&v->value==-90&&v->consumed_bits==8);
+  CHECK(coeff[12]==-90&&command==0&&bits.bit_position()==8);
+ }
+ {
+  // Original MOVSX EDI, DI truncates a 16-plus-bit magnitude before
+  // NEG and MOV WORD. Verify both sign choices on 0xffff low word.
+  for(unsigned negative=0;negative<=1;++negative){
+   Bits encoded;encoded.write(0xffff,16);encoded.write(negative,1);
+   auto bits=encoded.reader();
+   std::array<std::int16_t,64> coeff{};
+   std::uint8_t command=3;
+   const auto v=decode_bink_ac_direct3(bits,command,16,1,coeff);
+   CHECK(v&&v->value==(negative?1:-1));
+   CHECK(coeff[0]==(negative?1:-1)&&bits.bit_position()==17);
+  }
  }
  std::puts("Bink nonzero AC direct coefficient branch and control expansion: PASS");
 }
