@@ -11,7 +11,7 @@
 
 namespace btb::full_game {
 
-// Source-backed native Dinosaur activity for original states 0x0E/0x0F.
+// Source-backed native Dinosaur activity for original states 0x14/0x15.
 // This is NOT the old isolated GDI demonstration: it emits original bitmap
 // and managed-sound commands into the shared GameRoot/DirectDraw pipeline.
 class DinoDriver final : public ActivityDriver {
