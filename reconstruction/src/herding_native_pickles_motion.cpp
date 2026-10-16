@@ -2,6 +2,7 @@
 #include "btb/herding_navigation_boundary.hpp"
 #include "btb/original_herding_init.hpp"
 #include "btb/herding_source_scruffty_patrol.hpp"
+#include "btb/herding_source_pickles_animation.hpp"
 
 #include <array>
 #include <cmath>
@@ -174,8 +175,25 @@ bool NativePicklesMotionSource::advance(
             break;
         }
     };
+    // In retail, the food selection loop precedes the Pickles
+    // walk/idle animation branch. Use that same order on both idle
+    // and moving frames to switch between carried/empty sprite rows.
+    const auto animate_pickles=[&]() -> bool {
+        auto& hero=observed.motion_records.front();
+        const auto animation=herding::original_pickles_keyboard_animation_step(
+            hero.animation_frame,hero.animation_frame_countdown,
+            motion.movement_mask!=0,selected_food_);
+        if(!animation) {
+            error="original 0x418CE4 Pickles animation source invalid";
+            return false;
+        }
+        hero.animation_frame=animation->frame;
+        hero.animation_frame_countdown=animation->countdown;
+        return true;
+    };
     if(motion.movement_mask==0) {
         source_food_pickup();
+        if(!animate_pickles())return false;
         error.clear();
         return true;
     }
@@ -217,6 +235,7 @@ bool NativePicklesMotionSource::advance(
     // Source-confirmed food pickup and Scruffty patrol are supported,
     // but animal contact/follower delivery is unhosted: no fake wins.
     source_food_pickup();
+    if(!animate_pickles())return false;
     error.clear();
     return true;
 }
