@@ -2,6 +2,7 @@
 
 #include "btb/full_game_runtime.hpp"
 #include "btb/maze_data.hpp"
+#include "btb/maze_box_layout.hpp"
 #include "btb/original_motion4.hpp"
 
 #include <filesystem>
@@ -14,7 +15,7 @@ namespace btb::full_game {
 // Incremental native binding of retail Maze 0x0041A730 / 0x0041D4D0.
 // Original three-screen map, cursor-independent keyboard graph movement,
 // actor sprite and countdown are source-backed. Spud NPC/package collision,
-// randomized package allocation, mouse arbitration and success logic are
+// package pickup, mouse arbitration and success logic are
 // intentionally NOT modeled as if already reconstructed.
 class MazeDriver final : public ActivityDriver {
 public:
@@ -32,6 +33,9 @@ public:
     [[nodiscard]] int remaining_seconds() const noexcept {
         return remaining_seconds_;
     }
+    [[nodiscard]] const maze::BoxAllocation& boxes() const noexcept {
+        return boxes_;
+    }
 
 private:
     [[nodiscard]] ActivityFrameOutput draw() const;
@@ -41,6 +45,7 @@ private:
     int player_index_{-1};
     std::unique_ptr<maze::Data> data_{};
     original_motion4::Player player_{};
+    maze::BoxAllocation boxes_{};
     int remaining_seconds_{};
     int started_centiseconds_{};
     bool intro_voice_queued_{};
