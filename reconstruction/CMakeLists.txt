@@ -941,6 +941,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_fixed_huffman.cpp
     src/bink32_dynamic_huffman.cpp
     src/bink32_entropy_commands.cpp
+    src/bink32_signed_coefficients.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1698,6 +1699,12 @@ add_executable(btb_bink32_entropy_commands_tests tests/bink32_entropy_commands_t
 target_link_libraries(btb_bink32_entropy_commands_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_entropy_commands_tests PRIVATE)
 add_test(NAME bink32_original_value_run_commands COMMAND btb_bink32_entropy_commands_tests)
+# Original Bink internal 0x30010980 signed-magnitude coefficient reader.
+add_executable(btb_bink32_signed_coefficients_tests tests/bink32_signed_coefficients_test.cpp)
+target_link_libraries(btb_bink32_signed_coefficients_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_signed_coefficients_tests PRIVATE)
+add_test(NAME bink32_original_signed_coefficients COMMAND btb_bink32_signed_coefficients_tests)
+
 
 
 
