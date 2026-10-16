@@ -408,6 +408,38 @@ not in Bink frame playback. A full retail video frame is still not
 certified: DC extraction, macroblock mode traversal, reference-frame
 and plane assembly, and original runtime bit-position parity remain.
 
+## One native AC-mode-to-pixels pipeline (all sixteen modes)
+
+`bink32_ac_block_pixels.cpp` now provides a single transactional
+`decode_bink_ac_quantized_block` entry point. Starting at the
+appropriate original AC bitstream position and given a
+**caller-supplied decoded DC coefficient**, the function:
+
+1. Reads the four-bit original AC mode (0–15).
+2. Executes the full recovered mutable coefficient-command list
+   with `mode-1` correctly sized magnitude passes and the signed
+   unit pass (unless mode is zero).
+3. Reads the four-bit quantization selector immediately following
+   the AC coefficient stream.
+4. Selects the exact, independently checksum-validated original
+   DLL quant matrix, and runs the recovered two-pass integer iDCT.
+5. Returns a complete 16×16 sample block, the 64 coefficient values,
+   mode and quant selector, and the number of compressed bits
+   consumed. Invalid/truncated streams do not advance the cursor.
+
+Native CTest exercises **all 16 mode nibbles**. Additional fixtures
+exercise nonzero negative AC in mode 1, nonzero AC in mode 4, and
+nonzero negative AC in mode 15; all reach the quantized pixel output.
+The test also checks strict cursor accounting and rollback.
+
+This is the deepest source-derived, multi-component decoding path so
+far. It is not an original complete `.bik` frame: the original
+compressed DC mode/value, correct macroblock start positions,
+non-transform block modes, per-plane reconstruction, prediction,
+frame scheduling and audio still need to be connected. Tests use
+crafted compressed sequences and known DC inputs. No original
+DLL/retail frame differential validation is claimed.
+
 ## Next implementation order
 
 1. Compare the reconstructed dynamic trees against the original x86 DLL
