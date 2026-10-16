@@ -1159,6 +1159,16 @@ add_test(NAME original_crt10 COMMAND btb_original_crt10_tests)
 # and run on every supported architecture, with checks active in Release.
 # Native source Dinosaur retail asset/drag-drop/progress regression.
 # Test only; original proprietary bitmaps are not committed to the repo.
+# Exercise real retail five-sign screen: original font data, saved-player
+# selection, the state-1 name-entry caller and fail-closed missing assets.
+add_executable(btb_full_game_profile_selector_native_tests
+    tests/full_game_profile_selector_native_test.cpp)
+target_link_libraries(btb_full_game_profile_selector_native_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_full_game_profile_selector_native_tests PRIVATE)
+add_test(NAME full_game_profile_selector_native
+    COMMAND btb_full_game_profile_selector_native_tests)
+
 add_executable(btb_full_game_dino_native_tests
     tests/full_game_dino_native_test.cpp)
 target_link_libraries(btb_full_game_dino_native_tests PRIVATE
