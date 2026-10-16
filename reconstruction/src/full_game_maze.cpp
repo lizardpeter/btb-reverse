@@ -169,6 +169,10 @@ bool MazeDriver::initialize(int player_index,std::string& error) {
         input_mode_.mouse_mode=false; // 0x00512124 initial 0
         mouse_debounce_={};
         pointer_sampled_=false;
+        pickup_animation_frame_=0;
+        pickup_animation_wait_=0;
+        pickup_voice_sequence_=0;
+        won_=false;
         remaining_seconds_=
             parsed->timer_by_difficulty[static_cast<std::size_t>(difficulty_)];
         data_=std::move(parsed);
@@ -206,19 +210,30 @@ ActivityFrameOutput MazeDriver::draw() const {
     const auto screen_index=static_cast<std::size_t>(player_.screen);
     for(const auto& slot:boxes_.screens[screen_index]) {
         if(slot.node_id<0)continue;
-        if(slot.status==maze::kSpudAvailablePackageStatus) {
-            const auto& reference=data_->box_locations[screen_index][
-                static_cast<std::size_t>(slot.node_id)];
+        if(slot.status==maze::kSpudAvailablePackageStatus ||
+           slot.status==maze::kSpudDroppedPackageStatus) {
+            int x{},y{};
+            if(slot.status==maze::kSpudAvailablePackageStatus) {
+                if(slot.node_id>=4) {
+                    output.fatal_error="Maze box location outside retail 0..3";
+                    return output;
+                }
+                const auto& point=data_->box_locations[screen_index][
+                    static_cast<std::size_t>(slot.node_id)];
+                x=point.position.x;
+                y=point.position.y;
+            } else {
+                x=slot.dropped_x;
+                y=slot.dropped_y;
+            }
             output.draws.push_back({
-                "Data\\SubGameMaze\\box.bmp",
-                reference.position.x-8,reference.position.y-8,
+                "Data\\SubGameMaze\\box.bmp",x-8,y-8,
                 std::nullopt,true
             });
         }
-        // Status 3 is the source Spud-dropped box; the NPC adapter will
-        // supply its live x/y. Never invent a position before that exists.
     }
-    const auto sprite=maze::actor_source_rect(player_.facing,0);
+    const auto sprite=maze::actor_source_rect(
+        player_.facing,player_.frozen?pickup_animation_frame_:0);
     const auto where=maze::player_destination(player_.x,player_.y);
     output.draws.push_back({
         "Data\\SubGameMaze\\player.bmp",where.x,where.y,
@@ -284,11 +299,16 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
         });
         lowtime_voice_queued_=true;
     }
-    if(remaining_seconds_<0) {
+    if(boxes_.remaining<=0 || remaining_seconds_<0) {
         if(exit_phase_==0) {
+            won_=boxes_.remaining<=0;
             out.audio.push_back({AudioOperation::StopManagedSounds});
+            // Source 0x0041D4D0: 0x54 (fast win), 0x55 (late win),
+            // 0x56 (timeout) chosen before the voice-drain gate.
+            const int voice=won_ ?
+                (remaining_seconds_<16?0x55:0x54) : 0x56;
             out.audio.push_back({
-                AudioOperation::ManagedSoundId,{},0x56,90,1
+                AudioOperation::ManagedSoundId,{},voice,90,1
             });
             exit_phase_=1;
             return out;
@@ -298,9 +318,10 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
             exit_phase_=2;
             return out;
         }
-        // The real 0x0041D4D0 timeout path has no Maze success flag.
-        // Returning to the source Play Again state is not fabricated
-        // victory/progress.
+        // The source completion flag is granted only after feedback
+        // drains. Timeout writes no progress at all.
+        if(won_)
+            out.progress_writes.push_back({progress::Slot::Maze,1});
         out.save_and_unload=true;
         out.next_outer_state=
             static_cast<int>(game_flow::State::PlayAgainYesNoSetup);
@@ -309,9 +330,37 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
         return out;
     }
     try {
-        MazePlayerPort io(input,out,player_,input_mode_,
-                          mouse_debounce_,pointer_sampled_);
-        original_motion4::update_maze_player(player_,io);
+        if(player_.frozen) {
+            // Source 0x0041C110 holds the player while the pickup
+            // animation advances from row 3 through row 7.
+            if(--pickup_animation_wait_<1) {
+                ++pickup_animation_frame_;
+                pickup_animation_wait_=20;
+                if(pickup_animation_frame_>7) {
+                    player_.frozen=false;
+                    pickup_animation_frame_=0;
+                    const int voice=pickup_voice_sequence_<6
+                        ? 0x4d+pickup_voice_sequence_
+                        : 0x51+(input.random_value&1);
+                    ++pickup_voice_sequence_;
+                    out.audio.push_back({
+                        AudioOperation::ManagedSoundId,{},voice,10,1
+                    });
+                }
+            }
+        } else {
+            MazePlayerPort io(input,out,player_,input_mode_,
+                              mouse_debounce_,pointer_sampled_);
+            original_motion4::update_maze_player(player_,io);
+            // Original 0x0041B140 scans current screen's four boxes,
+            // truncating player coordinates, radius strictly <46.
+            if(maze::collect_source_box(
+                    boxes_,*data_,player_.screen,player_.x,player_.y)) {
+                player_.frozen=true;
+                pickup_animation_frame_=3;
+                pickup_animation_wait_=0;
+            }
+        }
     } catch(const std::exception& e) {
         out.fatal_error=std::string("original Maze player motion: ")+e.what();
         return out;
@@ -330,6 +379,10 @@ bool MazeDriver::unload(std::string& error) {
     input_mode_={};
     mouse_debounce_={};
     pointer_sampled_=false;
+    pickup_animation_frame_=0;
+    pickup_animation_wait_=0;
+    pickup_voice_sequence_=0;
+    won_=false;
     player_index_=-1;
     timer_started_=false;
     intro_done_=false;
