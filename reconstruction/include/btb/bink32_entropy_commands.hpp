@@ -25,4 +25,13 @@ struct ExpandedBlockRun {
     const DynamicHuffmanTree& tree,
     std::span<std::uint8_t> destination,
     std::uint8_t previous_value=0);
+// Original 0x30010632..0x30010651 combines two four-bit symbols to a
+// signed-magnitude 7-bit number and recenters it around 128.
+// Independent primitive of the alternate block-value decoder (0x30010400).
+[[nodiscard]] std::uint8_t combine_bink_signed_nibbles(
+    std::uint8_t high, std::uint8_t low) noexcept;
+[[nodiscard]] std::optional<std::uint8_t> read_bink_signed_sample(
+    LsbBitReader& bits,
+    const DynamicHuffmanTree& high_tree,
+    const DynamicHuffmanTree& low_tree) noexcept;
 } // namespace btb::bink32_recovered
