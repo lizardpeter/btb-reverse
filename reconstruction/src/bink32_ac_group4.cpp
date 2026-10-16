@@ -1,5 +1,6 @@
 #include "btb/bink32_ac_group4.hpp"
 #include <algorithm>
+#include <bit>
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -12,10 +13,11 @@ std::optional<AcGroup4> decode_bink_ac_group4_2(
     if ((command & 3U)!=2U || coefficients.size()!=64)
         return std::nullopt;
     const auto first=static_cast<unsigned>(command>>2);
-    if (first>60 || low_magnitude_bits>14 || high_magnitude_bit==0 ||
-        high_magnitude_bit>16384 ||
-        (high_magnitude_bit & (high_magnitude_bit-1))!=0 ||
-        (1U<<low_magnitude_bits)>high_magnitude_bit)
+    // 30011CDA..30011D1D reads EAX bits independently of the
+    // magnitude-class WORD at [esp+28]. EAX can exceed the class-bit
+    // position; the previous check rejected valid source streams.
+    if (first>60 || low_magnitude_bits>31 || high_magnitude_bit==0 ||
+        (high_magnitude_bit & (high_magnitude_bit-1))!=0)
         return std::nullopt;
     auto cursor=source;
     std::array<std::int16_t,64> scratch{};
@@ -37,11 +39,14 @@ std::optional<AcGroup4> decode_bink_ac_group4_2(
         if(!low)return std::nullopt;
         const auto negative=cursor.read(1);
         if(!negative)return std::nullopt;
-        const auto magnitude=std::uint32_t(*low|high_magnitude_bit);
-        if(magnitude>32767)return std::nullopt;
-        scratch[index]=static_cast<std::int16_t>(
-            *negative?-static_cast<std::int32_t>(magnitude)
-                     :static_cast<std::int32_t>(magnitude));
+        const auto magnitude=static_cast<std::uint16_t>(
+            *low|high_magnitude_bit);
+        // 30011D43 MOVSX EDI,DI; 30011D48 NEG EDI; 30011D4E
+        // MOV WORD stores low 16 bits, including signed wrap cases.
+        const auto raw=static_cast<std::int32_t>(
+            std::bit_cast<std::int16_t>(magnitude));
+        scratch[index]=std::bit_cast<std::int16_t>(
+            static_cast<std::uint16_t>(*negative?-raw:raw));
         ++result.written_count;
     }
     // Original list grows backward from its end pointer: reverse the
