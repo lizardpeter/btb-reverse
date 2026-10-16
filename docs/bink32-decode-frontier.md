@@ -1000,3 +1000,41 @@ tracing identified the later Y-motion rejection. The fixture now
 emits the original nine-bit count. That error did not require
 weakening malformed-data checks or changing the decoder's source
 width calculation. The trace was removed after correction.
+
+
+## All sixteen original Bink1 RUN scan orders (2026-10-16)
+
+The native compressed RUN block decoder now supports **all 16 original
+4-bit scan selectors**, not just scan zero. The exact 16×64 coordinate
+lookup is stored in the standalone constexpr
+`reconstruction/include/btb/bink32_run_scan.hpp`. It is a codec-defined
+table, validated at compile time as sixteen permutations of all 64
+8×8 pixel coordinates. The code does not load FFmpeg or the original
+2002 game DLL at runtime.
+
+The existing `decode_bink_simple_picture_luma` now decodes RUN values
+and colors with its recovered entropy/state handlers and places each
+output byte at the source-defined scan location, for both ordinary
+8×8 RUN and subordinate 16×16 Scaled RUN. The same bounded
+four-bit selector governs either path.
+
+The C++26 regression includes sixteen separate complete compressed
+8×8 RUN packets. Every scan receives all 64 **distinct color bytes**
+so that incorrect positions cannot hide behind identical filled runs.
+Each complete output plane is compared against an independent
+64-bit FNV-1a fingerprint derived from the original reference
+coordinate table; the sixteen fingerprints are all different.
+Earlier scan-zero, second selector, and 2×-scaled pixel tests remain.
+
+Independent format evidence:
+https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/binkdata.h
+(`bink_patterns[16][64]`),
+https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/bink.c
+(`case RUN_BLOCK`, `case SCALED_BLOCK`).
+
+**Remaining decoder frontier:** recovering original DCT/residue block
+handoffs and frame state transitions, decoding the original independent
+intra frame followed by moving pictures, then completing Y/U/V/alpha,
+audio and movie playback. The original DLL remains necessary for full
+retail video in the game until these gaps are closed. Actual 2002
+DLL pixel parity is still unverified.
