@@ -101,7 +101,7 @@ int main() {
         const auto sample=read_bink_signed_sample(sample_bits,tree,tree);
         CHECK(sample&&*sample==127&&sample_bits.bit_position()==8);
         // Truncated second nibble must leave source bit cursor unchanged.
-        LsbBitReader incomplete(std::span<const std::uint8_t>());
+        LsbBitReader incomplete{std::span<const std::uint8_t>{}};
         CHECK(!read_bink_signed_sample(incomplete,tree,tree));
         CHECK(incomplete.bit_position()==0);
     }
