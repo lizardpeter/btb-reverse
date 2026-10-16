@@ -949,6 +949,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_ac_nonzero.cpp
     src/bink32_ac_group4.cpp
     src/bink32_ac_command_pass.cpp
+    src/bink32_ac_unit_pass.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1753,6 +1754,13 @@ add_executable(btb_bink32_ac_command_pass_tests tests/bink32_ac_command_pass_tes
 target_link_libraries(btb_bink32_ac_command_pass_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_ac_command_pass_tests PRIVATE)
 add_test(NAME bink32_original_AC_mutable_pass COMMAND btb_bink32_ac_command_pass_tests)
+# Original Bink second AC phase 0x30012030..0x300122E7, +/-1
+# coefficient output and shared mutable pending command pointers.
+add_executable(btb_bink32_ac_unit_pass_tests tests/bink32_ac_unit_pass_test.cpp)
+target_link_libraries(btb_bink32_ac_unit_pass_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_ac_unit_pass_tests PRIVATE)
+add_test(NAME bink32_original_AC_unit_pass COMMAND btb_bink32_ac_unit_pass_tests)
+
 
 
 
