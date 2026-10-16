@@ -127,11 +127,50 @@ int main(int argc,char**argv) {
         const auto zero=parse_video_entropy_prologue(all_zero,0);
         CHECK(zero&&zero->final_bit_offset==92);
     }
+    {
+        // Alpha-bearing SJPi: video[0..3] gives the candidate alpha
+        // section length; the next DWORD is the picture control word.
+        // The real 227-frame designstartup movie places picture entropy
+        // at byte 52 on frames 2..227 and byte 128 on frame 1.
+        std::array<std::uint8_t,65> video{};
+        video[0]=48;
+        video[48]=0x34; video[49]=0x12; // candidate picture control
+        Bits entropy_bits;
+        entropy_bits.put(1,4); // first nonzero selector
+        entropy_bits.put(1,1); // sparse symbol list branch
+        entropy_bits.put(0,3); // one explicit symbol
+        entropy_bits.put(5,4); // symbol 5
+        for(unsigned i=0;i<22;++i)entropy_bits.put(0,4);
+        CHECK(entropy_bits.count==100);
+        std::copy_n(entropy_bits.bytes.begin(),13,video.begin()+52);
+        const auto picture=parse_alpha_picture_entropy_prologue(video);
+        CHECK(picture && picture->alpha_section_bytes==48);
+        CHECK(picture->picture_control_word==0x1234);
+        CHECK(picture->picture.initial_byte_offset==52);
+        CHECK(picture->picture.final_bit_offset==52*8+100);
+        CHECK(picture->picture.trees.trees[0].selector==1);
+        CHECK(picture->picture.trees.trees[0].symbol_permutation[0]==5);
+        CHECK(picture->picture.trees.trees[22].selector==0);
+        // Input lengths and section boundaries must be validated before
+        // the entropy decoder receives any bytes.
+        CHECK(!parse_alpha_picture_entropy_prologue(
+            std::span<const std::uint8_t>(video).first(64)));
+        auto corrupt=video;
+        corrupt[0]=49; // not a 32-bit aligned boundary
+        CHECK(!parse_alpha_picture_entropy_prologue(corrupt));
+        corrupt=video;
+        corrupt[0]=0;
+        CHECK(!parse_alpha_picture_entropy_prologue(corrupt));
+        corrupt=video;
+        corrupt[0]=80; // beyond end of packet
+        CHECK(!parse_alpha_picture_entropy_prologue(corrupt));
+    }
     // Optional original-asset regression, performed locally using the
     // supplied retail movies; GitHub CI runs the synthetic tests above.
     // Four bytes is the candidate compressed video control word boundary.
     // Passing this is NOT evidence of coefficient/pixel equivalence.
     std::uint64_t frame_headers=0,nonzero_selectors=0;
+    std::uint64_t alpha_picture_frames=0,alpha_picture_nonzero=0;
     for(int arg=1;arg<argc;++arg) {
         std::ifstream input(argv[arg],std::ios::binary);
         CHECK(input.good());
@@ -151,12 +190,29 @@ int main(int argc,char**argv) {
                 nonzero_selectors+=tree.selector!=0;
                 CHECK(tree.selector<16);
             }
+            if((index->video_flags&0x00100000U)!=0) {
+                const auto picture=parse_alpha_picture_entropy_prologue(
+                    packet->video);
+                CHECK(picture);
+                CHECK(picture->picture.initial_byte_offset==
+                      picture->alpha_section_bytes+4);
+                CHECK(picture->picture.final_bit_offset<=
+                      packet->video.size()*8);
+                ++alpha_picture_frames;
+                for(const auto& tree:picture->picture.trees.trees)
+                    alpha_picture_nonzero+=tree.selector!=0;
+            }
             ++frame_headers;
         }
     }
     if(argc>1)std::printf("Retail Bink tree-header candidates: %llu frames, %llu nonzero selectors\\n",
         static_cast<unsigned long long>(frame_headers),
         static_cast<unsigned long long>(nonzero_selectors));
+
+    if(argc>1)std::printf(
+        "Alpha-bearing picture-prologue candidates: %llu frames, %llu nonzero selectors\\n",
+        static_cast<unsigned long long>(alpha_picture_frames),
+        static_cast<unsigned long long>(alpha_picture_nonzero));
 
     std::puts("Original Bink dynamic Huffman permutation and merge: PASS");
 }
