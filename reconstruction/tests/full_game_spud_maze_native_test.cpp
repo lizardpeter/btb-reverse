@@ -22,7 +22,7 @@ int main() {
     {
         std::ofstream f(root/"loaddata"/"spudmaze_nodes.txt");
         f<<"WestScreen_NODE_NUM_X_Y_DIR_TYPE_LINKS\n"
-         <<"start 2 76 386 3 0 -1 -1 -1 -1\n"
+         <<"start 2 76 386 7 0 -1 -1 -1 -1\n"
          <<"NEXT_2nd Screen\n"
          <<"middle 0 606 300 8 256 -1 -1 -1 -1\n"
          <<"NEXT_3rdScreen\n"
