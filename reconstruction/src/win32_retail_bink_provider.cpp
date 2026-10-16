@@ -251,7 +251,8 @@ bool Win32RetailBinkProvider::open_walkthrough(
         return false;
     }
     if(!renderer_.create_bink_offscreen_surface(
-           282,179,walkthrough_surface_,error)) {
+           kOriginalWalkthroughMovieWidth,
+           kOriginalWalkthroughMovieHeight,walkthrough_surface_,error)) {
         release_walkthrough();
         return false;
     }
@@ -271,7 +272,8 @@ bool Win32RetailBinkProvider::open_walkthrough(
     }
     const auto& header=*static_cast<OriginalBink32Header*>(walkthrough_);
     if(header.width==0||header.height==0||
-       header.width>282||header.height>179||
+       header.width>kOriginalWalkthroughMovieWidth||
+       header.height>kOriginalWalkthroughMovieHeight||
        header.frames==0||header.frame_num==0||
        header.frame_num>header.frames) {
         release_walkthrough();
@@ -368,7 +370,9 @@ bool Win32RetailBinkProvider::render_walkthrough_overlay(
     // when invoking DecodeAndBlitBinkFrame(0x408F70). The
     // original DD7 playback surface is 282x179 (0x4281D0).
     return renderer_.blit_bink_offscreen_surface(
-        walkthrough_surface_,282,179,0x3f,0x9d,error);
+        walkthrough_surface_,
+        kOriginalWalkthroughMovieWidth,kOriginalWalkthroughMovieHeight,
+        kOriginalWalkthroughMovieX,kOriginalWalkthroughMovieY,error);
 }
 
 } // namespace btb::full_game
