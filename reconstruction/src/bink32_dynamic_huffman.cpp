@@ -96,4 +96,21 @@ std::optional<FixedHuffmanSymbol> read_dynamic_huffman_symbol(
     bits=probe;
     return decoded;
 }
+std::optional<BlockEntropyTrees> read_block_entropy_trees(
+    LsbBitReader& bits) noexcept {
+    // Calls at 3000E59B, 3000E5B9, sixteen iterations at 3000E5DE,
+    // then 3000E608/25/43/61/82; no video coefficient decoding yet.
+    auto probe=bits;
+    const auto first=probe.bit_position();
+    BlockEntropyTrees output{};
+    for(auto& tree:output.trees) {
+        const auto next=read_dynamic_huffman_tree(probe);
+        if(!next)return std::nullopt;
+        tree=*next;
+    }
+    output.consumed_bits=probe.bit_position()-first;
+    bits=probe;
+    return output;
+}
+
 } // namespace btb::bink32_recovered
