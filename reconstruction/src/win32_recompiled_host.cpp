@@ -393,7 +393,8 @@ LRESULT CALLBACK native_window_proc(
         host->set_pointer(lp);host->native_input.release_mouse();return 0;
     case WM_KEYDOWN:
         host->native_input.key_down(
-            static_cast<unsigned>(wp),(lp&0x40000000)!=0);
+            static_cast<unsigned>(wp),(lp&0x40000000)!=0,
+            (static_cast<unsigned>(lp)>>16U)&0xffU);
         if(wp==VK_ESCAPE)DestroyWindow(hwnd);
         return 0;
     case WM_KEYUP:
