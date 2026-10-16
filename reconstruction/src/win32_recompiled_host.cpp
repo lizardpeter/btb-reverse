@@ -1,6 +1,7 @@
 #include "btb/win32_recompiled_host.hpp"
 #if defined(_WIN32)
 #include "btb/win32_original_game_device.hpp"
+#include "btb/win32_retail_bink_provider.hpp"
 #include "btb/full_game_front_end.hpp"
 #include "btb/full_game_golf.hpp"
 #include "btb/full_game_maze.hpp"
@@ -62,36 +63,14 @@ fs::path native_profile_directory(const fs::path& retail_root) {
     return retail_root/"BTB-Recompiled-Saves";
 }
 
-// No original movie handle is opened. Nonmovie activity frames can run,
-// but a Bink request is a hard failure. Never signal a movie as "finished"
-// without decoding its actual frames.
-class MissingOriginalBinkDecoder final : public OriginalBinkProvider {
-public:
-    bool service(bool& finished,std::string& error) override {
-        finished=false;error.clear();return true; // no movie is active
-    }
-    bool open_global(const fs::path&,std::string& error) override {
-        error="original 32-bit Bink movie decoder is not connected";return false;
-    }
-    bool open_walkthrough(const fs::path&,const fs::path&,
-                          std::string& error) override {
-        error="original Bink walkthrough decoder is not connected";return false;
-    }
-    bool close_walkthrough(std::string& error) override {
-        error="no original Bink walkthrough decoder was opened";return false;
-    }
-    bool render_walkthrough_overlay(std::string& error) override {
-        // All attempted walkthrough opens fail above, so no overlay exists.
-        error.clear();return true;
-    }
-};
-
 struct Host {
     HWND window{};
     fs::path root{};
     Win32OriginalDirectDraw graphics{};
     Win32OriginalDirectSound audio{};
-    MissingOriginalBinkDecoder movies{};
+    // The original 2002 binkw32.dll is directly callable from
+    // the native x86 build; the x64 build rejects that ABI safely.
+    Win32RetailBinkProvider movies;
     // Native Herding consumes the original 0x42FFC4 MSVC rand stream.
     // This state is owned by the host, not independently reseeded by
     // any animal, level, or minigame. Other activity providers still
@@ -111,7 +90,7 @@ struct Host {
     original_active_frame::State original_frame{};
 
     explicit Host(fs::path original_root,bool skip,int profile)
-        :root(std::move(original_root)),
+        :root(std::move(original_root)),movies(graphics,root),
          skip_video(skip),selected_profile(profile) {}
 
     [[nodiscard]] static bool parse_bitmap_names(
