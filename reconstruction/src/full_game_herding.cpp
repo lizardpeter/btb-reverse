@@ -117,15 +117,27 @@ ActivityFrameOutput HerdingDriver::advance(
         std::make_move_iterator(source_audio_events.begin()),
         std::make_move_iterator(source_audio_events.end()));
 
+    // The original 0x4182B0 completion branch draws from 0x42FFC4
+    // ONLY on the very first final-speech decision and ONLY after
+    // every real animal is delivered and no managed voice is playing.
+    // Do not burn a source RNG draw every frame or for stage-1 exit.
+    const int terminal_random_bit=
+        shared_random_ && undelivered==0 && completion_stage_==0 &&
+            !input.managed_sound_playing
+            ? shared_random_->next_rand() & 1
+            : input.random_value & 1;
     const auto complete=herding::herding_completion_step(
         undelivered,completion_stage_,
         input.managed_sound_playing,
-        input.random_value & 1);
+        terminal_random_bit);
     completion_stage_=complete.stage;
     if (complete.action == herding::CompletionAction::PlayFinalLine) {
+        // Retail UpdateHerdingActivity sends both final Pickles
+        // line variants to the managed sound service with priority
+        // 0x5A (90), class 1. Do not reuse ordinary speech's 50.
         out.audio.push_back({
             AudioOperation::ManagedSoundId,{},
-            complete.sound_id,50,1
+            complete.sound_id,0x5a,1
         });
     } else if (complete.action ==
                herding::CompletionAction::ExitToPlayAgain) {
