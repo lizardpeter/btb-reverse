@@ -191,9 +191,37 @@ bool NativePicklesMotionSource::advance(
         hero.animation_frame_countdown=animation->countdown;
         return true;
     };
+    // The outer retail Herding activity performs this default
+    // displacement AFTER Pickles movement and food selection. Only
+    // the verified far/non-follower branch is enabled. Source AI
+    // near Pickles and group-3 wall recovery remain unmodified.
+    const auto source_far_animal_roam=[&]() -> bool {
+        const auto& hero=observed.motion_records.front();
+        const auto nav=data.retail_transformed_group0();
+        for(std::size_t i=1;i<observed.motion_records.size();++i) {
+            const auto before=observed.motion_records[i];
+            if(!herding::is_herd_animal(before.entity_type()))
+                continue;
+            const auto step=herding::original_far_untracked_animal_roam_step(
+                before,hero,nav);
+            switch(step.coverage) {
+            case herding::RetailFarAnimalRoamCoverage::NotCovered:
+            case herding::RetailFarAnimalRoamCoverage::RequiresOriginalBoundaryRecovery:
+                break;
+            case herding::RetailFarAnimalRoamCoverage::AdvancedWithinPolygon:
+                observed.motion_records[i]=step.animal;
+                observed.far_roam_evidence.push_back({i,before});
+                break;
+            case herding::RetailFarAnimalRoamCoverage::InvalidInput:
+                error="original far-roam source polygon/animal state invalid";
+                return false;
+            }
+        }
+        return true;
+    };
     if(motion.movement_mask==0) {
         source_food_pickup();
-        if(!animate_pickles())return false;
+        if(!animate_pickles()||!source_far_animal_roam())return false;
         error.clear();
         return true;
     }
@@ -235,7 +263,7 @@ bool NativePicklesMotionSource::advance(
     // Source-confirmed food pickup and Scruffty patrol are supported,
     // but animal contact/follower delivery is unhosted: no fake wins.
     source_food_pickup();
-    if(!animate_pickles())return false;
+    if(!animate_pickles()||!source_far_animal_roam())return false;
     error.clear();
     return true;
 }

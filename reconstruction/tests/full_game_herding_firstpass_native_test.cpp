@@ -2,6 +2,7 @@
 #include "btb/full_game_herding_event_simulation.hpp"
 #include "btb/herding_native_pickles_motion.hpp"
 #include "btb/herding_source_pickles_animation.hpp"
+#include "btb/herding_source_far_roam.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -13,6 +14,8 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <utility>
+#include <vector>
 
 int main() {
     namespace fs=std::filesystem;
@@ -63,6 +66,42 @@ int main() {
         15,10,false,FoodType::None)->frame==12);
     static_assert(original_pickles_keyboard_animation_step(
         2,60,false,FoodType::None)->frame==12);
+    // Retail 0x416A30 measures Pickles proximity using the
+    // animal's NEGATIVE half-sprite X anchor. A normal center would
+    // incorrectly classify this as far enough to free-roam.
+    {
+        btb::herding::RetailEntityRecord32 hero{};
+        hero.type=static_cast<int>(btb::herding::EntityType::FarmerPickles);
+        hero.x=100;
+        hero.y=200;
+        hero.source_bottom=100; // original Pickles reference Y=280
+        btb::herding::RetailEntityRecord32 sheep{};
+        sheep.type=static_cast<int>(btb::herding::EntityType::Sheep);
+        sheep.x=151;
+        sheep.y=233;
+        sheep.x_float=151.f;
+        sheep.y_float=233.f;
+        sheep.source_right=102;
+        sheep.source_bottom=95; // source animal center -> (100,280)
+        sheep.direction=2;
+        sheep.movement_speed=1.0f;
+        const std::vector<btb::herding::Vec2i> polygon{{
+            {0,0},{600,0},{600,700},{0,700}
+        }};
+        const auto near=
+            btb::herding::original_far_untracked_animal_roam_step(
+                sheep,hero,polygon);
+        assert(near.coverage==
+            btb::herding::RetailFarAnimalRoamCoverage::NotCovered);
+        sheep.x=250;
+        sheep.x_float=250.f;
+        const auto far=
+            btb::herding::original_far_untracked_animal_roam_step(
+                sheep,hero,polygon);
+        assert(far.coverage==
+            btb::herding::RetailFarAnimalRoamCoverage::AdvancedWithinPolygon);
+        assert(far.animal.x_float>sheep.x_float);
+    }
     std::srand(123);
     for(int difficulty=0;difficulty<3;++difficulty) {
         fg::GameRoot game;
@@ -104,6 +143,16 @@ int main() {
         assert(live->scene().entities.front().entity_type()==
                btb::herding::EntityType::FarmerPickles);
         assert(live->scene().entities.front().animation_frame==33);
+        // Snapshot the actual retail animal coordinates after first
+        // frame. Original 0x419100 default far-roam motion should
+        // advance these over subsequent native GameRoot updates.
+        std::vector<std::pair<int,int>> first_animals{};
+        for(const auto& e:live->scene().entities) {
+            if(btb::herding::is_herd_animal(e.entity_type()))
+                first_animals.emplace_back(e.x,e.y);
+        }
+        assert(first_animals.size()==static_cast<std::size_t>(
+            3*(3+difficulty)));
         // The retail dog exists on Medium/Hard only. Its first idle
         // frame must still advance animation and +0.01 speed, and the
         // source-controlled animation latch later permits translation.
@@ -176,6 +225,38 @@ int main() {
             }
             assert(moved_scruffty);
         }
+        bool some_real_animal_moved=false;
+        std::size_t animal_ordinal=0;
+        for(const auto& e:live->scene().entities) {
+            if(!btb::herding::is_herd_animal(e.entity_type()))
+                continue;
+            assert(animal_ordinal<first_animals.size());
+            some_real_animal_moved |=
+                e.x!=first_animals[animal_ordinal].first ||
+                e.y!=first_animals[animal_ordinal].second;
+            ++animal_ordinal;
+        }
+        // The binary's exact float direction table, not an arbitrary
+        // drift animation, must now move animals in the real world.
+        if(!some_real_animal_moved) {
+            const auto& a=live->scene().entities[1];
+            const auto& hero=live->scene().entities.front();
+            std::fprintf(stderr,
+                "far animal remained still difficulty=%d "
+                "first=(%d,%d) now=(%d,%d) floats=(%.3f,%.3f) "
+                "speed=%.4f dir=%d active=%d behavior=%d timer=%d "
+                "source_rect=(%d,%d,%d,%d) hero=(%d,%d)\\n",
+                difficulty,first_animals.front().first,
+                first_animals.front().second,a.x,a.y,
+                static_cast<double>(a.x_float),
+                static_cast<double>(a.y_float),
+                static_cast<double>(a.movement_speed),
+                a.direction,a.movement_active,a.behavior_state,
+                a.temporary_target_timer,
+                a.source_left,a.source_top,
+                a.source_right,a.source_bottom,hero.x,hero.y);
+        }
+        assert(some_real_animal_moved);
         // No fabricated delivery: source animals require autonomous
         // movement/follower collision completion to award Pets Corner.
         assert(game.globals().player_progress[0].get(

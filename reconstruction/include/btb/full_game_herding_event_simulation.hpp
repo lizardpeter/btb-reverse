@@ -9,6 +9,7 @@
 #include "btb/herding_source_roaming_loop.hpp"
 #include "btb/herding_source_temporary_target.hpp"
 #include "btb/herding_source_scruffty_patrol.hpp"
+#include "btb/herding_source_far_roam.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -91,6 +92,14 @@ struct HerdingRoamingRecoveryEvidence {
     std::uint64_t attempts{};
 };
 
+// A narrow original free-roam branch: animals farther than 80 from
+// Pickles and not following drift through the exact retail 8-way
+// table when the new point stays inside main navigation polygon.
+struct HerdingFarRoamEvidence {
+    std::size_t entity_index{};
+    herding::RetailEntityRecord32 before{};
+};
+
 // The original 0x416F57 branch executes before generic behavior
 // dispatch whenever a herd animal has +0x58 > 0. Record its unmodified
 // pre-branch entity so the verified adapter can independently check
@@ -117,6 +126,7 @@ struct HerdingObservedFrame {
     // steering. These are not manufactured for unrelated AI branches.
     std::vector<HerdingSteeringEvidence> steering_evidence{};
     std::vector<HerdingRoamingRecoveryEvidence> recovery_evidence{};
+    std::vector<HerdingFarRoamEvidence> far_roam_evidence{};
     std::vector<HerdingTemporaryTargetEvidence> temporary_target_evidence{};
     std::optional<HerdingScrufftyPatrolEvidence> scruffty_patrol_evidence{};
     // Same ordering/entity IDs as the original 0x64-byte record table;

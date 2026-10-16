@@ -412,6 +412,52 @@ bool HerdingEventSimulation::advance(
             return false;
         }
     }
+    // The source's 80-unit non-follower gate and default eight-vector
+    // locomotion are checked before any state mutation is committed.
+    // A close-range/edge-of-map candidate MUST NOT masquerade as
+    // recovered ordinary roaming or fabricate new followers.
+    for (const auto& probe : observed.far_roam_evidence) {
+        if (probe.entity_index==0 ||
+            probe.entity_index>=candidate.entities().size() ||
+            observed.motion_records.empty() ||
+            observed.motion_records.front().entity_type()!=
+                herding::EntityType::FarmerPickles) {
+            error="invalid native far-roam original entity evidence";
+            return false;
+        }
+        const auto& original=candidate.entities()[probe.entity_index];
+        if (original.entity_id!=probe.before.entity_id ||
+            original.type!=probe.before.type ||
+            original.x!=probe.before.x ||
+            original.y!=probe.before.y ||
+            original.x_float!=probe.before.x_float ||
+            original.y_float!=probe.before.y_float ||
+            original.direction!=probe.before.direction ||
+            original.movement_speed!=probe.before.movement_speed) {
+            error="native far-roam pre-frame state differs from retail entity";
+            return false;
+        }
+        const auto verified=herding::original_far_untracked_animal_roam_step(
+            probe.before,observed.motion_records.front(),
+            data_.retail_transformed_group0());
+        if (verified.coverage!=
+                herding::RetailFarAnimalRoamCoverage::AdvancedWithinPolygon) {
+            error="far-roam movement lacked original 80-unit/inside-polygon evidence";
+            return false;
+        }
+        const auto& moved=observed.motion_records[probe.entity_index];
+        if (moved.x!=verified.animal.x ||
+            moved.y!=verified.animal.y ||
+            moved.previous_x!=verified.animal.previous_x ||
+            moved.previous_y!=verified.animal.previous_y ||
+            moved.x_float!=verified.animal.x_float ||
+            moved.y_float!=verified.animal.y_float ||
+            moved.direction!=verified.animal.direction ||
+            moved.movement_speed!=verified.animal.movement_speed) {
+            error="animal default movement differs from original 8-way source table";
+            return false;
+        }
+    }
     for (const auto& probe : observed.steering_evidence) {
         if (probe.entity_index>=observed.motion_records.size()) {
             error="source steering probe references an absent entity";

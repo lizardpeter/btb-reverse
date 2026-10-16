@@ -14,7 +14,10 @@ struct Bitmap {
  bool color_keyed{};
 };
 struct Entity {
- I32 id{},x{},y{},facing{},type{},behavior{17},
+ // Retail prefill writes 17 to entity TYPE (+0x30) for dormant slots,
+ // not behavior_state (+0x50). Real constructed herd animals receive
+ // an explicit state-zero write in 0x00419600.
+ I32 id{},x{},y{},facing{},type{},behavior{},
      frame_counter{},width{},height{},timer{},render_flags{};
  float precise_x{},precise_y{},heading_radians{};
  U32 bitmap{};
