@@ -69,10 +69,37 @@ public:
     bool started{};
     int steps{};
     int shutdowns{};
+    int speculative_source_ticks{};
+    int before_source_ticks{};
+    int source_frame_rollbacks{};
+    int source_frame_commits{};
+    bool source_transaction_open{};
     h::PicklesKeyboardMotion last_motion{};
 
     explicit EvidenceSource(int difficulty=0)
         : originals(population(difficulty)),source_difficulty(difficulty) {}
+
+    bool begin_frame(std::string& error) override {
+        if(source_transaction_open) {
+            error="evidence source began a nested transaction";
+            return false;
+        }
+        source_transaction_open=true;
+        before_source_ticks=speculative_source_ticks;
+        error.clear();
+        return true;
+    }
+    void commit_frame() noexcept override {
+        assert(source_transaction_open);
+        ++source_frame_commits;
+        source_transaction_open=false;
+    }
+    void rollback_frame() noexcept override {
+        assert(source_transaction_open);
+        speculative_source_ticks=before_source_ticks;
+        ++source_frame_rollbacks;
+        source_transaction_open=false;
+    }
 
     bool initialize(const h::Data& data,int difficulty,
         std::vector<h::RetailEntityRecord32>& out,
@@ -91,6 +118,8 @@ public:
         const h::PicklesKeyboardMotion& motion,
         const std::vector<h::RetailEntityRecord32>& current,
         HerdingObservedFrame& frame,std::string& error) override {
+        assert(source_transaction_open);
+        ++speculative_source_ticks;
         if (fail_advance) {
             error="original movement source unavailable";
             return false;
@@ -524,11 +553,22 @@ int main() {
     };
     const auto old_scene=scene.entities;
     const auto old_remaining=remaining;
+    const auto source_ticks_before_failure=
+        source->speculative_source_ticks;
+    const auto source_rollbacks_before_failure=
+        source->source_frame_rollbacks;
     sounds.clear();
     assert(!simulation.advance(
         {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
     assert(!error.empty());
     assert(remaining==old_remaining);
+    // The event bridge MUST roll back the motion source too, not
+    // merely the candidate game-state copy.
+    assert(source->speculative_source_ticks==
+           source_ticks_before_failure);
+    assert(source->source_frame_rollbacks==
+           source_rollbacks_before_failure+1);
+    assert(!source->source_transaction_open);
     assert(scene.entities[1].behavior_state==99);
     assert(scene.entities[1].animation_frame==7);
     assert(sounds.empty());
@@ -540,6 +580,10 @@ int main() {
         {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
     assert(remaining==8);
     assert(error.empty());
+    assert(source->speculative_source_ticks==
+           source_ticks_before_failure+1);
+    assert(!source->source_transaction_open);
+    assert(source->source_frame_commits>0);
 
     // Missing direct movement equations never default to invented AI:
     // a provider failure blocks the frame, but leaves earlier committed
