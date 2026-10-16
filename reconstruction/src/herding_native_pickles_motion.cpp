@@ -10,6 +10,7 @@
 #include "btb/herding_source_home_motion.hpp"
 #include "btb/herding_source_delivered_animation.hpp"
 #include "btb/herding_retail_rect_contact.hpp"
+#include "btb/herding_source_ordinary_following.hpp"
 
 #include <algorithm>
 #include <array>
@@ -224,6 +225,9 @@ bool NativePicklesMotionSource::advance(
     const auto source_far_animal_roam=[&]() -> bool {
         const auto& hero=observed.motion_records.front();
         const auto nav=data.retail_transformed_group0();
+        // Original UpdateHerdingActivity 0x00418FA2 resets global
+        // 0x00510770 on EACH frame, not when the minigame starts.
+        int formation_ordinal=0;
         for(std::size_t i=1;i<observed.motion_records.size();++i) {
             auto before=observed.motion_records[i];
             if(!herding::is_herd_animal(before.entity_type()))
@@ -380,6 +384,25 @@ bool NativePicklesMotionSource::advance(
                     error="source registered animal to invalid tracked list";
                     return false;
                 }
+            }
+            if(following) {
+                // This is the original 0x417603..0x417994 circular
+                // formation, NOT arbitrary chase-player steering.
+                // It advances real float and pixel positions before
+                // the original post-movement Scruffty collision.
+                const auto step=
+                    herding::original_herding_ordinary_follower_step(
+                        before,hero,formation_ordinal);
+                if(!step) {
+                    error="original ordinary follower formation step invalid";
+                    return false;
+                }
+                observed.ordinary_follower_evidence.push_back({
+                    i,before,step->source_formation_target,
+                    formation_ordinal,step->holds_formation_position});
+                observed.motion_records[i]=step->moved;
+                before=step->moved;
+                ++formation_ordinal;
             }
             // Original 0x4179BF..0x417B10 checks animal-FIRST,
             // Scruffty-SECOND corners. Overlap alone is insufficient:
