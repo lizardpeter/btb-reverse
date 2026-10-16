@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <vector>
 
 namespace btb::bink32_recovered {
 struct ExpandedBlockRun {
@@ -34,4 +35,15 @@ struct ExpandedBlockRun {
     LsbBitReader& bits,
     const DynamicHuffmanTree& high_tree,
     const DynamicHuffmanTree& low_tree) noexcept;
+// Expand bounded original entropy commands into actual 0..9 block mode
+// identifiers. Invalid/reserved identifiers fail without cursor writes.
+// This decodes the block TYPE bundle, not ancillary motion/color bundles.
+struct DecodedBinkBlockModes {
+    std::vector<std::uint8_t> values{};
+    ExpandedBlockRun statistics{};
+};
+[[nodiscard]] std::optional<DecodedBinkBlockModes> decode_bink_block_mode_values(
+    LsbBitReader& compressed,const DynamicHuffmanTree& tree,
+    std::size_t count,std::uint8_t previous_mode=0);
+
 } // namespace btb::bink32_recovered
