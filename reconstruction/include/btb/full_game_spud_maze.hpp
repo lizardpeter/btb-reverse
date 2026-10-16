@@ -46,7 +46,8 @@ private:
     original_motion4::Player bob_{};
     int total_repairs_{};
     int repairs_remaining_{};
-    int repair_animation_frames_{};
+    int repair_animation_frames_{}; // 0x005109F0: four-tick frame gate
+    int repair_cycles_remaining_{}; // 0x00514514: five repair passes
     int timer_{};
     int timer_origin_{};
     int spawned_pilchard_delay_{};
