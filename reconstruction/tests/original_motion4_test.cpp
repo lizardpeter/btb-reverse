@@ -103,6 +103,36 @@ int main(){
   assert(s.packages[0][0].status==1);
  }
  {
+  // Confirm source 0x0041CCB0 uses the BOX-LOCATION table's node ID,
+  // rather than the 0..3 random location index as the path target.
+  Host io;Npc s{};s.screen=0;s.player_screen=0;s.difficulty=2;
+  s.spawn_wait=1;s.spawn_interval=800;
+  auto a=node(0,0,0);a.links={4,-1,-1,-1};
+  s.graphs[0].nodes={a,node(4,0,-2)};
+  s.packages[0][0]={2,1};
+  s.package_target_nodes[0][2]=4;s.has_box_target_nodes=true;
+  update_maze_spud_npc(s,io);
+  assert(s.phase==btb::maze::SpudNpcPhase::SelectPackage);
+  update_maze_spud_npc(s,io);
+  assert(s.phase==btb::maze::SpudNpcPhase::TravelToPackage);
+  assert(io.paths.back()==4);
+  s.phase=btb::maze::SpudNpcPhase::TravelCarryingPackage;
+  s.current_node=0;s.path={4};s.path_index=0;
+  s.selected_package=0;s.packages[0][0].status=2;
+  s.position={0.f,0.f};io.player_gap=10.0f;
+  update_maze_spud_npc(s,io);
+  assert(s.packages[0][0].status==btb::maze::kSpudDroppedPackageStatus);
+  assert(s.packages[0][0].dropped_x==
+         static_cast<I32>(s.position.x));
+  assert(s.packages[0][0].dropped_y==
+         static_cast<I32>(s.position.y));
+  assert(s.carry_active==0&&s.collision_latch==1);
+  assert(io.sounds.back()>=0x5e&&io.sounds.back()<=0x5f);
+  static_assert(btb::maze::kSourceNpcSpawnFrames[0]==3000);
+  static_assert(btb::maze::kSourceNpcSpawnFrames[1]==2000);
+  static_assert(btb::maze::kSourceNpcSpawnFrames[2]==800);
+ }
+ {
   Host io;HerdAnimal s{};
   s.source.entity_id=1;s.source.type=static_cast<I32>(btb::herding::EntityType::Sheep);
   s.source.behavior_state=10;
