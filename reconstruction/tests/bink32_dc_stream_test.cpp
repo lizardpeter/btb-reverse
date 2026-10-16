@@ -54,5 +54,40 @@ int main() {
     LsbBitReader encoded(flat_blocks);
     CHECK(!decode_original_bink_block_from_dc_plane(truncated_dc,encoded));
     CHECK(truncated_dc.position==0&&encoded.bit_position()==0);
+    // Original 30010DD6 width==0 branch: one four-bit nibble
+    // repeats the previous DC word in groups of at most eight.
+    for(std::size_t len=1;len<=8;++len) {
+        const std::array<std::uint8_t,1> source{0x00};
+        LsbBitReader encoded(source);
+        std::array<std::int16_t,8> values{};
+        values.fill(41);
+        CHECK(expand_original_bink_zero_delta_group(
+            encoded,-32768,std::span<std::int16_t>(values).first(len)));
+        CHECK(encoded.bit_position()==4);
+        for(std::size_t i=0;i<8;++i)
+            CHECK(values[i]==(i<len?-32768:41));
+        // There is no second complete four-bit width after consuming
+        // a five-bit prefix: rollback both bitreader and destination.
+        LsbBitReader too_short(source);
+        CHECK(too_short.skip(5));
+        auto unchanged=values;
+        CHECK(!expand_original_bink_zero_delta_group(
+            too_short,123,std::span<std::int16_t>(values).first(len)));
+        CHECK(too_short.bit_position()==5&&unchanged==values);
+    }
+    {
+        const std::array<std::uint8_t,1> nonzero_width{0x09};
+        LsbBitReader source(nonzero_width);
+        std::array<std::int16_t,8> unchanged{};
+        unchanged.fill(-9);
+        CHECK(!expand_original_bink_zero_delta_group(source,123,unchanged));
+        CHECK(source.bit_position()==0);
+        for(auto v:unchanged)CHECK(v==-9);
+        CHECK(!expand_original_bink_zero_delta_group(
+            source,123,std::span<std::int16_t>{}));
+        std::array<std::int16_t,9> too_long{};
+        CHECK(!expand_original_bink_zero_delta_group(source,123,too_long));
+        CHECK(source.bit_position()==0);
+    }
     std::puts("Bink original predecoded DC stream -> AC/quant IDCT 16x16 pixels: PASS");
 }
