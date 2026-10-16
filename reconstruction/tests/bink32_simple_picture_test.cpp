@@ -274,7 +274,9 @@ int main(int argc,char**argv) {
         // lengths each reuse one color, spanning one complete 8x8 tile.
         Bits encoded;trees(encoded);
         encoded.put(1,10);encoded.put(1,1);encoded.put(3,4);
-        encoded.put(0,10); // subordinate scaled type
+        // 8-pixel width -> width>>4 == 0, so the original
+        // subordinate-type count has NINE bits (base 0x200).
+        encoded.put(0,9); // subordinate scaled type
         encoded.put(4,10);encoded.put(0,1);
         for(unsigned pixel:{10U,20U,30U,40U}) {
             encoded.put(pixel>>4,4);
