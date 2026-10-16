@@ -39,7 +39,8 @@ int main() {
         constexpr int point_counts[]{8,5,4,6,9};
         for(int screen=0;screen<5;++screen)
             for(int index=0;index<point_counts[screen];++index)
-                f<<100+index*25<<" "<<120+screen*30<<"\n";
+                f<<(screen==0?76:100+index*25)<<" "
+                 <<(screen==0?335:120+screen*30)<<"\n";
     }
     for(int difficulty=0;difficulty<3;++difficulty) {
         fg::GameRoot game;
@@ -107,6 +108,40 @@ int main() {
         assert(!live->bob());
         assert(game.globals().player_progress[0].get(
             btb::progress::Slot::SpudMaze)==0);
+    }
+    {
+        // Actual normal GameRoot mouse click starts a source repair
+        // beneath Bob. 0x00422400 animates 9..14, wraps across five
+        // source passes at one frame every four ticks, and ONLY then
+        // decrements the outstanding-track count.
+        fg::GameRoot game;
+        assert(game.select_profile(1));
+        auto driver=std::make_unique<fg::SpudMazeDriver>(root,0);
+        auto* live=driver.get();
+        game.install(fg::ActivityId::SpudMaze,std::move(driver));
+        game.set_outer_state(State::SpudMazeInit);
+        assert(game.advance({}).kind==fg::FrameKind::ActivityInitialized);
+        auto frame=game.advance({.elapsed_centiseconds=0});
+        assert(live->remaining_repairs()==4);
+        frame=game.advance({.click_pulse=true,.elapsed_centiseconds=1});
+        assert(frame.kind==fg::FrameKind::ActivityUpdated);
+        assert(live->bob()->hazard_lock);
+        assert(live->bob()->animation==9);
+        assert(live->remaining_repairs()==4);
+        bool repair_voice=false;
+        for(const auto& audio:frame.effects.audio)
+            repair_voice|=audio.sound_id>=702&&audio.sound_id<=708;
+        assert(repair_voice);
+        for(int ticks=1;ticks<=119;++ticks) {
+            frame=game.advance({.elapsed_centiseconds=ticks+1});
+            assert(frame.kind==fg::FrameKind::ActivityUpdated);
+            assert(live->remaining_repairs()==4);
+        }
+        frame=game.advance({.elapsed_centiseconds=121});
+        assert(live->remaining_repairs()==3);
+        assert(!live->bob()->hazard_lock);
+        assert(live->bob()->animation==0);
+        assert(frame.effects.progress_writes.empty());
     }
     fs::remove_all(root);
 }
