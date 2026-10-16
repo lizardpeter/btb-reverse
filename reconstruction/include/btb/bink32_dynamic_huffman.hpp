@@ -28,4 +28,15 @@ struct DynamicHuffmanTree {
 // lookup. Not yet a complete Bink video/entropy-plane decoder.
 [[nodiscard]] std::optional<FixedHuffmanSymbol> read_dynamic_huffman_symbol(
     LsbBitReader& bits, const DynamicHuffmanTree& tree) noexcept;
+// Source order of original 3000E582..3000E682: two leading entropy
+// trees, sixteen repeated channel/plane maps, and five trailing maps.
+struct BlockEntropyTrees {
+    std::array<DynamicHuffmanTree,23> trees{};
+    std::size_t consumed_bits{};
+};
+// Transactional conversion of all 23 original tree setup calls into a
+// source-native C++ object. Does not yet decode coefficients or pixels.
+[[nodiscard]] std::optional<BlockEntropyTrees> read_block_entropy_trees(
+    LsbBitReader& bits) noexcept;
+
 } // namespace btb::bink32_recovered
