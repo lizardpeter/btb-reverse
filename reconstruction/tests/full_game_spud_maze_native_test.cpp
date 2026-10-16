@@ -77,6 +77,14 @@ int main() {
             drew_repair|=draw.source_asset.find("-")!=std::string::npos;
         }
         assert(drew_bob&&drew_border&&drew_repair);
+        for(const auto& sprite:step.effects.draws)
+            if(sprite.source_asset=="Data\\SubGameSpudMaze\\Repair.bmp") {
+                assert(sprite.source_rectangle);
+                assert(sprite.source_rectangle->left==30*83);
+                assert(sprite.source_rectangle->right==31*83);
+                assert(sprite.source_rectangle->top==0);
+                assert(sprite.source_rectangle->bottom==83);
+            }
         assert(!step.effects.audio.empty());
         assert(step.effects.audio[0].sound_id==
                btb::spud_maze::kStartupVoiceSoundId);
