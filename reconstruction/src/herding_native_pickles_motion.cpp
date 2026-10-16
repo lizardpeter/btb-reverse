@@ -211,7 +211,7 @@ bool NativePicklesMotionSource::advance(
         const auto& hero=observed.motion_records.front();
         const auto nav=data.retail_transformed_group0();
         for(std::size_t i=1;i<observed.motion_records.size();++i) {
-            const auto before=observed.motion_records[i];
+            auto before=observed.motion_records[i];
             if(!herding::is_herd_animal(before.entity_type()))
                 continue;
 
@@ -223,18 +223,28 @@ bool NativePicklesMotionSource::advance(
             if(before.temporary_target_timer>0) {
                 const auto recovery=
                     herding::original_herding_temporary_target_update(before);
-                if(!recovery || !recovery->branch_taken ||
-                   recovery->continue_normal_update) {
+                if(!recovery) {
                     error="retail released-animal temporary target invalid";
                     return false;
                 }
                 observed.motion_records[i]=recovery->moved;
-                observed.temporary_target_evidence.push_back({
-                    i,before,recovery->early_return});
-                // Both the <120 arrival and distant +0x58 branches
-                // RETURN from original animal update. Do not also
-                // attempt follower rejoining or generic drifting.
-                continue;
+                if(recovery->branch_taken) {
+                    observed.temporary_target_evidence.push_back({
+                        i,before,recovery->early_return});
+                    // Both the <120 arrival and distant +0x58
+                    // branches RETURN from original animal update.
+                    // Never combine with attraction or generic roam.
+                    continue;
+                }
+                // Source countdown 1 -> 0 resumes ordinary animal
+                // dispatch on this same frame. The motion validator
+                // still independently verifies any ensuing far-roam.
+                if(!recovery->continue_normal_update ||
+                   recovery->moved.temporary_target_timer!=0) {
+                    error="original target timer expiration differs from source";
+                    return false;
+                }
+                before=recovery->moved;
             }
 
             const auto existing=std::find(
