@@ -14,6 +14,6 @@ namespace btb::full_game {
 // paths fail visibly instead of substituting the Dinosaur-only GDI preview.
 [[nodiscard]] int run_recompiled_native_game(
     HINSTANCE instance,const std::filesystem::path& retail_root,int show,
-    bool skip_video = false);
+    bool skip_video = false,int selected_profile = 0);
 }
 #endif
