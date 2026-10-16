@@ -30,12 +30,18 @@ struct Npc {
  maze::SpudNpcPhase phase{maze::SpudNpcPhase::SpawnWait};
  I32 screen{},player_screen{},difficulty{},current_node{},
      current_direction{},path_index{},selected_package{-1},
-     spawn_wait{},offscreen_wait{},animation_countdown{},
+     spawn_wait{},spawn_interval{60},offscreen_wait{},animation_countdown{},
      animation_frame{},nearest_node_distance{999999},carry_active{},
      collision_latch{},score{},timer_cooldown{};
  maze::ActorPosition position{};
  std::array<maze::ScreenGraph,3> graphs{};
  std::array<std::array<maze::SpudPackageSlot,4>,3> packages{};
+ // Source post-END 12-reference table maps package location index 0..3
+ // to graph node IDs, which are NOT the same indices.
+ std::array<std::array<I32,4>,3> box_target_nodes{};
+ bool use_box_target_nodes{};
+ I32 player_node{-1};
+ std::array<I32,4> player_links{{-1,-1,-1,-1}};
  std::vector<I32> path{};
 };
 struct HerdAnimal {
