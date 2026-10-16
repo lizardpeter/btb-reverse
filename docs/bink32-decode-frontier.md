@@ -953,3 +953,39 @@ byte boundary against the separate earlier skip-only parser. Its
 optional retail-asset command-line mode prints how many full picture
 luma planes are supported by this strict subset; placeholder prior
 pixels are not proof of pixel parity against the original decoder.
+
+
+## CI failure triage and first compressed RUN-block path (2026-10-16)
+
+The first C++26 integration run for the simple-picture decoder
+(#2896) compiled and passed 190/191 reconstruction tests. The mixed
+two-row fixture failed because it omitted the **second-row zero-count
+bundle termination for exhausted X and Y motion pools**. Temporary
+line-level CI tracing verified that the rejection was on the Y
+bundle refill (`bink32_simple_picture.cpp` line 124 in the
+instrumented version), not in the pixel compositor. The mixed and
+scaled fixtures now include all required second-row termination
+records, explicitly count per-source refills, and keep malformed
+truncation tests. The tracing was removed from production code.
+
+The native row scheduler now accepts the first source-backed compressed
+**RUN** scan pattern (selector zero): exact Bink 8x8 column-major
+serpentine ordering, alternating downward and upward traversal by
+column. It consumes the original 4-bit scan index, run values
+(`encoded + 1`), one repeat-color flag per run, one color for a
+constant run or individual colors for a variable run, and a final
+standalone pixel if 63 positions have already been filled.
+
+Both ordinary 8x8 RUN and subordinate 16x16 Scaled RUN are connected
+to the existing raster compositor. Synthetic C++ regressions verify
+64 output pixels, source-scanned 2x scaled output, final source byte
+position, malformed scan selector rejection and truncated input.
+The other 15 Bink scan orders remain intentionally **unsupported**:
+the decoder rejects them rather than silently substituting scan zero.
+Residue and DCT block modes, chroma, alpha, audio and movie playback
+are not yet implemented end-to-end.
+
+The scan-zero pattern is independently visible in the original-format
+FFmpeg reference: `libavcodec/binkdata.h`, `bink_patterns[0]`.
+No FFmpeg source or proprietary retail assets are copied into this
+repository, and no retail pixel parity is claimed for these new modes.
