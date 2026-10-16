@@ -191,5 +191,55 @@ int main() {
     assert(frame.effects.draws.empty());
     assert(game.unload_current(frame.error));
 
+    // The original final-speech sound uses ONE process-wide CRT
+    // draw, not ActivityFrameInput's synthetic default zero. Before
+    // the final real completion gate, no extra random is consumed.
+    {
+        btb::retail::OriginalRetailRandom original_rng{0x12345678u};
+        auto expected_rng=original_rng;
+        GameRoot terminal_game{};
+        assert(terminal_game.select_profile(0));
+        auto completion_source=std::make_unique<KnownEntityProvider>();
+        auto* completion_provider=completion_source.get();
+        auto terminal_driver=std::make_unique<HerdingDriver>(
+            root,std::move(completion_source),0,&original_rng);
+        auto* observed_driver=terminal_driver.get();
+        terminal_game.install(
+            ActivityId::Herding,std::move(terminal_driver));
+        terminal_game.set_outer_state(State::HerdingInit);
+        assert(terminal_game.advance({}).kind==
+               FrameKind::ActivityInitialized);
+        const auto init_rng=original_rng.state();
+        assert(init_rng==expected_rng.state());
+        auto waiting=terminal_game.advance({.random_value=1});
+        assert(waiting.kind==FrameKind::ActivityUpdated);
+        assert(original_rng.state()==init_rng);
+        completion_provider->undelivered=0;
+        waiting=terminal_game.advance({
+            .managed_sound_playing=true,.random_value=1});
+        assert(waiting.kind==FrameKind::ActivityUpdated);
+        assert(original_rng.state()==init_rng);
+        assert(observed_driver->completion_stage()==0);
+        const int expected_sound=599+(expected_rng.next_rand()&1);
+        auto final_line=terminal_game.advance({.random_value=1});
+        assert(final_line.kind==FrameKind::ActivityUpdated);
+        assert(original_rng.state()==expected_rng.state());
+        assert(observed_driver->completion_stage()==1);
+        assert(final_line.effects.audio.size()==1);
+        assert(final_line.effects.audio[0].sound_id==expected_sound);
+        assert(final_line.effects.progress_writes.empty());
+        // The follow-up exit waits for speech, but does not call
+        // rand() a second time even after the voice stops.
+        waiting=terminal_game.advance({
+            .managed_sound_playing=true,.random_value=1});
+        assert(waiting.effects.progress_writes.empty());
+        assert(original_rng.state()==expected_rng.state());
+        auto finished=terminal_game.advance({.random_value=1});
+        assert(finished.effects.save_and_unload);
+        assert(original_rng.state()==expected_rng.state());
+        assert(terminal_game.globals().player_progress[0].get(
+            btb::progress::Slot::PetsCorner)==1);
+    }
+
     fs::remove_all(root);
 }
