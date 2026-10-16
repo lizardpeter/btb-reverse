@@ -1,4 +1,5 @@
 #include "btb/full_game_herding_event_simulation.hpp"
+#include "btb/herding_source_attraction.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -880,9 +881,29 @@ bool HerdingEventSimulation::advance(
                 [&](const auto& e){
                     return e.entity_index==event.entity_index && e.arrived;
                 });
+            bool genuine_attraction=ordinary_join;
+            if(event.kind==HerdingObservedKind::JoinFollower &&
+               ordinary_join) {
+                // A plausible formation motion is insufficient by
+                // itself: the joining animal must also have the
+                // source's strict 80px signed-anchor food contact.
+                // Candidate food already reflects a same-frame
+                // PickUpFood event (which retail dispatches first).
+                const auto proof=std::find_if(
+                    observed.ordinary_follower_evidence.begin(),
+                    observed.ordinary_follower_evidence.end(),
+                    [&](const auto& e){
+                        return e.entity_index==event.entity_index;
+                    });
+                const auto contact=
+                    herding::original_herding_food_attraction_contact(
+                        proof->before,observed.motion_records.front(),
+                        candidate.food().selected,false);
+                genuine_attraction=contact && *contact;
+            }
             const bool source_proven=
                 (event.kind!=HerdingObservedKind::JoinFollower ||
-                 ordinary_join) &&
+                 genuine_attraction) &&
                 (event.kind!=HerdingObservedKind::TrackedTargetArrived ||
                  tracked_arrival) &&
                 (event.kind!=HerdingObservedKind::ReachHomeWaypoint ||
