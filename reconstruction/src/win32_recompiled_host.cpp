@@ -256,7 +256,8 @@ struct Host {
                 root/"Data"/"SubGame1",
                 std::make_unique<HerdingEventSimulation>(
                     std::make_unique<NativePicklesMotionSource>(
-                        original_game_random)),0));
+                        original_game_random)),0,
+                &original_game_random));
         game.install(ActivityId::Fireworks,std::make_unique<FireworksDriver>(
             root/"Data"/"SubGameFirework",profile_dir));
         game.install(ActivityId::BobsBand,std::make_unique<BobsBandDriver>(
