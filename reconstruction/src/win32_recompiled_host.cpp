@@ -5,6 +5,7 @@
 #include "btb/full_game_golf.hpp"
 #include "btb/full_game_maze.hpp"
 #include "btb/full_game_spud_maze.hpp"
+#include "btb/full_game_squirrel.hpp"
 #include "btb/full_game_dino.hpp"
 #include "btb/full_game_profile_screen_native.hpp"
 #include "btb/full_game_fireworks.hpp"
@@ -232,6 +233,8 @@ struct Host {
         game.install(ActivityId::Maze,std::make_unique<MazeDriver>(root,0));
         game.install(ActivityId::SpudMaze,
             std::make_unique<SpudMazeDriver>(root,0));
+        game.install(ActivityId::Squirrel,
+            std::make_unique<SquirrelDriver>(root,0));
         game.install(ActivityId::Fireworks,std::make_unique<FireworksDriver>(
             root/"Data"/"SubGameFirework",profile_dir));
         game.install(ActivityId::BobsBand,std::make_unique<BobsBandDriver>(
