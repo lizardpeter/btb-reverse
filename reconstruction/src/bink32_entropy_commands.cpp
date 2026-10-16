@@ -442,4 +442,77 @@ std::optional<BinkColorBundle> read_bink_color_bundle(
     return out;
 }
 
+
+std::optional<BinkPictureFirstBundleSet>
+decode_first_bink_picture_bundle_set(
+    std::span<const std::uint8_t> video_packet,
+    std::size_t plane_width,std::size_t plane_height) {
+    constexpr std::size_t kMaxRaster=64U*1024U*1024U;
+    if(!plane_width || !plane_height || plane_width>16384 ||
+       plane_height>16384 || plane_width>kMaxRaster/plane_height)
+        return std::nullopt;
+    const auto columns=(plane_width+7)/8;
+    const auto rows=(plane_height+7)/8;
+    if(columns>(1U<<20)/rows)return std::nullopt;
+    const auto max_values=std::min(kMaxRaster,
+        plane_width*plane_height);
+    const auto max_bundle=std::min<std::size_t>(1U<<20,max_values);
+    const auto prologue=parse_alpha_picture_entropy_prologue(video_packet);
+    if(!prologue)return std::nullopt;
+    LsbBitReader reader(video_packet.subspan(
+        prologue->picture.initial_byte_offset));
+    if(!reader.skip(prologue->picture.trees.consumed_bits))
+        return std::nullopt;
+    const auto& trees=prologue->picture.trees;
+    const auto types=read_bink_block_type_bundle(
+        reader,trees.trees[0],plane_width,columns*rows);
+    if(!types)return std::nullopt;
+    // The subtype count width depends on floor(aligned_width/16)
+    // rather than the full 8x8 tile count.
+    const auto subtype_width=std::max<std::size_t>(
+        1,(columns/2)*8);
+    const auto subtypes=read_bink_block_type_bundle(
+        reader,trees.trees[1],subtype_width,columns*rows);
+    if(!subtypes)return std::nullopt;
+    const auto colors=read_bink_color_bundle(
+        reader,trees,plane_width,0,false,max_bundle);
+    if(!colors)return std::nullopt;
+    const auto patterns=read_bink_pattern_bundle(
+        reader,trees.trees[19],plane_width,max_bundle);
+    if(!patterns)return std::nullopt;
+    const auto motion_x=read_bink_signed_motion_bundle(
+        reader,trees.trees[20],plane_width,max_bundle);
+    if(!motion_x)return std::nullopt;
+    const auto motion_y=read_bink_signed_motion_bundle(
+        reader,trees.trees[21],plane_width,max_bundle);
+    if(!motion_y)return std::nullopt;
+    const auto dc_context=init_entropy_plane(
+        0,0x200U,static_cast<std::uint32_t>(plane_width),
+        11,1,true);
+    const auto intra_dc=decode_original_bink_dc_context_packet(
+        reader,dc_context,max_bundle);
+    if(!intra_dc)return std::nullopt;
+    const auto inter_dc=decode_original_bink_dc_context_packet(
+        reader,dc_context,max_bundle);
+    if(!inter_dc)return std::nullopt;
+    const auto runs=read_bink_run_bundle(
+        reader,trees.trees[22],plane_width,max_bundle);
+    if(!runs)return std::nullopt;
+    BinkPictureFirstBundleSet out{};
+    out.prologue=std::move(*prologue);
+    out.types=std::move(*types);
+    out.scaled_subtypes=std::move(*subtypes);
+    out.colors=std::move(*colors);
+    out.patterns=std::move(*patterns);
+    out.motion_x=std::move(*motion_x);
+    out.motion_y=std::move(*motion_y);
+    out.intra_dc=std::move(*intra_dc);
+    out.inter_dc=std::move(*inter_dc);
+    out.runs=std::move(*runs);
+    out.next_picture_bit_offset=
+        out.prologue.picture.initial_byte_offset*8+
+        reader.bit_position();
+    return out;
+}
+
 } // namespace btb::bink32_recovered
