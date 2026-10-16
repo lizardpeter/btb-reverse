@@ -201,6 +201,57 @@ int main(int argc,char**argv) {
         wrong.put(0,10);
         CHECK(!decode_bink_simple_picture_luma(packet(wrong),16,16));
     }
+    {
+        // Two-column 16x16 Scaled Pattern: one pair of colors and eight
+        // Huffman-coded mask bytes, each doubled in both pixel axes.
+        Bits source;trees(source);
+        source.put(2,10);source.put(1,1);source.put(1,4);
+        source.put(1,10);source.put(1,1);source.put(8,4);
+        source.put(2,10);source.put(0,1);
+        source.put(0,4);source.put(3,4); // color 3
+        source.put(12,4);source.put(8,4); // color 200
+        source.put(8,10);
+        for(unsigned i=0;i<8;++i) {
+            source.put(0xA,4);source.put(0xA,4);
+        }
+        source.put(0,10);source.put(0,10); // motion
+        source.put(0,10);source.put(0,10); // DC
+        source.put(0,10); // run
+        const auto image=decode_bink_simple_picture_luma(
+            packet(source),16,16);
+        CHECK(image && image->mode_counts[1]==2);
+        for(std::size_t y=0;y<16;++y) {
+            CHECK(image->image.pixels[y*16+0]==3);
+            CHECK(image->image.pixels[y*16+1]==3);
+            CHECK(image->image.pixels[y*16+2]==200);
+            CHECK(image->image.pixels[y*16+3]==200);
+        }
+    }
+    {
+        // 16x16 scaled RAW: 64 original color bytes, upscaled 2x
+        // without interpolation or invented intermediate values.
+        Bits source;trees(source);
+        source.put(2,10);source.put(1,1);source.put(1,4);
+        source.put(1,10);source.put(1,1);source.put(9,4);
+        source.put(64,10);source.put(0,1);
+        for(unsigned i=0;i<64;++i) {
+            const auto byte=(i*3U)&255U;
+            source.put(byte>>4,4);
+            source.put(byte&15U,4);
+        }
+        source.put(0,10); // pattern
+        source.put(0,10);source.put(0,10);
+        source.put(0,10);source.put(0,10);
+        source.put(0,10);
+        const auto image=decode_bink_simple_picture_luma(
+            packet(source),16,16);
+        CHECK(image && image->mode_counts[1]==2);
+        for(std::size_t y=0;y<16;++y)
+            for(std::size_t x=0;x<16;++x)
+                CHECK(image->image.pixels[y*16+x]==
+                    static_cast<std::uint8_t>(
+                        3*((y/2)*8+(x/2))));
+    }
     // Optional original BIK smoke: count full compressed luma planes the
     // strict source-native subset supports, without embedding retail
     // assets or claiming original pixel parity from placeholder history.
