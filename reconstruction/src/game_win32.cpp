@@ -511,6 +511,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     int count=0;
     LPWSTR* argv=CommandLineToArgvW(GetCommandLineW(),&count);
     bool legacy=false,smoke=false,skip_video=false,invalid_args=false;
+    bool has_profile_slot=false;
+    int selected_profile=0;
     std::optional<std::filesystem::path> chosen;
     if(argv){
         for(int i=1;i<count;++i){
@@ -520,6 +522,16 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
             }else if(std::wcscmp(argv[i],L"--native-original")==0){
                 if(chosen || ++i>=count)invalid_args=true;
                 else chosen=std::filesystem::path(argv[i]);
+            }else if(std::wcscmp(argv[i],L"--profile-slot")==0){
+                if(has_profile_slot || ++i>=count)
+                    invalid_args=true;
+                else if(std::wcslen(argv[i])!=1 ||
+                        argv[i][0]<L'1' || argv[i][0]>L'5')
+                    invalid_args=true;
+                else {
+                    has_profile_slot=true;
+                    selected_profile=static_cast<int>(argv[i][0]-L'1');
+                }
             }else if(std::wcscmp(argv[i],L"--recompiled-smoke")==0){
                 if(smoke)invalid_args=true;
                 smoke=true;
@@ -528,14 +540,15 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
                 legacy=true;
             }else invalid_args=true;
         }
-        if((smoke||legacy) && (chosen || skip_video || (smoke&&legacy)))
+        if((smoke||legacy) && (chosen || skip_video ||
+                              has_profile_slot || (smoke&&legacy)))
             invalid_args=true;
         LocalFree(argv);
     }
     if(smoke && !invalid_args)
         return btb::full_game::verify_linked_recompiled_core()?0:3;
     if(invalid_args){
-        MessageBoxW(nullptr,L"Usage: btb_game.exe [--native-original <installed retail root>] [--skip-bink] | --legacy-dino-preview | --recompiled-smoke",
+        MessageBoxW(nullptr,L"Usage: btb_game.exe [--native-original <installed retail root>] [--skip-bink] [--profile-slot 1..5] | --legacy-dino-preview | --recompiled-smoke",
             L"Bob Builds a Park - Native C++ Game",MB_OK|MB_ICONERROR);
         return 2;
     }
@@ -551,7 +564,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
             return 5;
         }
         return btb::full_game::run_recompiled_native_game(
-            instance,*chosen,show,skip_video);
+            instance,*chosen,show,skip_video,selected_profile);
     }
     // --legacy-dino-preview: preserved solely for old source regression UI.
     Host host;
