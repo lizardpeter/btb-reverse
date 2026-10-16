@@ -46,4 +46,35 @@ struct DecodedBinkBlockModes {
     LsbBitReader& compressed,const DynamicHuffmanTree& tree,
     std::size_t count,std::uint8_t previous_mode=0);
 
+
+// Original 0x300101A0 block-type bundle framing: a context-derived count,
+// with count zero signalling the end of this bundle, followed by
+// the existing compressed literal/repeat/fill value-command body.
+// The per-plane frame scheduler can request another bundle later.
+struct BinkBlockTypeBundle {
+    std::vector<std::uint8_t> modes{};
+    std::uint32_t encoded_count{};
+    std::size_t bits_consumed{};
+    bool end_of_bundle{};
+    ExpandedBlockRun commands{};
+};
+[[nodiscard]] std::optional<BinkBlockTypeBundle>
+read_bink_block_type_bundle(
+    LsbBitReader& bits,const DynamicHuffmanTree& type_tree,
+    std::size_t plane_width,std::size_t maximum_values=1U<<18);
+
+// From the actual SJPi video packet through its alpha/picture boundary,
+// source-order Huffman trees, count prefix, then first block-type bundle.
+// This is the first resolved compressed frame command data; remaining
+// bundle types and later row refills are still pending.
+struct BinkFirstPictureBlockTypes {
+    BinkAlphaPictureEntropy prologue{};
+    BinkBlockTypeBundle first_bundle{};
+    std::size_t next_picture_bit_offset{};
+};
+[[nodiscard]] std::optional<BinkFirstPictureBlockTypes>
+decode_first_bink_picture_block_types(
+    std::span<const std::uint8_t> video_packet,
+    std::size_t plane_width,std::size_t plane_height);
+
 } // namespace btb::bink32_recovered
