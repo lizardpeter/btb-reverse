@@ -1,4 +1,5 @@
 #include "btb/bink32_simple_picture.hpp"
+#include "btb/bink32_run_scan.hpp"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -179,18 +180,16 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
                     return true;
                 }
                 if(pixels==BinkBlockMode::Run) {
-                    // Original 0x3000E400 reads a four-bit scan index
-                    // and then lengths+1 from the run bundle. Pattern
-                    // zero is the exact column-major serpentine scan.
-                    // Fail closed for the other fifteen scan patterns.
+                    // Original Bink1: a four-bit pattern selects one
+                    // of sixteen exact 64-coordinate scan orders.
+                    // Run and color bundle consumption is independent
+                    // of the selected pixel permutation.
                     const auto scan=bits.read(4);
-                    if(!scan || *scan!=0)return false;
+                    if(!scan)return false;
                     const auto emit=[&](std::size_t index,
                                         std::uint8_t pixel) {
-                        const auto col=index/8;
-                        const auto ordinal=index%8;
-                        const auto r=(col&1U)?7-ordinal:ordinal;
-                        cmd.samples[r*8+col]=pixel;
+                        cmd.samples[bink_run_scan_pixel(
+                            static_cast<std::uint8_t>(*scan),index)]=pixel;
                     };
                     std::size_t written=0;
                     while(written<63) {
