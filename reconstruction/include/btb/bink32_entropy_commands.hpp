@@ -77,4 +77,22 @@ decode_first_bink_picture_block_types(
     std::span<const std::uint8_t> video_packet,
     std::size_t plane_width,std::size_t plane_height);
 
+
+// Authenticated narrow retail case: a whole alpha-bearing SJPi luma
+// plane consisting exclusively of SKIP blocks. Reads *all* block-type
+// refills (not just the first bundle), verifies every other first-row
+// bundle has an empty count and honors 32-bit plane alignment.
+// A previous luma image must be supplied; no made-up pixel values.
+struct BinkSkipLumaFrame {
+    std::vector<std::uint8_t> luma{};
+    std::size_t block_types_decoded{};
+    std::size_t bundles_decoded{};
+    std::size_t next_plane_byte_offset{};
+};
+[[nodiscard]] std::optional<BinkSkipLumaFrame>
+decode_bink_skip_only_picture_luma(
+    std::span<const std::uint8_t> video_packet,
+    std::size_t plane_width,std::size_t plane_height,
+    std::span<const std::uint8_t> previous_luma);
+
 } // namespace btb::bink32_recovered
