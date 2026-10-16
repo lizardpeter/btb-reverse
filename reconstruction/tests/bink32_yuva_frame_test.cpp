@@ -1,4 +1,5 @@
 #include "btb/bink32_yuva_frame.hpp"
+#include "btb/bink32_native_video_stream.hpp"
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -284,6 +285,88 @@ int main(int argc,char**argv) {
         prior.codec_planes[1].pop_back();
         CHECK(!decode_bink_sjpi_video_frame(
             make_odd(true),width,height,false,&prior));
+    }
+    {
+        // Real ownership/frame progression used by the native
+        // replacement for BinkOpen, BinkDoFrame and BinkGoto.
+        // Build an indexed two-frame SJPi container in memory so
+        // the test never ships any proprietary original movie.
+        const auto first=make_sjpi_frame(w,h,colors,false);
+        const auto second=make_sjpi_frame(w,h,{0,0,0,0},true);
+        const auto make_container=[&](
+            std::span<const std::uint8_t> first_packet,
+            std::span<const std::uint8_t> second_packet) {
+            constexpr std::size_t kHeader=44,kIndexBytes=12;
+            std::vector<std::uint8_t> movie(kHeader+kIndexBytes,0);
+            movie[0]='S';movie[1]='J';movie[2]='P';movie[3]='i';
+            const auto put32=[&](std::size_t at,std::uint32_t n) {
+                for(unsigned i=0;i<4;++i)
+                    movie[at+i]=static_cast<std::uint8_t>(n>>(8*i));
+            };
+            put32(8,2);
+            put32(12,static_cast<std::uint32_t>(
+                std::max(first_packet.size(),second_packet.size())));
+            put32(20,static_cast<std::uint32_t>(w));
+            put32(24,static_cast<std::uint32_t>(h));
+            put32(28,30000);put32(32,1001);
+            put32(36,0x00100000U);put32(40,0);
+            const auto start=static_cast<std::uint32_t>(movie.size());
+            put32(44,start|1U);
+            movie.insert(movie.end(),first_packet.begin(),
+                         first_packet.end());
+            while(movie.size()%4)movie.push_back(0);
+            put32(48,static_cast<std::uint32_t>(movie.size()));
+            movie.insert(movie.end(),second_packet.begin(),
+                         second_packet.end());
+            while(movie.size()%4)movie.push_back(0);
+            put32(52,static_cast<std::uint32_t>(movie.size()));
+            put32(4,static_cast<std::uint32_t>(movie.size()-8));
+            return movie;
+        };
+        const auto bytes=make_container(first,second);
+        auto stream=BinkNativeVideoStream::open(bytes);
+        CHECK(stream && stream->frame_count()==2);
+        CHECK(stream->audio_track_count()==0);
+        CHECK(stream->has_encoded_alpha());
+        CHECK(stream->frame_rate_numerator()==30000);
+        CHECK(stream->frame_rate_denominator()==1001);
+        CHECK(stream->frame_number()==0 && !stream->current_frame());
+        CHECK(stream->frame_timestamp_us(1)==0);
+        CHECK(stream->frame_timestamp_us(2)==33366);
+        CHECK(!stream->frame_timestamp_us(3));
+        CHECK(!stream->frame_timestamp_us(0));
+        const auto wrapped=stream->encoded_frame(1);
+        CHECK(wrapped && wrapped->audio.empty());
+        CHECK(wrapped->video.size()==first.size());
+        CHECK(!stream->encoded_frame(3));
+        CHECK(stream->decode_next());
+        CHECK(stream->frame_number()==1);
+        CHECK(stream->current_frame() &&
+              stream->current_frame()->planes==decoded->planes);
+        CHECK(!stream->seek(0) && !stream->seek(3));
+        CHECK(stream->frame_number()==1);
+        CHECK(stream->seek(2));
+        CHECK(stream->at_end() && stream->frame_number()==2);
+        CHECK(stream->current_frame() &&
+              stream->current_frame()->planes==decoded->planes);
+        CHECK(!stream->decode_next());
+        CHECK(stream->seek(1));
+        CHECK(stream->frame_number()==1 && !stream->at_end());
+        CHECK(stream->seek(2));
+        stream->rewind();
+        CHECK(stream->frame_number()==0 && !stream->current_frame());
+        CHECK(stream->decode_next() && stream->frame_number()==1);
+        // Malformed second packet must leave the first decoded
+        // frame intact instead of publishing a synthetic result.
+        const std::array<std::uint8_t,4> truncated_video{0,0,0,0};
+        auto broken=BinkNativeVideoStream::open(
+            make_container(first,truncated_video));
+        CHECK(broken && broken->decode_next());
+        CHECK(!broken->decode_next());
+        CHECK(broken->frame_number()==1 && broken->current_frame());
+        CHECK(broken->current_frame()->planes==decoded->planes);
+        CHECK(!broken->seek(2));
+        CHECK(broken->frame_number()==1);
     }
     // Optional unmodified retail movie probe. No movie/DLL is
     // included in the public repository, and a decoder refusal
