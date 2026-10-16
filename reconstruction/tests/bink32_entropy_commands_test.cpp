@@ -379,5 +379,76 @@ int main(int argc,char**argv) {
         const auto end=read_bink_pattern_bundle(none,tree,640);
         CHECK(end && end->end_of_bundle && end->bits_consumed==11);
     }
+    {
+        // The run bundle has one immediate/Huffman branch for its whole
+        // payload and uses a 13-bit count at a 640-pixel plane width.
+        Writer encoded;
+        encoded.write(3,13);
+        encoded.write(0,1); // Huffman-coded run values
+        encoded.write(3,4);encoded.write(12,4);encoded.write(8,4);
+        LsbBitReader r(encoded.bytes);
+        const auto runs=read_bink_run_bundle(r,tree,640,3);
+        CHECK(runs && !runs->constant_bundle);
+        CHECK(runs->bits_consumed==26 && r.bit_position()==26);
+        CHECK(runs->values==std::vector<std::uint8_t>({3,12,8}));
+        LsbBitReader clipped(
+            std::span<const std::uint8_t>(encoded.bytes).first(3));
+        CHECK(!read_bink_run_bundle(clipped,tree,640));
+        CHECK(clipped.bit_position()==0);
+        Writer uniform;
+        uniform.write(4,13);uniform.write(1,1);uniform.write(14,4);
+        LsbBitReader same(uniform.bytes);
+        const auto constant=read_bink_run_bundle(same,tree,640);
+        CHECK(constant && constant->constant_bundle);
+        CHECK(constant->values==std::vector<std::uint8_t>(4,14));
+        CHECK(constant->bits_consumed==18);
+        Writer zero;zero.write(0,13);
+        LsbBitReader ended(zero.bytes);
+        const auto end=read_bink_run_bundle(ended,tree,640);
+        CHECK(end && end->end_of_bundle && end->bits_consumed==13);
+    }
+    {
+        // Color bundle updates the high-nibble predictor after EVERY
+        // sample. Each high-nibble decoder is picked using the previous
+        // high value; low nibbles come from the dedicated final tree.
+        BlockEntropyTrees contexts{};
+        for(auto& t:contexts.trees)t=tree;
+        contexts.trees[2+5].symbol_permutation[6]=9; // 5 -> 9
+        Writer encoded;
+        encoded.write(2,13);
+        encoded.write(0,1);
+        encoded.write(5,4);encoded.write(1,4); // 0x51, last high=5
+        encoded.write(6,4);encoded.write(2,4); // mapped -> 0x92
+        LsbBitReader read(encoded.bytes);
+        const auto colors=read_bink_color_bundle(
+            read,contexts,640);
+        CHECK(colors && !colors->constant_bundle);
+        CHECK(colors->values==std::vector<std::uint8_t>({0x51,0x92}));
+        CHECK(colors->next_high_nibble==9);
+        CHECK(colors->bits_consumed==30 && read.bit_position()==30);
+        LsbBitReader truncated(
+            std::span<const std::uint8_t>(encoded.bytes).first(3));
+        CHECK(!read_bink_color_bundle(truncated,contexts,640));
+        CHECK(truncated.bit_position()==0);
+        Writer uniform;
+        uniform.write(3,13);uniform.write(1,1);
+        uniform.write(8,4);uniform.write(1,4);
+        LsbBitReader fill(uniform.bytes);
+        const auto legacy=read_bink_color_bundle(
+            fill,contexts,640,0,true);
+        CHECK(legacy && legacy->constant_bundle);
+        CHECK(legacy->values==std::vector<std::uint8_t>(3,127));
+        CHECK(legacy->next_high_nibble==8);
+        CHECK(legacy->bits_consumed==22);
+        Writer zero;zero.write(0,13);
+        LsbBitReader end_reader(zero.bytes);
+        const auto end=read_bink_color_bundle(
+            end_reader,contexts,640,7,false);
+        CHECK(end && end->end_of_bundle && end->values.empty());
+        CHECK(end->next_high_nibble==7 && end_reader.bit_position()==13);
+        LsbBitReader invalid(encoded.bytes);
+        CHECK(!read_bink_color_bundle(invalid,contexts,640,16,false));
+        CHECK(invalid.bit_position()==0);
+    }
     std::puts("Bink original value-run command expansion: PASS");
 }
