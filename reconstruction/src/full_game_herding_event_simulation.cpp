@@ -858,6 +858,43 @@ bool HerdingEventSimulation::advance(
     std::vector<bool> arrived_at_tracked_point_this_update(
         candidate.entities().size(),false);
     for (const auto& event : observed.events) {
+        if(observed.require_native_event_proofs) {
+            // A caller-supplied confirmed=true assertion is NOT proof
+            // that an animal physically reached the original contact.
+            // Require the matching independently replayed motion
+            // branch. This makes a fabricated completion impossible
+            // even if an external native adapter asserts an event.
+            const auto ordinary_join=std::any_of(
+                observed.ordinary_follower_evidence.begin(),
+                observed.ordinary_follower_evidence.end(),
+                [&](const auto& e){return e.entity_index==event.entity_index;});
+            const auto tracked_arrival=std::any_of(
+                observed.tracked_approach_evidence.begin(),
+                observed.tracked_approach_evidence.end(),
+                [&](const auto& e){
+                    return e.entity_index==event.entity_index && e.arrived;
+                });
+            const auto home_arrival=std::any_of(
+                observed.home_motion_evidence.begin(),
+                observed.home_motion_evidence.end(),
+                [&](const auto& e){
+                    return e.entity_index==event.entity_index && e.arrived;
+                });
+            const bool source_proven=
+                (event.kind!=HerdingObservedKind::JoinFollower ||
+                 ordinary_join) &&
+                (event.kind!=HerdingObservedKind::TrackedTargetArrived ||
+                 tracked_arrival) &&
+                (event.kind!=HerdingObservedKind::ReachHomeWaypoint ||
+                 home_arrival) &&
+                (event.kind!=HerdingObservedKind::ScrufftyCollision ||
+                 event.retail_rect_contact.has_value());
+            if(!source_proven) {
+                error="native animal state change has no correlated original "
+                      "movement/collision evidence";
+                return false;
+            }
+        }
         if (event.entity_index>=candidate.entities().size()) {
             error="original Herding event references absent entity index";
             return false;
