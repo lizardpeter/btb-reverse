@@ -41,10 +41,13 @@ NativeSessionFrame NativeGameSession::tick(
     }
 
     input.managed_sound_playing = physical.any_managed_voice_playing;
-    // The real Bink device owns end-of-stream / input-to-skip signaling.
-    // Never artificially complete 13/14 just to make the game advance.
+    // Normal operation uses ONLY original decoder end-of-stream signaling.
+    // An explicitly opted-in video-free session may advance modes 13/14
+    // without claiming a Bink frame was ever decoded or presented.
+    const auto movie_mode=root_.globals().dispatcher.generic_screen_mode;
     root_.globals().dispatcher.global_movie_finished =
-        physical.global_movie_finished;
+        (skip_video_ && (movie_mode == 13 || movie_mode == 14))
+            ? true : physical.global_movie_finished;
 
     auto game = root_.advance(input);
     frame.prepared.game = game;
@@ -74,7 +77,7 @@ NativeSessionFrame NativeGameSession::tick(
         return resolved.absolute_path;
     };
 
-    if (game.original_walkthrough_index) {
+    if (!skip_video_ && game.original_walkthrough_index) {
         const auto* entry=walkthroughs_.entry(
             *game.original_walkthrough_index);
         if (!entry) {
@@ -105,7 +108,7 @@ NativeSessionFrame NativeGameSession::tick(
         frame.walkthrough_opened = true;
     }
 
-    if (game.original_global_intro_movie_index) {
+    if (!skip_video_ && game.original_global_intro_movie_index) {
         const auto* title=startups_.movie(
             *game.original_global_intro_movie_index);
         if (!title) {
@@ -165,6 +168,7 @@ NativeSessionFrame NativeGameSession::tick(
     // with a synthetic empty gameplay/UI draw list before present.
     const auto mode=root_.globals().dispatcher.generic_screen_mode;
     const bool global_movie_frame =
+        !skip_video_ &&
         frame.prepared.game.kind == FrameKind::Intercept &&
         (mode == 13 || mode == 14);
     if (!global_movie_frame &&
