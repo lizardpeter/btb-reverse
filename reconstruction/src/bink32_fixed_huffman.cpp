@@ -1,4 +1,5 @@
 #include "btb/bink32_packet_decode.hpp"
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -54,11 +55,22 @@ static_assert(kTable[0]==0x40&&kTable[15]==0x4f);
 std::optional<FixedHuffmanSymbol> read_fixed_huffman_symbol(
     LsbBitReader& in,unsigned selector) noexcept {
     if(selector>=kBits.size())return std::nullopt;
-    const auto ahead=in.peek(kBits[selector]);
+    // A fixed Huffman lookup may use 4..7 bits even when the
+    // decoded symbol occupies only 1..3 bits. At the LAST packet
+    // symbol, zero-extend missing LOOKAHEAD bits for table indexing
+    // but never invent consumed bits. All suffix table entries for
+    // a complete prefix code resolve to the same short symbol.
+    // This is required by original SJPi retail frame 24's U plane,
+    // which has 3 packet bits left before a valid 2-bit symbol.
+    const auto available=static_cast<unsigned>(
+        std::min<std::size_t>(in.bits_remaining(),kBits[selector]));
+    if(!available)return std::nullopt;
+    const auto ahead=in.peek(available);
     if(!ahead)return std::nullopt;
     const auto entry=kTable[kOffset[selector]+*ahead];
     const unsigned length=entry>>4;
-    if(!length||length>kBits[selector]||!in.skip(length))
+    if(!length||length>kBits[selector]||length>available||
+       !in.skip(length))
         return std::nullopt;
     return FixedHuffmanSymbol{
         static_cast<std::uint8_t>(entry&15),
