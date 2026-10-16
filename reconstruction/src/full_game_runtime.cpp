@@ -1,6 +1,7 @@
 #include "btb/full_game_runtime.hpp"
 
 #include <utility>
+#include <exception>
 #include <fstream>
 
 namespace btb::full_game {
@@ -25,6 +26,15 @@ void GameRoot::install_activity_select(
     activity_select_driver_ = std::move(driver);
     activity_select_initialized_ = false;
 }
+
+void GameRoot::install_profile_screen(
+    std::unique_ptr<NativeProfileScreenDriver> driver) {
+    profile_screen_driver_=std::move(driver);
+    profile_screen_state_={};
+    profile_screen_state_.outer_state=
+        static_cast<int>(game_flow::State::PlayerProfileAndNameEntry);
+}
+
 
 bool GameRoot::install_generic_front_end_pair(
     game_flow::State setup_state,
@@ -278,6 +288,65 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
     const auto& state = *dispatch.dispatch;
     if (state.state == game_flow::State::PlayerProfileAndNameEntry && name_entry_) {
         return advance_profile_name_entry(effective_input,std::move(result));
+    }
+    if (state.state == game_flow::State::PlayerProfileAndNameEntry) {
+        if (!profile_screen_driver_) {
+            result.kind=FrameKind::FrontEndRequiresAdapter;
+            return result;
+        }
+        if (!profile_screen_driver_->begin_frame(
+                effective_input,result.effects,result.error)) {
+            result.kind=FrameKind::FrontEndFailed;
+            return result;
+        }
+        // The source 0x0042E110 deletes the selected player's progress
+        // only after the real shared Yes/No confirmation has resolved.
+        if (effective_input.confirmation_resolved &&
+            profile_screen_state_.delete_overlay_active) {
+            profile_screen_state_.deletion_confirmed=
+                effective_input.confirmation_yes;
+            profile_screen_state_.delete_overlay_active=false;
+            profile_screen_state_.delete_overlay_setup=false;
+        }
+        const auto old_state=globals_.dispatcher.current_state;
+        try {
+            update_original_profile_screen(
+                profile_screen_state_,
+                {.x=effective_input.pointer_x,
+                 .y=effective_input.pointer_y,
+                 .down=effective_input.pointer_button_held,
+                 .click=effective_input.click_pulse,
+                 .introduction_gate=false},
+                *profile_screen_driver_);
+        } catch (const std::exception& e) {
+            result.kind=FrameKind::FrontEndFailed;
+            result.error=e.what();
+            return result;
+        }
+        if (!profile_screen_driver_->end_frame(result.error)) {
+            result.kind=FrameKind::FrontEndFailed;
+            return result;
+        }
+        if (profile_screen_state_.creation_profile>=0 &&
+            profile_screen_state_.name_entry_phase==1) {
+            const int created=profile_screen_state_.creation_profile;
+            if (!begin_profile_name_entry(
+                    created,profile_screen_driver_->blue_font_rectangles(),
+                    profile_screen_driver_->badge_rectangles())) {
+                result.kind=FrameKind::FrontEndFailed;
+                result.error="original profile name popup cannot use "
+                             "installed retail font/badge geometry";
+                return result;
+            }
+            profile_screen_state_.creation_profile=-1;
+            profile_screen_state_.name_entry_phase=0;
+        }
+        // The selector's source routine mutates the same live GameRoot
+        // profile record. No temporary UI copy or fake profile is used.
+        apply_effects(result.effects);
+        result.state_changed=globals_.dispatcher.current_state!=old_state;
+        result.kind=FrameKind::FrontEndUpdated;
+        return result;
     }
     if (state.kind == game_flow::StateKind::NoOp) {
         result.kind = FrameKind::StateNoOp;
