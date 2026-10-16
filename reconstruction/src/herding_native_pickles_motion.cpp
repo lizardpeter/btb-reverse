@@ -173,6 +173,7 @@ bool NativePicklesMotionSource::advance(
         return false;
     }
     observed={};
+    observed.require_native_event_proofs=true;
     observed.motion_records=source;
 
     // UpdateHerdingActivity 0x418F23..0x41908D moves Scruffty once
