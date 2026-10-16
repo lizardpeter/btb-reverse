@@ -363,12 +363,12 @@ bool Win32RetailBinkProvider::render_walkthrough_overlay(
     if(!walkthrough_has_frame_) {
         error.clear();return true;
     }
-    // Original image surface is 282x179; the instruction UI
-    // supplies the surrounding original background and borders.
-    // Coordinate is the recovered walkthrough panel origin;
-    // retail DirectDraw pixel-parity is pending physical testing.
+    // These are NOT guessed center coordinates: actual retail
+    // PE32 0x00428195..0x004281A5 pushes (x=0x3F,y=0x9D)
+    // when invoking DecodeAndBlitBinkFrame(0x408F70). The
+    // original DD7 playback surface is 282x179 (0x4281D0).
     return renderer_.blit_bink_offscreen_surface(
-        walkthrough_surface_,282,179,50,140,error);
+        walkthrough_surface_,282,179,0x3f,0x9d,error);
 }
 
 } // namespace btb::full_game
