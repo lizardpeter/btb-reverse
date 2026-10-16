@@ -2,6 +2,7 @@
 #include "btb/bink32_run_scan.hpp"
 #include "btb/bink32_residue.hpp"
 #include "btb/bink32_dct_coefficients.hpp"
+#include "btb/bink32_dct_pixels.hpp"
 #include "btb/bink32_original_quant.hpp"
 #include <algorithm>
 #include <array>
@@ -211,11 +212,21 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
                     const auto dc=intra_dc.take();
                     if(!dc)return false;
                     const auto dct=decode_bink_dct_coefficients(bits,*dc);
-                    if(!dct || dct->changed_count!=0)return false;
-                    const auto value=bink_zero_ac_idct_sample(
-                        *dc,dct->quant_selector);
-                    if(!value)return false;
-                    cmd.samples.fill(*value);
+                    if(!dct)return false;
+                    const auto pixels8=reconstruct_bink_dct_pixels(
+                        *dct,BinkDctQuantFamily::Intra);
+                    if(!pixels8)return false;
+                    if(dct->changed_count==0) {
+                        // Keep the separately derived exact DC-only
+                        // fast path as an independent parity check.
+                        const auto dc_only=bink_zero_ac_idct_sample(
+                            *dc,dct->quant_selector);
+                        if(!dc_only || std::any_of(
+                             pixels8->begin(),pixels8->end(),
+                             [&](auto p){return p!=*dc_only;}))
+                            return false;
+                    }
+                    cmd.samples=*pixels8;
                     return true;
                 }
                 if(pixels==BinkBlockMode::Run) {
@@ -325,13 +336,23 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
                 const auto dc=inter_dc.take();
                 if(!mx || !my || !dc)return std::nullopt;
                 const auto dct=decode_bink_dct_coefficients(bits,*dc);
-                if(!dct || dct->changed_count!=0)return std::nullopt;
-                const auto value=bink_zero_ac_idct_sample(
-                    *dc,dct->quant_selector);
-                if(!value)return std::nullopt;
+                if(!dct)return std::nullopt;
+                const auto pixel_residuals=reconstruct_bink_dct_pixels(
+                    *dct,BinkDctQuantFamily::Inter);
+                if(!pixel_residuals)return std::nullopt;
+                if(dct->changed_count==0) {
+                    const auto dc_only=bink_zero_ac_idct_sample(
+                        *dc,dct->quant_selector);
+                    if(!dc_only || std::any_of(
+                        pixel_residuals->begin(),pixel_residuals->end(),
+                        [&](auto p){return p!=*dc_only;}))
+                        return std::nullopt;
+                }
                 cmd.motion_x=*mx;
                 cmd.motion_y=*my;
-                cmd.residuals.fill(std::bit_cast<std::int8_t>(*value));
+                for(std::size_t i=0;i<64;++i)
+                    cmd.residuals[i]=std::bit_cast<std::int8_t>(
+                        (*pixel_residuals)[i]);
                 break;
             }
             case BinkBlockMode::Fill:
@@ -341,8 +362,8 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
                 if(!populate_pixels(mode))return std::nullopt;
                 break;
             default:
-                // AC-bearing DCT still requires the verified 8x8
-                // inverse transform and coefficient quantization.
+                // All currently recognized source-native modes above
+                // have explicit pixel reconstruction; reject the rest.
                 return std::nullopt;
             }
             ++col;
