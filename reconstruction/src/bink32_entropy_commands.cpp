@@ -87,17 +87,42 @@ std::optional<DecodedBinkBlockModes> decode_bink_block_mode_values(
     if(!count || count>(1U<<20) || previous_mode>9)
         return std::nullopt;
     auto probe=compressed;
+    const auto begin=probe.bit_position();
+    // Original Bink read_block_types: ONE branch bit per bundle, not
+    // one bit per Huffman symbol. 1 = constant 4-bit value for all t;
+    // 0 = Huffman literals with 12..15 repeat previous 4/8/12/32.
+    const auto constant=probe.read(1);
+    if(!constant)return std::nullopt;
     DecodedBinkBlockModes decoded{};
     decoded.values.resize(count);
-    const auto r=expand_bink_value_commands(
-        probe,tree,decoded.values,previous_mode);
-    if(!r)return std::nullopt;
-    // The original 4-bit command alphabet can emit literal 10/11
-    // although those are not valid standard Bink1 pixel block types.
-    if(std::any_of(decoded.values.begin(),decoded.values.end(),
-        [](std::uint8_t v){return v>9;}))
-        return std::nullopt;
-    decoded.statistics=*r;
+    if(*constant) {
+        const auto value=probe.read(4);
+        if(!value || *value>9)return std::nullopt;
+        std::fill(decoded.values.begin(),decoded.values.end(),
+                  static_cast<std::uint8_t>(*value));
+        decoded.statistics.filled_remainder=true;
+    } else {
+        constexpr std::array<std::size_t,4> runs{4,8,12,32};
+        std::size_t pos=0;
+        while(pos<count) {
+            const auto symbol=read_dynamic_huffman_symbol(probe,tree);
+            if(!symbol)return std::nullopt;
+            ++decoded.statistics.huffman_symbols;
+            if(symbol->value<12) {
+                if(symbol->value>9)return std::nullopt;
+                previous_mode=symbol->value;
+                decoded.values[pos++]=previous_mode;
+            } else {
+                const auto n=runs[symbol->value-12];
+                if(n>count-pos)return std::nullopt;
+                std::fill_n(decoded.values.begin()+
+                    static_cast<std::ptrdiff_t>(pos),n,previous_mode);
+                pos+=n;
+                ++decoded.statistics.repeat_commands;
+            }
+        }
+    }
+    decoded.statistics.bits_consumed=probe.bit_position()-begin;
     compressed=probe;
     return decoded;
 }
