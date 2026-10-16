@@ -212,4 +212,65 @@ std::optional<BinkDcContextBlocks> decode_original_bink_dc_context_blocks(
     return result;
 }
 
+namespace {
+constexpr std::size_t kDecodedTileSide=16;
+constexpr std::size_t kMaximumRasterPixels=64U*1024U*1024U;
+// Reject invalid or potentially hostile dimensions before multiplying.
+// The raster is tightly packed, and the last tile is clipped to bounds.
+std::optional<std::size_t> expected_raster_blocks(
+    std::size_t width,std::size_t height) noexcept {
+    if(width==0 || height==0 || width>16384 || height>16384 ||
+       width>kMaximumRasterPixels/height)
+        return std::nullopt;
+    const auto tiles_x=(width+15)/kDecodedTileSide;
+    const auto tiles_y=(height+15)/kDecodedTileSide;
+    if(tiles_x>4096/tiles_y) return std::nullopt;
+    return tiles_x*tiles_y;
+}
+} // namespace
+
+std::optional<BinkDecodedRaster16> rasterize_bink_blocks16(
+    std::span<const BinkDcAcBlock> blocks,
+    std::size_t width,std::size_t height) {
+    const auto count=expected_raster_blocks(width,height);
+    if(!count || blocks.size()!=*count)return std::nullopt;
+    BinkDecodedRaster16 raster{};
+    raster.width=width;
+    raster.height=height;
+    raster.pixels.resize(width*height);
+    const auto tiles_x=(width+15)/kDecodedTileSide;
+    for(std::size_t index=0;index<blocks.size();++index) {
+        const auto left=(index%tiles_x)*kDecodedTileSide;
+        const auto top=(index/tiles_x)*kDecodedTileSide;
+        const auto copy_width=std::min(kDecodedTileSide,width-left);
+        const auto copy_height=std::min(kDecodedTileSide,height-top);
+        const auto& tile=blocks[index].decoded.pixels;
+        for(std::size_t row=0;row<copy_height;++row) {
+            std::copy_n(tile.begin()+static_cast<std::ptrdiff_t>(
+                row*kDecodedTileSide),copy_width,
+                raster.pixels.begin()+static_cast<std::ptrdiff_t>(
+                    (top+row)*width+left));
+        }
+    }
+    return raster;
+}
+
+std::optional<BinkDecodedRaster16> decode_original_bink_dc_context_raster16(
+    LsbBitReader& dc_bits,LsbBitReader& ac_bits,
+    const EntropyPlaneSetup& context,
+    std::size_t width,std::size_t height) {
+    const auto count=expected_raster_blocks(width,height);
+    if(!count)return std::nullopt;
+    auto dc_probe=dc_bits;
+    auto ac_probe=ac_bits;
+    auto decoded=decode_original_bink_dc_context_blocks(
+        dc_probe,ac_probe,context,*count);
+    if(!decoded)return std::nullopt;
+    auto raster=rasterize_bink_blocks16(decoded->blocks,width,height);
+    if(!raster)return std::nullopt;
+    dc_bits=dc_probe;
+    ac_bits=ac_probe;
+    return raster;
+}
+
 } // namespace btb::bink32_recovered
