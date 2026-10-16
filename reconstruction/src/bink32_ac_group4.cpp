@@ -55,4 +55,21 @@ std::optional<AcGroup4> decode_bink_ac_group4_2(
     source=cursor;
     return result;
 }
+std::optional<AcGroup4> decode_bink_ac_group4_0(
+    LsbBitReader& source, std::uint8_t& command,
+    unsigned low_magnitude_bits, std::uint16_t high_magnitude_bit,
+    std::span<std::int16_t> coefficients) noexcept {
+    if((command & 3U)!=0U)return std::nullopt;
+    const auto original=command;
+    auto synthetic=static_cast<std::uint8_t>((command&0xfcU)|2U);
+    const auto decoded=decode_bink_ac_group4_2(
+        source,synthetic,low_magnitude_bits,high_magnitude_bit,coefficients);
+    if(!decoded)return std::nullopt;
+    // 30011C52..30011C5F rewrites the original control instead of
+    // zeroing it as at 30011C93; following four decisions share
+    // the exact 30011C9E..30011F7A body.
+    command=static_cast<std::uint8_t>((original&0xfcU)+0x11U);
+    return decoded;
+}
+
 } // namespace btb::bink32_recovered
