@@ -6,6 +6,9 @@
 #include "btb/full_game_maze.hpp"
 #include "btb/full_game_spud_maze.hpp"
 #include "btb/full_game_squirrel.hpp"
+#include "btb/full_game_herding.hpp"
+#include "btb/full_game_herding_event_simulation.hpp"
+#include "btb/herding_native_pickles_motion.hpp"
 #include "btb/full_game_dino.hpp"
 #include "btb/full_game_profile_screen_native.hpp"
 #include "btb/full_game_fireworks.hpp"
@@ -235,6 +238,13 @@ struct Host {
             std::make_unique<SpudMazeDriver>(root,0));
         game.install(ActivityId::Squirrel,
             std::make_unique<SquirrelDriver>(root,0));
+        // Source-backed initial Pets Corner scene and Pickles navigation.
+        // Autonomous animal delivery remains fail-closed (no fake wins).
+        game.install(ActivityId::Herding,
+            std::make_unique<HerdingDriver>(
+                root/"Data"/"SubGame1",
+                std::make_unique<HerdingEventSimulation>(
+                    std::make_unique<NativePicklesMotionSource>()),0));
         game.install(ActivityId::Fireworks,std::make_unique<FireworksDriver>(
             root/"Data"/"SubGameFirework",profile_dir));
         game.install(ActivityId::BobsBand,std::make_unique<BobsBandDriver>(
