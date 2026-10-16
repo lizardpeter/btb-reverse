@@ -61,13 +61,13 @@ int main() {
         data.put(1,1); // expand first root
         data.put(0,1);data.put(0,1); // immediate positive +2
         data.put(1,1);data.put(1,1);data.put(1,1);
-        data.put(0,1);data.put(0,1);data.put(0,1); // skip other roots
+        data.put(0,1);data.put(0,1);data.put(0,1);data.put(0,1); // skip current and other roots
         data.put(1,1); // refine positive +2 to +3
         LsbBitReader bits(data.bytes);
         const auto r=decode_bink_residue_packet(bits);
         CHECK(r && r->coefficients[2]==3);
         CHECK(r->coefficient_events==1 && r->refinement_events==1);
-        CHECK(r->consumed_bits==20 && bits.bit_position()==20);
+        CHECK(r->consumed_bits==21 && bits.bit_position()==21);
     }
     {
         // Caller-supplied budget is the same representation as
