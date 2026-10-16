@@ -283,5 +283,95 @@ END
         assert(solo.advance({}).kind==fg::FrameKind::ActivityUpdated);
         assert(solo.globals().shared_completion_code==-1);
     }
+    {
+        // A compact source-format THREE-SCREEN graph exercises actual
+        // movement/portal capture, package collection and the normal
+        // 0x0041D4D0 success end gate. This is intentionally a synthetic
+        // test map, not a claim of a retail-level playthrough.
+        const auto short_map=root/"short_map";
+        fs::create_directories(short_map/"loaddata");
+        std::ofstream(short_map/"loaddata"/"maze_nodes.txt") << R"(header
+west0 0 100 111 2 512 -1 -1 -1 -1
+NEXT_MiddleScreen
+mid8 8 247 278 10 0 -1 9 -1 10
+midWest 9 249 278 2 128 -1 -1 -1 -1
+midEast 10 245 278 8 256 -1 -1 -1 -1
+NEXT_EastScreen
+east0 0 100 111 2 0 -1 -1 -1 -1
+END
+100 100 0 100 100 0 100 100 0 100 100 0
+247 267 8 247 267 8 247 267 8 247 267 8
+100 100 0 100 100 0 100 100 0 100 100 0
+2.0
+1 1 2
+5 6 7
+240 180 120
+1500 1000 200
+6
+)";
+        fg::GameRoot source_game;
+        assert(source_game.select_profile(0));
+        source_game.globals().player_progress[0].set(
+            btb::progress::Slot::Golf,1);
+        const auto saves=short_map/"profiles";
+        source_game.configure_profile_directory(saves);
+        auto actual=std::make_unique<fg::MazeDriver>(short_map,0);
+        auto* driver=actual.get();
+        source_game.install(fg::ActivityId::Maze,std::move(actual));
+        source_game.set_outer_state(State::MazeInit);
+        assert(source_game.advance({}).kind==fg::FrameKind::ActivityInitialized);
+        assert(driver->boxes().total==4);
+        assert(source_game.advance({}).effects.audio.back().sound_id==0x49);
+        assert(source_game.advance({.managed_sound_playing=true}).kind==
+               fg::FrameKind::ActivityUpdated);
+        assert(source_game.advance({}).kind==fg::FrameKind::ActivityUpdated);
+        // Move from the center to the West portal, then return to middle,
+        // then use the East portal. Source node proximity and authored
+        // layout place 1,2,1 packages exactly at those three entrances.
+        auto move=[&](std::uint8_t bits) {
+            fg::ActivityFrameInput input;
+            input.directional_input_bits=bits;
+            auto result=source_game.advance(input);
+            assert(result.kind==fg::FrameKind::ActivityUpdated);
+            assert(!result.effects.fatal_error);
+        };
+        move(0x02); // middle node8 x247 -> x249
+        move(0x02); // node9 captured -> west node0; first box
+        assert(driver->player()->screen==0);
+        assert(driver->boxes().remaining==3);
+        move(0x02); // west node0 -> middle node8, both center boxes
+        assert(driver->player()->screen==1);
+        assert(driver->boxes().remaining==1);
+        move(0x01); // middle node8 x247 -> x245
+        move(0x01); // node10 captured -> east node0; final box
+        assert(driver->player()->screen==2);
+        assert(driver->boxes().remaining==0);
+        auto feedback=source_game.advance({});
+        assert(feedback.kind==fg::FrameKind::ActivityUpdated);
+        assert(!feedback.effects.audio.empty());
+        assert(feedback.effects.audio.back().sound_id==0x54);
+        assert(!feedback.effects.save_and_unload);
+        assert(source_game.advance({.managed_sound_playing=true}).kind==
+               fg::FrameKind::ActivityUpdated);
+        assert(source_game.advance({}).kind==fg::FrameKind::ActivityUpdated);
+        auto won=source_game.advance({});
+        assert(won.kind==fg::FrameKind::ActivityUpdated);
+        assert(won.effects.save_and_unload);
+        assert(won.profile_saved);
+        assert(won.effects.progress_writes.size()==1);
+        assert(won.effects.progress_writes[0].slot==
+               btb::progress::Slot::Maze);
+        assert(source_game.globals().shared_completion_code==3);
+        assert(source_game.globals().dispatcher.current_state==
+               static_cast<int>(State::PlayAgainYesNoSetup));
+        fg::GameRoot restart;
+        std::string load_error;
+        assert(restart.load_profile_files(saves,load_error));
+        assert(restart.globals().player_progress[0].get(
+            btb::progress::Slot::Maze)==1);
+        assert(restart.globals().player_progress[0].get(
+            btb::progress::Slot::Golf)==1);
+        assert(!driver->player()); // original activity has been unloaded
+    }
     fs::remove_all(root);
 }
