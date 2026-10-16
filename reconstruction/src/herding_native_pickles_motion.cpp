@@ -86,11 +86,44 @@ herding::RetailEntityRecord32 convert_original_entity(
 }
 } // namespace
 
+bool NativePicklesMotionSource::begin_frame(std::string& error) {
+    if(!active_ || pending_frame_) {
+        error="Pets Corner source transaction is inactive or already open";
+        return false;
+    }
+    auto& rng=shared_random_?*shared_random_:standalone_random_;
+    pending_frame_=FrameSnapshot{
+        selected_food_,scruffty_patrol_state_,follower_indices_,
+        tracked_slots_,remaining_to_register_,rng.state()};
+    error.clear();
+    return true;
+}
+
+void NativePicklesMotionSource::commit_frame() noexcept {
+    pending_frame_.reset();
+}
+
+void NativePicklesMotionSource::rollback_frame() noexcept {
+    if(!pending_frame_)return;
+    // Restore all source-owned state, including the single Windows
+    // host's shared original CRT sequence. Otherwise a rejected
+    // event changes following frames even if the behavior bridge
+    // discards the candidate copy.
+    selected_food_=pending_frame_->selected_food;
+    scruffty_patrol_state_=pending_frame_->scruffty_patrol;
+    follower_indices_.swap(pending_frame_->followers);
+    tracked_slots_=pending_frame_->tracked;
+    remaining_to_register_=pending_frame_->registration_counter;
+    (shared_random_?*shared_random_:standalone_random_).seed(
+        pending_frame_->original_rng_state);
+    pending_frame_.reset();
+}
+
 bool NativePicklesMotionSource::initialize(
     const herding::Data& data,int difficulty,
     std::vector<herding::RetailEntityRecord32>& originals,
     std::string& error) {
-    if(active_) {
+    if(active_ || pending_frame_) {
         error="Pets Corner Pickles source already initialized";
         return false;
     }
@@ -548,6 +581,7 @@ bool NativePicklesMotionSource::advance(
 }
 
 bool NativePicklesMotionSource::unload(std::string& error) {
+    rollback_frame();
     active_=false;
     selected_food_=herding::FoodType::None;
     follower_indices_.clear();
