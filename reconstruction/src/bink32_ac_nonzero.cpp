@@ -16,9 +16,11 @@ std::optional<AcDirectCoefficient> decode_bink_ac_direct3(
     if (slot>=coefficients.size()) return std::nullopt;
     // Original 30011F7F uses EAX as the read BIT COUNT, while
     // 30011FC9 ORs the independently shifted WORD at [esp+28].
-    // EAX initially equals (1 << (mode-1)) - 1: it is NOT
-    // restricted to the bit position of that WORD. Earlier source
-    // erroneously rejected genuine (count=7, class_bit=8) inputs.
+    // EAX initially equals mode-1 (30011BE8 MOV AL,BL followed by
+    // 30011BF4 DEC EAX); the independent class WORD begins at
+    // 1 << (mode-1). The older port mistakenly used class_bit-1 as
+    // the read width. Keep this isolated helper able to test arbitrary
+    // bounded widths, while the outer scheduler supplies mode-1..1.
     if (low_magnitude_bits>31 || high_magnitude_bit==0 ||
         (high_magnitude_bit & (high_magnitude_bit-1))!=0)
         return std::nullopt;
