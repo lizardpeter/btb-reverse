@@ -90,9 +90,9 @@ int main() {
     }
 
     {
-        // Original EAX width may exceed the magnitude class-bit index.
-        // Four direct coefficients with EAX=7, high bit=8 are valid
-        // under the actual 30011CDA bitreader.
+        // Validate the isolated bitreader's independently supplied
+        // count/class-bit inputs. The real four-bit outer mode sets
+        // EAX to mode-1..1; this is a helper robustness fixture.
         Writer encoded;
         for(unsigned i=0;i<4;++i) {
             encoded.write(0,1);
