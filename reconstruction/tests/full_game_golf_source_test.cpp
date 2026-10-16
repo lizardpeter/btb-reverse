@@ -167,5 +167,67 @@ data\subgamegolf\wendy.bmp
     std::string error;
     assert(game.unload_current(error));
 
+    // Host-integrated real Golf path: no test-only queue_control calls.
+    // Original input confirms angle and power, state 99 completes after
+    // 8 * 9 ticks, and finished DirectSound feedback unlocks the next shot.
+    GameRoot native;
+    assert(native.select_profile(4));
+    auto source_driver=std::make_unique<GolfDriver>(root,0);
+    auto* live=source_driver.get();
+    native.install(ActivityId::Golf,std::move(source_driver));
+    native.set_outer_state(btb::game_flow::State::GolfInit);
+    step=native.advance({});
+    assert(step.kind==FrameKind::ActivityInitialized);
+    // Mouse X maps through the retail 88 - (x/7) aiming equation.
+    step=native.advance({.pointer_x=616});
+    assert(live->round()->state()==btb::golf::RoundState::Aim);
+    step=native.advance({.pointer_x=0});
+    assert(step.kind==FrameKind::ActivityUpdated);
+    step=native.advance({.pointer_x=0,.directional_input_bits=0x02});
+    // Aim is now 87, then the UI returns to mouse-originated aim at 616.
+    assert(live->round()->state()==btb::golf::RoundState::Aim);
+
+    for(int shot=0;shot<5;++shot) {
+        step=native.advance({.pointer_x=616,.click_pulse=true});
+        assert(live->round()->state()==btb::golf::RoundState::PowerMeter);
+        step=native.advance({.pointer_x=616,.click_pulse=true});
+        assert(live->round()->state()==btb::golf::RoundState::LaunchSetup);
+        step=native.advance({});
+        assert(live->round()->state()==btb::golf::RoundState::SwingAnimationDelay);
+        for(int ticks=0;ticks<71;++ticks) {
+            step=native.advance({});
+            assert(live->round()->state()==btb::golf::RoundState::SwingAnimationDelay);
+        }
+        step=native.advance({});
+        assert(live->round()->state()==btb::golf::RoundState::BallFlight);
+        int physics_frames=0;
+        while(live->round()->state()==btb::golf::RoundState::BallFlight &&
+              physics_frames++<300)
+            step=native.advance({});
+        assert(physics_frames<300);
+        step=native.advance({}); // ResolveLanding -> ScoreAndFeedback
+        assert(live->round()->state()==btb::golf::RoundState::ScoreAndFeedback);
+        step=native.advance({}); // managed voice submitted
+        assert(!step.effects.audio.empty());
+        assert(step.effects.audio[0].operation==AudioOperation::ManagedSoundId);
+        for(int tick=0;tick<3;++tick) {
+            step=native.advance({.managed_sound_playing=true});
+            assert(live->round()->state()==btb::golf::RoundState::ScoreAndFeedback);
+        }
+        step=native.advance({.managed_sound_playing=false});
+        assert(live->round()->state()==btb::golf::RoundState::ResetNextAttempt);
+        step=native.advance({});
+        if(shot<4)
+            assert(live->round()->state()==btb::golf::RoundState::Aim);
+    }
+    assert(step.kind==FrameKind::ActivityUpdated);
+    assert(step.effects.progress_writes.size()==1);
+    assert(step.effects.progress_writes[0].slot==
+           btb::progress::Slot::Golf);
+    assert(native.globals().player_progress[4].get(
+        btb::progress::Slot::Golf)==1);
+    assert(native.globals().dispatcher.current_state==0x3c);
+    assert(live->round()==nullptr);
+
     fs::remove_all(root);
 }
