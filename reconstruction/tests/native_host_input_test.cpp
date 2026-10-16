@@ -18,14 +18,14 @@ int main() {
  assert(native_dik_for_vk('A')==0x1e);
  assert(native_dik_for_vk('Z')==0x2c);
  assert(native_dik_for_vk(0x1b)==0x01); // retail Escape scan-code
- // Source WM_KEYDOWN/VK_ESCAPE is a keyboard event, not a
- // synthetic quit, click, profile-write or completed activity.
- native.key_down(0x1b,false);
- frame=native.sample(17,31,0xffffff64U);
- assert(frame.keyboard_state[0x01]==0x80);
- assert(!frame.click_pulse);
- native.key_up(0x1b);
- assert(native.sample(17,31,0xffffff64U).keyboard_state[0x01]==0);
+ // WM_KEYDOWN/VK_ESCAPE is a keyboard event, not a synthesized
+ // primary click or request to exit the game.
+ NativeHostInput escape_only{};
+ escape_only.key_down(0x1b,false);
+ assert(!escape_only.click_pulse);
+ assert(escape_only.sample(17,31,0xffffff64U).keyboard_state[0x01]==0x80);
+ escape_only.key_up(0x1b);
+ assert(escape_only.sample(17,31,0xffffff64U).keyboard_state[0x01]==0);
  assert(frame.pointer_button_held);
  assert(frame.translated_character=='a');
  assert(frame.elapsed_centiseconds==10);
