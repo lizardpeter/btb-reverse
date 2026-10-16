@@ -52,13 +52,35 @@ ActivityFrameOutput GolfDriver::compose_frame(
     }
     const auto& course = round_->data();
 
-    // This is a strictly data-backed subset of native Golf composition.
-    // Later render-layer recovery must place the ball sprite, aim indicator,
-    // power bar, feedback overlays, HUD and source-frame animations in their
-    // proven retail order. Do not fabricate missing sprite paths or frames.
+    // Original 0x00414A60 starts with the backdrop, a 20px-spaced row
+    // of original toolbar golf balls for remaining attempts, and the
+    // live source ball sprites. These are the exact original bitmap names
+    // and the authored x=0x175/y=0x1B5 attempt HUD coordinates.
     out.draws.push_back({
-        "Data\\SubGameGolf\\golfbg.bmp", 0, 0, std::nullopt, false
+        "Data\\SubGameGolf\\golfbg.bmp",0,0,std::nullopt,false
     });
+    for(int i=0;i<state.attempts_remaining;++i)
+        out.draws.push_back({
+            "Data\\SubGameGolf\\toolbar ball.bmp",373+i*20,437,
+            std::nullopt,false
+        });
+    if(state.attempts_remaining>0) {
+        const int ball_x=static_cast<int>(state.ball.position.x);
+        const int ball_y=static_cast<int>(state.ball.position.y);
+        // Native DrawGolfActivity checks the current float ball location
+        // before submitting the magenta-keyed shadow and stopped-ball
+        // sprites. The original asset resolver keeps both physical BMPs.
+        out.draws.push_back({
+            "Data\\SubGameGolf\\shadow.bmp",ball_x,ball_y,
+            std::nullopt,true
+        });
+        out.draws.push_back({
+            state.ball.speed>0
+                ? "Data\\SubGameGolf\\golfballgo.bmp"
+                : "Data\\SubGameGolf\\golfballstop.bmp",
+            ball_x,ball_y,std::nullopt,true
+        });
+    }
     for (const auto& target : course.course_objects) {
         out.draws.push_back({
             target.sprite_path,
@@ -96,7 +118,19 @@ ActivityFrameOutput GolfDriver::compose_frame(
         true
     });
 
-    (void)state;
+    // 0x00414A60 submits the real powerbar at (0x53,0x1A0).
+    // The source-width is trunc(power * 0x101 / 1000), height 0x35.
+    // A zero-width blit has no drawable pixels and is omitted.
+    if(state.state!=golf::RoundState::Aim && state.power>0) {
+        const int width=(state.power*257)/1000;
+        if(width>0)
+            out.draws.push_back({
+                "Data\\SubGameGolf\\powerbar.bmp",83,416,
+                Rect{0,0,width,53},true
+            });
+    }
+    // Score digits, flight trail and the original swing/actor source-frame
+    // indices remain separate from this recovered HUD/sprite subset.
     return out;
 }
 

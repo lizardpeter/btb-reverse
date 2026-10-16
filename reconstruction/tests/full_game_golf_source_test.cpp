@@ -75,10 +75,24 @@ data\subgamegolf\wendy.bmp
 
     step = game.advance({});
     assert(step.kind == FrameKind::ActivityUpdated);
-    assert(step.effects.draws.size() == 8); // background + 3+3 + Bob
-    assert(step.effects.draws[0].source_asset ==
+    // Retail DrawGolfActivity draws five toolbar balls, physical ball
+    // and shadow BMPs, then the authored course/characters, not merely
+    // eight neutral backdrop/actor sprites.
+    assert(step.effects.draws.size()==15);
+    assert(step.effects.draws[0].source_asset==
            "Data\\SubGameGolf\\golfbg.bmp");
-    assert(step.effects.draws[1].source_asset ==
+    assert(step.effects.draws[1].source_asset==
+           "Data\\SubGameGolf\\toolbar ball.bmp");
+    assert(step.effects.draws[1].x==373);
+    assert(step.effects.draws[1].y==437);
+    assert(step.effects.draws[5].x==453);
+    assert(step.effects.draws[6].source_asset==
+           "Data\\SubGameGolf\\shadow.bmp");
+    assert(step.effects.draws[7].source_asset==
+           "Data\\SubGameGolf\\golfballstop.bmp");
+    assert(step.effects.draws[7].x==187);
+    assert(step.effects.draws[7].y==330);
+    assert(step.effects.draws[8].source_asset==
            "data\\subgamegolf\\flag.bmp");
     assert(step.effects.progress_writes.empty());
 
@@ -93,6 +107,17 @@ data\subgamegolf\wendy.bmp
         }
         assert(handle->round()->state() == btb::golf::RoundState::PowerMeter);
         if (shot == 0) {
+            // Medium speed 4 x 30 ticks = power 120. Original shaderless
+            // DirectDraw crop is floor(120*257/1000)=30px at x83 y416.
+            for(int charge=0;charge<30;++charge)
+                step=game.advance({});
+            assert(handle->round()->state()==btb::golf::RoundState::PowerMeter);
+            const auto& bar=step.effects.draws.back();
+            assert(bar.source_asset=="Data\\SubGameGolf\\powerbar.bmp");
+            assert(bar.x==83 && bar.y==416);
+            assert(bar.source_rectangle);
+            assert(bar.source_rectangle->right==30);
+            assert(bar.source_rectangle->bottom==53);
             step = game.advance({.click_pulse=true});
         } else {
             handle->queue_control({.accept_power=true});
