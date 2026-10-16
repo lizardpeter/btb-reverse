@@ -259,4 +259,89 @@ decode_bink_skip_only_picture_luma(
     return result;
 }
 
+
+std::optional<BinkSignedMotionBundle> read_bink_signed_motion_bundle(
+    LsbBitReader& bits,const DynamicHuffmanTree& tree,
+    std::size_t plane_width,std::size_t maximum_values) {
+    if(!plane_width || plane_width>16384 || !maximum_values ||
+       maximum_values>(1U<<20))return std::nullopt;
+    const auto count_width=init_entropy_plane(
+        0,0x200U,static_cast<std::uint32_t>(plane_width),4,1,false)
+        .table_bit_width;
+    if(!count_width || count_width>24)return std::nullopt;
+    auto probe=bits;
+    const auto start=probe.bit_position();
+    const auto count=probe.read(count_width);
+    if(!count || *count>maximum_values)return std::nullopt;
+    BinkSignedMotionBundle out{};
+    out.encoded_count=*count;
+    if(!*count) {
+        out.end_of_bundle=true;
+    } else {
+        const auto uniform=probe.read(1);
+        if(!uniform)return std::nullopt;
+        out.constant_bundle=*uniform!=0;
+        out.values.resize(*count);
+        if(*uniform) {
+            const auto magnitude=probe.read(4);
+            if(!magnitude)return std::nullopt;
+            int signed_value=static_cast<int>(*magnitude);
+            if(signed_value) {
+                const auto negative=probe.read(1);
+                if(!negative)return std::nullopt;
+                if(*negative)signed_value=-signed_value;
+            }
+            std::fill(out.values.begin(),out.values.end(),
+                      static_cast<std::int8_t>(signed_value));
+        } else {
+            for(auto& value:out.values) {
+                const auto magnitude=read_dynamic_huffman_symbol(probe,tree);
+                if(!magnitude)return std::nullopt;
+                int signed_value=magnitude->value;
+                if(signed_value) {
+                    const auto negative=probe.read(1);
+                    if(!negative)return std::nullopt;
+                    if(*negative)signed_value=-signed_value;
+                }
+                value=static_cast<std::int8_t>(signed_value);
+            }
+        }
+    }
+    out.bits_consumed=probe.bit_position()-start;
+    bits=probe;
+    return out;
+}
+std::optional<BinkPatternBundle> read_bink_pattern_bundle(
+    LsbBitReader& bits,const DynamicHuffmanTree& tree,
+    std::size_t plane_width,std::size_t maximum_values) {
+    if(!plane_width || plane_width>16384 || !maximum_values ||
+       maximum_values>(1U<<20))return std::nullopt;
+    const auto count_width=init_entropy_plane(
+        0,0x200U,static_cast<std::uint32_t>(plane_width),4,8,false)
+        .table_bit_width;
+    if(!count_width || count_width>24)return std::nullopt;
+    auto probe=bits;
+    const auto start=probe.bit_position();
+    const auto count=probe.read(count_width);
+    if(!count || *count>maximum_values)return std::nullopt;
+    BinkPatternBundle out{};
+    out.encoded_count=*count;
+    if(!*count) {
+        out.end_of_bundle=true;
+    } else {
+        out.values.resize(*count);
+        for(auto& value:out.values) {
+            const auto low=read_dynamic_huffman_symbol(probe,tree);
+            if(!low)return std::nullopt;
+            const auto high=read_dynamic_huffman_symbol(probe,tree);
+            if(!high)return std::nullopt;
+            value=static_cast<std::uint8_t>(low->value |
+                                             (high->value<<4));
+        }
+    }
+    out.bits_consumed=probe.bit_position()-start;
+    bits=probe;
+    return out;
+}
+
 } // namespace btb::bink32_recovered
