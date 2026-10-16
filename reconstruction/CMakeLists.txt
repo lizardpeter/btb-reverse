@@ -1170,15 +1170,6 @@ btb_require_cpp26(btb_full_game_profile_selector_native_tests PRIVATE)
 add_test(NAME full_game_profile_selector_native
     COMMAND btb_full_game_profile_selector_native_tests)
 
-# Native source Maze first pass: actual original map parser, original
-# 0041B140 player movement, bitmap/timer effects and truthful timeout flow.
-add_executable(btb_full_game_maze_native_tests
-    tests/full_game_maze_native_test.cpp)
-target_link_libraries(btb_full_game_maze_native_tests PRIVATE
-    btb_recompiled_core)
-btb_require_cpp26(btb_full_game_maze_native_tests PRIVATE)
-add_test(NAME full_game_maze_native COMMAND btb_full_game_maze_native_tests)
-
 add_executable(btb_full_game_dino_native_tests
     tests/full_game_dino_native_test.cpp)
 target_link_libraries(btb_full_game_dino_native_tests PRIVATE
@@ -1194,6 +1185,15 @@ target_link_libraries(btb_full_game_native_session_source_tests PRIVATE
 btb_require_cpp26(btb_full_game_native_session_source_tests PRIVATE)
 add_test(NAME full_game_native_session_source
     COMMAND btb_full_game_native_session_source_tests)
+
+# Native source Maze first pass: actual original map parser, original
+# 0041B140 player movement, bitmap/timer effects and truthful timeout flow.
+add_executable(btb_full_game_maze_native_tests
+    tests/full_game_maze_native_test.cpp)
+target_link_libraries(btb_full_game_maze_native_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_full_game_maze_native_tests PRIVATE)
+add_test(NAME full_game_maze_native COMMAND btb_full_game_maze_native_tests)
 
 add_executable(btb_original_media15_tests
     tests/original_media15_test.cpp)
