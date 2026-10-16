@@ -297,13 +297,17 @@ int main(int argc,char**argv) {
                       static_cast<std::uint8_t>(10*(1+col/2)));
         CHECK(image->next_plane_byte_offset==
               52+((encoded.bits+31)/32)*4);
-        // A currently unsupported scan selector must reject rather
-        // than applying an unrelated traversal to valid run data.
-        auto bad_scan=source;
+        // Scan selector 1 uses a different original lookup but
+        // preserves the same four decoded run values and pixel count.
+        auto second_scan=source;
         const auto scan_bit=52*8+encoded.bits-8;
-        bad_scan[scan_bit/8]|=
+        second_scan[scan_bit/8]|=
             static_cast<std::uint8_t>(1U<<(scan_bit%8));
-        CHECK(!decode_bink_simple_picture_luma(bad_scan,8,8));
+        const auto alternate=decode_bink_simple_picture_luma(
+            second_scan,8,8);
+        CHECK(alternate && alternate->mode_counts[3]==1);
+        CHECK(alternate->image.pixels!=image->image.pixels);
+        CHECK(alternate->image.pixels[59]==10);
         // One missing run color cannot yield a partial frame.
         auto truncated=source;
         truncated.resize(source.size()-4);
@@ -336,6 +340,53 @@ int main(int argc,char**argv) {
             for(std::size_t col=0;col<16;++col)
                 CHECK(image->image.pixels[row*16+col]==
                       static_cast<std::uint8_t>(1+col/4));
+    }
+    {
+        // Full 16-pattern reference: every pixel has a distinct color
+        // (1..64), so all permutations must produce distinguishable
+        // raster outputs. These FNV-1a hashes were calculated from the
+        // independent Bink1 bink_patterns[16][64] table, not from the
+        // renderer's own lookup function.
+        constexpr std::array<std::uint64_t,16> expected{{
+            0xdd29d09686f817f5ULL, 0x1c2f7c0f319a1865ULL, 0xe8febb31381505b5ULL, 0x8ccce5638b5d3ac5ULL,
+            0xd5dd24b48fd486b5ULL, 0x69d210a3937137e5ULL, 0x1920c220a428516dULL, 0xb5418dfd07454b05ULL,
+            0x24899b222fd9c149ULL, 0xd3ffe7952e20d4a5ULL, 0x60994c2686c25c95ULL, 0x209d3c7b605343e5ULL,
+            0x682556125077a6f1ULL, 0x960b8a40d767a585ULL, 0xfd63f025155ab895ULL, 0x0324945e3c436545ULL
+        }};
+        Bits packed;trees(packed);
+        packed.put(1,10);packed.put(1,1);packed.put(3,4);
+        packed.put(0,9); // width=8 means 9-bit subtype length
+        packed.put(64,10);packed.put(0,1); // 64 literal colors
+        for(unsigned i=1;i<=64;++i) {
+            packed.put(i>>4,4);packed.put(i&15U,4);
+        }
+        packed.put(0,10); // pattern byte pool
+        packed.put(0,10);packed.put(0,10); // signed motion pools
+        packed.put(0,10);packed.put(0,10); // intra/inter DC pools
+        packed.put(63,10);packed.put(1,1);packed.put(0,4);
+        const auto scan_offset=packed.bits;
+        packed.put(0,4); // four scan selector bits
+        for(unsigned i=0;i<63;++i)packed.put(1,1);
+        const auto base=packet(packed);
+        for(unsigned scan=0;scan<16;++scan) {
+            auto candidate=base;
+            for(unsigned b=0;b<4;++b) {
+                const auto bit=52*8+scan_offset+b;
+                const auto mask=static_cast<std::uint8_t>(1U<<(bit%8));
+                if((scan>>b)&1U)candidate[bit/8]|=mask;
+                else candidate[bit/8]&=static_cast<std::uint8_t>(~mask);
+            }
+            const auto decoded=decode_bink_simple_picture_luma(
+                candidate,8,8);
+            CHECK(decoded && decoded->mode_counts[3]==1);
+            CHECK(decoded->image.pixels.size()==64);
+            std::uint64_t digest=0xcbf29ce484222325ULL;
+            for(const auto pixel:decoded->image.pixels) {
+                digest^=pixel;
+                digest*=0x100000001b3ULL;
+            }
+            CHECK(digest==expected[scan]);
+        }
     }
     // Optional original BIK smoke: count full compressed luma planes the
     // strict source-native subset supports, without embedding retail
