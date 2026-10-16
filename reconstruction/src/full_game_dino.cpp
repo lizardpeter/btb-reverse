@@ -228,7 +228,8 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
         }
         out.draws.push_back(std::move(draw));
     }
-    if(const auto carried=runtime_->selected_piece()) {
+    if(const auto carried=runtime_->mode()==dino::InteractionMode::Carrying
+           ? runtime_->selected_piece() : std::nullopt) {
         // The retail cursor surface owns the carried piece. Draw the same
         // real BMP last at the original pickup offset until placement.
         const auto& piece=runtime_->pieces()[*carried];
