@@ -162,9 +162,10 @@ struct Host {
             std::make_unique<ParkDesignerDriver>(
                 root/"Data"/"SubGameDYP",root/"profiles"));
 
-        // Start at the original Activity Select rather than inventing an
-        // incomplete five-sign profile-entry workflow. Profile 0 is
-        // explicitly provisional in this opt-in development host.
+        // Preserve existing metadata/progress before any activity can write
+        // its completion. The five-sign selector remains unfinished, so the
+        // development host still enters Activity Select with slot zero.
+        if(!game.load_profile_files(root/"profiles",out_error))return false;
         if(!game.select_profile(0)) {
             out_error="could not select temporary original profile slot";
             return false;

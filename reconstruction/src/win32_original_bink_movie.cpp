@@ -128,6 +128,10 @@ bool Win32OriginalBinkMovie::open_global(
  bgra_.assign(pixels,0);
  error.clear();return true;
 }
+bool Win32OriginalBinkMovie::skip_global(std::string& error) {
+ if(!current_){error="no original global Bink is open";return false;}
+ close_global();error.clear();return true;
+}
 bool Win32OriginalBinkMovie::open_walkthrough(
  const std::filesystem::path& movie,const std::filesystem::path&,
  std::string& error) {

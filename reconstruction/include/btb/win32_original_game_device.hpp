@@ -26,6 +26,9 @@ public:
         bool& global_finished,std::string& error) = 0;
     [[nodiscard]] virtual bool open_global(
         const std::filesystem::path& movie,std::string& error) = 0;
+    [[nodiscard]] virtual bool skip_global(std::string& error) {
+        error="original Bink close provider unavailable";return false;
+    }
     [[nodiscard]] virtual bool open_walkthrough(
         const std::filesystem::path& movie,
         const std::filesystem::path& help_wav,
@@ -52,6 +55,7 @@ public:
         PhysicalFrameObservation& out,std::string& error) override;
     [[nodiscard]] bool open_global_movie(
         const std::filesystem::path& movie,std::string& error) override;
+    [[nodiscard]] bool skip_global_movie(std::string& error) override;
     [[nodiscard]] bool open_walkthrough_movie(
         const std::filesystem::path& movie,
         const std::filesystem::path& spoken_help_wav,

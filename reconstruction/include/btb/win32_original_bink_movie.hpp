@@ -21,6 +21,7 @@ public:
  [[nodiscard]] bool service(bool& global_finished,std::string& error) override;
  [[nodiscard]] bool open_global(
    const std::filesystem::path& movie,std::string& error) override;
+ [[nodiscard]] bool skip_global(std::string& error) override;
  [[nodiscard]] bool open_walkthrough(
    const std::filesystem::path& movie,
    const std::filesystem::path& help_audio,std::string& error) override;

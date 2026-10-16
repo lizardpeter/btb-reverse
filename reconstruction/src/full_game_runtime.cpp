@@ -296,6 +296,32 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
     }
 
     const auto& state = *dispatch.dispatch;
+    if (state.state==game_flow::State::StartupMoviesThenProfileSetup && boot_movies_.loaded()) {
+        if (boot_movie_index_>=boot_movies_.entries().size()) {
+            boot_movie_index_=0;boot_movie_open_=false;
+        }
+        result.kind=FrameKind::FrontEndUpdated;
+        result.original_global_movie_frame=true;
+        const auto& movie=boot_movies_.entries()[boot_movie_index_];
+        result.original_global_movie_skippable=movie.skippable();
+        if (!boot_movie_open_) {
+            result.original_global_movie_asset=movie.file;
+            globals_.dispatcher.global_movie_finished=false;
+            boot_movie_open_=true;
+        } else if (globals_.dispatcher.global_movie_finished) {
+            ++boot_movie_index_;
+            boot_movie_open_=false;
+            if (boot_movie_index_==boot_movies_.entries().size()) {
+                globals_.dispatcher.current_state=1;
+                result.state_changed=true;
+                result.original_global_movie_frame=false;
+                result.effects.draws.push_back({"Data/ui/name signs.bmp",0,0});
+                result.effects.audio.push_back({AudioOperation::StartBackingTrack,
+                    "Data/music/entername.wav"});
+            }
+        }
+        return result;
+    }
     if (state.state==game_flow::State::SharedMovieTransition) {
         result.kind=FrameKind::FrontEndUpdated;
         result.original_global_movie_frame=true;

@@ -7,8 +7,26 @@
 #include <istream>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace btb::full_game {
+
+// 00407770 loads at most ten path/flag pairs from videoseq.txt. This is
+// the application boot sequence, separate from the eight activity intros.
+struct BootMovie {
+    std::string file{};
+    int flag{};
+    [[nodiscard]] bool skippable() const noexcept { return flag != 1; }
+};
+class OriginalBootMovieCatalog {
+public:
+    [[nodiscard]] bool read(std::istream&,std::string& error);
+    [[nodiscard]] const std::vector<BootMovie>& entries() const noexcept { return files_; }
+    [[nodiscard]] bool loaded() const noexcept { return loaded_; }
+private:
+    std::vector<BootMovie> files_{};
+    bool loaded_{};
+};
 
 // Original loaddata/startupmovie.txt contains exactly eight bitmap-independent
 // startup Bink entries. The four pregame states that call 0x408EB0 use fixed

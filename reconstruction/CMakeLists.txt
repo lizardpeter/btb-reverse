@@ -1184,6 +1184,9 @@ add_test(NAME full_game_dinosaur_source COMMAND btb_full_game_dinosaur_source_te
 add_executable(btb_full_game_ui_bitmaps_source_tests tests/full_game_ui_bitmaps_source_test.cpp)
 target_link_libraries(btb_full_game_ui_bitmaps_source_tests PRIVATE btb_recompiled_core)
 add_test(NAME full_game_ui_bitmaps_source COMMAND btb_full_game_ui_bitmaps_source_tests)
+add_executable(btb_full_game_startup_movies_source_tests tests/full_game_startup_movies_source_test.cpp)
+target_link_libraries(btb_full_game_startup_movies_source_tests PRIVATE btb_recompiled_core)
+add_test(NAME full_game_startup_movies_source COMMAND btb_full_game_startup_movies_source_tests)
 
 add_executable(btb_original_media15_tests
     tests/original_media15_test.cpp)
@@ -1288,6 +1291,7 @@ foreach(test_target IN ITEMS btb_profile_name_entry_tests
         btb_full_game_dinosaur_source_tests
         btb_full_game_fireworks_source_tests
         btb_full_game_ui_bitmaps_source_tests
+        btb_full_game_startup_movies_source_tests
         btb_full_game_profiles_source_tests btb_bobs_band_source_tests
         btb_original_profile_screen_tests btb_original_runtime16_tests btb_original_string8_tests)
     # These regressions use assert, including state-changing expressions.

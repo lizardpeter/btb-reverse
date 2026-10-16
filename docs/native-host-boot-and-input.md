@@ -49,3 +49,9 @@ GUI/backend paths are also unfinished.
 verified behavioral equivalence.** This work fixes the primary executable
 selection and real native input routing; it does not certify missing game
 systems as working.
+
+The development host loads `profiles/playerinfo.txt` and the five progress
+records before selecting its temporary player-zero slot. It still starts at
+Activity Select. The new `videoseq.txt` boot model is exercised through the
+physical session regression, but must not be advertised as the default
+startup/profile workflow until the five-sign selector is connected.

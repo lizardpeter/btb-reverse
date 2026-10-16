@@ -47,6 +47,9 @@ public:
     [[nodiscard]] virtual bool open_global_movie(
         const std::filesystem::path& original_movie,
         std::string& error) = 0;
+    [[nodiscard]] virtual bool skip_global_movie(std::string& error) {
+        error="original global movie close provider unavailable";return false;
+    }
     [[nodiscard]] virtual bool open_walkthrough_movie(
         const std::filesystem::path& original_movie,
         const std::filesystem::path& original_help_wav,
@@ -132,6 +135,8 @@ private:
     bool walkthrough_open_{};
     bool failed_{};
     bool pending_present_{};
+    bool global_movie_open_{};
+    bool global_movie_skippable_{true};
 };
 
 } // namespace btb::full_game

@@ -35,10 +35,19 @@ NativeSessionFrame NativeGameSession::tick(
 
     PhysicalFrameObservation physical{};
     std::string error;
+    // The movie must really close before a skip becomes completion. Boot
+    // copyright stings forbid skipping; activity intros permit it.
+    const bool skip=global_movie_open_ && global_movie_skippable_ &&
+        (primary_input_pulse || secondary_input_pulse);
+    if (skip && !device_.skip_global_movie(error)) {
+        fail(frame,PhysicalPresentationStage::MovieClose,error);return frame;
+    }
     if (!device_.observe(physical,error)) {
         fail(frame,PhysicalPresentationStage::ObserveDevice,error);
         return frame;
     }
+    if (skip) physical.global_movie_finished=true;
+    if (physical.global_movie_finished) global_movie_open_=false;
 
     input.managed_sound_playing = physical.any_managed_voice_playing;
     input.backing_track_playing = physical.backing_track_playing;
@@ -136,6 +145,8 @@ NativeSessionFrame NativeGameSession::tick(
             fail(frame,PhysicalPresentationStage::MovieOpen,error);return frame;
         }
         frame.global_movie_opened=true;
+        global_movie_open_=true;
+        global_movie_skippable_=game.original_global_movie_skippable;
     }
 
     if (game.original_global_intro_movie_index) {
@@ -156,6 +167,8 @@ NativeSessionFrame NativeGameSession::tick(
             return frame;
         }
         frame.global_movie_opened = true;
+        global_movie_open_=true;
+        global_movie_skippable_=game.original_global_movie_skippable;
     }
 
     // The retail instruction walkthrough is torn down when leaving its

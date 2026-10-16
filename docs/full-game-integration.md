@@ -1,5 +1,33 @@
 # Full-game C++26 integration gate
 
+## Current delivery requirement (October 16)
+
+The requested deliverable is a **complete C++26 game executable** that behaves
+like the retail game from startup through all ten activities, saving,
+completion, replay and quitting. This supersedes older source-only policies
+below that deferred compilation. Compilation alone does not satisfy delivery.
+
+The current x86 executable compiles and links, but is **not the complete game**.
+Five activities still lack complete registered native adapters; registered
+Park Designer and Fireworks also have missing runtime services. Startup/profile
+selection, shared help/leave/quit flows and end-to-end retail comparisons remain
+open. These are functional completion blockers, not optional small bug fixes.
+
+The application boot model now reads the independent `videoseq.txt` path/flag
+table (00407770), follows the 0042A1A0 open/wait/advance sequence, and transitions
+to profile state 1 with the original name-sign art and enter-name music.
+Logo videos with flag 1 cannot be skipped; the main intro can. The physical
+session closes the real decoder before treating skip as completion. The
+default host still bypasses this sequence until the five-sign profile screen
+is integrated; it does load saved metadata/progress before selecting the
+temporary slot, to avoid replacing existing progress with empty records.
+
+Verification for this change: the actual GCC 14 C++26 build passed all 163
+registered tests, and all five real retail boot-video paths resolved. The
+Windows x86 GUI executable and boot/session regression executables compiled
+and linked with Clang 22 in C++26 mode. They have not been executed on Windows;
+these results do not verify playable completeness or retail fidelity.
+
 This is the **whole-game** milestone tracker. It replaces the temptation to
 treat every newly buildable subgame helper as a completed game. The developer
 requested that full compilation/preview packaging be deferred until the

@@ -296,6 +296,7 @@ struct GameFrame {
     std::optional<int> original_global_completion_movie_index{};
     std::optional<std::string> original_global_movie_asset{};
     bool original_global_movie_frame{};
+    bool original_global_movie_skippable{true};
     std::optional<ReplayPreparationPlan> replay_preparation{};
     std::string error{};
     bool clear_input_pulse{};
@@ -314,6 +315,11 @@ public:
 
     void install(ActivityId id, std::unique_ptr<ActivityDriver> driver);
     void install_activity_select(std::unique_ptr<FrontEndDriver> driver);
+    [[nodiscard]] bool install_boot_sequence(OriginalBootMovieCatalog catalog) {
+        if (!catalog.loaded()) return false;
+        boot_movies_=std::move(catalog);boot_movie_index_=0;boot_movie_open_=false;
+        return true;
+    }
     [[nodiscard]] bool install_generic_front_end_pair(
         game_flow::State setup_state,
         std::unique_ptr<FrontEndDriver> driver);
@@ -372,6 +378,9 @@ private:
     int name_entry_phase_{};
     int name_entry_blink_{};
     bool scene_set_movie_open_{};
+    OriginalBootMovieCatalog boot_movies_{};
+    std::size_t boot_movie_index_{};
+    bool boot_movie_open_{};
     std::optional<shared_game_batch_9::YesNo> confirmation_modal_{};
     std::optional<bool> confirmation_result_{};
 };

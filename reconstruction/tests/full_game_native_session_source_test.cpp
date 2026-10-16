@@ -67,6 +67,7 @@ public:
     PhysicalFrameObservation sample{};
     int observe_count{};
     int global_open{};
+    int global_skip{};
     int walk_open{};
     int walk_close{};
     int sound_count{};
@@ -97,6 +98,9 @@ public:
         last_movie=movie.generic_string();
         last_help=help.generic_string();
         error.clear(); return true;
+    }
+    bool skip_global_movie(std::string& error) override {
+        ++global_skip;error.clear();return true;
     }
     bool close_walkthrough_movie(std::string& error) override {
         ++walk_close;error.clear();return true;
@@ -179,6 +183,41 @@ int main() {
     touch(directory,"Data/ui/original.bmp");
     touch(directory,"Data/movies/completed_1.bik");
     touch(directory,"data/movies/sceneset.bik");
+    touch(directory,"Data/movies/THQ.bik");
+    touch(directory,"Data/movies/introbig1.bik");
+    touch(directory,"Data/ui/name signs.bmp");
+    touch(directory,"Data/music/entername.wav");
+
+    {
+        GameRoot game;
+        OriginalBootMovieCatalog boot;
+        std::istringstream source("Data/movies/THQ.bik 1\nData/movies/introbig1.bik 0");
+        std::string error;
+        assert(boot.read(source,error));assert(game.install_boot_sequence(std::move(boot)));
+        game.set_outer_state(State::StartupMoviesThenProfileSetup);
+        Device device;
+        NativeGameSession session(game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture());
+        auto frame=session.tick({},false,false);
+        assert(!frame.failure && frame.global_movie_opened);
+        assert(device.last_movie.ends_with("THQ.bik"));
+        frame=session.tick({},true,false);
+        assert(!frame.failure && device.global_skip==0 && device.global_open==1);
+        assert(device.draw_count==0 && game.globals().dispatcher.current_state==0);
+        device.sample.global_movie_finished=true;
+        frame=session.tick({},false,false);
+        assert(!frame.failure && !frame.global_movie_opened);
+        // The original opens the next movie on the following state-0 tick.
+        frame=session.tick({},false,false);
+        assert(!frame.failure && frame.global_movie_opened && device.global_open==2);
+        assert(device.last_movie.ends_with("introbig1.bik"));
+        device.sample.global_movie_finished=false;
+        frame=session.tick({},true,false);
+        assert(!frame.failure && device.global_skip==1);
+        assert(game.globals().dispatcher.current_state==1 && !game.globals().active_profile);
+        assert(device.draw_count==1 && device.sound_count==1);
+        assert(frame.prepared.game.effects.draws[0].source_asset=="Data/ui/name signs.bmp");
+    }
 
     {
         OriginalCompletionMovieCatalog movies;
