@@ -958,6 +958,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_simple_picture.cpp
     src/bink32_residue.cpp
     src/bink32_dct_coefficients.cpp
+    src/bink32_dct_pixels.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1818,6 +1819,13 @@ add_executable(btb_bink32_dct_coefficients_tests tests/bink32_dct_coefficients_t
 target_link_libraries(btb_bink32_dct_coefficients_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_dct_coefficients_tests PRIVATE)
 add_test(NAME bink32_original_dct_coefficients COMMAND btb_bink32_dct_coefficients_tests)
+
+# Original Bink1 8x8 inverse transform and distinct intra/inter
+# quantization matrices (full AC support).
+add_executable(btb_bink32_dct_pixels_tests tests/bink32_dct_pixels_test.cpp)
+target_link_libraries(btb_bink32_dct_pixels_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_dct_pixels_tests PRIVATE)
+add_test(NAME bink32_original_dct_pixels COMMAND btb_bink32_dct_pixels_tests)
 
 
 
