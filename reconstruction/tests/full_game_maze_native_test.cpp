@@ -1,5 +1,6 @@
 #include "btb/full_game_maze.hpp"
 #include "btb/maze_box_layout.hpp"
+#include "btb/maze_controller.hpp"
 
 #include <cassert>
 #include <cstdio>
@@ -76,6 +77,53 @@ END
         assert(allocated.screens[1][0].node_id==0);
         assert(allocated.screens[1][1].node_id==1);
         assert(allocated.screens[2][0].node_id==2);
+    }
+
+    // Exact 0x0043B460 is IEEE754 0x42380000 = 46.0f in the genuine
+    // SHA-matched retail EXE. Distance ==46 must NEVER collect a package.
+    assert(btb::maze::kRetailPackagePickupRadius==46);
+    {
+        auto parsed=btb::maze::parse_data(source);
+        unsigned next=0;
+        auto boxes=btb::maze::allocate_source_boxes(0,[&] {
+            return next++;
+        });
+        assert(boxes.remaining==4);
+        for(int screen=0;screen<3;++screen) {
+            for(auto& slot:boxes.screens[static_cast<std::size_t>(screen)]) {
+                if(slot.node_id<0 || slot.status!=1)continue;
+                const auto target=parsed.box_locations[
+                    static_cast<std::size_t>(screen)][
+                    static_cast<std::size_t>(slot.node_id)].position;
+                const auto too_far=btb::maze::pickup_source_packages(
+                    boxes,parsed,screen,static_cast<float>(target.x+46),
+                    static_cast<float>(target.y));
+                assert(too_far.collected==0);
+                assert(slot.status==1);
+                const auto accepted=btb::maze::pickup_source_packages(
+                    boxes,parsed,screen,static_cast<float>(target.x+45),
+                    static_cast<float>(target.y));
+                assert(accepted.collected==1);
+                assert(slot.status==0);
+                assert(accepted.begin_player_collection_animation);
+                const auto again=btb::maze::pickup_source_packages(
+                    boxes,parsed,screen,static_cast<float>(target.x),
+                    static_cast<float>(target.y));
+                assert(again.collected==0);
+            }
+        }
+        assert(boxes.remaining==0);
+        assert(btb::maze::classify_end_condition(
+            boxes.remaining,180,0)==btb::maze::EndCondition::Success);
+        const auto early=btb::maze::begin_outcome_feedback(
+            btb::maze::EndCondition::Success,180);
+        const auto late=btb::maze::begin_outcome_feedback(
+            btb::maze::EndCondition::Success,15);
+        const auto timed=btb::maze::begin_outcome_feedback(
+            btb::maze::EndCondition::Timeout,-1);
+        assert(early && early->sound_id==0x54);
+        assert(late && late->sound_id==0x55);
+        assert(timed && timed->sound_id==0x56);
     }
 
     fg::GameRoot game;
