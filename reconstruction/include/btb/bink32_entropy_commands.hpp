@@ -124,4 +124,37 @@ read_bink_pattern_bundle(
     LsbBitReader& bits,const DynamicHuffmanTree& tree,
     std::size_t plane_width,std::size_t maximum_values=1U<<18);
 
+
+// Original BINK_SRC_RUN bundle: one count, then a single immediate/Huffman
+// branch; direct values are 4-bit, otherwise one mapped nibble each.
+struct BinkRunBundle {
+    std::vector<std::uint8_t> values{};
+    std::uint32_t encoded_count{};
+    std::size_t bits_consumed{};
+    bool end_of_bundle{};
+    bool constant_bundle{};
+};
+[[nodiscard]] std::optional<BinkRunBundle>
+read_bink_run_bundle(
+    LsbBitReader& bits,const DynamicHuffmanTree& tree,
+    std::size_t plane_width,std::size_t maximum_values=1U<<18);
+
+// Original BINK_SRC_COLORS bundle: the previous high nibble selects
+// one of sixteen adaptive high-nibble trees; another tree supplies
+// each low nibble. High-nibble state must survive across bundle refills.
+struct BinkColorBundle {
+    std::vector<std::uint8_t> values{};
+    std::uint32_t encoded_count{};
+    std::size_t bits_consumed{};
+    std::uint8_t next_high_nibble{};
+    bool end_of_bundle{};
+    bool constant_bundle{};
+};
+[[nodiscard]] std::optional<BinkColorBundle>
+read_bink_color_bundle(
+    LsbBitReader& bits,const BlockEntropyTrees& trees,
+    std::size_t plane_width,std::uint8_t previous_high_nibble=0,
+    bool early_signed_color_format=false,
+    std::size_t maximum_values=1U<<18);
+
 } // namespace btb::bink32_recovered
