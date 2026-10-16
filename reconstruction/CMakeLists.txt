@@ -940,6 +940,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_packet_decode.cpp
     src/bink32_fixed_huffman.cpp
     src/bink32_dynamic_huffman.cpp
+    src/bink32_entropy_commands.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1693,6 +1694,11 @@ add_executable(btb_bink32_dynamic_huffman_tests tests/bink32_dynamic_huffman_tes
 target_link_libraries(btb_bink32_dynamic_huffman_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_dynamic_huffman_tests PRIVATE)
 add_test(NAME bink32_original_dynamic_huffman COMMAND btb_bink32_dynamic_huffman_tests)
+add_executable(btb_bink32_entropy_commands_tests tests/bink32_entropy_commands_test.cpp)
+target_link_libraries(btb_bink32_entropy_commands_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_entropy_commands_tests PRIVATE)
+add_test(NAME bink32_original_value_run_commands COMMAND btb_bink32_entropy_commands_tests)
+
 
 
 
