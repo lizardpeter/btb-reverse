@@ -28,4 +28,30 @@ idct_dc_only_column8(
     out.fill(scaled);
     return out;
 }
+std::optional<std::array<std::uint8_t,64>>
+idct_dc_only_block8(
+    std::span<const std::int16_t> coefficients,
+    std::int32_t quant_dc) noexcept {
+    if(coefficients.size()!=64 ||
+       std::any_of(coefficients.begin()+1,coefficients.end(),
+          [](std::int16_t coefficient){return coefficient!=0;}))
+        return std::nullopt;
+    // The first (vertical) pass at 300113CE replicates DC*Q >> 11
+    // in all eight rows. Every other column is zero. The horizontal
+    // butterfly at 30011590..30011705 therefore outputs the same
+    // value for every pixel, with original (+0x7f) >> 8 rounding.
+    const BinkDctColumn dc_column{
+        coefficients[0],0,0,0,0,0,0,0
+    };
+    const auto columns=idct_dc_only_column8(dc_column,quant_dc);
+    if(!columns)return std::nullopt;
+    const std::int32_t value=(*columns)[0];
+    const std::int32_t rounded=(value+127)>>8;
+    // 30011617..300116CD uses the low byte, not saturating casts.
+    const auto output=static_cast<std::uint8_t>(rounded);
+    std::array<std::uint8_t,64> pixels{};
+    pixels.fill(output);
+    return pixels;
+}
+
 } // namespace btb::bink32_recovered
