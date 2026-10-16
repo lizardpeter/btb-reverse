@@ -66,6 +66,42 @@ int main() {
         15,10,false,FoodType::None)->frame==12);
     static_assert(original_pickles_keyboard_animation_step(
         2,60,false,FoodType::None)->frame==12);
+    // Retail 0x416A30 measures Pickles proximity using the
+    // animal's NEGATIVE half-sprite X anchor. A normal center would
+    // incorrectly classify this as far enough to free-roam.
+    {
+        btb::herding::RetailEntityRecord32 hero{};
+        hero.type=static_cast<int>(btb::herding::EntityType::FarmerPickles);
+        hero.x=100;
+        hero.y=200;
+        hero.source_bottom=100; // original Pickles reference Y=280
+        btb::herding::RetailEntityRecord32 sheep{};
+        sheep.type=static_cast<int>(btb::herding::EntityType::Sheep);
+        sheep.x=151;
+        sheep.y=233;
+        sheep.x_float=151.f;
+        sheep.y_float=233.f;
+        sheep.source_right=102;
+        sheep.source_bottom=95; // source animal center -> (100,280)
+        sheep.direction=2;
+        sheep.movement_speed=1.0f;
+        const std::vector<btb::herding::Vec2i> polygon{{
+            {0,0},{600,0},{600,700},{0,700}
+        }};
+        const auto near=
+            btb::herding::original_far_untracked_animal_roam_step(
+                sheep,hero,polygon);
+        assert(near.coverage==
+            btb::herding::RetailFarAnimalRoamCoverage::NotCovered);
+        sheep.x=250;
+        sheep.x_float=250.f;
+        const auto far=
+            btb::herding::original_far_untracked_animal_roam_step(
+                sheep,hero,polygon);
+        assert(far.coverage==
+            btb::herding::RetailFarAnimalRoamCoverage::AdvancedWithinPolygon);
+        assert(far.animal.x_float>sheep.x_float);
+    }
     std::srand(123);
     for(int difficulty=0;difficulty<3;++difficulty) {
         fg::GameRoot game;
