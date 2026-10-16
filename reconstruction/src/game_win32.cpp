@@ -510,20 +510,32 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     // still present but cannot silently masquerade as the whole game.
     int count=0;
     LPWSTR* argv=CommandLineToArgvW(GetCommandLineW(),&count);
-    bool legacy=false,smoke=false,invalid_args=false;
+    bool legacy=false,smoke=false,skip_video=false,invalid_args=false;
     std::optional<std::filesystem::path> chosen;
     if(argv){
-        smoke=count==2 && std::wcscmp(argv[1],L"--recompiled-smoke")==0;
-        legacy=count==2 && std::wcscmp(argv[1],L"--legacy-dino-preview")==0;
-        if(count==3 && std::wcscmp(argv[1],L"--native-original")==0)
-            chosen=std::filesystem::path(argv[2]);
-        else if(count!=1 && !smoke && !legacy) invalid_args=true;
+        for(int i=1;i<count;++i){
+            if(std::wcscmp(argv[i],L"--skip-bink")==0){
+                if(skip_video)invalid_args=true;
+                skip_video=true;
+            }else if(std::wcscmp(argv[i],L"--native-original")==0){
+                if(chosen || ++i>=count)invalid_args=true;
+                else chosen=std::filesystem::path(argv[i]);
+            }else if(std::wcscmp(argv[i],L"--recompiled-smoke")==0){
+                if(smoke)invalid_args=true;
+                smoke=true;
+            }else if(std::wcscmp(argv[i],L"--legacy-dino-preview")==0){
+                if(legacy)invalid_args=true;
+                legacy=true;
+            }else invalid_args=true;
+        }
+        if((smoke||legacy) && (chosen || skip_video || (smoke&&legacy)))
+            invalid_args=true;
         LocalFree(argv);
     }
-    if(smoke)
+    if(smoke && !invalid_args)
         return btb::full_game::verify_linked_recompiled_core()?0:3;
     if(invalid_args){
-        MessageBoxW(nullptr,L"Usage: btb_game.exe [--native-original <installed retail root> | --legacy-dino-preview | --recompiled-smoke]",
+        MessageBoxW(nullptr,L"Usage: btb_game.exe [--native-original <installed retail root>] [--skip-bink] | --legacy-dino-preview | --recompiled-smoke",
             L"Bob Builds a Park - Native C++ Game",MB_OK|MB_ICONERROR);
         return 2;
     }
@@ -539,7 +551,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
             return 5;
         }
         return btb::full_game::run_recompiled_native_game(
-            instance,*chosen,show);
+            instance,*chosen,show,skip_video);
     }
     // --legacy-dino-preview: preserved solely for old source regression UI.
     Host host;

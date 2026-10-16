@@ -370,5 +370,80 @@ int main() {
                PhysicalPresentationStage::Present ||
            !session.failed())return report_failure(69);
     }
+    // Explicit video-free mode is a development/gameplay escape hatch only.
+    // It must not call decoder APIs, invent audio, or claim movie playback.
+    // The normal mode above continues to exercise genuine movie contracts.
+    fs::remove(directory/"data/movies/bink_5.bik");
+    fs::remove(directory/"data/sound/help_5.wav");
+    {
+        GameRoot game;
+        assert(game.select_profile(0));
+        assert(game.install_pregame_front_end_pair(
+            State::GolfPregameSetup,std::make_unique<Instruction>()));
+        game.globals().menu.selected_subgame=1;
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture(),true
+        };
+        assert(session.skipping_video());
+        game.set_outer_state(State::GolfPregameSetup);
+        const auto setup=session.tick({},false,false);
+        assert(setup.submitted && !setup.failure);
+        assert(setup.prepared.game.original_walkthrough_index==5);
+        assert(!setup.walkthrough_opened);
+        assert(!session.has_walkthrough());
+        assert(device.walk_open==0 && device.global_open==0);
+        const auto start=session.tick({.click_pulse=true},true,false);
+        assert(start.submitted && !start.failure);
+        assert(start.prepared.game.pregame_action);
+        assert(start.prepared.game.pregame_action->start_activity);
+        assert(!start.walkthrough_closed);
+        assert(device.walk_close==0);
+        assert(game.globals().dispatcher.current_state ==
+               static_cast<int>(State::GolfInit));
+    }
+    {
+        GameRoot game;
+        assert(game.select_profile(0));
+        assert(game.install_pregame_front_end_pair(
+            State::SquirrelPregameSetup,std::make_unique<Instruction>()));
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture(),true
+        };
+        game.set_outer_state(State::SquirrelPregameSetup);
+        const auto setup=session.tick({},false,false);
+        assert(setup.submitted && !setup.failure);
+        assert(setup.prepared.game.original_global_intro_movie_index);
+        assert(device.global_open==0 && device.walk_open==0);
+        assert(game.globals().dispatcher.generic_screen_mode==14);
+        device.sample.global_movie_finished=false;
+        const auto resumed=session.tick({},false,false);
+        assert(resumed.submitted && !resumed.failure);
+        assert(resumed.prepared.game.kind==FrameKind::FrontEndUpdated);
+        assert(game.globals().dispatcher.current_state ==
+               static_cast<int>(State::SquirrelPregameUpdate));
+        assert(device.global_open==0 && device.walk_open==0);
+    }
+    {
+        // Without --skip-bink, absent retail media is still a hard error.
+        GameRoot game;
+        assert(game.select_profile(0));
+        assert(game.install_pregame_front_end_pair(
+            State::GolfPregameSetup,std::make_unique<Instruction>()));
+        game.globals().menu.selected_subgame=1;
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture()
+        };
+        game.set_outer_state(State::GolfPregameSetup);
+        const auto blocked=session.tick({},false,false);
+        assert(blocked.failure);
+        assert(blocked.failure->stage==PhysicalPresentationStage::MovieResolve);
+        assert(!blocked.submitted);
+    }
     fs::remove_all(directory);
 }
