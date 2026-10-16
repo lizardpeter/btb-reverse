@@ -953,6 +953,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_ac_outer_levels.cpp
     src/bink32_ac_block_pixels.cpp
     src/bink32_dc_stream.cpp
+    src/bink32_block_modes.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1782,6 +1783,11 @@ add_executable(btb_bink32_dc_stream_tests tests/bink32_dc_stream_test.cpp)
 target_link_libraries(btb_bink32_dc_stream_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_dc_stream_tests PRIVATE)
 add_test(NAME bink32_original_DC_AC_quant_pixels COMMAND btb_bink32_dc_stream_tests)
+
+add_executable(btb_bink32_block_modes_tests tests/bink32_block_modes_test.cpp)
+target_link_libraries(btb_bink32_block_modes_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_block_modes_tests PRIVATE)
+add_test(NAME bink32_block_modes_pixels COMMAND btb_bink32_block_modes_tests)
 
 
 
