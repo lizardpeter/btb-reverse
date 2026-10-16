@@ -2,6 +2,7 @@
 #include "btb/full_game_herding_event_simulation.hpp"
 #include "btb/herding_native_pickles_motion.hpp"
 #include "btb/herding_source_pickles_animation.hpp"
+#include "btb/herding_source_far_roam.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -13,6 +14,8 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <utility>
+#include <vector>
 
 int main() {
     namespace fs=std::filesystem;
@@ -104,6 +107,16 @@ int main() {
         assert(live->scene().entities.front().entity_type()==
                btb::herding::EntityType::FarmerPickles);
         assert(live->scene().entities.front().animation_frame==33);
+        // Snapshot the actual retail animal coordinates after first
+        // frame. Original 0x419100 default far-roam motion should
+        // advance these over subsequent native GameRoot updates.
+        std::vector<std::pair<int,int>> first_animals{};
+        for(const auto& e:live->scene().entities) {
+            if(btb::herding::is_herd_animal(e.entity_type()))
+                first_animals.emplace_back(e.x,e.y);
+        }
+        assert(first_animals.size()==static_cast<std::size_t>(
+            3*(3+difficulty)));
         // The retail dog exists on Medium/Hard only. Its first idle
         // frame must still advance animation and +0.01 speed, and the
         // source-controlled animation latch later permits translation.
@@ -176,6 +189,20 @@ int main() {
             }
             assert(moved_scruffty);
         }
+        bool some_real_animal_moved=false;
+        std::size_t animal_ordinal=0;
+        for(const auto& e:live->scene().entities) {
+            if(!btb::herding::is_herd_animal(e.entity_type()))
+                continue;
+            assert(animal_ordinal<first_animals.size());
+            some_real_animal_moved |=
+                e.x!=first_animals[animal_ordinal].first ||
+                e.y!=first_animals[animal_ordinal].second;
+            ++animal_ordinal;
+        }
+        // The binary's exact float direction table, not an arbitrary
+        // drift animation, must now move animals in the real world.
+        assert(some_real_animal_moved);
         // No fabricated delivery: source animals require autonomous
         // movement/follower collision completion to award Pets Corner.
         assert(game.globals().player_progress[0].get(
