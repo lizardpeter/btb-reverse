@@ -150,7 +150,10 @@ PilchardFrame update_pilchard_native(
     collision.current_screen=bob.screen;
     collision.bob_direction=bob.direction;
     collision.bob_animation=bob.in_repair?9:0;
-    collision.collision_already_active=bob.in_repair;
+    // 00423470 also requires Bob's vertical coordinate to remain below
+    // the original retail 360.0f guard before Pilchard can steal it.
+    collision.collision_already_active=
+        bob.in_repair || bob.y>=360.0f;
     const auto effects=maze_spud_batch::handle_pilchard_collision(
         collision,{
             static_cast<int>(bob.x),static_cast<int>(bob.y),
