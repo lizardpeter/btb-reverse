@@ -10,51 +10,6 @@
 
 namespace btb::herding {
 
-// 0x00416A30: after behavior becomes nonzero, the animal movement
-// origin is (x - original sprite-anchor X, y + 40), not its top-left.
-// 0x00443B08 stores species X offsets 40 / 48 / 50.
-// The source state-10/20 target coordinates are already normalized in
-// home_entrance_target() and home_entry_target() respectively.
-[[nodiscard]] constexpr std::optional<Vec2i>
-original_herding_home_motion_anchor(
-    const RetailEntityRecord32& animal) noexcept {
-    int offset{};
-    switch(animal.entity_type()) {
-        case EntityType::Sheep: offset=40;break;
-        case EntityType::Rabbit: offset=48;break;
-        case EntityType::Duck: offset=50;break;
-        default: return std::nullopt;
-    }
-    const auto x=static_cast<std::int64_t>(animal.x)-offset;
-    const auto y=static_cast<std::int64_t>(animal.y)+40;
-    if(x<std::numeric_limits<std::int32_t>::min() ||
-       x>std::numeric_limits<std::int32_t>::max() ||
-       y<std::numeric_limits<std::int32_t>::min() ||
-       y>std::numeric_limits<std::int32_t>::max())
-        return std::nullopt;
-    return Vec2i{static_cast<int>(x),static_cast<int>(y)};
-}
-
-[[nodiscard]] constexpr std::optional<Vec2i>
-original_herding_home_entity_origin_for_target(
-    EntityType species, Vec2i anchor_target) noexcept {
-    int offset{};
-    switch(species) {
-        case EntityType::Sheep:offset=40;break;
-        case EntityType::Rabbit:offset=48;break;
-        case EntityType::Duck:offset=50;break;
-        default:return std::nullopt;
-    }
-    const auto x=static_cast<std::int64_t>(anchor_target.x)+offset;
-    const auto y=static_cast<std::int64_t>(anchor_target.y)-40;
-    if(x<std::numeric_limits<std::int32_t>::min() ||
-       x>std::numeric_limits<std::int32_t>::max() ||
-       y<std::numeric_limits<std::int32_t>::min() ||
-       y>std::numeric_limits<std::int32_t>::max())
-       return std::nullopt;
-    return Vec2i{static_cast<int>(x),static_cast<int>(y)};
-}
-
 struct RetailHomeMotionStep {
     RetailEntityRecord32 moved{};
     Vec2i source_anchor{};
