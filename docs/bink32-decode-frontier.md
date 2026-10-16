@@ -176,6 +176,48 @@ bit-exact retail certification. It is also not connected to a full
 macroblock entropy/quantization parser, so decoding a real complete
 frame without the original DLL is still outstanding.
 
+## Exact original quantization matrices and compressed selector bridge
+
+Original 2002 DLL machine code at `0x30011729` computes the location
+of a fixed quantization table with
+
+`0x30049E40 + (quant_index << 8)`.
+
+The block decoder at `0x3000F0ED` consumes the 4-bit selector after
+the coefficient unpacking helper at `0x3000F0A5`, and calls
+`0x30011720` at `0x3000F107`.
+
+`bink32_original_quant.cpp` now embeds **all 16 original quantization
+matrices**, each 64 signed 32-bit entries (4,096 bytes total). Source
+data came directly from the user-provided original 2002
+`binkw32.dll` and was verified against SHA-256:
+
+`4442cb0c6670d276dde6a5cbf51ba4567819cd916d5036f0f306a34c1351404b`
+
+For readability, the C++ file losslessly reconstructs all 1,024
+DWORDs at compile time from matrix 15, the original rational scale
+factors, and 62 single-unit corrections. A `static_assert` checks an
+FNV-1a fingerprint over all 4,096 reconstructed bytes. There are no
+approximate weights and no external runtime quantization asset.
+
+The new `decode_original_quantized_block` reads the original 4-bit
+quant index from a bounded native bit reader, selects the exact matrix,
+and invokes `bink_idct_16x16` with 64 already-decoded coefficients.
+Cursor movement is transactional on failure. Tests include selector
+0/1/15 DC values, six different full 64-coefficient mixed AC outputs
+compared with hashes independently computed using the original
+unmodified matrix bytes, packed four-bit selectors, and rejection of
+truncated or invalid inputs.
+
+**Remaining boundary:** The 64 coefficients still need to be
+reconstructed from the actual movie's macroblock entropy stream,
+especially the original `0x30011B10` coefficient unpacker and
+its block-mode scheduler in `0x3000E400`. Passing this module's
+synthetic and raw-table-driven tests does **not** constitute
+bit-exact video-frame parity with the 2002 DLL. Runtime playback
+must continue using the original DLL until frame and audio decoding
+have been independently certified.
+
 ## Next implementation order
 
 1. Compare the reconstructed dynamic trees against the original x86 DLL
