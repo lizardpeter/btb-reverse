@@ -85,7 +85,7 @@ int main() {
                static_cast<int>(State::DinoRun));
 
         auto frame=game.advance({.pointer_x=15,.pointer_y=15,
-            .click_pulse=true,.pointer_button_held=true,.random_value=2});
+            .click_pulse=true,.random_value=2,.pointer_button_held=true});
         assert(frame.kind==FrameKind::ActivityUpdated);
         assert(actual->runtime()->selected_piece()==0);
         assert(draw_has(frame.effects,
@@ -97,7 +97,7 @@ int main() {
         assert(!frame.effects.audio.empty()); // original startup 188
 
         frame=game.advance({.pointer_x=200,.pointer_y=200,
-                          .pointer_button_held=false,.random_value=1});
+                          .random_value=1,.pointer_button_held=false});
         assert(frame.kind==FrameKind::ActivityUpdated);
         assert(actual->runtime()->completed_piece_count()==0);
         assert(actual->runtime()->selected_piece()==0);
@@ -108,7 +108,7 @@ int main() {
             .click_pulse=true,.pointer_button_held=true});
         assert(frame.kind==FrameKind::ActivityUpdated);
         frame=game.advance({.pointer_x=100,.pointer_y=100,
-            .pointer_button_held=false,.random_value=2});
+            .random_value=2,.pointer_button_held=false});
         assert(frame.kind==FrameKind::ActivityUpdated);
         assert(actual->runtime()->mode()==
                btb::dino::InteractionMode::FinalizeAcceptedDrop);
