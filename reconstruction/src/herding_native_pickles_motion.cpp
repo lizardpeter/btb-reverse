@@ -5,6 +5,8 @@
 #include "btb/herding_source_pickles_animation.hpp"
 #include "btb/herding_source_attraction.hpp"
 #include "btb/herding_source_temporary_target.hpp"
+#include "btb/herding_source_follower_approach.hpp"
+#include "btb/herding_source_registration_point.hpp"
 
 #include <algorithm>
 #include <array>
@@ -100,6 +102,8 @@ bool NativePicklesMotionSource::initialize(
         active_=true;
         selected_food_=herding::FoodType::None;
         follower_indices_.clear();
+        tracked_slots_=herding::RetailTrackedTargetSlots{};
+        remaining_to_register_=herding::initial_undelivered_animal_count(difficulty);
         // The original initializer resets its patrol waypoint, but not
         // the process-global frame movement latch 0x443B20.
         scruffty_patrol_state_.waypoint_index=0;
@@ -247,9 +251,87 @@ bool NativePicklesMotionSource::advance(
                 before=recovery->moved;
             }
 
+            if(before.behavior_state==1) {
+                // Original state-one dispatch allocates route 10+N on
+                // a later update than the <30 tracked-point arrival.
+                HerdingObservedEvent route{};
+                route.kind=HerdingObservedKind::EnterHomeRoute;
+                route.entity_index=i;
+                route.retail_trigger_confirmed=true;
+                observed.events.push_back(std::move(route));
+                continue;
+            }
+            if(before.behavior_state!=0)continue;
+            const auto original_point=
+                herding::original_herding_species_registration_point(
+                    before.entity_type());
+            const auto original_anchor=
+                herding::original_herding_animal_tracking_anchor(before);
+            if(!original_point || !original_anchor) {
+                error="retail follower source lacks original tracking coordinates";
+                return false;
+            }
+
+            // 0x41721E scans the tracked-target slots BEFORE ordinary
+            // follower membership. Membership survives even if a
+            // later food selection releases ordinary followers.
+            if(tracked_slots_.contains(static_cast<int>(i))) {
+                const auto approach=herding::original_herding_follower_approach(
+                    before,*original_point,*original_anchor);
+                if(!approach) {
+                    error="original 0x4172B0 tracked-point movement invalid";
+                    return false;
+                }
+                observed.tracked_approach_evidence.push_back({
+                    i,before,*original_point,*original_anchor,
+                    approach->reached_tracked_point});
+                if(approach->reached_tracked_point) {
+                    if(!tracked_slots_.remove(static_cast<int>(i))) {
+                        error="retail tracked arrival lost source membership";
+                        return false;
+                    }
+                    // Arrival consumes one discarded original rand.
+                    static_cast<void>(std::rand());
+                    HerdingObservedEvent arrival{};
+                    arrival.kind=HerdingObservedKind::TrackedTargetArrived;
+                    arrival.entity_index=i;
+                    arrival.retail_trigger_confirmed=true;
+                    observed.events.push_back(std::move(arrival));
+                } else {
+                    observed.motion_records[i]=approach->updated;
+                }
+                continue;
+            }
+
             const auto existing=std::find(
                 follower_indices_.begin(),follower_indices_.end(),i);
             const bool following=existing!=follower_indices_.end();
+
+            if(following && remaining_to_register_>0) {
+                herding::FollowerList ordinary{};
+                for(const auto slot:follower_indices_) {
+                    if(!ordinary.add(static_cast<int>(slot))) {
+                        error="original ordinary follower list invalid";
+                        return false;
+                    }
+                }
+                const auto admission=tracked_slots_.admit_from_follower(
+                    static_cast<int>(i),*original_anchor,*original_point,
+                    ordinary,remaining_to_register_);
+                if(admission.status==
+                    herding::RetailTrackedAdmissionStatus::Inserted) {
+                    // The retail registration branch returns from
+                    // this entity update; first approach is next tick.
+                    continue;
+                }
+                if(admission.status==
+                    herding::RetailTrackedAdmissionStatus::InvalidInput ||
+                   admission.status==
+                    herding::RetailTrackedAdmissionStatus::MissingOrdinaryFollower) {
+                    error="source registered animal to invalid tracked list";
+                    return false;
+                }
+            }
             const auto contact=herding::original_herding_food_attraction_contact(
                 before,hero,selected_food_,following);
             if(!contact) {
@@ -343,6 +425,8 @@ bool NativePicklesMotionSource::unload(std::string& error) {
     active_=false;
     selected_food_=herding::FoodType::None;
     follower_indices_.clear();
+    tracked_slots_=herding::RetailTrackedTargetSlots{};
+    remaining_to_register_=0;
     error.clear();
     return true;
 }
