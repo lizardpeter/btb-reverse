@@ -173,4 +173,15 @@ std::optional<OriginalBinkDcPlane> decode_original_bink_dc_context_packet(
     source=bits;
     return result;
 }
+std::optional<OriginalBinkDcPlane> decode_original_bink_dc_context_packet(
+    LsbBitReader& source,const EntropyPlaneSetup& context,
+    std::size_t maximum_output_words) {
+    // The existing original 3000FC00 reconstruction already
+    // calculates precisely these three fields:
+    // [context+28] count width, [context+08] first-value bit
+    // width, [context+0C] signed-value flag/prefix mask.
+    return decode_original_bink_dc_context_packet(
+        source,context.table_bit_width,context.symbol_bits,
+        context.prefix_mask!=0,maximum_output_words);
+}
 } // namespace btb::bink32_recovered
