@@ -142,6 +142,40 @@ provided residuals; **it does not yet produce a complete retail frame
 from compressed bits**. The general AC inverse-transform and the main
 block mode scheduler remain missing.
 
+## General 8x8 iDCT for nonzero AC coefficients (2026-10-15)
+
+The source-derived x86 translation in
+\`reconstruction/src/bink32_full_idct.cpp\` now implements
+**the entire 0x30011350..0x30011715 integer inverse DCT path**, rather
+than only its DC-only fast path. This includes:
+
+- First-pass 8x8 16-bit coefficient by 32-bit quantization table multiply,
+  signed arithmetic right shift by 11, and the original DC-only column
+  shortcut when the other seven original coefficients are zero.
+- Original 8-point even/odd butterflies with signed fixed-point
+  constants \`0xB50\`, \`0x8A9\`, \`0xEC8\`, \`-0x14E8\`.
+- Second-pass horizontal butterfly with wrapping \`(+127) >> 8\`
+  conversion to unsigned 8-bit output.
+- Actual x86 2x horizontal and vertical pixel replication, producing
+  **16x16 bytes from one 8x8 coefficient block**, visible in duplicated
+  packed-DWORD destination stores at 0x300116AD..0x300116F4.
+- Explicit modulo-2^32 arithmetic for ADD/SUB/IMUL to avoid C++ signed
+  overflow undefined behavior; exact input-length preflight.
+
+The standalone \`bink32_original_general_idct\` regression includes
+DC-only compatibility, vertical/horizontal nonzero AC, arbitrary 64-
+coefficient mixed blocks, independently computed output hashes, and
+all four 2x2 output-replica positions. GCC and Clang local builds passed
+with AddressSanitizer and UndefinedBehaviorSanitizer. GitHub Windows
+x86/x64 CI results should be checked separately.
+
+**Important:** this source translation has not yet been differentially
+executed against the original DLL with identical quantization tables
+and coefficients. Source control-flow equivalence is not yet formal
+bit-exact retail certification. It is also not connected to a full
+macroblock entropy/quantization parser, so decoding a real complete
+frame without the original DLL is still outstanding.
+
 ## Next implementation order
 
 1. Compare the reconstructed dynamic trees against the original x86 DLL
