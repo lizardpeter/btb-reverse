@@ -662,3 +662,42 @@ scenario, **not** confirmation that arbitrary actual compressed retail
 Bink video packets use that exact ordering. The original `0x3000E400`
 plane/mode scheduler, motion prediction and reference-frame state are
 still needed for retail playback.
+
+
+## Native 8x8 and scaled 16x16 block-mode compositor (2026-10-16)
+
+`bink32_block_modes.cpp` implements the **pixel-composition side** of the
+standard ten Bink1 block identifiers, plus an explicit internal
+`Covered` marker for the neighboring 8x8 cells consumed by a 16x16 mode.
+The publicly documented mode vocabulary is also used by the reference
+Bink1 decoder in FFmpeg (`libavcodec/bink.c`):
+https://ffmpeg.org/doxygen/trunk/libavcodec_2bink_8c_source.html
+
+- Skip: copy the colocated 8x8 area from the prior plane.
+- Motion: copy a previous-frame 8x8 area at supplied signed pixel offsets.
+- Residue / inter: combine a referenced 8x8 area with **already-decoded**
+  signed residual samples, using the reconstructed original byte-wrapping
+  addition. It does not parse the upstream residue bitstream.
+- Fill / pattern: fill one 8x8 region, or select two supplied colors from
+  eight row masks with least significant bit at left.
+- Run / raw / intra: store **already-decoded** 8x8 sample arrays;
+  entropy run expansion and iDCT are separate stages.
+- Scaled: enforce an even-aligned 2x2 grid of 8x8 cells and scale an
+  already-decoded 8x8 sub-block to 16x16, using source-independent
+  nearest-neighbor sample doubling. Accepts supported fill / pattern /
+  raw / run / intra subordinate modes only.
+
+`compose_bink_mode_plane` bounds decoded output to 64 MiB, validates
+the exact tile count, rejects invalid previous-frame bounds and scaled
+overlaps, clips partial right/bottom tiles, and returns a new plane only
+after every command succeeds. Original assets and codec streams are never
+mutated. The new `bink32_block_modes_pixels` CTest verifies all the
+modes, 2x pixel replication, signed residual wrap, missing reference,
+bad motion, incomplete scaled coverage, invalid modes and edge clipping.
+
+**Critical remaining integration:** this is not yet the original movie's
+`0x3000E400` compressed block-mode/bundle scheduler. A caller must
+produce the actual per-block commands from the entropy planes and supply
+the correct previous frame. Mode correspondence with the 2002 SJPi DLL
+and full-frame pixel parity remain to be established. It must not be
+enabled as automatic retail playback until those stages are verified.
