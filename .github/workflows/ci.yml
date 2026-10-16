@@ -45,6 +45,13 @@ jobs:
         run: cmake --build build/reconstruction --parallel
       - name: Test reconstruction
         run: ctest --test-dir build/reconstruction --output-on-failure
+      - name: Upload native Bink retail audit executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: bink32-native-retail-audit
+          path: build/reconstruction/btb_bink32_retail_video_audit
+          if-no-files-found: error
+          retention-days: 7
 
   integrated-game-windows:
     runs-on: windows-latest
