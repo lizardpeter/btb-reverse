@@ -178,18 +178,17 @@ int main(int argc,char**argv) {
         // parser rollback on malformed final data.
         Writer encoded;
         encoded.write(5,10); // bundle count for width=640
-        encoded.write(0,1); // Huffman stream
+        encoded.write(0,1); // one Huffman/RLE flag per bundle
         encoded.write(2,4); // literal
-        encoded.write(0,1);
         encoded.write(12,4); // repeat length 4
         LsbBitReader bits(encoded.bytes);
         const auto bundle=read_bink_block_type_bundle(bits,tree,640,5);
         CHECK(bundle&&!bundle->end_of_bundle&&bundle->encoded_count==5);
-        CHECK(bundle->modes.size()==5&&bundle->bits_consumed==20);
+        CHECK(bundle->modes.size()==5&&bundle->bits_consumed==19);
         CHECK(bundle->commands.repeat_commands==1);
         CHECK(std::all_of(bundle->modes.begin(),bundle->modes.end(),
                           [](auto value){return value==2;}));
-        CHECK(bits.bit_position()==20);
+        CHECK(bits.bit_position()==19);
         auto limited=LsbBitReader(encoded.bytes);
         CHECK(!read_bink_block_type_bundle(limited,tree,640,4));
         CHECK(limited.bit_position()==0);
