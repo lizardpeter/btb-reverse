@@ -233,7 +233,7 @@ ActivityFrameOutput MazeDriver::draw() const {
         }
     }
     const auto sprite=maze::actor_source_rect(
-        player_.facing,player_.frozen?pickup_animation_frame_:0);
+        player_.frozen?pickup_animation_frame_:0,player_.facing);
     const auto where=maze::player_destination(player_.x,player_.y);
     output.draws.push_back({
         "Data\\SubGameMaze\\player.bmp",where.x,where.y,
