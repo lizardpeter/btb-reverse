@@ -13,7 +13,7 @@ std::optional<AcOuterLevelResult> decode_bink_ac_outer_levels(
     const auto begin=bits.bit_position();
     // Original 30011B4C..30011B80 extracts a four-bit AC mode.
     const auto encoded_mode=bits.read(4);
-    if(!encoded_mode || *encoded_mode>6)return std::nullopt;
+    if(!encoded_mode)return std::nullopt;
     const auto mode=static_cast<std::uint8_t>(*encoded_mode);
     std::array<std::int16_t,64> output{};
     // Source clears 63 AC values at 30011B3D..30011B48,
@@ -23,17 +23,20 @@ std::optional<AcOuterLevelResult> decode_bink_ac_outer_levels(
     AcOuterLevelResult summary{};
     summary.mode=mode;
     if(mode>=2) {
-        // 30011B9A..30011BBA:
-        //   high = 1 << (mode-1)
-        // 30011BF0..30011BF4:
-        //   EAX = high - 1
-        // 30012020..3001202A:
-        //   class WORD >>= 1; loop mode-1 passes; EAX decremented
-        //   again for every successive outer pass.
+        // Original 2002 x86 instructions:
+        // 30011B9A mov eax, 1 ; 30011BB8 shl eax, cl (cl=mode-1)
+        // 30011BD5 mov [esp+28], eax: class bit = 1 << (mode-1).
+        // 30011BE8 mov al, bl: EAX is then RESET TO MODE.
+        // 30011BF4 dec eax before each magnitude-class pass:
+        // widths therefore mode-1, mode-2, ..., 1 (NOT 2^(mode-1)-1).
+        // 30012020 sar word [esp+28],1; 30012025 dec ecx
+        // counts exactly mode-1 passes. All 4-bit modes (0..15) have
+        // read widths <=14, so no x86 shift-count rollover occurs.
         std::uint16_t class_bit=static_cast<std::uint16_t>(
             1U<<(mode-1));
-        unsigned low_count=(1U<<(mode-1))-1;
+        unsigned low_count=mode;
         for(unsigned i=0;i<static_cast<unsigned>(mode-1);++i) {
+            --low_count;
             const auto pass=run_bink_ac_command_pass(
                 bits,pending,output,low_count,class_bit);
             if(!pass)return std::nullopt;
@@ -41,7 +44,6 @@ std::optional<AcOuterLevelResult> decode_bink_ac_outer_levels(
             summary.activations+=pass->activation_reads;
             ++summary.magnitude_passes;
             class_bit=static_cast<std::uint16_t>(class_bit>>1);
-            --low_count;
         }
     }
     if(mode>0) {
