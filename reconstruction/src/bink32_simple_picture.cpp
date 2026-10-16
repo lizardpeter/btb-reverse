@@ -140,14 +140,79 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
             runs.refill(std::move(b->values),b->end_of_bundle);
         }
 
-        for(std::size_t col=0;col<columns;++col) {
-            auto next_mode=types.take();
-            if(!next_mode || *next_mode>=result.mode_counts.size())
+        // A scaled 16x16 tile consumes one block type on the top
+        // row and a matching marker on the bottom row, but only ONE
+        // subtype/pixel payload at its upper-left corner.
+        for(std::size_t col=0;col<columns;) {
+            const auto encoded=types.take();
+            if(!encoded || *encoded>=result.mode_counts.size())
                 return std::nullopt;
-            ++result.mode_counts[*next_mode];
+            ++result.mode_counts[*encoded];
+            const auto mode=static_cast<BinkBlockMode>(*encoded);
             auto& cmd=commands[row*columns+col];
-            cmd.mode=static_cast<BinkBlockMode>(*next_mode);
-            switch(cmd.mode) {
+            const auto populate_pixels=[&](BinkBlockMode pixels)->bool {
+                if(pixels==BinkBlockMode::Fill) {
+                    const auto color=colors.take();
+                    if(!color)return false;
+                    cmd.fill=*color;
+                    return true;
+                }
+                if(pixels==BinkBlockMode::Pattern) {
+                    for(auto& color:cmd.pattern_colors) {
+                        const auto value=colors.take();
+                        if(!value)return false;
+                        color=*value;
+                    }
+                    for(auto& mask:cmd.pattern_rows) {
+                        const auto value=patterns.take();
+                        if(!value)return false;
+                        mask=*value;
+                    }
+                    return true;
+                }
+                if(pixels==BinkBlockMode::Raw) {
+                    for(auto& value:cmd.samples) {
+                        const auto color=colors.take();
+                        if(!color)return false;
+                        value=*color;
+                    }
+                    return true;
+                }
+                return false;
+            };
+            if(mode==BinkBlockMode::Scaled) {
+                if(col&1U || col+1>=columns)return std::nullopt;
+                if(row&1U) {
+                    // Original odd-row scaled marker has no new
+                    // pixels. Verify it covers the previous anchor.
+                    if(commands[(row-1)*columns+col].mode!=
+                           BinkBlockMode::Scaled ||
+                       cmd.mode!=BinkBlockMode::Covered ||
+                       commands[row*columns+col+1].mode!=
+                           BinkBlockMode::Covered)
+                        return std::nullopt;
+                    col+=2;
+                    continue;
+                }
+                if(row+1>=rows)return std::nullopt;
+                const auto subtype=subtypes.take();
+                if(!subtype)return std::nullopt;
+                cmd.mode=BinkBlockMode::Scaled;
+                cmd.scaled_submode=static_cast<BinkBlockMode>(*subtype);
+                // These three source-backed scaled payloads already
+                // have an exact nearest-neighbor 2x pixel compositor.
+                if(!populate_pixels(cmd.scaled_submode))
+                    return std::nullopt;
+                commands[row*columns+col+1].mode=BinkBlockMode::Covered;
+                commands[(row+1)*columns+col].mode=BinkBlockMode::Covered;
+                commands[(row+1)*columns+col+1].mode=BinkBlockMode::Covered;
+                col+=2;
+                continue;
+            }
+            if(cmd.mode==BinkBlockMode::Covered)
+                return std::nullopt;
+            cmd.mode=mode;
+            switch(mode) {
             case BinkBlockMode::Skip:
                 break;
             case BinkBlockMode::Motion: {
@@ -158,37 +223,17 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
                 cmd.motion_y=*my;
                 break;
             }
-            case BinkBlockMode::Fill: {
-                const auto color=colors.take();
-                if(!color)return std::nullopt;
-                cmd.fill=*color;
-                break;
-            }
-            case BinkBlockMode::Pattern: {
-                for(auto& color:cmd.pattern_colors) {
-                    const auto v=colors.take();
-                    if(!v)return std::nullopt;
-                    color=*v;
-                }
-                for(auto& row_mask:cmd.pattern_rows) {
-                    const auto v=patterns.take();
-                    if(!v)return std::nullopt;
-                    row_mask=*v;
-                }
-                break;
-            }
+            case BinkBlockMode::Fill:
+            case BinkBlockMode::Pattern:
             case BinkBlockMode::Raw:
-                for(auto& sample:cmd.samples) {
-                    const auto v=colors.take();
-                    if(!v)return std::nullopt;
-                    sample=*v;
-                }
+                if(!populate_pixels(mode))return std::nullopt;
                 break;
             default:
-                // Real DCT / residue / run and 16x16 scaled modes must
-                // be reconstructed before they can emit trustworthy pixels.
+                // DCT, residue, and run scan-order modes require
+                // upstream decoder integration before pixel output.
                 return std::nullopt;
             }
+            ++col;
         }
     }
     if(!bits.align(4))return std::nullopt;
