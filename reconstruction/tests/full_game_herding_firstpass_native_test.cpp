@@ -8,6 +8,7 @@
 #include "btb/herding_source_registration_point.hpp"
 #include "btb/herding_source_follower_approach.hpp"
 #include "btb/herding_source_home_motion.hpp"
+#include "btb/herding_source_delivered_animation.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -333,6 +334,39 @@ int main() {
             }
             animals=frame.motion_records;
         }
+        // The actual retail behavior-99 animation continues after
+        // an animal is delivered; each species has a separate frame
+        // family, all driven by the original -5 / reload-150 timer.
+        const int last_home_frames[]{5,9,11};
+        const int first_home_frames[]{3,7,9};
+        for(int n=0;n<3;++n) {
+            auto& home=animals[animal_indices[n]];
+            home.behavior_state=99;
+            home.animation_frame=last_home_frames[n];
+            home.animation_frame_countdown=5;
+        }
+        assert(motion.advance(data,{}, {},animals,frame,error));
+        assert(frame.delivered_animation_evidence.size()==3);
+        int sprite_index=0;
+        for(const auto& proof:frame.delivered_animation_evidence) {
+            const auto& updated=frame.motion_records[proof.entity_index];
+            assert(updated.animation_frame==first_home_frames[sprite_index]);
+            assert(updated.animation_frame_countdown==150);
+            assert(updated.direction==4);
+            assert(updated.behavior_state==99);
+            assert(updated.x==proof.before.x && updated.y==proof.before.y);
+            ++sprite_index;
+        }
+        animals=frame.motion_records;
+        assert(motion.advance(data,{}, {},animals,frame,error));
+        assert(frame.delivered_animation_evidence.size()==3);
+        for(const auto& proof:frame.delivered_animation_evidence) {
+            const auto& updated=frame.motion_records[proof.entity_index];
+            assert(updated.animation_frame_countdown==145);
+            assert(updated.x==proof.before.x && updated.y==proof.before.y);
+        }
+        animals=frame.motion_records;
+
         // Strict boundary: standing 10 world units away from the
         // original offset ACTOR target must never deliver early.
         auto& sheep=animals[1];
