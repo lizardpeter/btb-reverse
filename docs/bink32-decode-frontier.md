@@ -730,3 +730,43 @@ Plane dimensions and component order remain supplied explicitly;
 conversion to BGRA, original colorimetry and retail pixel hashes
 are not yet implemented or verified. This is frame-state integration,
 not a declaration of DLL-free full-video decoding.
+
+
+## Retail SJPi alpha-to-picture entropy boundary (2026-10-16)
+
+Examined the original `designstartup.bik` from the user's connected
+BTB-BBP Drive folder, without adding the movie to this public repository.
+SHA-256: `577c9340d779bf2afeca5797fd365793b236a35c5d26dd60cc54e1ceecffc5a9`.
+The source is a 640x480, 227-frame SJPi movie with one audio track and
+`video_flags=0x00100000` (alpha-present in Bink convention).
+
+**Important correction to the earlier video+4-byte smoke test:**
+The 4-byte offset probes the **leading alpha-plane candidate**, *not*
+necessarily the moving picture's 23-tree entropy header. The first
+LE32 at video offset 0 equals 48 on frames 2..227 and 124 on frame 1.
+Those byte-aligned boundaries are followed by another LE32 picture
+control field. The candidate **picture entropy** therefore starts at
+byte 52 on frames 2..227 and byte 128 on frame 1.
+
+In an independent bounded bitreader / dynamic-tree reconstruction run,
+all 227 candidate picture prologues parsed successfully. For frames
+2..11 (static video) the picture candidate had one nonzero selector;
+at the first high-data frame, frame 12, it had **nine**, with many
+subsequent frames displaying multiple nonzero selectors. By contrast,
+the naive video+4-byte alpha probes returned almost entirely zero trees.
+This corroborates that the corrected offset selects materially different
+compressed data; it does NOT prove the packet-to-pixel decoder.
+
+`parse_alpha_picture_entropy_prologue` now validates the first
+aligned section boundary, preserves the following picture control
+word, and invokes the existing original 23-tree parser at that byte
+offset. Synthetic CTests verify correct offset and symbol selection,
+truncation, unaligned offsets, and forged oversize sections.
+When actual BIK paths are supplied to the existing optional
+`btb_bink32_dynamic_huffman_tests` executable, it also checks all
+alpha-bearing picture prologues without embedding retail files in CI.
+
+Next indispensable frontier: align the full `0x3000E400` bundle
+reader and block-mode scheduler with this picture entropy cursor,
+produce Y/U/V resolved commands, then compare a real retail
+frame's decoded pixels against a verified original decoder.
