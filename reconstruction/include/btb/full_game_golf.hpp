@@ -56,6 +56,10 @@ private:
     int player_index_{-1};
     std::unique_ptr<golf::Round> round_{};
     std::optional<golf::RoundInput> queued_input_{};
+    // 0x00415080 state 99 advances 9 inner ticks and 8 outer frames;
+    // source sound manager owns state-5 voice completion.
+    int swing_animation_ticks_{};
+    bool feedback_voice_started_{};
 };
 
 } // namespace btb::full_game
