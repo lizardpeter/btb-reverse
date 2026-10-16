@@ -26,10 +26,10 @@ inline constexpr std::array<int,kRetailWalkthroughCount>
     kRetailWalkthroughHoverVoiceIds{{
         0x1f5, // 0  Pets Corner
         0x1f0, // 1  Dinosaur
-        0x1f9, // 2  Spud Skate
-        0x1fa, // 3  Spud Maze
-        0x1e9, // 4  Maze
-        0x1e8, // 5  Golf
+        0x1fa, // 2  Spud Skate (source state 0x19)
+        0x1f9, // 3  Spud Maze (source state 0x39)
+        0x1e8, // 4  Maze (source state 0x1F)
+        0x1e9, // 5  Golf (source state 0x35)
         0x1f3, // 6  Fireworks
         0x1f7, // 7  Squirrel
         0x1f4, // 8  Bob's Band
