@@ -1,4 +1,5 @@
 #include "btb/full_game_maze.hpp"
+#include "btb/maze_presentation.hpp"
 #include "btb/maze_box_layout.hpp"
 
 #include <cassert>
@@ -13,6 +14,13 @@
 #include <memory>
 #include <string>
 #include <string_view>
+
+// Verified original retail spud.bmp is 1792x512: 14 animation
+// columns and 4 direction rows, both in 128px cells.
+static_assert(btb::maze::actor_source_rect(7,1).left==896);
+static_assert(btb::maze::actor_source_rect(7,1).top==128);
+static_assert(btb::maze::actor_source_rect(7,1).right==1024);
+static_assert(btb::maze::actor_source_rect(7,1).bottom==256);
 
 int main() {
     namespace fs=std::filesystem;
