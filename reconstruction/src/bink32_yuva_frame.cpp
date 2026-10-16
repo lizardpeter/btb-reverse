@@ -12,25 +12,38 @@ std::optional<BinkNativeYuVaFrame> decode_bink_sjpi_video_frame(
     std::size_t width,std::size_t height,bool has_alpha,
     const BinkNativeYuVaFrame* previous) {
     constexpr std::size_t kMaxPlanePixels=64U*1024U*1024U;
-    // Chroma in the original SJPi stream is 4:2:0. This exact
-    // decoder currently requires integral 8x8 chroma tile dimensions.
     if(!width || !height || width>16384 || height>16384 ||
-       (width%16)!=0 || (height%16)!=0 ||
-       width>kMaxPlanePixels/height)return std::nullopt;
-    const auto full_pixels=width*height;
-    const auto chroma_pixels=full_pixels/4;
+       width>kMaxPlanePixels/height || video_packet.size()<4)
+        return std::nullopt;
+
+    // Plane-visibility geometry follows YUV 4:2:0: the decoder
+    // rounds odd chroma extents UP before 8x8 block alignment.
+    // These padded margins must persist across interframes.
+    const std::size_t cw=(width+1)/2,ch=(height+1)/2;
+    const std::array<std::size_t,4> visible_w{
+        width,cw,cw,width};
+    const std::array<std::size_t,4> visible_h{
+        height,ch,ch,height};
+    std::array<std::size_t,4> padded_w{},padded_h{};
+    for(std::size_t p=0;p<4;++p) {
+        padded_w[p]=((visible_w[p]+7)/8)*8;
+        padded_h[p]=((visible_h[p]+7)/8)*8;
+        if(padded_w[p]>16384 || padded_h[p]>16384 ||
+           padded_w[p]>kMaxPlanePixels/padded_h[p])
+            return std::nullopt;
+    }
     if(previous) {
         if(previous->width!=width || previous->height!=height ||
            previous->source_has_alpha!=has_alpha)
             return std::nullopt;
-        for(std::size_t plane=0;plane<4;++plane) {
-            const auto expected=(plane==1||plane==2)
-                ?chroma_pixels:full_pixels;
-            if(previous->planes[plane].size()!=expected)
+        for(std::size_t p=0;p<4;++p) {
+            if(previous->planes[p].size()!=visible_w[p]*visible_h[p] ||
+               previous->codec_plane_widths[p]!=padded_w[p] ||
+               previous->codec_plane_heights[p]!=padded_h[p] ||
+               previous->codec_planes[p].size()!=padded_w[p]*padded_h[p])
                 return std::nullopt;
         }
     }
-    if(video_packet.size()<4)return std::nullopt;
     const auto outer=has_alpha
         ?parse_alpha_picture_entropy_prologue(video_packet)
         :std::nullopt;
@@ -38,58 +51,73 @@ std::optional<BinkNativeYuVaFrame> decode_bink_sjpi_video_frame(
     const auto reference=[&](BinkYuvaPlane p)
         -> std::span<const std::uint8_t> {
         if(!previous)return {};
-        return previous->planes[static_cast<std::size_t>(p)];
+        return previous->codec_planes[static_cast<std::size_t>(p)];
     };
     BinkNativeYuVaFrame output{};
     output.width=width;
     output.height=height;
     output.source_has_alpha=has_alpha;
-    // SJPi with alpha: four-byte section length, encoded A plane,
-    // another four-byte picture control, then Y/V/U. Without alpha:
-    // one four-byte picture control, then Y/V/U. All offsets here
-    // are within the unmodified compressed video packet.
+    output.codec_plane_widths=padded_w;
+    output.codec_plane_heights=padded_h;
+
+    const auto store=[&](BinkYuvaPlane index,
+                         BinkSimplePictureLuma& decoded) -> bool {
+        const auto p=static_cast<std::size_t>(index);
+        if(decoded.image.pixels.size()!=padded_w[p]*padded_h[p])
+            return false;
+        output.codec_planes[p]=std::move(decoded.image.pixels);
+        auto& cropped=output.planes[p];
+        cropped.resize(visible_w[p]*visible_h[p]);
+        for(std::size_t y=0;y<visible_h[p];++y)
+            std::copy_n(
+                output.codec_planes[p].begin()+
+                    static_cast<std::ptrdiff_t>(y*padded_w[p]),
+                visible_w[p],
+                cropped.begin()+static_cast<std::ptrdiff_t>(
+                    y*visible_w[p]));
+        output.plane_end_byte_offsets[p]=decoded.next_plane_byte_offset;
+        output.mode_counts[p]=decoded.mode_counts;
+        return true;
+    };
+
     std::size_t first_y_tree_byte=4;
     if(has_alpha) {
         auto alpha=decode_bink_picture_plane_at(
-            video_packet,4,width,height,reference(BinkYuvaPlane::A));
+            video_packet,4,padded_w[3],padded_h[3],
+            reference(BinkYuvaPlane::A));
         if(!alpha ||
-           alpha->next_plane_byte_offset!=outer->alpha_section_bytes)
+           alpha->next_plane_byte_offset!=outer->alpha_section_bytes ||
+           !store(BinkYuvaPlane::A,*alpha))
             return std::nullopt;
         first_y_tree_byte=outer->picture.initial_byte_offset;
-        output.planes[3]=std::move(alpha->image.pixels);
-        output.plane_end_byte_offsets[3]=alpha->next_plane_byte_offset;
-        output.mode_counts[3]=alpha->mode_counts;
     } else {
-        // The absent A channel is explicitly opaque. It is not
-        // evidence of an encoded alpha plane or alpha parity.
-        output.planes[3].assign(full_pixels,255);
+        // Missing alpha is an opaque presentation convention, not
+        // a decoded fourth plane in the BIK. Keep padded alpha
+        // opaque for consistency across all previous-frame copies.
+        output.codec_planes[3].assign(padded_w[3]*padded_h[3],255);
+        output.planes[3].assign(width*height,255);
         output.plane_end_byte_offsets[3]=0;
     }
+
     auto y=decode_bink_picture_plane_at(
-        video_packet,first_y_tree_byte,
-        width,height,reference(BinkYuvaPlane::Y));
-    if(!y)return std::nullopt;
-    // Original SJPi versions h/i swap physical U/V stream order.
-    // Plane order in the bitstream is A,Y,V,U, although the decoded
-    // output must preserve canonical Y,U,V,A channel order.
+        video_packet,first_y_tree_byte,padded_w[0],padded_h[0],
+        reference(BinkYuvaPlane::Y));
+    if(!y || !store(BinkYuvaPlane::Y,*y))
+        return std::nullopt;
+    // SJPi compressed physical order is Y,V,U, but output always
+    // exposes Y,U,V,A and preserves the exact padded codec-domain
+    // references needed by motion prediction for future frames.
     auto v=decode_bink_picture_plane_at(
         video_packet,y->next_plane_byte_offset,
-        width/2,height/2,reference(BinkYuvaPlane::V));
-    if(!v)return std::nullopt;
+        padded_w[2],padded_h[2],reference(BinkYuvaPlane::V));
+    if(!v || !store(BinkYuvaPlane::V,*v))
+        return std::nullopt;
     auto u=decode_bink_picture_plane_at(
         video_packet,v->next_plane_byte_offset,
-        width/2,height/2,reference(BinkYuvaPlane::U));
-    if(!u || u->next_plane_byte_offset>video_packet.size())
+        padded_w[1],padded_h[1],reference(BinkYuvaPlane::U));
+    if(!u || u->next_plane_byte_offset>video_packet.size() ||
+       !store(BinkYuvaPlane::U,*u))
         return std::nullopt;
-    auto store=[&](BinkYuvaPlane index,BinkSimplePictureLuma& plane) {
-        const auto n=static_cast<std::size_t>(index);
-        output.planes[n]=std::move(plane.image.pixels);
-        output.plane_end_byte_offsets[n]=plane.next_plane_byte_offset;
-        output.mode_counts[n]=plane.mode_counts;
-    };
-    store(BinkYuvaPlane::Y,*y);
-    store(BinkYuvaPlane::V,*v);
-    store(BinkYuvaPlane::U,*u);
     output.video_bytes_consumed=u->next_plane_byte_offset;
     return output;
 }
