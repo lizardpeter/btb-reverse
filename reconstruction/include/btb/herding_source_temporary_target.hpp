@@ -18,7 +18,9 @@ namespace btb::herding {
 // origin with POSITIVE half-cell dimensions using original
 // abs(left-right)/2 + current integer x, similarly for y.
 // Movement magnitude is original 3.0 at 0x43B430.
-// Once moved, it compares point distance to ORIGINAL target against
+// A positive countdown is decremented first. If it reaches 0, ordinary
+// AI resumes without steering on that tick. Otherwise, once moved, the
+// code compares point distance to ORIGINAL target against
 // 120.0f at 0x43B42C. A strict <120 clears the temporary-target
 // timer and RETURNS through the immediate 0x41708B epilogue.
 // A distant result RETURNS through the shared 0x418101 epilogue.
@@ -49,6 +51,15 @@ original_herding_temporary_target_update(
     }
     if (!is_herd_animal(original.entity_type())) {
         return std::nullopt;
+    }
+    // Original UpdateHerdingAnimal starts by decrementing a positive
+    // +0x58 timer at 0x416A9D, BEFORE the later positive-timer test
+    // at 0x416F49. On the final tick (1 -> 0), the animal resumes
+    // ordinary behavior without executing temporary-target steering.
+    --out.moved.temporary_target_timer;
+    if (out.moved.temporary_target_timer==0) {
+        out.continue_normal_update=true;
+        return out;
     }
 
     const auto width=static_cast<std::int64_t>(
