@@ -440,6 +440,62 @@ frame scheduling and audio still need to be connected. Tests use
 crafted compressed sequences and known DC inputs. No original
 DLL/retail frame differential validation is claimed.
 
+## Original signed DC plane unpacking and block handoff (2026-10-16)
+
+An inspection of the original 2002 DLL's video block scheduler
+`0x3000E400` resolved a significant missing interface:
+
+- At `0x3000E8E5` and `0x3000E8F5`, the original initializes
+  two distinct signed-16 sample streams via `0x30010BF0`,
+  including local cursor state at `[ebp-0x1D8]` and
+  `[ebp-0x248]`.
+- At `0x3000EDC8–0x3000EDE6` and
+  `0x3000F081–0x3000F0A5`, the scheduler **copies a signed
+  little-endian 16-bit DC coefficient from one of those
+  predecoded streams**, advances its source pointer by two
+  bytes, writes it to coefficient[0], and *then* invokes the
+  AC decoder `0x30011B10`.
+- Thus the DC value **does not** come from the AC bitstream.
+  Attempting to consume its bits there would misalign subsequent
+  AC and quantization decoding.
+
+`bink32_dc_stream.cpp` provides `read_original_bink_dc_word`
+and `decode_original_bink_block_from_dc_plane`, completing
+this original two-stream handoff. It copies one signed-16
+word from a bounded DC output stream, calls the recovered
+all-mode AC decoder, then selects the original quant matrix
+and executes the inverse transform to produce 16x16 samples.
+Both the DC byte cursor and AC bit cursor are transactional.
+
+The original `0x30010BF0` predecoder was also investigated.
+Its group loop at `0x30010D94–0x30010ECE` emits up to
+eight cumulative DC samples per group:
+
+- Read one 4-bit magnitude width (0..15).
+- Width zero uses `0x30010E8D–0x30010EBE` to replicate
+  the **previous signed 16-bit value** across the group.
+- Nonzero width reads one unsigned `width`-bit magnitude
+  per sample. A zero magnitude uses no sign bit.
+  Each nonzero magnitude consumes one additional sign bit.
+- The signed delta is added to the cumulative previous value;
+  original x86 writes the low 16 bits for every output sample.
+
+`decode_original_bink_dc_delta_group` now reconstructs that
+complete short-group operation in native C++, with strict
+one-to-eight sample bounds, signed 16-bit wrap and transactional
+input/output. The tests include variable widths 0, 1, 3, 4,
+and 15; positive, negative, zero and wraparound deltas;
+back-to-back group state; and a constructed compressed
+DC-group → predecoded DC words → original AC/quant/iDCT
+pixel block chain.
+
+**Remaining:** the overall `0x30010BF0` plane header, output
+length/allocation behavior, the original starting/cumulative
+sample state, 0x3000E400 macroblock scheduler and actual
+retail-frame parity are not reconstructed end-to-end.
+All current DC-group validation uses controlled source
+bitstreams; it does not certify original .bik frame pixels.
+
 ## Next implementation order
 
 1. Compare the reconstructed dynamic trees against the original x86 DLL
