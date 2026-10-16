@@ -14,6 +14,28 @@
 #include <memory>
 #include <string>
 
+// Isolate GameRoot's real Maze-win progress/movie and disk contracts
+// without forging package collision inside the production MazeDriver.
+class MazeVictoryEffectFixture final : public btb::full_game::ActivityDriver {
+public:
+    bool initialize(int,std::string& error) override {
+        error.clear();return true;
+    }
+    btb::full_game::ActivityFrameOutput advance(
+        const btb::full_game::ActivityFrameInput&) override {
+        btb::full_game::ActivityFrameOutput out;
+        out.progress_writes.push_back({btb::progress::Slot::Maze,1});
+        out.save_and_unload=true;
+        out.next_outer_state=static_cast<int>(
+            btb::game_flow::State::PlayAgainYesNoSetup);
+        out.next_ui_context=0x20;
+        return out;
+    }
+    bool unload(std::string& error) override {
+        error.clear();return true;
+    }
+};
+
 int main() {
     namespace fs=std::filesystem;
     namespace fg=btb::full_game;
@@ -225,5 +247,41 @@ END
     assert(game.globals().dispatcher.current_state==
            static_cast<int>(State::PlayAgainYesNoSetup));
     assert(!maze->player());
+    {
+        // Source output from a true completed Maze must pair correctly with
+        // the adjacent already-finished Golf progress slot and persist.
+        fg::GameRoot pair;
+        assert(pair.select_profile(0));
+        pair.globals().player_progress[0].set(btb::progress::Slot::Golf,1);
+        const auto saves=root/"victory_profiles";
+        pair.configure_profile_directory(saves);
+        pair.install(fg::ActivityId::Maze,
+                     std::make_unique<MazeVictoryEffectFixture>());
+        pair.set_outer_state(State::MazeInit);
+        assert(pair.advance({}).kind==fg::FrameKind::ActivityInitialized);
+        const auto won=pair.advance({});
+        assert(won.kind==fg::FrameKind::ActivityUpdated);
+        assert(won.effects.progress_writes.size()==1);
+        assert(won.profile_saved);
+        assert(pair.globals().shared_completion_code==3);
+        assert(pair.globals().ui_context==0x20);
+        fg::GameRoot reopened;
+        std::string save_error;
+        assert(reopened.load_profile_files(saves,save_error));
+        assert(reopened.globals().player_progress[0].get(
+            btb::progress::Slot::Maze)==1);
+        assert(reopened.globals().player_progress[0].get(
+            btb::progress::Slot::Golf)==1);
+    }
+    {
+        fg::GameRoot solo;
+        assert(solo.select_profile(0));
+        solo.install(fg::ActivityId::Maze,
+                     std::make_unique<MazeVictoryEffectFixture>());
+        solo.set_outer_state(State::MazeInit);
+        assert(solo.advance({}).kind==fg::FrameKind::ActivityInitialized);
+        assert(solo.advance({}).kind==fg::FrameKind::ActivityUpdated);
+        assert(solo.globals().shared_completion_code==-1);
+    }
     fs::remove_all(root);
 }
