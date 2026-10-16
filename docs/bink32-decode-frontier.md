@@ -67,6 +67,29 @@ coefficient decoding and pixel parity remain unverified.
 **Important:** These figures certify bitstream packet routing, *not* 1,590
 decoded video frames or 1,590 audio waveforms.
 
+## Native 2002 block-value decoding (additional partial reconstruction)
+
+`bink32_entropy_commands.cpp` now translates the compressed-value
+branch of original `0x300101A0`, from the one-bit command selector
+at `0x30010242` through the run commands at `0x30010305–30010364`:
+
+- Literal Huffman codes 0–11 append one byte and update the prior value
+- Codes 12–15 repeat the prior byte exactly 4/8/12/32 times, using the
+  original `.rdata` lookup values from `0x30047BDc + code`
+- The alternate one-bit branch consumes a four-bit immediate value and
+  fills the remainder of the output block
+- Native output and bit position commit only on complete, bounded success
+
+Another portion of original `0x30010400`, at `0x30010632–30010651`,
+combines two decoded Huffman nibbles as a signed-magnitude, seven-bit
+quantity re-centered at 128. The C++ implementation tests all 256
+possible pairs, including positive values, negative values and negative
+zero, plus decoding through the original fixed Huffman symbols.
+
+These are genuine block-value decoding components but do not yet include
+full coefficient layouts, motion vectors, iDCT, reference frames or
+final YUV->RGB presentation. Full runtime Bink32 removal is still gated.
+
 ## Next implementation order
 
 1. Compare the reconstructed dynamic trees against the original x86 DLL
