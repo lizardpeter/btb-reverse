@@ -269,5 +269,89 @@ int main() {
         CHECK(!decode_original_bink_dc_delta_plane(empty_plane,0,1));
         CHECK(empty_plane.bit_position()==7);
     }
+    {
+        // Reconstruct one whole original 30010BF0 DC record.
+        // count=3 (4 count bits); signed initial 100
+        // (10 magnitude bits + sign 0); then two deltas:
+        // +1 and -2, producing [100,101,99].
+        TestBits encoded;
+        encoded.put(3,4);     // count
+        encoded.put(100,10);  // first unsigned magnitude
+        encoded.put(0,1);     // positive first value
+        encoded.put(2,4);     // delta magnitude width
+        encoded.put(1,2);encoded.put(0,1); // +1
+        encoded.put(2,2);encoded.put(1,1); // -2
+        auto bits=encoded.reader();
+        const auto dc=decode_original_bink_dc_context_packet(
+            bits,4,11,true);
+        CHECK(dc&&dc->signed_words_le.size()==6);
+        CHECK(dc->final_sample==99&&dc->consumed_bits==encoded.bit_count);
+        CHECK(bits.bit_position()==encoded.bit_count&&encoded.bit_count==25);
+        BinkDcWordStream signed_values{dc->signed_words_le,0};
+        CHECK(read_original_bink_dc_word(signed_values)==100);
+        CHECK(read_original_bink_dc_word(signed_values)==101);
+        CHECK(read_original_bink_dc_word(signed_values)==99);
+        CHECK(signed_values.position==6);
+        // Controlled end-to-end: a decoded original DC context buffer
+        // supplies three AC-mode0/quant0 source blocks without the DLL.
+        const std::array<std::uint8_t,3> ac_bytes{0,0,0};
+        LsbBitReader ac_bits(ac_bytes);
+        BinkDcWordStream source_words{dc->signed_words_le,0};
+        const std::array<std::int16_t,3> expected{100,101,99};
+        for(const auto sample:expected) {
+            const auto block=decode_original_bink_block_from_dc_plane(
+                source_words,ac_bits);
+            CHECK(block&&block->dc==sample);
+            CHECK(block->decoded.ac.mode==0&&block->decoded.quant_selector==0);
+        }
+        CHECK(ac_bits.bit_position()==24&&source_words.position==6);
+    }
+    {
+        // Signed initial value with count=1. The sign is consumed
+        // ONLY if the first magnitude is nonzero.
+        TestBits negative;
+        negative.put(1,4);negative.put(200,10);negative.put(1,1);
+        auto bits=negative.reader();
+        const auto dc=decode_original_bink_dc_context_packet(bits,4,11,true);
+        CHECK(dc&&dc->final_sample==-200&&dc->consumed_bits==15);
+        CHECK(dc->signed_words_le.size()==2&&bits.bit_position()==15);
+        TestBits signed_zero;
+        signed_zero.put(1,4);signed_zero.put(0,10);
+        auto z=signed_zero.reader();
+        const auto zero=decode_original_bink_dc_context_packet(z,4,11,true);
+        CHECK(zero&&zero->final_sample==0&&z.bit_position()==14);
+        TestBits unsigned_first;
+        unsigned_first.put(1,4);unsigned_first.put(1023,11);
+        auto u=unsigned_first.reader();
+        const auto pos=decode_original_bink_dc_context_packet(u,4,11,false);
+        CHECK(pos&&pos->final_sample==1023&&u.bit_position()==15);
+    }
+    {
+        // Empty count consumes only its count bits, nothing more.
+        const std::array<std::uint8_t,1> bytes{0};
+        LsbBitReader bits(bytes);
+        const auto dc=decode_original_bink_dc_context_packet(bits,4,11,true);
+        CHECK(dc&&dc->signed_words_le.empty());
+        CHECK(dc->consumed_bits==4&&bits.bit_position()==4);
+        LsbBitReader bad(bytes);
+        const auto before=bad.bit_position();
+        CHECK(!decode_original_bink_dc_context_packet(bad,0,11,true));
+        CHECK(!decode_original_bink_dc_context_packet(bad,4,17,true));
+        CHECK(!decode_original_bink_dc_context_packet(bad,4,11,true,0));
+        CHECK(bad.bit_position()==before);
+        // Announced output count exceeds supplied 1-word allocation cap.
+        const std::array<std::uint8_t,1> three{0x03};
+        LsbBitReader capped(three);
+        CHECK(!decode_original_bink_dc_context_packet(capped,4,11,true,1));
+        CHECK(capped.bit_position()==0);
+        // Missing sign bit must roll back the complete context record.
+        TestBits too_short;
+        too_short.put(1,4);too_short.put(27,10); // 14 bits total
+        auto truncated=too_short.reader();
+        CHECK(truncated.skip(2)); // leaves precisely 14 bits incl. padding
+        CHECK(!decode_original_bink_dc_context_packet(
+            truncated,4,11,true));
+        CHECK(truncated.bit_position()==2);
+    }
     std::puts("Bink original predecoded DC stream -> AC/quant IDCT 16x16 pixels: PASS");
 }
