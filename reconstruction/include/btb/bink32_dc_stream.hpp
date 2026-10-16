@@ -115,4 +115,28 @@ decode_original_bink_dc_context_blocks(
     const EntropyPlaneSetup& context,
     std::size_t maximum_blocks=4096);
 
+// Assemble already-decoded 16x16 blocks into one bounded single-channel
+// raster surface. Tile order is deliberately an EXPLICIT ROW-MAJOR
+// harness convention, NOT a claim about the original Bink 0x3000E400
+// block-type scheduler, color-plane placement or motion prediction.
+// Width/height may end in partial 16x16 tiles; copy only visible pixels.
+struct BinkDecodedRaster16 {
+    std::size_t width{};
+    std::size_t height{};
+    std::vector<std::uint8_t> pixels{}; // tightly packed, stride=width
+};
+[[nodiscard]] std::optional<BinkDecodedRaster16>
+rasterize_bink_blocks16(
+    std::span<const BinkDcAcBlock> blocks,
+    std::size_t width,std::size_t height);
+// Decode a DC-context record and the corresponding separate AC stream,
+// then rasterize every recovered 16x16 block into the caller-specified
+// raster dimensions. Reject block-count/size disagreement. ALL stages
+// are transactional across both bitreaders, including plane assembly.
+[[nodiscard]] std::optional<BinkDecodedRaster16>
+decode_original_bink_dc_context_raster16(
+    LsbBitReader& dc_bits,LsbBitReader& ac_bits,
+    const EntropyPlaneSetup& context,
+    std::size_t width,std::size_t height);
+
 } // namespace btb::bink32_recovered
