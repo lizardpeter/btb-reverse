@@ -41,6 +41,18 @@ NativeSessionFrame NativeGameSession::tick(
     }
 
     input.managed_sound_playing = physical.any_managed_voice_playing;
+    // Explicit non-retail --skip-bink routing. Retail 0x41 plays the
+    // scene-set clip after a newly created profile and then enters 0x04.
+    // Do NOT skip 0x40 by guessing its destination: that shared movie uses
+    // the distinct original 0x00446CE8 return-state global, which this
+    // source GameRoot has not modeled. Keep 0x40 fail-closed.
+    if (skip_video_ &&
+        root_.globals().dispatcher.current_state ==
+            static_cast<int>(game_flow::State::SceneSetMovieTransition)) {
+        root_.set_outer_state(game_flow::State::ActivitySelectSetup);
+        root_.globals().dispatcher.generic_screen_mode=0;
+        input.click_pulse=false; // a movie-dismissal click cannot select UI
+    }
     // Normal operation uses ONLY original decoder end-of-stream signaling.
     // An explicitly opted-in video-free session may advance modes 13/14
     // without claiming a Bink frame was ever decoded or presented.

@@ -445,5 +445,60 @@ int main() {
         assert(blocked.failure->stage==PhysicalPresentationStage::MovieResolve);
         assert(!blocked.submitted);
     }
+    // After 0x0042DCC0 accepts a name, retail enters the dedicated 0x41
+    // scene-set movie and then Activity Select. The optional non-retail
+    // video-free session may skip this particular source-known transition.
+    for(const auto skipped_movie_state:{State::SceneSetMovieTransition}) {
+        GameRoot game;
+        assert(game.select_profile(2));
+        game.install_activity_select(std::make_unique<Instruction>());
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture(),true
+        };
+        game.set_outer_state(skipped_movie_state);
+        const auto reached=session.tick({.click_pulse=true},true,false);
+        assert(reached.submitted && !reached.failure);
+        assert(reached.prepared.game.kind==FrameKind::FrontEndInitialized);
+        assert(game.globals().dispatcher.current_state==
+               static_cast<int>(State::ActivitySelectUpdate));
+        assert(device.global_open==0 && device.walk_open==0);
+        assert(!reached.global_movie_opened);
+    }
+    {
+        // Strict default still requires a real original 0x41 movie adapter;
+        // it is not allowed to masquerade as an ordinary frontend screen.
+        GameRoot game;
+        assert(game.select_profile(2));
+        game.install_activity_select(std::make_unique<Instruction>());
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture()
+        };
+        game.set_outer_state(State::SceneSetMovieTransition);
+        const auto blocked=session.tick({},false,false);
+        assert(blocked.failure);
+        assert(blocked.failure->stage==PhysicalPresentationStage::GameAdvance);
+        assert(device.global_open==0);
+    }
+    {
+        // Source shared movie state 0x40 resumes the independent
+        // 0x00446CE8 return state; without that state available, even
+        // --skip-bink must not redirect replay to Activity Select.
+        GameRoot game;
+        assert(game.select_profile(2));
+        game.install_activity_select(std::make_unique<Instruction>());
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture(),true
+        };
+        game.set_outer_state(State::SharedMovieTransition);
+        const auto blocked=session.tick({},false,false);
+        assert(blocked.failure);
+        assert(blocked.failure->stage==PhysicalPresentationStage::GameAdvance);
+    }
     fs::remove_all(directory);
 }
