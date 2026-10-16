@@ -412,6 +412,45 @@ bool HerdingEventSimulation::advance(
             return false;
         }
     }
+    // The original behavior-99 sprite update runs every animation
+    // frame even after delivery. Reject source attempts to mutate
+    // completed-animal position or re-enter an earlier route state.
+    for(const auto& probe:observed.delivered_animation_evidence) {
+        if(probe.entity_index==0 ||
+           probe.entity_index>=candidate.entities().size()) {
+            error="retail delivered animal animation references invalid entity";
+            return false;
+        }
+        const auto& before=candidate.entities()[probe.entity_index];
+        if(before.entity_id!=probe.before.entity_id ||
+           before.type!=probe.before.type ||
+           before.behavior_state!=99 ||
+           before.x!=probe.before.x || before.y!=probe.before.y ||
+           before.animation_frame!=probe.before.animation_frame ||
+           before.animation_frame_countdown!=
+               probe.before.animation_frame_countdown) {
+            error="delivered animal animation previous source state stale";
+            return false;
+        }
+        const auto expected=
+            herding::original_herding_delivered_animal_animation(before);
+        if(!expected) {
+            error="original delivered animal animation branch invalid";
+            return false;
+        }
+        const auto& after=observed.motion_records[probe.entity_index];
+        if(after.behavior_state!=99 ||
+           after.direction!=4 ||
+           after.animation_frame!=expected->updated.animation_frame ||
+           after.animation_frame_countdown!=
+               expected->updated.animation_frame_countdown ||
+           after.x!=before.x || after.y!=before.y ||
+           after.x_float!=before.x_float ||
+           after.y_float!=before.y_float) {
+            error="native delivered sprite counters or stillness differ from retail";
+            return false;
+        }
+    }
     // Replay the original two-stage route from the PRE-FRAME entity
     // and its signed sprite anchor. A forged 10px arrival must never
     // deliver an animal or decrement the global count.
