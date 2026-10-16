@@ -23,9 +23,10 @@ int main() {
     fs::create_directories(root/"Data"/"SubGame1");
     {
         std::ofstream f(root/"Data"/"SubGame1"/"herd.txt");
-        // The original file starts with four fixed scene/setup pairs,
-        // then sentinel-separated 12/5/6/1 source coordinate groups.
-        f<<"0 0\n100 200\n250 300\n350 390\n";
+        // Original 0x00419600 consumes SIX fixed setup pairs before
+        // parsing sentinel-separated 12/5/6/1 coordinate groups.
+        f<<"0 0\n100 200\n250 300\n350 390\n"
+         <<"90 180\n120 240\n";
         constexpr int nav[][2]={
             {64,100},{800,100},{1300,100},{1300,200},
             {1300,900},{1000,900},{300,900},{64,900},
