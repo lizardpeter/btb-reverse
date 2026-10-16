@@ -122,4 +122,21 @@ std::optional<BinkFullIdctPixels> decode_original_quantized_block(
     compressed=cursor;
     return pixels;
 }
+std::optional<BinkFullIdctPixels> decode_bink_zero_ac_block(
+    LsbBitReader& compressed,
+    std::int16_t predecoded_dc) noexcept {
+    auto cursor=compressed;
+    // 0x30011B4C reads four AC-count bits. Zero jumps directly from
+    // 30012032 to 300122E7. The original routine clears its coefficient
+    // scratch space, preserving the preinitialized DC at output offset 0.
+    const auto count=cursor.read(4);
+    if(!count || *count!=0)return std::nullopt;
+    std::array<std::int16_t,64> coeff{};
+    coeff[0]=predecoded_dc;
+    // 0x3000F0ED reads the following four-bit quant selector.
+    const auto pixels=decode_original_quantized_block(cursor,coeff);
+    if(!pixels)return std::nullopt;
+    compressed=cursor;
+    return pixels;
+}
 } // namespace btb::bink32_recovered
