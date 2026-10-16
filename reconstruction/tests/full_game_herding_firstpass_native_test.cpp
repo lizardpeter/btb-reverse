@@ -112,6 +112,54 @@ int main() {
         native.commit_frame();
         native.rollback_frame(); // completed transaction cannot rewind
         assert(shared_rng.state()==after_first_rng);
+
+        // Follower insertion and its source-random voice MUST also
+        // roll back. Retry the same attempted Pickles/sheep contact:
+        // the same sheep must join exactly once, with the same roll.
+        entities=replayed.motion_records;
+        entities[0].x=entities[1].x+
+            (entities[1].source_left-entities[1].source_right)/2;
+        entities[0].y=entities[1].y+
+            (entities[1].source_bottom-entities[1].source_top)/2-
+            (entities[0].source_bottom-entities[0].source_top)+20;
+        entities[0].x_float=static_cast<float>(entities[0].x);
+        entities[0].y_float=static_cast<float>(entities[0].y);
+        const auto pre_join_rng=shared_rng.state();
+        fg::HerdingObservedFrame joining{},joined_again{};
+        assert(native.begin_frame(error));
+        assert(native.advance(data,{}, {},entities,joining,error));
+        const auto first_join=std::find_if(
+            joining.events.begin(),joining.events.end(),
+            [](const auto& e) {
+                return e.kind==fg::HerdingObservedKind::JoinFollower &&
+                       e.entity_index==1;
+            });
+        assert(first_join!=joining.events.end());
+        const auto first_join_voice=first_join->random_mod_2;
+        const auto after_join_rng=shared_rng.state();
+        assert(after_join_rng!=pre_join_rng);
+        native.rollback_frame();
+        assert(shared_rng.state()==pre_join_rng);
+        assert(native.begin_frame(error));
+        assert(native.advance(data,{}, {},entities,joined_again,error));
+        const auto second_join=std::find_if(
+            joined_again.events.begin(),joined_again.events.end(),
+            [](const auto& e) {
+                return e.kind==fg::HerdingObservedKind::JoinFollower &&
+                       e.entity_index==1;
+            });
+        assert(second_join!=joined_again.events.end());
+        assert(second_join->random_mod_2==first_join_voice);
+        assert(shared_rng.state()==after_join_rng);
+        native.commit_frame();
+        entities=joined_again.motion_records;
+        fg::HerdingObservedFrame following{};
+        assert(native.begin_frame(error));
+        assert(native.advance(data,{}, {},entities,following,error));
+        for(const auto& e:following.events)
+            assert(!(e.kind==fg::HerdingObservedKind::JoinFollower &&
+                     e.entity_index==1));
+        native.commit_frame();
         assert(native.unload(error));
     }
 
