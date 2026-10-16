@@ -132,9 +132,12 @@ ActivityFrameOutput HerdingDriver::advance(
         terminal_random_bit);
     completion_stage_=complete.stage;
     if (complete.action == herding::CompletionAction::PlayFinalLine) {
+        // Retail UpdateHerdingActivity sends both final Pickles
+        // line variants to the managed sound service with priority
+        // 0x5A (90), class 1. Do not reuse ordinary speech's 50.
         out.audio.push_back({
             AudioOperation::ManagedSoundId,{},
-            complete.sound_id,50,1
+            complete.sound_id,0x5a,1
         });
     } else if (complete.action ==
                herding::CompletionAction::ExitToPlayAgain) {
