@@ -1,6 +1,7 @@
 #pragma once
 
 #include "btb/full_game_herding_event_simulation.hpp"
+#include "btb/herding_source_tracked_targets.hpp"
 
 namespace btb::full_game {
 
@@ -31,5 +32,7 @@ private:
     // Retail's ordinary follower list uses first-vacant insertion,
     // and its food-change release loop consumes RNG in that order.
     std::vector<std::size_t> follower_indices_{};
+    herding::RetailTrackedTargetSlots tracked_slots_{};
+    int remaining_to_register_{};
 };
 } // namespace btb::full_game
