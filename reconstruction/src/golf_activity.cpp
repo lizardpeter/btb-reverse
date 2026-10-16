@@ -32,7 +32,8 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
 
     switch (state_) {
     case RoundState::Aim:
-        aim_ = clamp_aim(aim_ + input.aim_delta);
+        aim_ = clamp_aim(input.source_mouse_aim.value_or(aim_) +
+                         input.aim_delta);
         if (input.accept_aim) {
             state_ = RoundState::PowerMeter;
         }
