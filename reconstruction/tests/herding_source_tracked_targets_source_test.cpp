@@ -45,6 +45,22 @@ int main() {
     assert(remaining==0);
     assert(result.reached_registration_target);
 
+    // Actual 0x00419600 initial value of 0x50B31C is ZERO.
+    // The retail registration code decrements it into negatives
+    // while keeping the two source follower arrays independent.
+    h::RetailTrackedTargetSlots live{};
+    int native_counter=0;
+    result=live.admit_from_follower(
+        3,{0,0},{0,0},ordinary,native_counter);
+    assert(result.status==h::RetailTrackedAdmissionStatus::Inserted);
+    assert(native_counter==-1);
+    assert(!result.reached_registration_target);
+    result=live.admit_from_follower(
+        6,{0,0},{0,0},ordinary,native_counter);
+    assert(result.status==h::RetailTrackedAdmissionStatus::Inserted);
+    assert(native_counter==-2);
+    assert(!result.reached_registration_target);
+
     assert(!tracked.remove(99));
     assert(tracked.remove(3));
     assert(!tracked.contains(3));
