@@ -1040,6 +1040,7 @@ add_library(btb_recompiled_core STATIC
     src/golf_activity.cpp
     src/full_game_herding.cpp
     src/full_game_herding_event_simulation.cpp
+    src/herding_native_pickles_motion.cpp
     src/herding_behavior_bridge.cpp
     src/full_game_herding_presentation.cpp
     src/full_game_front_end.cpp
