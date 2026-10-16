@@ -4,6 +4,7 @@
 #include "btb/original_motion4.hpp"
 #include "btb/spud_maze_data.hpp"
 #include "btb/spud_maze_runtime.hpp"
+#include "btb/spud_maze_pilchard_native.hpp"
 
 #include <filesystem>
 #include <memory>
@@ -35,6 +36,12 @@ public:
         return repairs_remaining_;
     }
     [[nodiscard]] int timer() const noexcept { return timer_; }
+    [[nodiscard]] const spud_maze::PilchardNative& pilchard() const noexcept {
+        return pilchard_;
+    }
+    [[nodiscard]] const maze_spud_batch::CollisionState& hammer_state() const noexcept {
+        return hammer_;
+    }
 
 private:
     [[nodiscard]] ActivityFrameOutput draw() const;
@@ -44,6 +51,8 @@ private:
     int player_{-1};
     std::unique_ptr<spud_maze::Data> data_{};
     original_motion4::Player bob_{};
+    spud_maze::PilchardNative pilchard_{};
+    maze_spud_batch::CollisionState hammer_{};
     int total_repairs_{};
     int repairs_remaining_{};
     int repair_animation_frames_{}; // 0x005109F0: four-tick frame gate

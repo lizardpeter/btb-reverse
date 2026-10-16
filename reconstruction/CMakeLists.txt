@@ -1033,6 +1033,7 @@ add_library(btb_recompiled_core STATIC
     src/full_game_golf.cpp
     src/full_game_maze.cpp
     src/full_game_spud_maze.cpp
+    src/spud_maze_pilchard_native.cpp
     src/full_game_dino.cpp
     src/full_game_profile_screen_native.cpp
     src/golf_activity.cpp
@@ -1219,6 +1220,15 @@ add_test(NAME maze_package_pickup_source
 
 # Real native source Spud Maze initialization, five-screen graph, repair
 # population, bitmap presentation, countdown and no-fake-win teardown.
+# Source-backed Pilchard collision/hammer bridge linked to native game.
+add_executable(btb_spud_maze_pilchard_native_tests
+    tests/spud_maze_pilchard_native_test.cpp)
+target_link_libraries(btb_spud_maze_pilchard_native_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_spud_maze_pilchard_native_tests PRIVATE)
+add_test(NAME spud_maze_pilchard_native
+    COMMAND btb_spud_maze_pilchard_native_tests)
+
 add_executable(btb_full_game_spud_maze_native_tests
     tests/full_game_spud_maze_native_test.cpp)
 target_link_libraries(btb_full_game_spud_maze_native_tests PRIVATE

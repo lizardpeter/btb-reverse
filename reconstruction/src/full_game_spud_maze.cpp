@@ -15,9 +15,8 @@ class SpudMazeInputPort final : public original_motion4::IO {
 public:
     SpudMazeInputPort(const ActivityFrameInput& input,
                       ActivityFrameOutput& effects,
-                      int& pilchard_spawn_delay)
-        :input_(input),effects_(effects),
-         pilchard_spawn_delay_(pilchard_spawn_delay) {}
+                      spud_maze::PilchardNative& pilchard)
+        :input_(input),effects_(effects),pilchard_(pilchard) {}
 
     original_motion4::Input player_input(bool spud) override {
         if(!spud)
@@ -25,7 +24,8 @@ public:
         const auto bits=input_.directional_input_bits;
         return {
             (bits&0x02U)?1:(bits&0x01U)?-1:0,
-            (bits&0x08U)?1:(bits&0x04U)?-1:0,
+            // 0x004211A0: bit 8 is UP (-Y); bit 4 is DOWN (+Y).
+            (bits&0x08U)?-1:(bits&0x04U)?1:0,
             input_.pointer_button_held,input_.click_pulse
         };
     }
@@ -40,9 +40,11 @@ public:
         });
     }
     void spud_spawn_delay_reset() override {
-        // The original outer game resets Pilchard's future spawn timer
-        // on a Bob screen transition. Full Pilchard updates are pending.
-        pilchard_spawn_delay_=0;
+        // Exact 0x00423610 ResetPilchardSpawnDelay: phase 0, 500 ticks,
+        // including Easy mode where the initial -1 only disables the
+        // initial spawn. Moving screens restarts this independent timer.
+        pilchard_.phase=0;
+        pilchard_.spawn_wait=500;
     }
     float npc_distance_to_player(const original_motion4::Npc&) override {
         throw std::logic_error("Maze NPC interface in Spud Maze");
@@ -83,7 +85,7 @@ public:
 private:
     const ActivityFrameInput& input_;
     ActivityFrameOutput& effects_;
-    int& pilchard_spawn_delay_;
+    spud_maze::PilchardNative& pilchard_;
     bool repair_begun_{};
 };
 
@@ -168,6 +170,13 @@ bool SpudMazeDriver::initialize(int player,std::string& error) {
             throw std::runtime_error("invalid original Spud Maze timer");
         bob_=std::move(actor);
         data_=std::move(loaded);
+        pilchard_={};
+        pilchard_.spawn_wait=data_->spud_spawn_times[
+            static_cast<std::size_t>(difficulty_)];
+        hammer_={};
+        hammer_.hammer_held=true;
+        hammer_.current_screen=0;
+        hammer_.bob_direction=bob_.facing;
         player_=player;
         repairs_remaining_=damaged.repairs_remaining;
         total_repairs_=damaged.repairs_remaining;
@@ -223,6 +232,26 @@ ActivityFrameOutput SpudMazeDriver::draw() const {
         static_cast<int>(bob_.y)-41,
         Rect{frame*83,row*83,(frame+1)*83,(row+1)*83},true
     });
+    // Source Pilchard sheet is 6084x256: thirty-nine 156px animation
+    // columns with 128px direction bands (0x004227F0).
+    if(pilchard_.phase>=2 && pilchard_.screen==bob_.screen) {
+        const int col=std::clamp(pilchard_.animation_frame,0,38);
+        const int row=pilchard_.roaming_direction==3?1:0;
+        out.draws.push_back({
+            "Data\\SubGameSpudMaze\\pilchard.bmp",
+            static_cast<int>(pilchard_.x)-78,
+            static_cast<int>(pilchard_.y)-64,
+            Rect{col*156,row*128,(col+1)*156,(row+1)*128},true
+        });
+    }
+    if(!hammer_.hammer_held&&hammer_.hammer_dropped &&
+       hammer_.hammer.screen==bob_.screen) {
+        out.draws.push_back({
+            "Data\\SubGameSpudMaze\\hammer.bmp",
+            hammer_.hammer.x,hammer_.hammer.y-30,
+            std::nullopt,true
+        });
+    }
     // 0x004227F0 submits border after Bob and track repairs, then timer
     // and the original sequence of 20px hammer-icons.
     out.draws.push_back({
@@ -315,7 +344,7 @@ ActivityFrameOutput SpudMazeDriver::advance(
                 }
             }
         } else {
-            SpudMazeInputPort io(input,out,spawned_pilchard_delay_);
+            SpudMazeInputPort io(input,out,pilchard_);
             original_motion4::update_spud_maze_bob(bob_,io);
             if(io.repair_begun()) {
                 repair_animation_frames_=4;
@@ -323,8 +352,33 @@ ActivityFrameOutput SpudMazeDriver::advance(
                 bob_.animation=9;
             }
         }
+        // Retail 0x00423F40 calls the Pilchard source phase machine
+        // after updating Bob and drawing the active scene. Maintain a
+        // single live collision state for hammer possession/cooldown.
+        const spud_maze::PilchardBob bob{
+            bob_.screen,bob_.facing,bob_.x,bob_.y,
+            repair_cycles_remaining_>0
+        };
+        // 0x00423F40 draws/updates the scene (including retrieval of
+        // a previously dropped hammer) BEFORE UpdateSpudMazePilchard.
+        // Do not permit the newly dropped hammer to be recovered on the
+        // same physical frame as Pilchard's collision.
+        if(spud_maze::pickup_dropped_hammer(hammer_,bob))
+            bob_.repair_tool_engaged=true;
+        const auto pilot=spud_maze::update_pilchard_native(
+            pilchard_,hammer_,*data_,difficulty_,bob,
+            []{return static_cast<std::uint32_t>(std::rand());});
+        for(const auto& effect:pilot.sound_and_hammer) {
+            if(effect.op==maze_spud_batch::Op::PlayManagedSound)
+                out.audio.push_back({
+                    AudioOperation::ManagedSoundId,{},
+                    effect.argument,effect.priority,effect.arbitration
+                });
+        }
+        if(pilot.hammer_dropped)
+            bob_.repair_tool_engaged=false;
     } catch(const std::exception& e) {
-        out.fatal_error=std::string("Spud Maze source Bob: ")+e.what();
+        out.fatal_error=std::string("Spud Maze source Bob/Pilchard: ")+e.what();
         return out;
     }
     auto frame=draw();
@@ -334,6 +388,8 @@ ActivityFrameOutput SpudMazeDriver::advance(
 
 bool SpudMazeDriver::unload(std::string& error) {
     bob_={};
+    pilchard_={};
+    hammer_={};
     data_.reset();
     player_=-1;
     repairs_remaining_=0;
