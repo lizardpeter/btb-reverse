@@ -13,6 +13,14 @@
 
 namespace btb::full_game {
 
+// Retail PE32 `0x00428195..0x004281A5` pushes this exact
+// walkthrough blit origin and `0x004281D0` initializes the
+// independent DD7 playback surface at 282x179.
+inline constexpr int kOriginalWalkthroughMovieX=0x3f;
+inline constexpr int kOriginalWalkthroughMovieY=0x9d;
+inline constexpr int kOriginalWalkthroughMovieWidth=282;
+inline constexpr int kOriginalWalkthroughMovieHeight=179;
+
 // Interim retail-DLL-compatible playback: the native Bink
 // reconstruction can replace this provider without changing GameRoot.
 // The 2002 binkw32.dll is x86. x64 must never LoadLibrary it.
