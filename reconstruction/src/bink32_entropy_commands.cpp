@@ -57,4 +57,27 @@ std::optional<ExpandedBlockRun> expand_bink_value_commands(
     compressed=cursor;
     return result;
 }
+// x86 30010632..30010651:
+// cl = (high << 4)|low; if (cl & 0x80) cl = -(cl & 0x7f);
+// else cl &= 0x7f; cl += 0x80, store one unsigned byte.
+std::uint8_t combine_bink_signed_nibbles(
+    std::uint8_t high,std::uint8_t low) noexcept {
+    const auto packed=std::uint8_t(((high&15U)<<4)|(low&15U));
+    const auto magnitude=static_cast<unsigned>(packed&0x7fU);
+    return static_cast<std::uint8_t>(
+        packed&0x80U ? 128U-magnitude : 128U+magnitude);
+}
+std::optional<std::uint8_t> read_bink_signed_sample(
+    LsbBitReader& bits,
+    const DynamicHuffmanTree& high_tree,
+    const DynamicHuffmanTree& low_tree) noexcept {
+    auto probe=bits;
+    const auto high=read_dynamic_huffman_symbol(probe,high_tree);
+    if(!high)return std::nullopt;
+    const auto low=read_dynamic_huffman_symbol(probe,low_tree);
+    if(!low)return std::nullopt;
+    const auto sample=combine_bink_signed_nibbles(high->value,low->value);
+    bits=probe;
+    return sample;
+}
 } // namespace btb::bink32_recovered
