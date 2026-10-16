@@ -1,4 +1,5 @@
 #include "btb/bink32_entropy_commands.hpp"
+#include "btb/bink32_block_modes.hpp"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -104,6 +105,37 @@ int main() {
         LsbBitReader incomplete{std::span<const std::uint8_t>{}};
         CHECK(!read_bink_signed_sample(incomplete,tree,tree));
         CHECK(incomplete.bit_position()==0);
+    }
+    {
+        // Original entropy command: direct 4-bit mode 6 (Fill) repeated
+        // across a decoded block-type bundle, then composed to pixels.
+        Writer encoded;
+        encoded.write(1,1);encoded.write(6,4);
+        LsbBitReader bits(encoded.bytes);
+        const auto modes=decode_bink_block_mode_values(bits,tree,2);
+        CHECK(modes && modes->values.size()==2);
+        CHECK(modes->values[0]==6 && modes->values[1]==6);
+        CHECK(modes->statistics.filled_remainder);
+        CHECK(bits.bit_position()==5);
+        std::array<BinkBlockCommand,2> commands{};
+        for(std::size_t i=0;i<2;++i) {
+            commands[i].mode=static_cast<BinkBlockMode>(modes->values[i]);
+            commands[i].fill=44;
+        }
+        const auto plane=compose_bink_mode_plane(16,8,commands);
+        CHECK(plane && plane->pixels.size()==128);
+        CHECK(std::all_of(plane->pixels.begin(),plane->pixels.end(),
+                          [](auto value){return value==44;}));
+        // Alphabet literals 10 and 11 are not supported Bink1 modes.
+        Writer invalid;invalid.write(1,1);invalid.write(10,4);
+        LsbBitReader bad_bits(invalid.bytes);
+        CHECK(!decode_bink_block_mode_values(bad_bits,tree,2));
+        CHECK(bad_bits.bit_position()==0);
+        LsbBitReader empty_bits(std::span<const std::uint8_t>{});
+        CHECK(!decode_bink_block_mode_values(empty_bits,tree,2));
+        CHECK(empty_bits.bit_position()==0);
+        CHECK(!decode_bink_block_mode_values(bits,tree,0));
+        CHECK(bits.bit_position()==5);
     }
     std::puts("Bink original value-run command expansion: PASS");
 }
