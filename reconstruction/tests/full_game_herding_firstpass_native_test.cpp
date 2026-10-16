@@ -147,7 +147,10 @@ int main() {
                 animal,hero,0);
         assert(following && !following->holds_formation_position);
         assert(following->source_formation_target.x==445);
-        assert(following->source_formation_target.y==560);
+        // The retail float radian constant is slightly larger than
+        // mathematical pi/180. At 270 degrees this moves target Y
+        // a fraction below 560, and original FTOL truncates to 559.
+        assert(following->source_formation_target.y==559);
         assert(following->moved.movement_speed>0.f);
         assert(following->moved.x_float<animal.x_float);
         // The formation slot applies two different spacing formulas:
