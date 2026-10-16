@@ -341,8 +341,10 @@ END
         assert(driver->player()->screen==1);
         move(0x02); // linked node9 captured -> West; first box
         assert(driver->player()->screen==0);
-        assert(driver->boxes().remaining==3);
-        move(0x02); // West node0 -> middle node8; two center boxes
+        // Both Middle-screen packages were captured on the initial
+        // source player step. West adds one, leaving only East.
+        assert(driver->boxes().remaining==1);
+        move(0x02); // West node0 -> middle node8; already empty boxes
         assert(driver->player()->screen==1);
         assert(driver->boxes().remaining==1);
         for(int step=0;step<3;++step)move(0x01);
