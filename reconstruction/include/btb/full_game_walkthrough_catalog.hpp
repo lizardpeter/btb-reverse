@@ -16,6 +16,40 @@ namespace btb::full_game {
 inline constexpr std::size_t kRetailWalkthroughCount = 10;
 inline constexpr std::size_t kRetailSubHelpCount = 3;
 
+// Retail UpdateWalkthroughMovie (0x00428120) checks the ORIGINAL
+// pointer region (49,140)-(365,350), strictly excluding its edges.
+// The enclosing dispatcher writes DAT_00446FD8 for each pregame
+// case (0x0042AAED..0x0042C84E), in binkwalk.txt movie-index order.
+// Narration is sound priority 0x5A, class 1 and must not start
+// when ANY managed sound is already playing.
+inline constexpr std::array<int,kRetailWalkthroughCount>
+    kRetailWalkthroughHoverVoiceIds{{
+        0x1f5, // 0  Pets Corner
+        0x1f0, // 1  Dinosaur
+        0x1f9, // 2  Spud Skate
+        0x1fa, // 3  Spud Maze
+        0x1e9, // 4  Maze
+        0x1e8, // 5  Golf
+        0x1f3, // 6  Fireworks
+        0x1f7, // 7  Squirrel
+        0x1f4, // 8  Bob's Band
+        0x1f1, // 9  Park Designer
+    }};
+
+[[nodiscard]] constexpr std::optional<int>
+retail_walkthrough_hover_voice(
+    int movie_index,int pointer_x,int pointer_y,
+    bool any_managed_sound_playing) noexcept {
+    if(movie_index<0 ||
+       movie_index>=static_cast<int>(kRetailWalkthroughCount) ||
+       any_managed_sound_playing ||
+       !(pointer_x>0x31 && pointer_x<0x16d &&
+         pointer_y>0x8c && pointer_y<0x15e))
+        return std::nullopt;
+    return kRetailWalkthroughHoverVoiceIds[
+        static_cast<std::size_t>(movie_index)];
+}
+
 struct WalkthroughEntry {
     std::string movie{};
     std::string spoken_help{};
