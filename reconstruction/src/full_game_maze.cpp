@@ -1,5 +1,6 @@
 #include "btb/full_game_maze.hpp"
 #include "btb/maze_presentation.hpp"
+#include "btb/maze_controller.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -284,11 +285,21 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
         });
         lowtime_voice_queued_=true;
     }
-    if(remaining_seconds_<0) {
+    const auto ending=maze::classify_end_condition(
+        boxes_.remaining,remaining_seconds_,0);
+    if(ending!=maze::EndCondition::None) {
         if(exit_phase_==0) {
+            const auto feedback=maze::begin_outcome_feedback(
+                ending,remaining_seconds_);
+            if(!feedback) {
+                out.fatal_error="original Maze outcome gate unavailable";
+                return out;
+            }
             out.audio.push_back({AudioOperation::StopManagedSounds});
             out.audio.push_back({
-                AudioOperation::ManagedSoundId,{},0x56,90,1
+                AudioOperation::ManagedSoundId,{},
+                feedback->sound_id,feedback->priority,
+                feedback->arbitration_class
             });
             exit_phase_=1;
             return out;
@@ -298,20 +309,30 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
             exit_phase_=2;
             return out;
         }
-        // The real 0x0041D4D0 timeout path has no Maze success flag.
-        // Returning to the source Play Again state is not fabricated
-        // victory/progress.
+        // Original 0x0041D4D0 only writes this player's Maze progress
+        // after collecting the full 4/8/12 real package bank. Timeout
+        // leaves it unchanged. The shared Golf-adjacent movie code is
+        // computed by GameRoot from the same real player progress table.
+        if(ending==maze::EndCondition::Success)
+            out.progress_writes.push_back({progress::Slot::Maze,1});
         out.save_and_unload=true;
         out.next_outer_state=
             static_cast<int>(game_flow::State::PlayAgainYesNoSetup);
         out.next_saved_state=static_cast<int>(game_flow::State::MazeInit);
         out.next_replay_class=1;
+        out.next_ui_context=maze::kMazePlayAgainUiContext;
         return out;
     }
     try {
         MazePlayerPort io(input,out,player_,input_mode_,
                           mouse_debounce_,pointer_sampled_);
         original_motion4::update_maze_player(player_,io);
+        // Source player 0x0041B140 scans all active-screen boxes *after*
+        // computing movement; it picks up status=1 boxes at the original
+        // strict <46 pixel radius and decrements the same source total
+        // used by the completion gate on the NEXT frame.
+        (void)maze::pickup_source_packages(
+            boxes_,*data_,player_.screen,player_.x,player_.y);
     } catch(const std::exception& e) {
         out.fatal_error=std::string("original Maze player motion: ")+e.what();
         return out;

@@ -152,6 +152,14 @@ void GameRoot::apply_effects(
             const auto index = static_cast<std::size_t>(write.slot);
             if (index < record.values.size()) {
                 record.values[index] = write.value;
+                // 0x0041D4D0 checks the immediately adjacent Golf progress
+                // slot on a genuine Maze win. If Golf is also complete,
+                // retail selects shared post-game transition movie code 3;
+                // otherwise the original sentinel remains -1.
+                if (write.slot == progress::Slot::Maze && write.value == 1) {
+                    globals_.shared_completion_code =
+                        record.get(progress::Slot::Golf) == 1 ? 3 : -1;
+                }
             }
         }
     }
