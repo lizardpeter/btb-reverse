@@ -423,6 +423,92 @@ int main(int argc,char**argv) {
         CHECK(!decode_bink_simple_picture_luma(
             clipped,8,8,previous));
     }
+    {
+        // True compressed Bink1 INTRA block with no AC coefficients.
+        // Its independent 8x8 IDCT uses the 2002 original quant DC
+        // multiplier 0x10000: DC=8 -> 8*32/256 = 1 pixel.
+        Bits encoded;trees(encoded);
+        encoded.put(1,10);encoded.put(1,1);encoded.put(5,4);
+        encoded.put(0,9); // 8-wide scaled subtype pool
+        encoded.put(0,10); // colors
+        encoded.put(0,10); // patterns
+        encoded.put(0,10);encoded.put(0,10); // motion
+        encoded.put(1,10);encoded.put(8,11); // unsigned intra DC=8
+        encoded.put(0,10); // inter DC
+        encoded.put(0,10); // run
+        encoded.put(0,4);encoded.put(0,4); // zero AC, selector 0
+        const auto image=decode_bink_simple_picture_luma(
+            packet(encoded),8,8);
+        CHECK(image && image->mode_counts[5]==1);
+        CHECK(std::all_of(image->image.pixels.begin(),
+                          image->image.pixels.end(),
+                          [](auto p){return p==1;}));
+        // Nonzero AC requires a complete 8x8 transform. Fail
+        // closed instead of substituting the 2x scaled iDCT.
+        Bits ac=encoded;
+        ac.bits-=8;ac.bytes.resize((ac.bits+7)/8);
+        // The prior quantized DCT bits must be replaced, not
+        // appended after the original eight-bit zero-AC header.
+        for(unsigned n=0;n<8;++n) {
+            const auto bit=ac.bits+n;
+            if(bit/8<ac.bytes.size())
+                ac.bytes[bit/8]&=static_cast<std::uint8_t>(
+                    ~(1U<<(bit%8)));
+        }
+        ac.put(1,4);
+        for(unsigned n=0;n<3;++n)ac.put(0,1);
+        ac.put(1,1);ac.put(0,1); // scan1 coefficient +1
+        ac.put(0,1);ac.put(0,1);
+        ac.put(0,4);
+        CHECK(!decode_bink_simple_picture_luma(packet(ac),8,8));
+    }
+    {
+        // INTER DCT: source X/Y motion prediction is copied first,
+        // then a zero-AC signed DC residual is added modulo 256.
+        Bits encoded;trees(encoded);
+        encoded.put(1,10);encoded.put(1,1);encoded.put(7,4);
+        encoded.put(0,9);
+        encoded.put(0,10);encoded.put(0,10);
+        for(unsigned axis=0;axis<2;++axis) {
+            encoded.put(1,10);encoded.put(1,1);encoded.put(0,4);
+        }
+        encoded.put(0,10); // intra DC
+        encoded.put(1,10);encoded.put(8,10);encoded.put(0,1);
+        encoded.put(0,10); // run
+        encoded.put(0,4);encoded.put(0,4); // zero AC, quant 0
+        std::vector<std::uint8_t> prior(64,255);
+        const auto frame=decode_bink_simple_picture_luma(
+            packet(encoded),8,8,prior);
+        CHECK(frame && frame->mode_counts[7]==1);
+        CHECK(std::all_of(frame->image.pixels.begin(),
+                          frame->image.pixels.end(),
+                          [](auto p){return p==0;})); // 255+1 wraps
+        CHECK(!decode_bink_simple_picture_luma(packet(encoded),8,8));
+        CHECK(std::all_of(prior.begin(),prior.end(),
+                          [](auto p){return p==255;}));
+    }
+    {
+        // A scaled 16x16 INTRA DC-only DCT uses a single 8x8
+        // intra coefficient payload, doubled through the established
+        // source-exact 16x16 nearest-neighbor pixel compositor.
+        Bits encoded;trees(encoded);
+        encoded.put(2,10);encoded.put(1,1);encoded.put(1,4);
+        encoded.put(1,10);encoded.put(1,1);encoded.put(5,4);
+        encoded.put(0,10);encoded.put(0,10);
+        encoded.put(0,10);encoded.put(0,10);
+        encoded.put(1,10);encoded.put(8,11);
+        encoded.put(0,10);encoded.put(0,10);
+        encoded.put(0,4);encoded.put(0,4);
+        encoded.put(0,10); // second row subtype closes
+        encoded.put(0,10); // second row intra DC closes
+        const auto scaled=decode_bink_simple_picture_luma(
+            packet(encoded),16,16);
+        CHECK(scaled && scaled->mode_counts[1]==2);
+        CHECK(scaled->image.pixels.size()==256);
+        CHECK(std::all_of(scaled->image.pixels.begin(),
+                          scaled->image.pixels.end(),
+                          [](auto p){return p==1;}));
+    }
     // Optional original BIK smoke: count full compressed luma planes the
     // strict source-native subset supports, without embedding retail
     // assets or claiming original pixel parity from placeholder history.
