@@ -115,7 +115,8 @@ int main() {
         malformed.head=600;
         CHECK(!run_bink_ac_command_pass(bits,malformed,values,7,8));
         CHECK(bits.bit_position()==0);
-        CHECK(!run_bink_ac_command_pass(bits,initial_bink_ac_pending(),values,7,8));
+        auto valid=initial_bink_ac_pending();
+        CHECK(!run_bink_ac_command_pass(bits,valid,values,32,8));
         // Large requested seed is rejected rather than overflowing.
         std::array<std::uint8_t,257> huge{};
         CHECK(!make_bink_ac_pending(huge));
