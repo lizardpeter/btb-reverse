@@ -5,6 +5,7 @@
 #include "btb/bink32_yuva_frame.hpp"
 #include "btb/bink32_container.hpp"
 #include "btb/bink32_packet_decode.hpp"
+#include <algorithm>
 #include <array>
 #include <charconv>
 #include <cstddef>
@@ -16,6 +17,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <vector>
 
 using namespace btb::bink32_recovered;
