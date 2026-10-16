@@ -4,6 +4,7 @@
 #include "btb/herding_source_pickles_animation.hpp"
 #include "btb/herding_source_far_roam.hpp"
 #include "btb/herding_source_attraction.hpp"
+#include "btb/herding_source_temporary_target.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -160,6 +161,58 @@ int main() {
             assert(e.follower_release_random[1].y_mod_400<400);
         }
         assert(released_on_food_change);
+        // The recovered event machine sets a 200-tick escape target
+        // on the released sheep. Feed that genuine record transition
+        // back to the native source on its next frame: do not pretend
+        // a food-change itself moves the animal immediately.
+        animals=observation.motion_records;
+        animals[1].temporary_target_timer=200;
+        animals[1].target_x=1000;
+        animals[1].target_y=800;
+        const auto release_before=animals[1];
+        const auto predicted=
+            btb::herding::original_herding_temporary_target_update(
+                release_before);
+        assert(predicted && predicted->branch_taken);
+        assert(!predicted->early_return);
+        assert(native.advance(data,{}, {},animals,observation,error));
+        assert(observation.temporary_target_evidence.size()==1);
+        const auto& escape=observation.motion_records[1];
+        assert(escape.x==predicted->moved.x &&
+               escape.y==predicted->moved.y);
+        assert(escape.x_float==predicted->moved.x_float &&
+               escape.y_float==predicted->moved.y_float);
+        assert(escape.movement_speed==3.f);
+        assert(escape.temporary_target_timer==199);
+        for(const auto& e:observation.events)
+            assert(!(e.kind==fg::HerdingObservedKind::JoinFollower &&
+                     e.entity_index==1));
+
+        // With only one timeout tick remaining the source decrements
+        // 1 -> 0 before ordinary animal AI, without stale target motion.
+        animals=observation.motion_records;
+        animals[1].temporary_target_timer=1;
+        const auto expired_before=animals[1];
+        assert(native.advance(data,{}, {},animals,observation,error));
+        assert(observation.motion_records[1].temporary_target_timer==0);
+        assert(observation.temporary_target_evidence.empty());
+        // The animal may take its ordinary far-roam step on this
+        // very frame, but it cannot use the obsolete escape heading.
+        const auto& expired=observation.motion_records[1];
+        assert(expired.movement_speed!=3.f ||
+               expired.x!=expired_before.x ||
+               expired.y!=expired_before.y);
+
+        // A target inside the original STRICT 120px gate clears the
+        // temporary timer immediately on completion.
+        animals=observation.motion_records;
+        animals[1].temporary_target_timer=200;
+        animals[1].target_x=animals[1].x+30;
+        animals[1].target_y=animals[1].y+30;
+        assert(native.advance(data,{}, {},animals,observation,error));
+        assert(observation.temporary_target_evidence.size()==1);
+        assert(observation.temporary_target_evidence.front().source_returned_early);
+        assert(observation.motion_records[1].temporary_target_timer==0);
         assert(native.unload(error));
     }
     std::srand(123);
