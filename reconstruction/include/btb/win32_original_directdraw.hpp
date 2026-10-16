@@ -62,6 +62,16 @@ public:
         return backbuffer_;
     }
 
+    // Bink movie frames decode into source-sized offscreen DD7 surfaces.
+    // Caller owns returned COM reference, and presents it only after
+    // source bitmap draws (the 600x380 Spud Skate viewport is at 20,20).
+    [[nodiscard]] bool create_bink_offscreen_surface(
+        int width,int height,IDirectDrawSurface7*& output,
+        std::string& error);
+    [[nodiscard]] bool blit_bink_offscreen_surface(
+        IDirectDrawSurface7* source,int width,int height,
+        int x,int y,std::string& error);
+
 private:
     struct OriginalSurface {
         IDirectDrawSurface7* surface{};
