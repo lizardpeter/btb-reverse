@@ -172,6 +172,7 @@ bool SpudMazeDriver::initialize(int player,std::string& error) {
         repairs_remaining_=damaged.repairs_remaining;
         total_repairs_=damaged.repairs_remaining;
         repair_animation_frames_=0;
+        repair_cycles_remaining_=0;
         timer_origin_=-1;
         spawned_pilchard_delay_=data_->spud_spawn_times[
             static_cast<std::size_t>(difficulty_)];
@@ -290,22 +291,35 @@ ActivityFrameOutput SpudMazeDriver::advance(
         return out;
     }
     try {
-        if(repair_animation_frames_>0) {
-            --repair_animation_frames_;
-            if(repair_animation_frames_==0) {
-                bob_.hazard_lock=false;
-                bob_.animation=0;
-                if(repairs_remaining_<=0)
-                    throw std::logic_error("retail Spud Maze repair counter underflow");
-                --repairs_remaining_;
+        if(repair_cycles_remaining_>0) {
+            // Exact active-repair branch in original 0x00422400:
+            // 0x005109F0 gates every four frames; frame 9 advances
+            // through 14 and wraps to 9 while 0x00514514 counts down
+            // its FIVE full passes. Only the final wrap decrements the
+            // damaged-track counter 0x005144C8.
+            if(--repair_animation_frames_<1) {
+                repair_animation_frames_=4;
+                if(bob_.animation<14) {
+                    ++bob_.animation;
+                } else if(--repair_cycles_remaining_>0) {
+                    bob_.animation=9;
+                } else {
+                    bob_.hazard_lock=false;
+                    bob_.animation=0;
+                    repair_animation_frames_=0;
+        repair_cycles_remaining_=0;
+                    if(repairs_remaining_<=0)
+                        throw std::logic_error(
+                            "retail Spud Maze repair counter underflow");
+                    --repairs_remaining_;
+                }
             }
         } else {
             SpudMazeInputPort io(input,out,spawned_pilchard_delay_);
             original_motion4::update_spud_maze_bob(bob_,io);
             if(io.repair_begun()) {
-                // 0x00422400 advances fifteen animation frames plus the
-                // five source completion substeps at a four-frame delay.
-                repair_animation_frames_=20*4;
+                repair_animation_frames_=4;
+                repair_cycles_remaining_=5;
                 bob_.animation=9;
             }
         }
