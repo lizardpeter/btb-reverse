@@ -954,6 +954,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_ac_block_pixels.cpp
     src/bink32_dc_stream.cpp
     src/bink32_block_modes.cpp
+    src/bink32_video_planes.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1788,6 +1789,13 @@ add_executable(btb_bink32_block_modes_tests tests/bink32_block_modes_test.cpp)
 target_link_libraries(btb_bink32_block_modes_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_block_modes_tests PRIVATE)
 add_test(NAME bink32_block_modes_pixels COMMAND btb_bink32_block_modes_tests)
+
+# Stateful original Bink per-plane compositor: Y/U/V decode is atomic,
+# reference-frame history resets on keyframes and rejects malformed motion.
+add_executable(btb_bink32_video_planes_tests tests/bink32_video_planes_test.cpp)
+target_link_libraries(btb_bink32_video_planes_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_video_planes_tests PRIVATE)
+add_test(NAME bink32_video_planes_history COMMAND btb_bink32_video_planes_tests)
 
 
 
