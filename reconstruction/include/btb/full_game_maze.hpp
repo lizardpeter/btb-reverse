@@ -2,6 +2,7 @@
 
 #include "btb/full_game_runtime.hpp"
 #include "btb/maze_data.hpp"
+#include "btb/maze_input.hpp"
 #include "btb/maze_box_layout.hpp"
 #include "btb/original_motion4.hpp"
 
@@ -46,6 +47,9 @@ private:
     std::unique_ptr<maze::Data> data_{};
     original_motion4::Player player_{};
     maze::BoxAllocation boxes_{};
+    maze::InputModeState input_mode_{};
+    maze::DirectionalDebounce mouse_debounce_{};
+    bool pointer_sampled_{};
     int remaining_seconds_{};
     int started_centiseconds_{};
     bool intro_voice_queued_{};
