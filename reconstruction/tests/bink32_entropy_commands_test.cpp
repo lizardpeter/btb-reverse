@@ -82,5 +82,28 @@ int main() {
     const auto var=expand_bink_value_commands(r5,identity(1),one);
     CHECK(var&&var->huffman_symbols==1&&one[0]==5);
     CHECK(r5.bit_position()==1+width);
+    // Original 30010632..30010651 signed-magnitude nibble composition.
+    CHECK(combine_bink_signed_nibbles(0,0)==128);
+    CHECK(combine_bink_signed_nibbles(7,15)==255);
+    CHECK(combine_bink_signed_nibbles(8,0)==128); // negative zero
+    CHECK(combine_bink_signed_nibbles(8,1)==127);
+    CHECK(combine_bink_signed_nibbles(15,15)==1);
+    for(unsigned h=0;h<16;++h)for(unsigned l=0;l<16;++l) {
+        const auto raw=(h<<4)|l;
+        const auto magnitude=raw&127;
+        const auto expected=raw&128?128-magnitude:128+magnitude;
+        CHECK(combine_bink_signed_nibbles(h,l)==expected);
+    }
+    {
+        // Produce byte 127 from two genuine four-bit Huffman codewords.
+        Writer signed_value;signed_value.write(8,4);signed_value.write(1,4);
+        LsbBitReader sample_bits(signed_value.bytes);
+        const auto sample=read_bink_signed_sample(sample_bits,tree,tree);
+        CHECK(sample&&*sample==127&&sample_bits.bit_position()==8);
+        // Truncated second nibble must leave source bit cursor unchanged.
+        LsbBitReader incomplete(std::span<const std::uint8_t>());
+        CHECK(!read_bink_signed_sample(incomplete,tree,tree));
+        CHECK(incomplete.bit_position()==0);
+    }
     std::puts("Bink original value-run command expansion: PASS");
 }
