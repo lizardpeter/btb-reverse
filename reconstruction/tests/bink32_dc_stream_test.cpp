@@ -354,5 +354,49 @@ int main() {
             truncated,4,11,true));
         CHECK(truncated.bit_position()==2);
     }
+    {
+        // Production-shaped context setup recovered from 3000FC00:
+        // source call uses (base 0x200, width 64, symbol bits 11,
+        // multiplier 1, signed first-value flag true).
+        // Context's count-width is computed, not manually supplied.
+        const auto context=init_entropy_plane(
+            0,0x200,64,11,1,true);
+        CHECK(context.table_bit_width==10);
+        CHECK(context.symbol_bits==11&&context.prefix_mask==0x400);
+        TestBits encoded;
+        encoded.put(3,context.table_bit_width);
+        encoded.put(100,10);encoded.put(0,1); // initial 100
+        encoded.put(2,4);
+        encoded.put(1,2);encoded.put(0,1); // +1
+        encoded.put(2,2);encoded.put(1,1); // -2
+        auto bits=encoded.reader();
+        const auto decoded=decode_original_bink_dc_context_packet(
+            bits,context);
+        CHECK(decoded&&decoded->final_sample==99);
+        CHECK(decoded->consumed_bits==31&&encoded.bit_count==31);
+        CHECK(bits.bit_position()==31);
+        BinkDcWordStream words{decoded->signed_words_le,0};
+        CHECK(read_original_bink_dc_word(words)==100);
+        CHECK(read_original_bink_dc_word(words)==101);
+        CHECK(read_original_bink_dc_word(words)==99);
+        CHECK(words.remaining_words()==0);
+        // Signedness must depend on the original context flag.
+        const auto unsigned_ctx=init_entropy_plane(
+            0,0x200,64,11,1,false);
+        CHECK(unsigned_ctx.prefix_mask==0);
+        TestBits unsigned_input;
+        unsigned_input.put(1,unsigned_ctx.table_bit_width);
+        unsigned_input.put(1023,11);
+        auto u=unsigned_input.reader();
+        const auto uv=decode_original_bink_dc_context_packet(
+            u,unsigned_ctx);
+        CHECK(uv&&uv->final_sample==1023);
+        CHECK(u.bit_position()==21);
+        // Malformed context must not advance compressed input.
+        auto invalid=encoded.reader();
+        EntropyPlaneSetup bad_ctx{};
+        CHECK(!decode_original_bink_dc_context_packet(invalid,bad_ctx));
+        CHECK(invalid.bit_position()==0);
+    }
     std::puts("Bink original predecoded DC stream -> AC/quant IDCT 16x16 pixels: PASS");
 }
