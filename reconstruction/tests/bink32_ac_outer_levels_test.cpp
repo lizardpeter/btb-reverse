@@ -31,9 +31,9 @@ int main() {
         for(unsigned i=1;i<64;++i)CHECK(coeff[i]==0);
     }
     // Each level's original command seed contains six commands. Zero
-    // activation bits leave every control untouched, so modes 1..6
+    // activation bits leave every control untouched, so modes 1..15
     // have exactly (mode-1) magnitude passes and one unit pass.
-    for(unsigned mode=1;mode<=6;++mode) {
+    for(unsigned mode=1;mode<=15;++mode) {
         Writer w;w.put(mode,4);
         for(unsigned i=0;i<mode*6;++i)w.put(0,1);
         auto bits=w.reader();
@@ -62,22 +62,39 @@ int main() {
         CHECK(coeff[3]==-1&&bits.bit_position()==11);
     }
     {
-        // Mode4: first pass has low bit count=7 and class bit=8.
-        // It writes coefficient index3 from a 7-bit low magnitude.
-        // The next two magnitude passes and unit pass are inactive.
+        // Directly verified from 30011BE8/30011BF4: mode 4's
+        // EAX bitcounts are 3,2,1 (NOT the earlier wrong 7,6,5).
+        // Class bits are 8,4,2. Here only initial width-3/bit-8
+        // command #6 activates, producing 8|5 = 13.
         Writer w;w.put(4,4);
-        w.put(0,5);w.put(1,1);w.put(0x52,7);w.put(0,1);
+        w.put(0,5);w.put(1,1);w.put(5,3);w.put(0,1);
         w.put(0,5);w.put(0,5);w.put(0,5);
         auto bits=w.reader();
         std::array<std::int16_t,64> coeff{};
         const auto r=decode_bink_ac_outer_levels(bits,coeff);
         CHECK(r&&r->mode==4&&r->magnitude_passes==3);
-        CHECK(r->written_coefficients==1&&coeff[3]==90);
-        CHECK(bits.bit_position()==33&&r->consumed_bits==33);
+        CHECK(r->written_coefficients==1&&coeff[3]==13);
+        CHECK(bits.bit_position()==29&&r->consumed_bits==29);
     }
     {
-        // Modes7..15 have EAX shift-width rollover in x86 and
-        // are deliberately not supported by this bounded routine.
+        // Highest possible nibble: mode 15 is valid because EAX
+        // starts at 14, then descends through 1 (no shift rollover).
+        // The independently shifted class WORD starts at 0x4000.
+        Writer w;w.put(15,4);
+        w.put(0,5);w.put(1,1);w.put(0x1234,14);w.put(1,1);
+        for(unsigned level=1;level<14;++level)w.put(0,5);
+        w.put(0,5); // final signed-unit pass
+        auto bits=w.reader();
+        std::array<std::int16_t,64> coeff{};
+        const auto r=decode_bink_ac_outer_levels(bits,coeff);
+        CHECK(r&&r->mode==15&&r->magnitude_passes==14);
+        CHECK(r->written_coefficients==1);
+        CHECK(coeff[3]==-static_cast<int>(0x4000|0x1234));
+        CHECK(bits.bit_position()==95&&r->consumed_bits==95);
+    }
+    {
+        // Every mode requires more than one byte of source bits.
+        // Malformed truncated streams must roll back, even for 7..15.
         for(unsigned mode=7;mode<=15;++mode) {
             Writer w;w.put(mode,4);
             auto bits=w.reader();
@@ -99,5 +116,5 @@ int main() {
         std::array<std::int16_t,63> short_dest{};
         CHECK(!decode_bink_ac_outer_levels(bits,short_dest));
     }
-    std::puts("Bink original 4-bit AC mode + magnitude levels 0..6: PASS");
+    std::puts("Bink original 4-bit AC mode + magnitude levels 0..15: PASS");
 }
