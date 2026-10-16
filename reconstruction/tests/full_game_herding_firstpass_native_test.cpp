@@ -9,6 +9,7 @@
 #include "btb/herding_source_follower_approach.hpp"
 #include "btb/herding_source_home_motion.hpp"
 #include "btb/herding_source_delivered_animation.hpp"
+#include "btb/herding_retail_rect_contact.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -385,6 +386,73 @@ int main() {
             assert(!(event.kind==fg::HerdingObservedKind::ReachHomeWaypoint &&
                      event.entity_index==1));
         assert(motion.unload(error));
+    }
+    // Medium/Hard: source animal-FIRST rectangle collision really
+    // releases an ordinary follower when Scruffty crosses it. Test
+    // uses the actual initialized sprite rectangles and patrol.
+    {
+        std::ifstream infile(root/"Data"/"SubGame1"/"herd.txt");
+        assert(infile.good());
+        auto data=btb::herding::parse_data(infile);
+        fg::NativePicklesMotionSource native{};
+        std::vector<btb::herding::RetailEntityRecord32> animals{};
+        std::string error{};
+        std::srand(321);
+        assert(native.initialize(data,1,animals,error));
+        fg::HerdingObservedFrame frame{};
+        assert(animals.back().entity_type()==
+               btb::herding::EntityType::Scruffty);
+        // Retail food bag, then retail first sheep attraction.
+        animals[0].x=240; animals[0].y=414;
+        animals[0].x_float=240.f;animals[0].y_float=414.f;
+        assert(native.advance(data,{}, {},animals,frame,error));
+        animals=frame.motion_records;
+        animals[0].x=500; animals[0].y=520;
+        animals[0].x_float=500.f;animals[0].y_float=520.f;
+        assert(native.advance(data,{}, {},animals,frame,error));
+        bool followed=false;
+        for(const auto& event:frame.events)
+            followed|=event.kind==fg::HerdingObservedKind::JoinFollower &&
+                      event.entity_index==1;
+        assert(followed);
+        animals=frame.motion_records;
+        const auto& dog=animals.back();
+        animals[1].x=dog.x+5;
+        animals[1].y=dog.y+5;
+        animals[1].x_float=static_cast<float>(animals[1].x);
+        animals[1].y_float=static_cast<float>(animals[1].y);
+        assert(native.advance(data,{}, {},animals,frame,error));
+        int scruffty_events=0;
+        for(const auto& event:frame.events) {
+            if(event.kind!=fg::HerdingObservedKind::ScrufftyCollision)
+                continue;
+            ++scruffty_events;
+            assert(event.entity_index==1);
+            assert(event.retail_trigger_confirmed);
+            assert(event.retail_rect_contact);
+            assert(event.random_mod_400>=0 &&
+                   event.random_mod_400<400);
+            assert(event.source_verified_sound_id==0x250 ||
+                   event.source_verified_sound_id==0x251 ||
+                   event.source_verified_sound_id==0x264 ||
+                   event.source_verified_sound_id==0x266 ||
+                   event.source_verified_sound_id==0x267);
+            assert(event.retail_rect_contact->first==
+                btb::herding::original_herding_entity_rect(
+                    frame.motion_records[1]));
+            assert(event.retail_rect_contact->second==
+                btb::herding::original_herding_entity_rect(
+                    frame.motion_records.back()));
+        }
+        assert(scruffty_events==1);
+        // A removed ordinary follower cannot generate another
+        // collision/release by overlapping the same dog next tick.
+        animals=frame.motion_records;
+        assert(native.advance(data,{}, {},animals,frame,error));
+        for(const auto& event:frame.events)
+            assert(!(event.kind==fg::HerdingObservedKind::ScrufftyCollision &&
+                     event.entity_index==1));
+        assert(native.unload(error));
     }
     std::srand(123);
     for(int difficulty=0;difficulty<3;++difficulty) {
