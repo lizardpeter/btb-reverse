@@ -294,8 +294,8 @@ END
 west0 0 100 111 2 512 -1 -1 -1 -1
 NEXT_MiddleScreen
 mid8 8 247 278 10 0 -1 9 -1 10
-midWest 9 249 278 2 128 -1 -1 -1 -1
-midEast 10 245 278 8 256 -1 -1 -1 -1
+midWest 9 255 278 2 128 -1 -1 -1 -1
+midEast 10 239 278 8 256 -1 -1 -1 -1
 NEXT_EastScreen
 east0 0 100 111 2 0 -1 -1 -1 -1
 END
@@ -335,15 +335,19 @@ END
             assert(result.kind==fg::FrameKind::ActivityUpdated);
             assert(!result.effects.fatal_error);
         };
-        move(0x02); // middle node8 x247 -> x249
-        move(0x02); // node9 captured -> west node0; first box
+        // Original current-node capture is <=4, but linked-node
+        // capture is strict <4; do not teleport after only two steps.
+        for(int step=0;step<3;++step)move(0x02);
+        assert(driver->player()->screen==1);
+        move(0x02); // linked node9 captured -> West; first box
         assert(driver->player()->screen==0);
         assert(driver->boxes().remaining==3);
-        move(0x02); // west node0 -> middle node8, both center boxes
+        move(0x02); // West node0 -> middle node8; two center boxes
         assert(driver->player()->screen==1);
         assert(driver->boxes().remaining==1);
-        move(0x01); // middle node8 x247 -> x245
-        move(0x01); // node10 captured -> east node0; final box
+        for(int step=0;step<3;++step)move(0x01);
+        assert(driver->player()->screen==1);
+        move(0x01); // linked node10 captured -> East; final box
         assert(driver->player()->screen==2);
         assert(driver->boxes().remaining==0);
         auto feedback=source_game.advance({});
