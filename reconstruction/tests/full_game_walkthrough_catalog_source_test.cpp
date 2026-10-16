@@ -9,8 +9,8 @@ int main() {
     // Each constant comes from the corresponding original PE32
     // pregame dispatcher write to DAT_00446FD8 (0x42AAED..0x42C84E).
     constexpr std::array<int,10> original_voices{{
-        0x1f5,0x1f0,0x1f9,0x1fa,0x1e9,
-        0x1e8,0x1f3,0x1f7,0x1f4,0x1f1
+        0x1f5,0x1f0,0x1fa,0x1f9,0x1e8,
+        0x1e9,0x1f3,0x1f7,0x1f4,0x1f1
     }};
     for(int i=0;i<10;++i) {
         assert(retail_walkthrough_hover_voice(
