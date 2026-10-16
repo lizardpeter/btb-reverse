@@ -11,6 +11,7 @@
 #include "btb/herding_source_delivered_animation.hpp"
 #include "btb/herding_retail_rect_contact.hpp"
 #include "btb/herding_source_ordinary_following.hpp"
+#include "btb/herding_source_far_boundary_recovery.hpp"
 
 #include <algorithm>
 #include <array>
@@ -518,8 +519,30 @@ bool NativePicklesMotionSource::advance(
                 before,hero,nav);
             switch(step.coverage) {
             case herding::RetailFarAnimalRoamCoverage::NotCovered:
-            case herding::RetailFarAnimalRoamCoverage::RequiresOriginalBoundaryRecovery:
                 break;
+            case herding::RetailFarAnimalRoamCoverage::RequiresOriginalBoundaryRecovery: {
+                // Original UpdateHerdingActivity 0x419167 uses
+                // the single fourth coordinate group point and
+                // the already-advanced FLOAT position from the
+                // group-0-rejected free-roam candidate. Previously
+                // this branch silently left the animal motionless.
+                if(data.coordinate_groups.size()!=4 ||
+                   data.coordinate_groups[3].size()!=1) {
+                    error="original group-three animal recovery target missing";
+                    return false;
+                }
+                const auto point=data.coordinate_groups[3].front();
+                const auto recovery=
+                    herding::original_far_untracked_animal_boundary_recovery(
+                        before,step.animal,point);
+                if(!recovery) {
+                    error="source 0x419167 animal boundary movement invalid";
+                    return false;
+                }
+                observed.motion_records[i]=recovery->animal;
+                observed.far_boundary_evidence.push_back({i,before,point});
+                break;
+            }
             case herding::RetailFarAnimalRoamCoverage::AdvancedWithinPolygon:
                 observed.motion_records[i]=step.animal;
                 observed.far_roam_evidence.push_back({i,before});

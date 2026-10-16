@@ -138,10 +138,14 @@ original_far_untracked_animal_roam_step(
     if (!inside) {
         result.coverage=RetailFarAnimalRoamCoverage::InvalidInput;
     } else if (!*inside) {
-        // The subsequent 0x419167 group-3 recovery remains a separate
-        // branch. Do not commit a move or claim an accepted frame.
+        // The 0x419167 group-3 recovery begins AFTER applying this
+        // preliminary out-of-polygon float step. Return the stepped
+        // candidate solely to that branch, NEVER as an accepted
+        // ordinary roam. Otherwise the original accumulated floats
+        // and shared speed gain are lost at the boundary.
         result.coverage=
             RetailFarAnimalRoamCoverage::RequiresOriginalBoundaryRecovery;
+        result.animal=moved;
     } else {
         result.coverage=
             RetailFarAnimalRoamCoverage::AdvancedWithinPolygon;

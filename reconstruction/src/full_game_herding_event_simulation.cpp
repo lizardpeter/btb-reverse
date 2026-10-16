@@ -694,6 +694,69 @@ bool HerdingEventSimulation::advance(
         }
     }
 
+    // Source 0x419167 boundary recovery is a DIFFERENT update from
+    // the original group-2 random retry path. Independently replay
+    // the failed group-0 candidate AND the fixed one-point return
+    // steering. A source cannot skip group-0 rejection, replace its
+    // target with a synthetic point or invent an accepted inside move.
+    for(const auto& probe:observed.far_boundary_evidence) {
+        if(probe.entity_index==0 ||
+           probe.entity_index>=candidate.entities().size() ||
+           observed.motion_records.empty() ||
+           observed.motion_records.front().entity_type()!=
+               herding::EntityType::FarmerPickles ||
+           data_.coordinate_groups.size()!=4 ||
+           data_.coordinate_groups[3].size()!=1 ||
+           probe.group3_target!=data_.coordinate_groups[3].front()) {
+            error="invalid original group-three boundary source evidence";
+            return false;
+        }
+        const auto& original=candidate.entities()[probe.entity_index];
+        if(original.entity_id!=probe.before.entity_id ||
+           original.type!=probe.before.type ||
+           original.x!=probe.before.x ||
+           original.y!=probe.before.y ||
+           original.x_float!=probe.before.x_float ||
+           original.y_float!=probe.before.y_float ||
+           original.movement_speed!=probe.before.movement_speed ||
+           original.direction!=probe.before.direction) {
+            error="stale original animal pre-boundary entity";
+            return false;
+        }
+        const auto preliminary=
+            herding::original_far_untracked_animal_roam_step(
+                probe.before,observed.motion_records.front(),
+                data_.retail_transformed_group0());
+        if(preliminary.coverage!=
+               herding::RetailFarAnimalRoamCoverage::
+                   RequiresOriginalBoundaryRecovery) {
+            error="original free-roam frame never crossed group-zero polygon";
+            return false;
+        }
+        const auto verified=
+            herding::original_far_untracked_animal_boundary_recovery(
+                probe.before,preliminary.animal,probe.group3_target);
+        if(!verified) {
+            error="original group-three recovered heading invalid";
+            return false;
+        }
+        const auto& moved=observed.motion_records[probe.entity_index];
+        constexpr float kRecoveryTrigTolerance=0.001f;
+        if(moved.x!=verified->animal.x ||
+           moved.y!=verified->animal.y ||
+           moved.previous_x!=verified->animal.previous_x ||
+           moved.previous_y!=verified->animal.previous_y ||
+           moved.direction!=verified->animal.direction ||
+           moved.movement_active!=0 ||
+           moved.movement_speed!=0.0f ||
+           std::fabs(moved.x_float-
+               verified->animal.x_float)>kRecoveryTrigTolerance ||
+           std::fabs(moved.y_float-
+               verified->animal.y_float)>kRecoveryTrigTolerance) {
+            error="native out-of-nav animal recovery differs from retail";
+            return false;
+        }
+    }
     // The source's 80-unit non-follower gate and default eight-vector
     // locomotion are checked before any state mutation is committed.
     // A close-range/edge-of-map candidate MUST NOT masquerade as

@@ -3,6 +3,7 @@
 #include "btb/herding_native_pickles_motion.hpp"
 #include "btb/herding_source_pickles_animation.hpp"
 #include "btb/herding_source_far_roam.hpp"
+#include "btb/herding_source_far_boundary_recovery.hpp"
 #include "btb/herding_source_attraction.hpp"
 #include "btb/herding_source_temporary_target.hpp"
 #include "btb/herding_source_registration_point.hpp"
@@ -219,6 +220,86 @@ int main() {
             btb::herding::RetailFarAnimalRoamCoverage::AdvancedWithinPolygon);
         assert(far.animal.x_float>sheep.x_float);
     }
+    // Original 0x419167: group-0 rejection does not immobilize
+    // a free-roaming animal. It RESTORES prior integer coordinates
+    // before steering from the negative-half-X/positive-half-Y
+    // source anchor toward the independent group-3 point, and
+    // continues from the already-stepped FLOAT position.
+    {
+        btb::herding::RetailEntityRecord32 hero{};
+        hero.type=static_cast<int>(btb::herding::EntityType::FarmerPickles);
+        hero.x=100;hero.y=100;
+        hero.source_bottom=100;
+        btb::herding::RetailEntityRecord32 sheep{};
+        sheep.entity_id=3;
+        sheep.type=static_cast<int>(btb::herding::EntityType::Sheep);
+        sheep.x=600;sheep.y=350;
+        sheep.x_float=600.95f;sheep.y_float=350.f;
+        sheep.source_left=0;sheep.source_right=100;
+        sheep.source_top=0;sheep.source_bottom=80;
+        sheep.direction=2;
+        sheep.movement_speed=1.4f;
+        const std::vector<btb::herding::Vec2i> nav{{
+            {0,0},{600,0},{600,700},{0,700}}};
+        const auto preliminary=
+            btb::herding::original_far_untracked_animal_roam_step(
+                sheep,hero,nav);
+        assert(preliminary.coverage==
+            btb::herding::RetailFarAnimalRoamCoverage::
+                RequiresOriginalBoundaryRecovery);
+        assert(preliminary.animal.x_float>sheep.x_float);
+        const btb::herding::Vec2i group3{200,300};
+        const auto recovery=
+            btb::herding::original_far_untracked_animal_boundary_recovery(
+                sheep,preliminary.animal,group3);
+        assert(recovery);
+        assert(recovery->steering_anchor.x==550);
+        assert(recovery->steering_anchor.y==390);
+        assert(recovery->original_group3_target==group3);
+        assert(recovery->animal.previous_x==600);
+        assert(recovery->animal.previous_y==350);
+        assert(recovery->animal.movement_speed==0.f);
+        assert(recovery->animal.movement_active==0);
+        assert(recovery->animal.x_float<
+               preliminary.animal.x_float);
+        assert(!btb::herding::original_far_untracked_animal_boundary_recovery(
+            sheep,sheep,group3));
+    }
+    // Run the exact boundary return through the *native* activity,
+    // not just an isolated pure helper.
+    {
+        std::ifstream input(root/"Data"/"SubGame1"/"herd.txt");
+        assert(input.good());
+        auto data=btb::herding::parse_data(input);
+        fg::NativePicklesMotionSource native{};
+        std::vector<btb::herding::RetailEntityRecord32> animals{};
+        std::string error{};
+        assert(native.initialize(data,0,animals,error));
+        const auto polygon=data.retail_transformed_group0();
+        int xmax=polygon.front().x;
+        for(const auto& p:polygon)xmax=std::max(xmax,p.x);
+        auto& sheep=animals[1];
+        sheep.x=xmax;
+        sheep.y=300;
+        sheep.x_float=static_cast<float>(xmax)+0.95f;
+        sheep.y_float=300.f;
+        sheep.direction=2;
+        sheep.movement_speed=1.4f;
+        sheep.movement_active=0;
+        fg::HerdingObservedFrame frame{};
+        assert(native.advance(data,{}, {},animals,frame,error));
+        const auto proof=std::find_if(
+            frame.far_boundary_evidence.begin(),
+            frame.far_boundary_evidence.end(),
+            [](const auto& p){return p.entity_index==1;});
+        assert(proof!=frame.far_boundary_evidence.end());
+        assert(proof->group3_target==
+               data.coordinate_groups[3].front());
+        assert(frame.motion_records[1].movement_speed==0.f);
+        assert(frame.motion_records[1].x_float!=sheep.x_float);
+        assert(native.unload(error));
+    }
+
     // Recovered x86 0x417603 follower-slot geometry and source
     // speed response: slot 0 holds at 15 source units; beyond that
     // it steers into Pickles' own facing-dependent orbit.

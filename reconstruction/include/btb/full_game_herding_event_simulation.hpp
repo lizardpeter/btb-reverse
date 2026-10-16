@@ -10,6 +10,7 @@
 #include "btb/herding_source_temporary_target.hpp"
 #include "btb/herding_source_scruffty_patrol.hpp"
 #include "btb/herding_source_far_roam.hpp"
+#include "btb/herding_source_far_boundary_recovery.hpp"
 #include "btb/herding_source_follower_approach.hpp"
 #include "btb/herding_source_registration_point.hpp"
 #include "btb/herding_source_home_motion.hpp"
@@ -105,6 +106,15 @@ struct HerdingFarRoamEvidence {
     herding::RetailEntityRecord32 before{};
 };
 
+// Post-roam group 0 rejection is followed by one original 3-unit
+// steering step toward the single group 3 return point, with
+// previous integer coordinates restored before heading calculation.
+struct HerdingFarBoundaryEvidence {
+    std::size_t entity_index{};
+    herding::RetailEntityRecord32 before{};
+    herding::Vec2i group3_target{};
+};
+
 // Full ordinary-follower formation branch from 0x417603..0x417994.
 // The native entity world motion is independently replayed using
 // Pickles' post-navigation pose and source per-frame follower ordinal.
@@ -171,6 +181,7 @@ struct HerdingObservedFrame {
     std::vector<HerdingSteeringEvidence> steering_evidence{};
     std::vector<HerdingRoamingRecoveryEvidence> recovery_evidence{};
     std::vector<HerdingFarRoamEvidence> far_roam_evidence{};
+    std::vector<HerdingFarBoundaryEvidence> far_boundary_evidence{};
     std::vector<HerdingOrdinaryFollowerEvidence> ordinary_follower_evidence{};
     std::vector<HerdingTrackedApproachEvidence> tracked_approach_evidence{};
     std::vector<HerdingHomeMotionEvidence> home_motion_evidence{};
