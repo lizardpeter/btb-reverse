@@ -15,7 +15,7 @@ Do **not** check the proprietary executable binary into this repository.
 | `3000E270` | video dispatcher | Invokes `3000E400` for luma/chroma and optional extra planes |
 | `3000E400` | large block decoder | Block/entropy/inverse transform reconstruction still outstanding |
 | `3000FC00` | entropy-plane initialization | Translated to C++ (`init_entropy_plane`) |
-| `3000FCB0` | entropy tree reading | 16 original fixed Huffman lookup tables recovered; *dynamic tree decoding incomplete* |
+| `3000FCB0` | entropy tree reading | Full 16-symbol permutation construction translated from assembly (synthetic tests pass); frame parity not yet certified |
 | `300051C0` | `BinkCopyToBuffer` | Destination format conversion not yet translated |
 
 `reconstruction/src/bink32_packet_decode.cpp` now implements the real
@@ -24,7 +24,20 @@ per-frame compressed-track routing and a bounded LSB-first entropy bitreader.
 fixed lookup bytes at `30047800–30047BCF`, plus the 16 lookup widths from
 `30047BD8` and the table offsets indexed from `30063CA0`. One call
 to `read_fixed_huffman_symbol` consumes a source-valid variable-length
-codeword from a selected table. The initial dynamic tree control flow is now source-reconstructed as `read_entropy_tree_prefix`: four selector bits, a zero-tree special case, and the branch/submode bits at `3000FD32–3000FDBF`. The resulting table permutations and dynamic symbol decoding are still incomplete.
+codeword from a selected table. The initial dynamic tree control flow is now source-reconstructed as `read_entropy_tree_prefix`: four selector bits, a zero-tree special case, and the branch/submode bits at `3000FD32–3000FDBF`. The original tree permutation construction has now also been reconstructed
+in `bink32_dynamic_huffman.cpp` for both main branches and all four
+submodes. Specifically, it includes the eight per-pair swap bits, the
+hierarchical 2/4/8-element stable interleave network, and the sparse
+4-bit symbol-list path. The nested merge helper at `300100E0–3001019F`
+is implemented directly in C++. The block decoder `3000E400` calls
+the tree routine 23 times in its initialization prologue (2 main,
+16 repeated, 5 additional), now modelled as `read_block_entropy_trees`.
+
+Local tests passed the four submodes, corrupted/truncated streams,
+cursor accounting, fixed-table-to-permutation symbol remapping, and
+50,000 randomized inputs under AddressSanitizer/UBSan. Those are
+source-level tests; no live retail 2002 DLL invocation or frame
+pixel comparison is claimed.
 
 ## Asset-backed validation (local, not GitHub CI)
 
@@ -48,8 +61,9 @@ decoded video frames or 1,590 audio waveforms.
 
 ## Next implementation order
 
-1. Recover dynamic 16-symbol Huffman tree permutations after the 4-bit
-   selector in `3000FCB0`; validate bit consumption against retail.
+1. Compare the reconstructed dynamic trees against the original x86 DLL
+   on representative compressed bit ranges and certify bit-accurate cursor
+   advancement; current CI uses synthetic codeword fixtures.
 2. Translate the block symbol stream and coefficient decoding in
    `3000E400`, including the 8×8 inverse transform and inter-frame blocks.
 3. Convert decoded original Y/U/V planes into BGRA for the native DirectDraw7
