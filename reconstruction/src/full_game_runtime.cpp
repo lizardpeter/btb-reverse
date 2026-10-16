@@ -309,6 +309,8 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
             profile_screen_state_.delete_overlay_setup=false;
         }
         const auto old_state=globals_.dispatcher.current_state;
+        const bool confirmed_profile_delete=
+            profile_screen_state_.deletion_confirmed;
         try {
             update_original_profile_screen(
                 profile_screen_state_,
@@ -326,6 +328,16 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
         if (!profile_screen_driver_->end_frame(result.error)) {
             result.kind=FrameKind::FrontEndFailed;
             return result;
+        }
+        // Retail profile deletion truncates the activity files through
+        // 0042E110; the shared metadata and visible progress must also be
+        // flushed immediately, not left only in memory until a later game.
+        if (confirmed_profile_delete && !profile_directory_.empty()) {
+            if (!save_profile_files(profile_directory_,result.error)) {
+                result.kind=FrameKind::FrontEndFailed;
+                return result;
+            }
+            result.profile_saved=true;
         }
         if (profile_screen_state_.creation_profile>=0 &&
             profile_screen_state_.name_entry_phase==1) {
