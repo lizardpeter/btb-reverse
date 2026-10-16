@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
+#include <iterator>
 #include <span>
 #include <vector>
 using namespace btb::bink32_recovered;
@@ -28,7 +30,7 @@ static DynamicHuffmanTree identity(unsigned selector=0) {
 static void literal(Writer& w,unsigned nibble) {
     w.write(0,1);w.write(nibble,4);
 }
-int main() {
+int main(int argc,char**argv) {
     // Identity test tree selects the verified 4-bit fixed table 0.
     // Symbols are intentionally supplied as compressed Huffman codewords.
     const auto tree=identity();
@@ -205,6 +207,40 @@ int main() {
         const auto end=read_bink_block_type_bundle(ended,tree,640);
         CHECK(end&&end->end_of_bundle&&end->modes.empty());
         CHECK(end->bits_consumed==10&&ended.bit_position()==10);
+    }
+    // Optional unmodified retail-movie validation. GitHub CI does not
+    // contain commercial assets; pass local BIK filenames to this binary.
+    for(int arg=1;arg<argc;++arg) {
+        std::ifstream file(argv[arg],std::ios::binary);
+        CHECK(file.good());
+        const std::vector<std::uint8_t> movie{
+            std::istreambuf_iterator<char>(file),
+            std::istreambuf_iterator<char>()};
+        const auto index=parse_container_index(movie);
+        CHECK(index);
+        std::uint64_t frames=0,values=0,zero_fill=0;
+        for(std::uint32_t i=1;i<=index->header.frame_count;++i) {
+            const auto frame=split_encoded_frame(*index,movie,i);
+            CHECK(frame);
+            if((index->video_flags&0x00100000U)==0)continue;
+            const auto decoded=decode_first_bink_picture_block_types(
+                frame->video,index->header.width,index->header.height);
+            CHECK(decoded);
+            CHECK(decoded->next_picture_bit_offset<=frame->video.size()*8);
+            ++frames;
+            values+=decoded->first_bundle.modes.size();
+            if(decoded->first_bundle.encoded_count==560 &&
+               decoded->first_bundle.commands.filled_remainder &&
+               !decoded->first_bundle.modes.empty() &&
+               std::all_of(decoded->first_bundle.modes.begin(),
+                           decoded->first_bundle.modes.end(),
+                           [](auto mode){return mode==0;}))
+                ++zero_fill;
+        }
+        std::printf("Retail first-picture block bundles: %llu frames, %llu modes, %llu 560-skip fills\\n",
+            static_cast<unsigned long long>(frames),
+            static_cast<unsigned long long>(values),
+            static_cast<unsigned long long>(zero_fill));
     }
     std::puts("Bink original value-run command expansion: PASS");
 }
