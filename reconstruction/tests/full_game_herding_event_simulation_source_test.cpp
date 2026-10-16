@@ -53,6 +53,7 @@ public:
     bool emit_navigation_probe{};
     bool contradict_navigation_probe{};
     bool emit_steering_probe{};
+    bool require_native_proofs{};
     bool emit_tracked_approach_probe{};
     bool contradict_tracked_approach_probe{};
     bool emit_ordinary_follower_probe{};
@@ -127,6 +128,7 @@ public:
         ++steps;
         last_motion=motion;
         frame.motion_records=current;
+        frame.require_native_event_proofs=require_native_proofs;
         if (forced_sheep_position) {
             auto& animal=frame.motion_records[1];
             animal.x=forced_sheep_position->x;
@@ -337,6 +339,18 @@ int main() {
     assert(sounds[0].sound_id==584);
     assert(sounds[1].sound_id==589);
 
+    // The real native source cannot assert a home-tracked arrival
+    // solely because its event says confirmed=true. Without a
+    // matching independent <30 movement proof, state must remain 0.
+    source->require_native_proofs=true;
+    source->scheduled={event(HerdingObservedKind::TrackedTargetArrived,1)};
+    assert(!simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(error.find("correlated original")!=std::string::npos);
+    assert(scene.entities[1].behavior_state==0);
+    assert(remaining==9);
+    source->require_native_proofs=false;
+
     // A source-follower entering its tracked-target branch is
     // independently checked for the exact registration-point
     // (736,183), signed sprite anchor and source motion. A forged
@@ -526,6 +540,17 @@ int main() {
         h::original_herding_home_entity_origin_for_target(
             h::EntityType::Sheep,
             h::home_entrance_target(h::EntityType::Sheep));
+    // Even a correctly positioned animal must not be delivered by
+    // an asserted event without the corresponding source home-motion
+    // branch. No progress is written or home state advanced.
+    source->require_native_proofs=true;
+    source->scheduled={waypoint1};
+    assert(!simulation.advance(
+        {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
+    assert(error.find("correlated original")!=std::string::npos);
+    assert(scene.entities[1].behavior_state==10);
+    assert(remaining==9);
+    source->require_native_proofs=false;
     source->scheduled={waypoint1};
     assert(simulation.advance(
         {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
