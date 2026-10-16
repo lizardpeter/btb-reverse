@@ -92,11 +92,13 @@ struct Host {
     NativeHostInput native_input{};
     bool running{};
     bool skip_video{};
+    int selected_profile{};
     original_win32::RetailWindowState retail_window{};
     original_active_frame::State original_frame{};
 
-    explicit Host(fs::path original_root,bool skip)
-        :root(std::move(original_root)),skip_video(skip) {}
+    explicit Host(fs::path original_root,bool skip,int profile)
+        :root(std::move(original_root)),
+         skip_video(skip),selected_profile(profile) {}
 
     [[nodiscard]] static bool parse_bitmap_names(
         const fs::path& loaddata,OriginalUiBitmapCatalog& bitmaps,
@@ -231,8 +233,8 @@ struct Host {
         // Start at the original Activity Select rather than inventing an
         // incomplete five-sign profile-entry workflow. Profile 0 is
         // explicitly provisional in this opt-in development host.
-        if(!game.select_profile(0)) {
-            out_error="could not select temporary original profile slot";
+        if(!game.select_profile(selected_profile)) {
+            out_error="could not select requested original profile slot";
             return false;
         }
         game.set_outer_state(game_flow::State::ActivitySelectSetup);
@@ -428,8 +430,8 @@ LRESULT CALLBACK native_window_proc(
 
 int run_recompiled_native_game(
     HINSTANCE instance,const fs::path& original_root,int show,
-    bool skip_video) {
-    Host host(original_root,skip_video);
+    bool skip_video,int selected_profile) {
+    Host host(original_root,skip_video,selected_profile);
     WNDCLASSEXW cls{};
     cls.cbSize=sizeof(cls);
     cls.hInstance=instance;
