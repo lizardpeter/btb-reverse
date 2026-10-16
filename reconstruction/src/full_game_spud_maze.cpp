@@ -359,6 +359,12 @@ ActivityFrameOutput SpudMazeDriver::advance(
             bob_.screen,bob_.facing,bob_.x,bob_.y,
             repair_cycles_remaining_>0
         };
+        // 0x00423F40 draws/updates the scene (including retrieval of
+        // a previously dropped hammer) BEFORE UpdateSpudMazePilchard.
+        // Do not permit the newly dropped hammer to be recovered on the
+        // same physical frame as Pilchard's collision.
+        if(spud_maze::pickup_dropped_hammer(hammer_,bob))
+            bob_.repair_tool_engaged=true;
         const auto pilot=spud_maze::update_pilchard_native(
             pilchard_,hammer_,*data_,difficulty_,bob,
             []{return static_cast<std::uint32_t>(std::rand());});
@@ -371,8 +377,6 @@ ActivityFrameOutput SpudMazeDriver::advance(
         }
         if(pilot.hammer_dropped)
             bob_.repair_tool_engaged=false;
-        if(spud_maze::pickup_dropped_hammer(hammer_,bob))
-            bob_.repair_tool_engaged=true;
     } catch(const std::exception& e) {
         out.fatal_error=std::string("Spud Maze source Bob/Pilchard: ")+e.what();
         return out;
