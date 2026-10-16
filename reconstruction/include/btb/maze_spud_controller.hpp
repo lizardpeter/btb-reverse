@@ -91,6 +91,12 @@ inline constexpr std::int32_t kSpudAvailablePackageStatus = 1;
 inline constexpr std::int32_t kSpudTakenPackageStatus = 2;
 inline constexpr std::int32_t kSpudSpawnVoice = 88;
 inline constexpr std::int32_t kSpudPickupVoice = 89;
+// Actual data at 0x004441F8 in the SHA256-matched original executable.
+// These 3000/2000/800 frame timers are not the separate values parsed
+// from maze_nodes.txt and must not be replaced by guessed durations.
+inline constexpr std::array<std::int32_t,3> kSourceNpcSpawnFrames{{
+    3000,2000,800
+}};
 inline constexpr std::int32_t kSpudHomeCooldownFrames = 500;
 inline constexpr std::int32_t kSpudPickupAnimationAdvance = 7;
 inline constexpr std::int32_t kSpudPathArrivalDistanceExclusive = 3;
