@@ -12,6 +12,7 @@
 int main() {
     namespace fs=std::filesystem;
     namespace fg=btb::full_game;
+    namespace sq=btb::squirrel;
     static_assert(sq::kSourceSquirrelFrameWidth==102);
     static_assert(sq::kSourceSquirrelFrameHeight==92);
     static_assert(sq::kSourceSquirrelFrameCount==86);
@@ -20,7 +21,6 @@ int main() {
     static_assert(sq::source_squirrel_start_position(0)->y==234);
     static_assert(sq::source_squirrel_start_position(1)->y==205);
     static_assert(sq::source_squirrel_start_position(2)->y==172);
-    namespace sq=btb::squirrel;
     using btb::game_flow::State;
     const auto root=fs::temp_directory_path()/"btb_native_squirrel_fixture";
     fs::remove_all(root);
