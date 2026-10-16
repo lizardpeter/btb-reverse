@@ -224,7 +224,7 @@ std::optional<std::size_t> expected_raster_blocks(
         return std::nullopt;
     const auto tiles_x=(width+15)/kDecodedTileSide;
     const auto tiles_y=(height+15)/kDecodedTileSide;
-    if(tiles_x>4096/tiles_y) return std::nullopt;
+    if(tiles_x>(1U<<18)/tiles_y) return std::nullopt;
     return tiles_x*tiles_y;
 }
 } // namespace
