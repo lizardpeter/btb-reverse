@@ -33,6 +33,8 @@ bool GolfDriver::initialize(int player_index, std::string& error) {
         round_ = std::move(candidate);
         player_index_ = player_index;
         queued_input_.reset();
+        swing_animation_ticks_=0;
+        feedback_voice_started_=false;
         error.clear();
         return true;
     } catch (const std::exception& exception) {
@@ -121,14 +123,45 @@ ActivityFrameOutput GolfDriver::advance(
             action.accept_power = true;
         }
     }
+    if (!queued_input_) {
+        switch(round_->state()) {
+        case golf::RoundState::Aim:
+            // Original 0x00415080: aim = clamp(88 - pointer_x / 7).
+            // Right/down direction bits subtract one, left/up add one.
+            action.source_mouse_aim=88-input.pointer_x/7;
+            if(input.directional_input_bits & 0x0aU)action.aim_delta=-1;
+            else if(input.directional_input_bits & 0x05U)action.aim_delta=1;
+            break;
+        case golf::RoundState::SwingAnimationDelay:
+            // 0x0050ADE8 increments until nine, then 0x0050AD90 until
+            // eight. Native completion is triggered on the 72nd tick.
+            action.swing_animation_finished=++swing_animation_ticks_>=72;
+            break;
+        case golf::RoundState::ScoreAndFeedback:
+            // First scoring frame queues original managed voice;
+            // subsequent frames read the REAL DirectSound busy observation.
+            action.feedback_audio_finished=
+                feedback_voice_started_ && !input.managed_sound_playing;
+            break;
+        default:break;
+        }
+    }
+    const auto prior=round_->state();
     action.random_value =
         static_cast<std::uint32_t>(input.random_value);
     queued_input_.reset();
 
     const auto frame = round_->advance(action);
+    if(prior==golf::RoundState::LaunchSetup &&
+       frame.state==golf::RoundState::SwingAnimationDelay)
+        swing_animation_ticks_=0;
+    if(prior==golf::RoundState::ScoreAndFeedback &&
+       frame.state!=golf::RoundState::ScoreAndFeedback)
+        feedback_voice_started_=false;
     out = compose_frame(frame);
 
     if (frame.managed_voice) {
+        feedback_voice_started_=true;
         out.audio.push_back({
             AudioOperation::ManagedSoundId, {},
             *frame.managed_voice, 50, 1
@@ -150,6 +183,8 @@ ActivityFrameOutput GolfDriver::advance(
 bool GolfDriver::unload(std::string& error) {
     round_.reset();
     queued_input_.reset();
+    swing_animation_ticks_=0;
+    feedback_voice_started_=false;
     player_index_ = -1;
     error.clear();
     return true;
