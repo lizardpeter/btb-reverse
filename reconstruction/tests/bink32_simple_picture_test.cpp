@@ -470,11 +470,15 @@ int main(int argc,char**argv) {
                 ac.bytes[bit/8]&=static_cast<std::uint8_t>(
                     ~(1U<<(bit%8)));
         }
-        ac.put(5,4); // one signed coefficient of magnitude 16
+        // One complete AC bit plane: group roots 4/24/44
+        // inactive, scan1 positive, scan2/scan3 inactive.
+        // Quantizer 15 makes a single +1 AC coefficient visibly
+        // different across the row without requiring extra planes.
+        ac.put(1,4); // one magnitude plane
         for(unsigned n=0;n<3;++n)ac.put(0,1);
-        ac.put(1,1);ac.put(0,4);ac.put(0,1); // scan1 +16
+        ac.put(1,1);ac.put(0,1); // scan1 coefficient +1
         ac.put(0,1);ac.put(0,1); // scan2/3 inactive
-        ac.put(0,4); // quant selector 0
+        ac.put(15,4); // original quant selector 15
         const auto ac_image=decode_bink_simple_picture_luma(
             packet(ac),8,8);
         CHECK(ac_image && ac_image->mode_counts[5]==1);
