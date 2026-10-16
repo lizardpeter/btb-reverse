@@ -107,4 +107,19 @@ std::optional<BinkFullIdctPixels> bink_idct_original_quant(
     if(!quant)return std::nullopt;
     return bink_idct_16x16(coefficients,*quant);
 }
+std::optional<BinkFullIdctPixels> decode_original_quantized_block(
+    LsbBitReader& compressed,
+    std::span<const std::int16_t> coefficients) noexcept {
+    // The caller already expanded one block's coefficient bytes;
+    // 3000F0ED consumes a FOUR-BIT quantization index and 3000F107
+    // invokes original 30011720 with the selected matrix.
+    auto cursor=compressed;
+    const auto selector=cursor.read(4);
+    if(!selector)return std::nullopt;
+    const auto pixels=bink_idct_original_quant(
+        coefficients,static_cast<std::uint8_t>(*selector));
+    if(!pixels)return std::nullopt;
+    compressed=cursor;
+    return pixels;
+}
 } // namespace btb::bink32_recovered
