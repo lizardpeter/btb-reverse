@@ -2,7 +2,7 @@
 // Bink1 SJPi original-bitstream to pixel bridge for *simple* luma modes.
 // Unlike the block compositor, this owns all nine compressed bundle
 // cursors and refills each on the same source-order rows as 0x3000E400.
-// AC-bearing DCT blocks still require a verified 8x8 inverse transform.
+// Compressed AC-bearing intra/inter DCT uses distinct native 8x8\n// quantization and the original integer inverse transform.
 #include "btb/bink32_entropy_commands.hpp"
 #include "btb/bink32_block_modes.hpp"
 #include <array>
@@ -18,9 +18,9 @@ struct BinkSimplePictureLuma {
     std::size_t next_plane_byte_offset{};
 };
 // Decode a complete 8-bit luma plane using Skip, Motion, Fill, Pattern,
-// Raw, signed spatial Residue, DC-only Intra/Inter DCT, all sixteen
+// Raw, signed spatial Residue, full Intra/Inter DCT, all sixteen
 // source-defined RUN scans, and source-backed
-// 16x16 Scaled (Fill/Pattern/Raw/RUN/DC-only Intra) modes directly
+// 16x16 Scaled (Fill/Pattern/Raw/RUN/Intra DCT) modes directly
 // from its compressed SJPi packet.
 // Previous luma is mandatory for Skip, Motion and Residue blocks; no previous image is
 // required for independent Fill/Pattern/Raw-only planes. Any unsupported
