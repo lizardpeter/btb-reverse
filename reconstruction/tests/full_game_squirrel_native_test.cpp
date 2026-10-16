@@ -12,6 +12,14 @@
 int main() {
     namespace fs=std::filesystem;
     namespace fg=btb::full_game;
+    static_assert(sq::kSourceSquirrelFrameWidth==102);
+    static_assert(sq::kSourceSquirrelFrameHeight==92);
+    static_assert(sq::kSourceSquirrelFrameCount==86);
+    static_assert(sq::source_squirrel_frame_rect(85)->right==8772);
+    static_assert(!sq::source_squirrel_frame_rect(86));
+    static_assert(sq::source_squirrel_start_position(0)->y==234);
+    static_assert(sq::source_squirrel_start_position(1)->y==205);
+    static_assert(sq::source_squirrel_start_position(2)->y==172);
     namespace sq=btb::squirrel;
     using btb::game_flow::State;
     const auto root=fs::temp_directory_path()/"btb_native_squirrel_fixture";
@@ -46,7 +54,7 @@ int main() {
         assert(driver->level()==0);
         auto rendered=game.advance({});
         assert(rendered.kind==fg::FrameKind::ActivityUpdated);
-        int connector_art=0,nut_piles=0,conveyor_art=0;
+        int connector_art=0,nut_piles=0,conveyor_art=0,squirrel_art=0;
         for(const auto& draw:rendered.effects.draws) {
             if(draw.source_asset=="Data\\SubGameSquirrel\\all.bmp" &&
                draw.source_rectangle &&
@@ -60,10 +68,22 @@ int main() {
                 ++nut_piles;
             if(draw.source_asset=="Data\\SubGameSquirrel\\conveyor.bmp")
                 ++conveyor_art;
+            if(draw.source_asset==
+                    "Data\\SubGameSquirrel\\squriel_1_86.bmp") {
+                ++squirrel_art;
+                assert(draw.source_rectangle);
+                assert(draw.source_rectangle->left==0);
+                assert(draw.source_rectangle->right==102);
+                assert(draw.source_rectangle->top==0);
+                assert(draw.source_rectangle->bottom==92);
+                assert(draw.x==36);
+                assert(draw.y==234||draw.y==205||draw.y==172);
+            }
         }
         assert(connector_art==4);
         assert(nut_piles==(difficulty==0?1:0));
         assert(conveyor_art==1);
+        assert(squirrel_art==1);
         for(int selected=0;selected<3*(difficulty+1);++selected) {
             const int level=selected/3;
             assert(driver->level()==level);
