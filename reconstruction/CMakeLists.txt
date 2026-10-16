@@ -946,6 +946,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_inverse_transform.cpp
     src/bink32_full_idct.cpp
     src/bink32_original_quant.cpp
+    src/bink32_ac_nonzero.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1730,6 +1731,12 @@ add_executable(btb_bink32_original_quant_tests tests/bink32_original_quant_test.
 target_link_libraries(btb_bink32_original_quant_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_original_quant_tests PRIVATE)
 add_test(NAME bink32_original_quant_to_idct COMMAND btb_bink32_original_quant_tests)
+# Original 0x30011C4B jump table cases 1 and 3 (signed AC coefficients).
+add_executable(btb_bink32_ac_nonzero_tests tests/bink32_ac_nonzero_test.cpp)
+target_link_libraries(btb_bink32_ac_nonzero_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_ac_nonzero_tests PRIVATE)
+add_test(NAME bink32_original_nonzero_AC_branches COMMAND btb_bink32_ac_nonzero_tests)
+
 
 
 
