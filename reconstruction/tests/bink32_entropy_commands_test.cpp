@@ -450,5 +450,46 @@ int main(int argc,char**argv) {
         CHECK(!read_bink_color_bundle(invalid,contexts,640,16,false));
         CHECK(invalid.bit_position()==0);
     }
+    {
+        // Full first-row compressed source order: block types,
+        // subtypes, colors, patterns, X/Y, intra/inter DC, runs.
+        // This does not claim to resolve per-block scheduling.
+        Writer picture;
+        for(unsigned i=0;i<23;++i)picture.write(0,4);
+        picture.write(2,10);picture.write(1,1);picture.write(6,4);
+        picture.write(0,10); // subtypes
+        picture.write(2,13);picture.write(0,1); // colors
+        picture.write(5,4);picture.write(1,4);
+        picture.write(6,4);picture.write(2,4);
+        picture.write(1,11);picture.write(9,4);picture.write(10,4);
+        picture.write(2,10);picture.write(1,1);
+        picture.write(2,4);picture.write(1,1); // X=-2
+        picture.write(2,10);picture.write(1,1);
+        picture.write(0,4); // Y=0
+        picture.write(0,10); // intra DC
+        picture.write(0,10); // inter DC
+        picture.write(3,13);picture.write(1,1);picture.write(4,4);
+        CHECK(picture.bits==235);
+        std::vector<std::uint8_t> packet(52,0);
+        packet[0]=48;
+        packet.insert(packet.end(),picture.bytes.begin(),picture.bytes.end());
+        const auto row=decode_first_bink_picture_bundle_set(packet,640,480);
+        CHECK(row);
+        CHECK(row->types.modes==std::vector<std::uint8_t>(2,6));
+        CHECK(row->scaled_subtypes.end_of_bundle);
+        CHECK(row->colors.values==std::vector<std::uint8_t>({0x51,0x62}));
+        CHECK(row->colors.next_high_nibble==6);
+        CHECK(row->patterns.values==std::vector<std::uint8_t>({0xA9}));
+        CHECK(row->motion_x.values==std::vector<std::int8_t>(2,-2));
+        CHECK(row->motion_y.values==std::vector<std::int8_t>(2,0));
+        CHECK(row->intra_dc.signed_words_le.empty());
+        CHECK(row->inter_dc.signed_words_le.empty());
+        CHECK(row->runs.values==std::vector<std::uint8_t>(3,4));
+        CHECK(row->next_picture_bit_offset==52*8+235);
+        CHECK(!decode_first_bink_picture_bundle_set(
+            std::span<const std::uint8_t>(packet).first(packet.size()-1),
+            640,480));
+        CHECK(!decode_first_bink_picture_bundle_set(packet,0,480));
+    }
     std::puts("Bink original value-run command expansion: PASS");
 }
