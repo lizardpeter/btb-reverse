@@ -1,0 +1,86 @@
+#include "btb/bink32_entropy_commands.hpp"
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <span>
+#include <vector>
+using namespace btb::bink32_recovered;
+#define CHECK(x) do {if(!(x)){std::fprintf(stderr,"Bink RLE command test line %d: %s\n",__LINE__,#x);std::abort();}}while(0)
+struct Writer {
+    std::vector<std::uint8_t> bytes{};
+    std::size_t bits{};
+    void write(std::uint32_t value,unsigned width) {
+        for(unsigned i=0;i<width;++i) {
+            if(bits/8>=bytes.size())bytes.push_back(0);
+            if((value>>i)&1U)bytes[bits/8]|=static_cast<std::uint8_t>(1U<<(bits%8));
+            ++bits;
+        }
+    }
+};
+static DynamicHuffmanTree identity(unsigned selector=0) {
+    DynamicHuffmanTree t{}; t.selector=static_cast<std::uint8_t>(selector);
+    for(unsigned i=0;i<16;++i)t.symbol_permutation[i]=static_cast<std::uint8_t>(i);
+    return t;
+}
+static void literal(Writer& w,unsigned nibble) {
+    w.write(0,1);w.write(nibble,4);
+}
+int main() {
+    // Identity test tree selects the verified 4-bit fixed table 0.
+    // Symbols are intentionally supplied as compressed Huffman codewords.
+    const auto tree=identity();
+    Writer w;
+    literal(w,2);literal(w,5);literal(w,12);literal(w,7);
+    w.write(1,1);w.write(9,4);
+    std::array<std::uint8_t,11> decoded{};
+    LsbBitReader reader(w.bytes);
+    const auto result=expand_bink_value_commands(reader,tree,decoded);
+    CHECK(result&&result->filled_remainder&&result->huffman_symbols==4);
+    CHECK(result->repeat_commands==1&&result->bits_consumed==w.bits);
+    constexpr std::array<std::uint8_t,11> expected{2,5,5,5,5,5,7,9,9,9,9};
+    CHECK(decoded==expected&&reader.bit_position()==w.bits);
+
+    Writer runs;
+    for(unsigned c=13;c<=15;++c)literal(runs,c);
+    std::vector<std::uint8_t> sequence(52,0);
+    LsbBitReader r2(runs.bytes);
+    const auto all=expand_bink_value_commands(r2,tree,sequence,9);
+    CHECK(all&&all->repeat_commands==3&&!all->filled_remainder);
+    CHECK(all->bits_consumed==runs.bits);
+    CHECK(std::all_of(sequence.begin(),sequence.end(),
+                      [](auto x){return x==9;}));
+
+    // Reject output overrun without changing either output or bit cursor.
+    Writer bad;literal(bad,15);
+    std::array<std::uint8_t,2> intact{0x7e,0x7e};
+    LsbBitReader r3(bad.bytes);
+    CHECK(!expand_bink_value_commands(r3,tree,intact,3));
+    CHECK(r3.bit_position()==0&&intact[0]==0x7e&&intact[1]==0x7e);
+    LsbBitReader r4({});
+    CHECK(!expand_bink_value_commands(r4,tree,intact));
+    CHECK(r4.bit_position()==0);
+    std::array<std::uint8_t,1> nop{0xfe};
+    CHECK(expand_bink_value_commands(r4,tree,std::span<std::uint8_t>()));
+    CHECK(r4.bit_position()==0);
+
+    // Use the variable-length real fixed table 1, rather than only
+    // the four-bit identity tree. Locate one prefix decoding to value 5.
+    unsigned prefix=0,width=0;
+    for(unsigned p=0;p<32;++p) {
+        const std::array<std::uint8_t,2> b{
+            static_cast<std::uint8_t>(p),0};
+        LsbBitReader probe(b);
+        const auto sym=read_fixed_huffman_symbol(probe,1);
+        if(sym&&sym->value==5){prefix=p;width=sym->consumed_bits;break;}
+    }
+    CHECK(width>0);
+    Writer variable;variable.write(0,1);variable.write(prefix,width);
+    std::array<std::uint8_t,1> one{};
+    LsbBitReader r5(variable.bytes);
+    const auto var=expand_bink_value_commands(r5,identity(1),one);
+    CHECK(var&&var->huffman_symbols==1&&one[0]==5);
+    CHECK(r5.bit_position()==1+width);
+    std::puts("Bink original value-run command expansion: PASS");
+}
