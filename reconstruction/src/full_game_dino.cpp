@@ -293,7 +293,6 @@ bool DinoDriver::unload(std::string& error) {
     level_folder_.clear();
     background_.clear();
     player_index_=-1;
-    was_pointer_held_=false;
     startup_pending_=false;
     completion_started_=false;
     animations_={};
