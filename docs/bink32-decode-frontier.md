@@ -363,6 +363,50 @@ the magnitude class and repeats the first stage, the full coupling
 to the original codec's video-plane block scheduler, and actual
 retail-frame parity. No claim of DLL-free playable movies is made.
 
+## Bounded full outer coefficient-loop scheduler (modes 0–6)
+
+`bink32_ac_outer_levels.cpp` now reconstructs the original
+`0x30011B10` mode extraction, mutable command-list magnitude
+iterations, and final +/-1 pass **for supported mode nibbles 0–6**.
+
+The caller must still supply a decoded DC coefficient, which is
+preserved while the decoder zero-initializes the other 63
+coefficients as the original x86 does at `0x30011B3D..30011B48`.
+
+The 4-bit mode is read first:
+- Mode 0 bypasses both passes and returns zero AC coefficients.
+- Mode 1 executes only the terminal signed-unit pass.
+- Modes 2–6 execute `mode-1` first-stage passes followed by
+  the signed-unit pass. The source initializes the high class bit
+  as `1 << (mode-1)` and the first EAX bit count as that value
+  minus one; EAX decrements each iteration while the 16-bit
+  magnitude-class WORD shifts right one bit.
+
+For example, mode 4 uses magnitude read widths **7, 6, 5** and
+high-class bits **8, 4, 2**, followed by the +/-1 pass.
+The earlier C++ implementation's assumption that the read width
+had to be below the class-bit position was wrong and is now
+corrected.
+
+Modes 7–15 are deliberately rejected without input changes:
+the 2002 decoder uses 32-bit register shifts whose hardware
+shift-count modulo-32 behavior requires separate analysis,
+and silently generalizing it would invent unsupported
+bit consumption. All stages use transactional local copies.
+
+New test cases include every supported mode, nonzero AC coefficient
+output, the original six-command list under repeated passes,
+malformed input, and an explicit test connecting the first-stage
+command pass, final sign pass, exact original quant table selector
+and the inverse transform to produce a 16x16 output block from
+**controlled synthetic compressed bits**.
+
+This is an important step toward a complete `0x30011B10`
+translation, but upstream DC decoding, full original video
+macroblock scheduling, modes 7–15, video output parity, YUV
+plane assembly and audio all remain incomplete. A complete
+retail movie frame has **not** been certified.
+
 ## Next implementation order
 
 1. Compare the reconstructed dynamic trees against the original x86 DLL
