@@ -423,7 +423,12 @@ LRESULT CALLBACK native_window_proc(
         host->native_input.key_down(
             static_cast<unsigned>(wp),(lp&0x40000000)!=0,
             (static_cast<unsigned>(lp)>>16U)&0xffU);
-        if(wp==VK_ESCAPE)DestroyWindow(hwnd);
+        // Original MainWindowProc (PE32 0x004020D0) never destroys
+        // the game window on WM_KEYDOWN/VK_ESCAPE; it dispatches
+        // unhandled keyboard messages through DefWindowProc.
+        // Do not forcibly terminate an ongoing minigame or abandon
+        // saved progress because the player pressed Escape.
+        // The normal WM_CLOSE/WM_DESTROY path remains available.
         return 0;
     case WM_KEYUP:
         host->native_input.key_up(static_cast<unsigned>(wp));return 0;
