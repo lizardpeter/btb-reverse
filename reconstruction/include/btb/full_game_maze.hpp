@@ -4,6 +4,7 @@
 #include "btb/maze_data.hpp"
 #include "btb/maze_input.hpp"
 #include "btb/maze_box_layout.hpp"
+#include "btb/maze_package_pickup.hpp"
 #include "btb/original_motion4.hpp"
 
 #include <filesystem>
@@ -14,10 +15,9 @@
 namespace btb::full_game {
 
 // Incremental native binding of retail Maze 0x0041A730 / 0x0041D4D0.
-// Original three-screen map, cursor-independent keyboard graph movement,
-// actor sprite and countdown are source-backed. Spud NPC/package collision,
-// package pickup, mouse arbitration and success logic are
-// intentionally NOT modeled as if already reconstructed.
+// Original three-screen map, source input, package capture and progress,
+// actor sprite and countdown are source-backed. Spud NPC AI and moving
+// dropped-package generation remain unhosted; this is not retail parity.
 class MazeDriver final : public ActivityDriver {
 public:
     MazeDriver(std::filesystem::path install_root,int difficulty=0)
@@ -50,13 +50,17 @@ private:
     maze::InputModeState input_mode_{};
     maze::DirectionalDebounce mouse_debounce_{};
     bool pointer_sampled_{};
+    int pickup_animation_frame_{};
+    int pickup_animation_wait_{};
+    int pickup_voice_sequence_{};
+    bool won_{};
     int remaining_seconds_{};
     int started_centiseconds_{};
     bool intro_voice_queued_{};
     bool intro_done_{};
     bool timer_started_{};
     bool lowtime_voice_queued_{};
-    // 0=live;1=timeout feedback;2=source final return after voice drain.
+    // 0=live;1=outcome voice;2=source final return after voice drain.
     int exit_phase_{};
 };
 
