@@ -35,7 +35,9 @@ bool advance_path(PilchardNative& s,const Data& data,int speed) {
     const auto dy=static_cast<float>(next.y)-s.y;
     const auto dist=std::hypot(dx,dy);
     if(dist>0.0f) {
-        const float travel=std::min(dist,static_cast<float>(speed));
+        // VA 0x0043B378 in the verified original PE is float 10.0.
+        // 0x004232B0 moves by original difficulty speed times 10.
+        const float travel=std::min(dist,10.0f*static_cast<float>(speed));
         s.x+=dx/dist*travel;
         s.y+=dy/dist*travel;
         s.roaming_direction=dx>=0?1:3;
@@ -104,7 +106,7 @@ PilchardFrame update_pilchard_native(
     }
     case 2:{
         const int speed=data.spud_speed_regular[
-            static_cast<std::size_t>(difficulty)]/2;
+            static_cast<std::size_t>(difficulty)];
         if(advance_path(s,data,std::max(1,speed)))s.phase=4;
         break;
     }
