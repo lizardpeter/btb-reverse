@@ -989,3 +989,14 @@ The scan-zero pattern is independently visible in the original-format
 FFmpeg reference: `libavcodec/binkdata.h`, `bink_patterns[0]`.
 No FFmpeg source or proprietary retail assets are copied into this
 repository, and no retail pixel parity is claimed for these new modes.
+
+
+A subsequent C++26 run exposed a second synthetic-fixture error in
+the new 8x8 RUN regression. The subordinate scaled-type count length
+for an **8-pixel-wide** plane is `bit_width(0x200 - 1) = 9`,
+because `aligned_width >> 4 = 0`. The fixture mistakenly wrote a
+10-bit count and shifted the following source pools; temporary CI
+tracing identified the later Y-motion rejection. The fixture now
+emits the original nine-bit count. That error did not require
+weakening malformed-data checks or changing the decoder's source
+width calculation. The trace was removed after correction.
