@@ -96,19 +96,32 @@ int main() {
         assert(draw_has(frame.effects,"Data/SubGameDino/ellis.bmp"));
         assert(!frame.effects.audio.empty()); // original startup 188
 
+        // Mouse release is not a drop event in original 0x00409E00.
         frame=game.advance({.pointer_x=200,.pointer_y=200,
-                          .random_value=1,.pointer_button_held=false});
+                            .pointer_button_held=false});
         assert(frame.kind==FrameKind::ActivityUpdated);
         assert(actual->runtime()->completed_piece_count()==0);
         assert(actual->runtime()->selected_piece()==0);
         assert(actual->runtime()->mode()==
                btb::dino::InteractionMode::Carrying);
 
-        frame=game.advance({.pointer_x=100,.pointer_y=100,
-            .click_pulse=true,.pointer_button_held=true});
+        // Second click at the wrong location rejects, keeping the bone
+        // cursor-owned; moving/releasing is not an additional attempt.
+        frame=game.advance({.pointer_x=200,.pointer_y=200,
+            .click_pulse=true,.random_value=1,
+            .pointer_button_held=true});
         assert(frame.kind==FrameKind::ActivityUpdated);
+        assert(actual->runtime()->mode()==
+               btb::dino::InteractionMode::Carrying);
         frame=game.advance({.pointer_x=100,.pointer_y=100,
-            .random_value=2,.pointer_button_held=false});
+            .pointer_button_held=false});
+        assert(actual->runtime()->mode()==
+               btb::dino::InteractionMode::Carrying);
+
+        // Another click near this bone's own target accepts placement.
+        frame=game.advance({.pointer_x=100,.pointer_y=100,
+            .click_pulse=true,.random_value=2,
+            .pointer_button_held=true});
         assert(frame.kind==FrameKind::ActivityUpdated);
         assert(actual->runtime()->mode()==
                btb::dino::InteractionMode::FinalizeAcceptedDrop);

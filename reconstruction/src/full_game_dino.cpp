@@ -153,7 +153,6 @@ bool DinoDriver::initialize(int player_index,std::string& error) {
         print_state_={};
         pickup_offset_={};
         player_index_=player_index;
-        was_pointer_held_=false;
         startup_pending_=true;
         completion_started_=false;
         error.clear();
@@ -187,7 +186,7 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
 
     if(!runtime_->complete()) {
         if(runtime_->mode()==dino::InteractionMode::Idle &&
-           input.click_pulse && input.pointer_button_held) {
+           input.click_pulse) {
             const auto chosen=runtime_->begin_drag(cursor);
             if(chosen) {
                 const auto& piece=runtime_->pieces()[*chosen];
@@ -197,7 +196,7 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
                                          (input.random_value>>1)&1);
             }
         } else if(runtime_->mode()==dino::InteractionMode::Carrying &&
-                  was_pointer_held_ && !input.pointer_button_held) {
+                  input.click_pulse) {
             const auto index=dino::level_index(species_,difficulty_);
             const auto dropped=runtime_->try_drop(
                 cursor,dino::Runtime::snap_tolerance(index));
@@ -215,7 +214,6 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
             }
         }
     }
-    was_pointer_held_=input.pointer_button_held;
 
     const auto composition=dino::compose_dino_frame(
         *runtime_,animations_,species_,special_anchor_,
@@ -230,7 +228,9 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
     }
     if(const auto carried=runtime_->mode()==dino::InteractionMode::Carrying
            ? runtime_->selected_piece() : std::nullopt) {
-        // The retail cursor surface owns the carried piece. Draw the same
+        // The retail cursor surface owns the carried piece until the NEXT
+        // click. Releasing the first click does not attempt placement.
+        // Draw the same
         // real BMP last at the original pickup offset until placement.
         const auto& piece=runtime_->pieces()[*carried];
         out.draws.push_back({
@@ -293,7 +293,6 @@ bool DinoDriver::unload(std::string& error) {
     level_folder_.clear();
     background_.clear();
     player_index_=-1;
-    was_pointer_held_=false;
     startup_pending_=false;
     completion_started_=false;
     animations_={};

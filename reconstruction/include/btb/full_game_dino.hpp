@@ -47,7 +47,6 @@ private:
     std::string background_{};
     std::vector<std::string> pieces_{};
     int player_index_{-1};
-    bool was_pointer_held_{};
     bool startup_pending_{};
     bool completion_started_{};
 };
