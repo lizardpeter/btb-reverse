@@ -555,6 +555,29 @@ encoded frame and select the correct block/plane mode. We
 do not yet have a verified full retail-frame decode. The
 current context tests use controlled compressed fixtures.
 
+## Reused original 0x3000FC00 entropy-plane configuration
+
+The pre-existing native `init_entropy_plane` reconstruction
+already computes the original 0x30-byte context's
+`table_bit_width` (from symbol-base and width/8 multiplier),
+`symbol_bits`, and signed-value `prefix_mask`. The new
+`decode_original_bink_dc_context_packet(source, context)`
+overload now uses these exact recovered fields to decode a
+complete DC substream, eliminating manual width/signedness
+arguments at the integration boundary.
+
+The regression invokes `init_entropy_plane(0,0x200,64,11,1,true)`,
+verifies the resulting ten-bit count-width and signed eleven-bit
+value configuration, and successfully decodes a three-word
+[100, 101, 99] example. It also verifies unsigned contexts
+and malformed-context rollback.
+
+The original video-block scheduler at `0x3000E400` still needs
+to select correct context parameters, DC packet bit boundaries,
+and macroblock modes for each original retail frame. These
+tests establish this particular source-native interface, not
+full frame parity.
+
 ## Next implementation order
 
 1. Compare the reconstructed dynamic trees against the original x86 DLL
