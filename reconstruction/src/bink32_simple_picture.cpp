@@ -1,5 +1,6 @@
 #include "btb/bink32_simple_picture.hpp"
 #include "btb/bink32_run_scan.hpp"
+#include "btb/bink32_residue.hpp"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -257,12 +258,24 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
             switch(mode) {
             case BinkBlockMode::Skip:
                 break;
-            case BinkBlockMode::Motion: {
+            case BinkBlockMode::Motion:
+            case BinkBlockMode::Residue: {
+                // Both block modes use source X/Y motion prediction.
+                // Residue then adds a Bink bit-plane-coded spatial
+                // 8x8 correction to those previous-frame samples.
                 const auto mx=motion_x.take();
                 const auto my=motion_y.take();
                 if(!mx || !my)return std::nullopt;
                 cmd.motion_x=*mx;
                 cmd.motion_y=*my;
+                if(mode==BinkBlockMode::Residue) {
+                    const auto residue=decode_bink_residue_packet(bits);
+                    if(!residue)return std::nullopt;
+                    for(std::size_t n=0;n<64;++n)
+                        cmd.residuals[n]=std::bit_cast<std::int8_t>(
+                            static_cast<std::uint8_t>(
+                                residue->coefficients[n]));
+                }
                 break;
             }
             case BinkBlockMode::Fill:
@@ -272,8 +285,8 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
                 if(!populate_pixels(mode))return std::nullopt;
                 break;
             default:
-                // DCT and residue modes remain deliberately
-                // unsupported until original transform data is wired.
+                // DCT intra/inter require original quantized transform
+                // coupling before their reconstructed pixels are safe.
                 return std::nullopt;
             }
             ++col;
