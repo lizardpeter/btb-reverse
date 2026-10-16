@@ -1185,3 +1185,54 @@ Reference-format provenance: FFmpeg
 `libavcodec/binkdata.h` (functional numeric intra/inter quant
 tables), `libavcodec/bink.c` (scan-index quant weighting),
 and `libavcodec/binkdsp.c` (8x8 integer inverse transform).
+
+
+## Native complete SJPi Y/U/V/alpha frame and history assembler (2026-10-16)
+
+Introduced the generic
+`decode_bink_picture_plane_at(video_packet, entropy_tree_byte_offset,
+width, height, previous_plane)` entry point. It reuses the recovered
+nine-bundle scheduler and complete 8x8 pixel codec for **any**
+original Bink plane, instead of hardwiring the alpha-aware video
+packet's leading luma position. The existing
+`decode_bink_simple_picture_luma` API still parses the alpha
+prefix and delegates to the generic implementation, so older tests
+and callers retain their original contract.
+
+The new `bink32_yuva_frame.hpp/.cpp` assembler handles the original
+SJPi 'i' plane sequence **A → Y → V → U**. It respects the leading
+32-bit alpha-section byte count, verifies that the decoded alpha
+plane finishes at that exact recorded boundary, skips the
+second 32-bit picture-control DWORD, then decodes Y at full
+resolution and V/U at half resolution. Output is stored in
+canonical Y/U/V/A order, with per-plane compressed absolute end
+offsets, 10-way block-mode counts, and total video bytes consumed.
+This explicitly accounts for original SJPi's U/V plane swapping
+rather than silently assigning chroma channels backwards.
+
+Interframe references require a complete previously decoded
+YUVA frame of exactly the expected geometry and all four plane
+buffer sizes. Frames with missing or malformed references
+fail atomically. This currently supports dimensions divisible
+by 16, so chroma dimensions remain multiples of the original
+8x8 block size; it rejects unsupported edge-tile geometry.
+
+`bink32_original_sjpi_yuva_frame` C++26 tests assemble a complete
+synthetic compressed four-plane packet with different alpha,
+luma, U and V colors, check all four pixel planes and byte
+boundaries, then decode a second all-skip frame that must copy
+every prior plane byte-for-byte. Negative tests cover wrong
+dimensions/history, alpha-header corruption, missing history
+and packet truncation. The optional original-retail-file mode
+reports the number of **complete YUVA frames** successfully
+decoded, rather than conflating luma-only progress with
+native movie playback. No commercial media are embedded in
+the repository.
+
+**Still missing for end-to-end movie fidelity:** actual retail
+four-plane differential validation, odd-dimension chroma and
+edge-block handling, faithful YUV-to-display-color conversion,
+original movie frame pacing and game overlay integration,
+plus full native compressed Bink audio. The ability to decode
+testable YUVA planes is not evidence that every original
+retail frame yet decodes bit-perfectly.
