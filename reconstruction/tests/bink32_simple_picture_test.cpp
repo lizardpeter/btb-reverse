@@ -443,6 +443,20 @@ int main(int argc,char**argv) {
         CHECK(std::all_of(image->image.pixels.begin(),
                           image->image.pixels.end(),
                           [](auto p){return p==1;}));
+        // Same original DC=8 with quant index 15: the decoder's
+        // validated 0x2c0000 DC quantizer produces 44, not 1.
+        auto high_quant=encoded;
+        for(unsigned i=0;i<4;++i) {
+            const auto bit=encoded.bits-4+i;
+            high_quant.bytes[bit/8] |=
+                static_cast<std::uint8_t>(1U<<(bit%8));
+        }
+        const auto amplified=decode_bink_simple_picture_luma(
+            packet(high_quant),8,8);
+        CHECK(amplified && amplified->image.pixels.size()==64);
+        CHECK(std::all_of(amplified->image.pixels.begin(),
+                          amplified->image.pixels.end(),
+                          [](auto p){return p==44;}));
         // Nonzero AC requires a complete 8x8 transform. Fail
         // closed instead of substituting the 2x scaled iDCT.
         Bits ac=encoded;
