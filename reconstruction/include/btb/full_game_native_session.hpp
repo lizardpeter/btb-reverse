@@ -128,6 +128,7 @@ private:
     OriginalWalkthroughCatalog walkthroughs_{};
     bool skip_video_{};
     bool walkthrough_open_{};
+    std::optional<int> active_walkthrough_index_{};
     bool failed_{};
     bool pending_present_{};
 };
