@@ -65,9 +65,9 @@ int main() {
   CHECK(bits.bit_position()==0&&cmd==5);
  }
  {
-  // Actual 30011BF4 makes EAX = (1 << (mode-1))-1 for the
-  // outer AC coefficient pass. Mode 4 has EAX=7 and class bit=8;
-  // the previous fake restriction (1 << 7)<=8 rejected it.
+  // Exercise the isolated 30011F7F helper with a large external
+  // read-width input. The actual 30011BF4 outer scheduler supplies
+  // mode-1..1, not a power-of-two-derived width.
   Bits encoded;encoded.write(0x52,7);encoded.write(1,1);
   auto bits=encoded.reader();
   std::array<std::int16_t,64> coeff{};
