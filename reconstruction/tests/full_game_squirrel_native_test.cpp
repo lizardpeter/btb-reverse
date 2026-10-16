@@ -48,7 +48,7 @@ int main() {
             const int level=selected/3;
             assert(driver->level()==level);
             assert(driver->placed_count()==selected%3);
-            int offered=0,correct=0,decoy=0,chosen=-1;
+            int offered=0,correct=0,decoy=0,chosen=-1,wrong=-1;
             for(std::size_t i=0;i<4;++i) {
                 const auto& choice=driver->choices()[i];
                 if(!choice.active)continue;
@@ -57,13 +57,15 @@ int main() {
                 assert(choice.piece_id>=0&&choice.piece_id<36);
                 if(choice.correct&&chosen<0)
                     chosen=static_cast<int>(i);
+                if(!choice.correct&&wrong<0)
+                    wrong=static_cast<int>(i);
             }
             assert(offered==(difficulty==0?3:4));
             assert(correct==(difficulty==2?2:3));
             assert(decoy==(difficulty==0?0:difficulty==1?1:2));
             assert(chosen>=0);
             if(decoy>0) {
-                const int wrong=correct;
+                assert(wrong>=0);
                 const auto xy=sq::kConveyorItemOrigins[
                     static_cast<std::size_t>(wrong)];
                 frame=game.advance({
