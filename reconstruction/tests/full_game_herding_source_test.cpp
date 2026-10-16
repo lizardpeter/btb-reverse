@@ -158,6 +158,7 @@ int main() {
     assert(handle->completion_stage()==1);
     assert(frame.effects.audio.size()==1);
     assert(frame.effects.audio[0].sound_id==600);
+    assert(frame.effects.audio[0].priority==0x5a);
     assert(frame.effects.progress_writes.empty());
 
     frame=game.advance({.managed_sound_playing=true});
@@ -227,6 +228,8 @@ int main() {
         assert(observed_driver->completion_stage()==1);
         assert(final_line.effects.audio.size()==1);
         assert(final_line.effects.audio[0].sound_id==expected_sound);
+        assert(final_line.effects.audio[0].priority==0x5a);
+        assert(final_line.effects.audio[0].arbitration_class==1);
         assert(final_line.effects.progress_writes.empty());
         // The follow-up exit waits for speech, but does not call
         // rand() a second time even after the voice stops.
