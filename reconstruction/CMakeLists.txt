@@ -939,6 +939,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_playback.cpp
     src/bink32_packet_decode.cpp
     src/bink32_fixed_huffman.cpp
+    src/bink32_dynamic_huffman.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1687,6 +1688,12 @@ add_executable(btb_bink32_fixed_huffman_tests tests/bink32_fixed_huffman_test.cp
 target_link_libraries(btb_bink32_fixed_huffman_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_fixed_huffman_tests PRIVATE)
 add_test(NAME bink32_original_fixed_huffman COMMAND btb_bink32_fixed_huffman_tests)
+# Original 3000FCB0 tree construction and 300100E0 merge helper.
+add_executable(btb_bink32_dynamic_huffman_tests tests/bink32_dynamic_huffman_test.cpp)
+target_link_libraries(btb_bink32_dynamic_huffman_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_dynamic_huffman_tests PRIVATE)
+add_test(NAME bink32_original_dynamic_huffman COMMAND btb_bink32_dynamic_huffman_tests)
+
 
 
 
