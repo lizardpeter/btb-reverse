@@ -201,7 +201,15 @@ int main(int argc,char**argv) {
     for(const auto& stats:reused->mode_counts)
         CHECK(stats[0]>0 && stats[6]==0);
     CHECK(!decode_bink_sjpi_yuva_frame(skip,w,h));
-    CHECK(!decode_bink_sjpi_yuva_frame(encoded,w,h-1));
+    // A 32x15 visible region has exactly the same 32x16 padded
+    // block geometry. Cropping is valid, not a decode failure.
+    const auto cropped_height=decode_bink_sjpi_yuva_frame(
+        encoded,w,h-1);
+    CHECK(cropped_height && cropped_height->height==h-1);
+    CHECK(cropped_height->planes[0].size()==w*(h-1));
+    CHECK(std::all_of(cropped_height->planes[0].begin(),
+                      cropped_height->planes[0].end(),
+                      [&](auto x){return x==colors[0];}));
     CHECK(!decode_bink_sjpi_yuva_frame(encoded,w+1,h));
     auto prev_invalid=*decoded;
     prev_invalid.planes[2].pop_back();
