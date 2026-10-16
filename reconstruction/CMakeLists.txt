@@ -1040,6 +1040,7 @@ add_library(btb_recompiled_core STATIC
     src/golf_activity.cpp
     src/full_game_herding.cpp
     src/full_game_herding_event_simulation.cpp
+    src/herding_native_pickles_motion.cpp
     src/herding_behavior_bridge.cpp
     src/full_game_herding_presentation.cpp
     src/full_game_front_end.cpp
@@ -1231,6 +1232,16 @@ add_test(NAME spud_maze_pilchard_native
     COMMAND btb_spud_maze_pilchard_native_tests)
 
 # Rebased Squirrel gameplay and progression CI after Pilchard.
+# Native retail Pets Corner initializer, Farmer Pickles navigation and
+# source-owned (not fabricated) animal population and completion state.
+add_executable(btb_full_game_herding_firstpass_native_tests
+    tests/full_game_herding_firstpass_native_test.cpp)
+target_link_libraries(btb_full_game_herding_firstpass_native_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_full_game_herding_firstpass_native_tests PRIVATE)
+add_test(NAME full_game_herding_firstpass_native
+    COMMAND btb_full_game_herding_firstpass_native_tests)
+
 add_executable(btb_full_game_squirrel_native_tests
     tests/full_game_squirrel_native_test.cpp)
 target_link_libraries(btb_full_game_squirrel_native_tests PRIVATE
