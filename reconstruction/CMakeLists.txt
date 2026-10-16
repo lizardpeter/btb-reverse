@@ -1816,6 +1816,13 @@ target_link_libraries(btb_bink32_yuva_frame_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_yuva_frame_tests PRIVATE)
 add_test(NAME bink32_original_sjpi_yuva_frame COMMAND btb_bink32_yuva_frame_tests)
 
+# Native retail SJPi movie parity audit. Reads supplied original BIK
+# and optionally independent raw yuva420p reference frames; no RAD
+# DLL, FFmpeg binary or proprietary assets required to build.
+add_executable(btb_bink32_retail_video_audit tools/bink32_retail_video_audit.cpp)
+target_link_libraries(btb_bink32_retail_video_audit PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_retail_video_audit PRIVATE)
+
 # Original Bink1 sparse signed residue bitplane reader.
 add_executable(btb_bink32_residue_tests tests/bink32_residue_test.cpp)
 target_link_libraries(btb_bink32_residue_tests PRIVATE btb_bink32_recovered)
