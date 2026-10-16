@@ -29,4 +29,14 @@ bink_idct_original_quant(
 decode_original_quantized_block(
     LsbBitReader& compressed,
     std::span<const std::int16_t> coefficients) noexcept;
+// Subset of original AC-coefficient unpacker 0x30011B10..0x300122E7:
+// after the caller supplies its already-decoded DC coefficient, an AC
+// count nibble of zero leaves all 63 AC coefficients zero. The next
+// four-bit value is the original quantization selector. Decode that
+// complete DC-only block directly into 16x16 native pixels; other
+// coefficient modes must await their actual x86 reconstruction.
+[[nodiscard]] std::optional<BinkFullIdctPixels>
+decode_bink_zero_ac_block(
+    LsbBitReader& compressed,
+    std::int16_t predecoded_dc) noexcept;
 } // namespace btb::bink32_recovered
