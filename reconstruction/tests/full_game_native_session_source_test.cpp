@@ -153,6 +153,7 @@ int main() {
     fs::remove_all(directory);
     touch(directory,"data/movies/bink_5.bik");
     touch(directory,"data/sound/help_5.wav");
+    touch(directory,"Data/sound/walkthrough_voice.wav");
     touch(directory,"data/movies/bink_0.bik");
     touch(directory,"data/sound/help_0.wav");
     touch(directory,"Data/movies/start_0.bik");
@@ -170,6 +171,9 @@ int main() {
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
         };
+        std::istringstream sound_catalog(
+            "Data/sound/walkthrough_voice.wav 488\\n");
+        assert(session.load_sound_catalog(sound_catalog).success);
         game.set_outer_state(State::GolfPregameSetup);
 
         const auto initialized=session.tick({},false,false);
@@ -189,6 +193,32 @@ int main() {
         assert(device.received_draws.size() == 1);
         assert(device.received_draws[0].source_asset ==
                "Data/ui/original.bmp");
+
+        // Active Golf pregame's original 0x00428120 checks x=50..364,
+        // y=141..349 and dispatches DAT_00446FD8=0x1E8 through the
+        // same managed audio/asset system as all game narration.
+        auto hovering=session.tick(
+            {.pointer_x=63,.pointer_y=157},false,false);
+        assert(!hovering.failure && hovering.submitted);
+        assert(!hovering.prepared.game.effects.audio.empty());
+        const auto& spoken=hovering.prepared.game.effects.audio.back();
+        assert(spoken.operation==AudioOperation::ManagedSoundId);
+        assert(spoken.sound_id==0x1e8);
+        assert(spoken.priority==0x5a);
+        assert(spoken.arbitration_class==1);
+        assert(device.sound_count>0);
+
+        device.sample.any_managed_voice_playing=true;
+        auto busy=session.tick(
+            {.pointer_x=63,.pointer_y=157},false,false);
+        assert(!busy.failure && busy.submitted);
+        assert(busy.prepared.game.effects.audio.empty());
+        device.sample.any_managed_voice_playing=false;
+
+        auto outside=session.tick(
+            {.pointer_x=63,.pointer_y=140},false,false);
+        assert(!outside.failure && outside.submitted);
+        assert(outside.prepared.game.effects.audio.empty());
 
         // Pre-game Start must close the independent looping Bink before
         // routing to Golf initializer. Never close on a difficulty choice.
