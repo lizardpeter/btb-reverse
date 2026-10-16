@@ -51,4 +51,18 @@ parse_video_entropy_prologue(
     std::span<const std::uint8_t> packet,
     std::size_t initial_byte_offset=4) noexcept;
 
+// Alpha-bearing SJPi packets begin with a DWORD describing the leading
+// alpha section. In the verified retail startup movie this yields byte 48
+// for frames 2..227 and byte 124 for frame 1; the following DWORD is the
+// color-picture control. The original DLL's exact stream metadata still
+// requires differential confirmation. This parser never decodes pixels.
+struct BinkAlphaPictureEntropy {
+    std::size_t alpha_section_bytes{};
+    std::uint32_t picture_control_word{};
+    VideoEntropyPrologue picture{};
+};
+[[nodiscard]] std::optional<BinkAlphaPictureEntropy>
+parse_alpha_picture_entropy_prologue(
+    std::span<const std::uint8_t> video_packet) noexcept;
+
 } // namespace btb::bink32_recovered
