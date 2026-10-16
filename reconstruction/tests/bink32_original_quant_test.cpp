@@ -84,5 +84,33 @@ int main() {
     CHECK(!decode_original_quantized_block(
         invalid_input,std::span<const std::int16_t>(coeff).first(63)));
     CHECK(invalid_input.bit_position()==0);
+    // Original coefficient unpacker 0x30011B10 has a real zero-AC
+    // special case; preserve the upstream-decoded DC and consume only
+    // [AC-count nibble = 0][quantization nibble].
+    std::array<std::int16_t,64> only_dc{};
+    only_dc[0]=128;
+    for(const auto [selector,expected_pixel]:std::array<std::pair<unsigned,unsigned>,3>{{
+        {0,16},{1,21},{15,192}
+    }}) {
+        const std::array<std::uint8_t,1> packed{
+            static_cast<std::uint8_t>(selector<<4)};
+        LsbBitReader block_bits(packed);
+        const auto block=decode_bink_zero_ac_block(block_bits,128);
+        const auto expected=bink_idct_original_quant(
+            only_dc,static_cast<std::uint8_t>(selector));
+        CHECK(block&&expected&&*block==*expected);
+        CHECK(block_bits.bit_position()==8);
+        for(const auto p:*block)CHECK(p==expected_pixel);
+    }
+    {
+        const std::array<std::uint8_t,1> nonzero_mode{0x42};
+        LsbBitReader rejected(nonzero_mode);
+        CHECK(!decode_bink_zero_ac_block(rejected,128));
+        CHECK(rejected.bit_position()==0);
+        LsbBitReader short_input(nonzero_mode);
+        CHECK(short_input.skip(5));
+        CHECK(!decode_bink_zero_ac_block(short_input,128));
+        CHECK(short_input.bit_position()==5);
+    }
     std::puts("Bink original 16 quantization tables + AC iDCT: PASS");
 }
