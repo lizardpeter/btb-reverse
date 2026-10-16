@@ -305,5 +305,79 @@ int main(int argc,char**argv) {
             static_cast<unsigned long long>(zero_fill),
             static_cast<unsigned long long>(complete_skip_luma));
     }
+    {
+        // Original motion bundle: length, one constant flag, one signed
+        // four-bit magnitude. Sign follows only NONZERO magnitudes.
+        Writer constant;
+        constant.write(3,10);
+        constant.write(1,1);
+        constant.write(7,4);
+        constant.write(1,1);
+        LsbBitReader bits(constant.bytes);
+        const auto three=read_bink_signed_motion_bundle(bits,tree,640,3);
+        CHECK(three && three->encoded_count==3);
+        CHECK(three->constant_bundle && three->bits_consumed==16);
+        CHECK(three->values==std::vector<std::int8_t>(3,-7));
+        CHECK(bits.bit_position()==16);
+
+        Writer zero;
+        zero.write(2,10);
+        zero.write(1,1);
+        zero.write(0,4); // no sign bit for zero
+        LsbBitReader bz(zero.bytes);
+        const auto zz=read_bink_signed_motion_bundle(bz,tree,640);
+        CHECK(zz && zz->bits_consumed==15);
+        CHECK(zz->values==std::vector<std::int8_t>(2,0));
+
+        Writer distinct;
+        distinct.write(3,10);
+        distinct.write(0,1); // Huffman stream instead of constant
+        distinct.write(5,4);distinct.write(1,1); // -5
+        distinct.write(0,4); // zero, consumes no sign
+        distinct.write(3,4);distinct.write(0,1); // +3
+        LsbBitReader dr(distinct.bytes);
+        const auto values=read_bink_signed_motion_bundle(dr,tree,640);
+        CHECK(values && !values->constant_bundle);
+        CHECK(values->bits_consumed==25);
+        CHECK(values->values==std::vector<std::int8_t>({-5,0,3}));
+        CHECK(dr.bit_position()==25);
+        LsbBitReader incomplete(
+            std::span<const std::uint8_t>(distinct.bytes).first(3));
+        CHECK(!read_bink_signed_motion_bundle(incomplete,tree,640));
+        CHECK(incomplete.bit_position()==0);
+        LsbBitReader capped(distinct.bytes);
+        CHECK(!read_bink_signed_motion_bundle(capped,tree,640,2));
+        CHECK(capped.bit_position()==0);
+        Writer empty;empty.write(0,10);
+        LsbBitReader er(empty.bytes);
+        const auto stop=read_bink_signed_motion_bundle(er,tree,640);
+        CHECK(stop && stop->end_of_bundle && stop->values.empty());
+        CHECK(er.bit_position()==10);
+    }
+    {
+        // Pattern bundle: each pixel mask uses exactly two original
+        // Huffman nibbles, low before high, with NO constant flag.
+        Writer patterns;
+        patterns.write(2,11); // (640/8)*8+512 -> 11-bit count
+        patterns.write(9,4);patterns.write(10,4); // A9
+        patterns.write(15,4);patterns.write(1,4); // 1F
+        LsbBitReader reader(patterns.bytes);
+        const auto decoded=read_bink_pattern_bundle(reader,tree,640,2);
+        CHECK(decoded && decoded->encoded_count==2);
+        CHECK(decoded->bits_consumed==27);
+        CHECK(decoded->values==std::vector<std::uint8_t>({0xA9,0x1F}));
+        CHECK(reader.bit_position()==27);
+        LsbBitReader truncated(
+            std::span<const std::uint8_t>(patterns.bytes).first(3));
+        CHECK(!read_bink_pattern_bundle(truncated,tree,640));
+        CHECK(truncated.bit_position()==0);
+        LsbBitReader capped(patterns.bytes);
+        CHECK(!read_bink_pattern_bundle(capped,tree,640,1));
+        CHECK(capped.bit_position()==0);
+        Writer zero;zero.write(0,11);
+        LsbBitReader none(zero.bytes);
+        const auto end=read_bink_pattern_bundle(none,tree,640);
+        CHECK(end && end->end_of_bundle && end->bits_consumed==11);
+    }
     std::puts("Bink original value-run command expansion: PASS");
 }
