@@ -173,6 +173,7 @@ data\subgamegolf\wendy.bmp
     auto golf=std::make_unique<GolfDriver>(temp,1);
     GolfDriver* golf_handle=golf.get();
     root.install(ActivityId::Golf,std::move(golf));
+    root.configure_profile_directory(temp/"profiles");
 
     root.set_outer_state(State::AdventureChooserSetup);
     assert(root.advance({}).kind==FrameKind::FrontEndInitialized);
@@ -220,6 +221,58 @@ data\subgamegolf\wendy.bmp
     assert(running.effects.draws[0].source_asset==
            "Data\\SubGameGolf\\golfbg.bmp");
 
-    assert(root.unload_current(error));
+    // Exercise the entire original Adventure -> Golf -> Play Again route.
+    // The test only sends ordinary per-frame click/DirectSound observations,
+    // never queue_control() or synthetic swing/feedback completion events.
+    for(int shot=0;shot<5;++shot) {
+        auto frame=root.advance({.pointer_x=616,.click_pulse=true});
+        assert(frame.kind==FrameKind::ActivityUpdated);
+        assert(golf_handle->round()->state()==golf::RoundState::PowerMeter);
+        for(int charge=0;charge<12;++charge)
+            frame=root.advance({});
+        frame=root.advance({.click_pulse=true});
+        assert(golf_handle->round()->state()==golf::RoundState::LaunchSetup);
+        frame=root.advance({});
+        assert(golf_handle->round()->state()==golf::RoundState::SwingAnimationDelay);
+        for(int i=0;i<72;++i)
+            frame=root.advance({});
+        assert(golf_handle->round()->state()==golf::RoundState::BallFlight);
+        int motion=0;
+        while(golf_handle->round()->state()==golf::RoundState::BallFlight &&
+              motion++<300)
+            frame=root.advance({});
+        assert(motion<300);
+        frame=root.advance({});
+        assert(golf_handle->round()->state()==golf::RoundState::ScoreAndFeedback);
+        frame=root.advance({}); // source feedback voice queued
+        assert(frame.effects.audio.size()==1);
+        for(int i=0;i<2;++i) {
+            frame=root.advance({.managed_sound_playing=true});
+            assert(golf_handle->round()->state()==golf::RoundState::ScoreAndFeedback);
+        }
+        frame=root.advance({.managed_sound_playing=false});
+        assert(golf_handle->round()->state()==golf::RoundState::ResetNextAttempt);
+        frame=root.advance({});
+        if(shot<4) {
+            assert(frame.kind==FrameKind::ActivityUpdated);
+            assert(golf_handle->round());
+            assert(golf_handle->round()->state()==golf::RoundState::Aim);
+            assert(!frame.profile_saved);
+        } else {
+            assert(frame.kind==FrameKind::ActivityUpdated);
+            assert(frame.effects.save_and_unload);
+            assert(frame.profile_saved);
+            assert(!golf_handle->round());
+            assert(root.globals().dispatcher.current_state==
+                   static_cast<int>(State::PlayAgainYesNoSetup));
+        }
+    }
+    assert(root.globals().player_progress[0].get(
+        progress::Slot::Golf)==1);
+    GameRoot restarted;
+    assert(restarted.load_profile_files(temp/"profiles",error));
+    assert(restarted.globals().player_progress[0].get(
+        progress::Slot::Golf)==1);
+
     fs::remove_all(temp);
 }
