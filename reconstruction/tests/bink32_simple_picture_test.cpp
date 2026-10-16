@@ -164,6 +164,43 @@ int main(int argc,char**argv) {
         CHECK(simple->next_plane_byte_offset==
               skip_only->next_plane_byte_offset);
     }
+    {
+        // Original Scaled marker occurs on both row boundaries, while
+        // a single 16x16 Fill subtype/color payload is decoded at
+        // the even-row upper-left anchor. Other three 8x8 cells must
+        // be covered by that one source block.
+        Bits scaled;trees(scaled);
+        scaled.put(2,10);scaled.put(1,1);scaled.put(1,4);
+        scaled.put(1,10);scaled.put(1,1);scaled.put(6,4);
+        scaled.put(1,10);scaled.put(1,1);
+        scaled.put(4,4);scaled.put(2,4);
+        scaled.put(0,10); // pattern
+        scaled.put(0,10);scaled.put(0,10); // X / Y
+        scaled.put(0,10);scaled.put(0,10); // intra/inter DC
+        scaled.put(0,10); // run
+        const auto full=decode_bink_simple_picture_luma(
+            packet(scaled),16,16);
+        CHECK(full && full->mode_counts[1]==2);
+        CHECK(std::all_of(full->image.pixels.begin(),
+                          full->image.pixels.end(),
+                          [](std::uint8_t pixel){return pixel==0x42;}));
+        CHECK(full->next_plane_byte_offset==52+
+            ((scaled.bits+31)/32)*4);
+
+        // A lower-row marker that does not match the upper-left
+        // anchor must never leave half a 16x16 tile undecoded.
+        Bits wrong;trees(wrong);
+        wrong.put(2,10);wrong.put(0,1);
+        wrong.put(1,4);wrong.put(0,4); // scaled then Skip
+        wrong.put(1,10);wrong.put(1,1);wrong.put(6,4);
+        wrong.put(1,10);wrong.put(1,1);
+        wrong.put(4,4);wrong.put(2,4);
+        wrong.put(0,10);
+        wrong.put(0,10);wrong.put(0,10);
+        wrong.put(0,10);wrong.put(0,10);
+        wrong.put(0,10);
+        CHECK(!decode_bink_simple_picture_luma(packet(wrong),16,16));
+    }
     // Optional original BIK smoke: count full compressed luma planes the
     // strict source-native subset supports, without embedding retail
     // assets or claiming original pixel parity from placeholder history.
