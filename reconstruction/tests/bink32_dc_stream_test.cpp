@@ -398,5 +398,58 @@ int main() {
         CHECK(!decode_original_bink_dc_context_packet(invalid,bad_ctx));
         CHECK(invalid.bit_position()==0);
     }
+    {
+        // Real decoder-shaped two-stream handoff: an original DC context
+        // record flows directly into three independently coded AC blocks.
+        const auto ctx=init_entropy_plane(0,0x200,64,11,1,true);
+        TestBits dc_encoded;
+        dc_encoded.put(3,ctx.table_bit_width); // three output DC words
+        dc_encoded.put(100,10);dc_encoded.put(0,1);
+        dc_encoded.put(2,4); // +1, -2
+        dc_encoded.put(1,2);dc_encoded.put(0,1);
+        dc_encoded.put(2,2);dc_encoded.put(1,1);
+        auto dc_bits=dc_encoded.reader();
+        const std::array<std::uint8_t,3> ac_encoded{0,0,0};
+        LsbBitReader ac_bits(ac_encoded);
+        const auto decoded=decode_original_bink_dc_context_blocks(
+            dc_bits,ac_bits,ctx);
+        CHECK(decoded && decoded->blocks.size()==3);
+        CHECK(decoded->dc_plane.final_sample==99);
+        CHECK(decoded->dc_plane.consumed_bits==dc_encoded.bit_count);
+        CHECK(decoded->ac_bits_consumed==24);
+        CHECK(dc_bits.bit_position()==dc_encoded.bit_count);
+        CHECK(ac_bits.bit_position()==24);
+        constexpr std::array<std::int16_t,3> expected{100,101,99};
+        for(std::size_t i=0;i<3;++i) {
+            CHECK(decoded->blocks[i].dc==expected[i]);
+            CHECK(decoded->blocks[i].decoded.coefficients[0]==expected[i]);
+            CHECK(decoded->blocks[i].decoded.ac.mode==0);
+        }
+        // Failure on block three must undo BOTH compressed cursors,
+        // even though the DC record and two prior blocks decoded.
+        LsbBitReader short_ac(
+            std::span<const std::uint8_t>(ac_encoded).first(2));
+        auto dc_retry=dc_encoded.reader();
+        CHECK(!decode_original_bink_dc_context_blocks(
+            dc_retry,short_ac,ctx));
+        CHECK(dc_retry.bit_position()==0);
+        CHECK(short_ac.bit_position()==0);
+        // Enforce an allocation ceiling before expanding the stream.
+        auto capped=dc_encoded.reader();
+        LsbBitReader untouched_ac(ac_encoded);
+        CHECK(!decode_original_bink_dc_context_blocks(
+            capped,untouched_ac,ctx,2));
+        CHECK(capped.bit_position()==0);
+        CHECK(untouched_ac.bit_position()==0);
+        // A zero-count DC record is legal and does not read AC data.
+        const std::array<std::uint8_t,2> zero_dc{0,0};
+        LsbBitReader empty_dc(zero_dc);
+        LsbBitReader no_ac(std::span<const std::uint8_t>{});
+        const auto empty=decode_original_bink_dc_context_blocks(
+            empty_dc,no_ac,ctx);
+        CHECK(empty && empty->blocks.empty());
+        CHECK(empty_dc.bit_position()==ctx.table_bit_width);
+        CHECK(no_ac.bit_position()==0);
+    }
     std::puts("Bink original predecoded DC stream -> AC/quant IDCT 16x16 pixels: PASS");
 }
