@@ -445,11 +445,10 @@ int main() {
         assert(blocked.failure->stage==PhysicalPresentationStage::MovieResolve);
         assert(!blocked.submitted);
     }
-    // After source 0x0042DCC0 accepts a new player, retail enters 0x41
-    // scene-set movie and then Activity Select 0x04. The explicit non-
-    // retail video-free session must not fail here or open fake Bink.
-    for(const auto skipped_movie_state:{
-          State::SceneSetMovieTransition,State::SharedMovieTransition}) {
+    // After 0x0042DCC0 accepts a name, retail enters the dedicated 0x41
+    // scene-set movie and then Activity Select. The optional non-retail
+    // video-free session may skip this particular source-known transition.
+    for(const auto skipped_movie_state:{State::SceneSetMovieTransition}) {
         GameRoot game;
         assert(game.select_profile(2));
         game.install_activity_select(std::make_unique<Instruction>());
@@ -483,6 +482,23 @@ int main() {
         assert(blocked.failure);
         assert(blocked.failure->stage==PhysicalPresentationStage::GameAdvance);
         assert(device.global_open==0);
+    }
+    {
+        // Source shared movie state 0x40 resumes the independent
+        // 0x00446CE8 return state; without that state available, even
+        // --skip-bink must not redirect replay to Activity Select.
+        GameRoot game;
+        assert(game.select_profile(2));
+        game.install_activity_select(std::make_unique<Instruction>());
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture(),true
+        };
+        game.set_outer_state(State::SharedMovieTransition);
+        const auto blocked=session.tick({},false,false);
+        assert(blocked.failure);
+        assert(blocked.failure->stage==PhysicalPresentationStage::GameAdvance);
     }
     fs::remove_all(directory);
 }
