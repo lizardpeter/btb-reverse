@@ -273,4 +273,29 @@ std::optional<BinkDecodedRaster16> decode_original_bink_dc_context_raster16(
     return raster;
 }
 
+std::optional<BinkDecodedRaster16>
+decode_original_bink_serial_context_raster16(
+    LsbBitReader& video_bits,const EntropyPlaneSetup& context,
+    std::size_t width,std::size_t height) {
+    const auto expected=expected_raster_blocks(width,height);
+    if(!expected)return std::nullopt;
+    auto probe=video_bits;
+    auto plane=decode_original_bink_dc_context_packet(
+        probe,context,*expected);
+    if(!plane || plane->signed_words_le.size()/2!=*expected)
+        return std::nullopt;
+    BinkDcWordStream words{plane->signed_words_le,0};
+    std::vector<BinkDcAcBlock> blocks{};
+    blocks.reserve(*expected);
+    for(std::size_t i=0;i<*expected;++i) {
+        auto block=decode_original_bink_block_from_dc_plane(words,probe);
+        if(!block)return std::nullopt;
+        blocks.push_back(std::move(*block));
+    }
+    auto raster=rasterize_bink_blocks16(blocks,width,height);
+    if(!raster)return std::nullopt;
+    video_bits=probe;
+    return raster;
+}
+
 } // namespace btb::bink32_recovered
