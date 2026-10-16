@@ -521,5 +521,59 @@ int main() {
         CHECK(truncated_dc.bit_position()==0);
         CHECK(truncated_ac.bit_position()==0);
     }
+    {
+        // One contiguous bitstream, with a non-byte-aligned three-bit
+        // video-control prefix. The DC context is followed immediately
+        // by three AC/quant records; no synthetic byte-boundary reset.
+        const auto ctx=init_entropy_plane(0,0x200,64,11,1,true);
+        TestBits contiguous;
+        contiguous.put(5,3); // caller-consumed frame/control prefix
+        contiguous.put(3,ctx.table_bit_width);
+        contiguous.put(50,10);contiguous.put(0,1);
+        contiguous.put(1,4);
+        for(unsigned i=0;i<2;++i) {
+            contiguous.put(1,1);contiguous.put(0,1);
+        }
+        for(unsigned i=0;i<3;++i)contiguous.put(0,8);
+        CHECK(contiguous.bit_count==56);
+        auto serial=contiguous.reader();
+        CHECK(serial.skip(3));
+        const auto plane=decode_original_bink_serial_context_raster16(
+            serial,ctx,33,1);
+        CHECK(plane && plane->width==33 && plane->height==1);
+        CHECK(serial.bit_position()==contiguous.bit_count);
+        CHECK(plane->pixels.size()==33);
+        // Independent two-cursor decode must produce identical raster
+        // output for this explicit serial DC-then-AC encoding.
+        TestBits dc_record;
+        dc_record.put(3,ctx.table_bit_width);
+        dc_record.put(50,10);dc_record.put(0,1);
+        dc_record.put(1,4);
+        for(unsigned i=0;i<2;++i) {
+            dc_record.put(1,1);dc_record.put(0,1);
+        }
+        auto separate_dc=dc_record.reader();
+        const std::array<std::uint8_t,3> ac_record{};
+        LsbBitReader separate_ac(ac_record);
+        const auto separate=decode_original_bink_dc_context_raster16(
+            separate_dc,separate_ac,ctx,33,1);
+        CHECK(separate && plane->pixels==separate->pixels);
+        // Removing the final byte truncates the LAST AC record.
+        // The caller's already-consumed 3-bit prefix must survive,
+        // while no inner bit is committed.
+        LsbBitReader cut(std::span<const std::uint8_t>(
+            contiguous.data).first(6));
+        CHECK(cut.skip(3));
+        CHECK(!decode_original_bink_serial_context_raster16(
+            cut,ctx,33,1));
+        CHECK(cut.bit_position()==3);
+        // Correct stream with wrong expected tile count is rejected,
+        // again without consuming the DC header.
+        auto mismatch=contiguous.reader();
+        CHECK(mismatch.skip(3));
+        CHECK(!decode_original_bink_serial_context_raster16(
+            mismatch,ctx,17,1));
+        CHECK(mismatch.bit_position()==3);
+    }
     std::puts("Bink original predecoded DC stream -> AC/quant IDCT 16x16 pixels: PASS");
 }
