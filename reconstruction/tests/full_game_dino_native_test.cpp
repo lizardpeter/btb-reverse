@@ -108,7 +108,7 @@ int main() {
         // Second click at the wrong location rejects, keeping the bone
         // cursor-owned; moving/releasing is not an additional attempt.
         frame=game.advance({.pointer_x=200,.pointer_y=200,
-            .random_value=1,.click_pulse=true,
+            .click_pulse=true,.random_value=1,
             .pointer_button_held=true});
         assert(frame.kind==FrameKind::ActivityUpdated);
         assert(actual->runtime()->mode()==
@@ -120,7 +120,7 @@ int main() {
 
         // Another click near this bone's own target accepts placement.
         frame=game.advance({.pointer_x=100,.pointer_y=100,
-            .random_value=2,.click_pulse=true,
+            .click_pulse=true,.random_value=2,
             .pointer_button_held=true});
         assert(frame.kind==FrameKind::ActivityUpdated);
         assert(actual->runtime()->mode()==
