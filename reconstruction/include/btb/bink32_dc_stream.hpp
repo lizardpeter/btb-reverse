@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <vector>
 
 namespace btb::bink32_recovered {
 struct BinkDcWordStream {
@@ -58,4 +59,19 @@ decode_original_bink_block_from_dc_plane(
 decode_original_bink_dc_delta_group(
     LsbBitReader& source,std::int16_t previous_dc,
     std::span<std::int16_t> output) noexcept;
+struct OriginalBinkDcPlane {
+    std::vector<std::uint8_t> signed_words_le{};
+    std::int16_t final_sample{};
+    std::size_t consumed_bits{};
+};
+// Original 30010D94/30010ECE loops over contiguous groups of at most
+// eight values. With the initial predictor and total SAMPLE COUNT
+// supplied by a caller that has parsed 30010BF0's plane header,
+// decode all groups into the exact signed-word little-endian stream
+// consumed at 3000EDC8/3000F087. No source cursor commits unless the
+// entire plane is complete; max output is capped to bound allocations.
+[[nodiscard]] std::optional<OriginalBinkDcPlane>
+decode_original_bink_dc_delta_plane(
+    LsbBitReader& source,std::int16_t previous_dc,
+    std::size_t sample_count);
 } // namespace btb::bink32_recovered
