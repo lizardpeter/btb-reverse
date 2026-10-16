@@ -132,6 +132,38 @@ int main(int argc,char**argv) {
     CHECK(std::all_of(independent->image.pixels.begin(),
                       independent->image.pixels.end(),
                       [](auto p){return p==0x79;}));
+    {
+        // The original retail 640x480 static scene uses nine type
+        // bundle refills: 8 x 560 skip blocks then 320. Compare the
+        // new generic nine-source row scheduler against the independent
+        // skip-only scanner over all sixty compressed block rows.
+        Bits static_scene;trees(static_scene);
+        for(unsigned row=0;row<60;++row) {
+            if(row%7==0) {
+                static_scene.put(row==56?320:560,10);
+                static_scene.put(1,1);static_scene.put(0,4);
+            }
+            if(row==0)
+                for(unsigned n:{10U,13U,11U,10U,10U,10U,10U,13U})
+                    static_scene.put(0,n);
+        }
+        const auto scene=packet(static_scene);
+        std::vector<std::uint8_t> prior(640*480);
+        for(std::size_t i=0;i<prior.size();++i)
+            prior[i]=static_cast<std::uint8_t>(i*11U);
+        const auto simple=decode_bink_simple_picture_luma(
+            scene,640,480,prior);
+        const auto skip_only=decode_bink_skip_only_picture_luma(
+            scene,640,480,prior);
+        CHECK(simple && skip_only);
+        CHECK(simple->image.pixels==skip_only->luma);
+        CHECK(simple->mode_counts[0]==4800);
+        CHECK(simple->source_refills[0]==9);
+        for(unsigned source=1;source<9;++source)
+            CHECK(simple->source_refills[source]==1);
+        CHECK(simple->next_plane_byte_offset==
+              skip_only->next_plane_byte_offset);
+    }
     // Optional original BIK smoke: count full compressed luma planes the
     // strict source-native subset supports, without embedding retail
     // assets or claiming original pixel parity from placeholder history.
