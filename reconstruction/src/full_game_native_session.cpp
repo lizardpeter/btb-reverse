@@ -111,12 +111,14 @@ NativeSessionFrame NativeGameSession::tick(
         if (walkthrough_open_) {
             frame.walkthrough_closed = true;
             walkthrough_open_ = false;
+            active_walkthrough_index_.reset();
         }
         if (!device_.open_walkthrough_movie(*movie,*help,error)) {
             fail(frame,PhysicalPresentationStage::MovieOpen,error);
             return frame;
         }
         walkthrough_open_ = true;
+        active_walkthrough_index_=*game.original_walkthrough_index;
         frame.walkthrough_opened = true;
     }
 
@@ -150,7 +152,29 @@ NativeSessionFrame NativeGameSession::tick(
             return frame;
         }
         walkthrough_open_ = false;
+        active_walkthrough_index_.reset();
         frame.walkthrough_closed = true;
+    }
+
+    // UpdateWalkthroughMovie (0x00428120) runs only on an active
+    // original pregame update frame. Its original pointer gate and
+    // selected DAT_00446FD8 speech ID are independent of the Bink
+    // decoder, and are gated by real DirectSound managed voice status.
+    // Submit them through the same game Audio/asset resolver used
+    // by every native activity, not a separate untracked WAV player.
+    if (!skip_video_ && walkthrough_open_ &&
+        active_walkthrough_index_ &&
+        game.kind==FrameKind::FrontEndUpdated) {
+        const auto narration=retail_walkthrough_hover_voice(
+            *active_walkthrough_index_,
+            input.pointer_x,input.pointer_y,
+            physical.any_managed_voice_playing);
+        if(narration) {
+            game.effects.audio.push_back({
+                AudioOperation::ManagedSoundId,{},
+                *narration,0x5a,1
+            });
+        }
     }
 
     frame.prepared = effects_.prepare(
