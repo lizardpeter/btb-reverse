@@ -496,6 +496,31 @@ retail-frame parity are not reconstructed end-to-end.
 All current DC-group validation uses controlled source
 bitstreams; it does not certify original .bik frame pixels.
 
+## Continuous DC plane reconstruction from compressed deltas
+
+The original decoder at `0x30010D94–0x30010ECE` does not stop
+after one group; it advances through consecutive groups of
+`min(remaining, 8)` signed delta values. New native C++ entry point
+`decode_original_bink_dc_delta_plane` implements this **whole
+group loop** and emits a contiguous little-endian signed-16
+word buffer directly compatible with
+`decode_original_bink_block_from_dc_plane`.
+
+It carries the previous decoded sample from one group into the
+next, obeys the variable-width and conditional sign-bit rules,
+and caps output at 1,048,576 DC words to prevent untrusted
+allocation abuse. It commits the source bit cursor only after
+the entire requested plane finishes. Tests cover consecutive
+nonzero- and zero-width groups, word ordering, malformed
+streams, zero-length planes, and the resulting words feeding
+two native AC/quant/iDCT pixel blocks.
+
+**Important input boundary:** The caller must supply the
+original plane header's starting predictor and exact output
+word count. Those fields are not yet reconstructed from retail
+compressed video end to end. Neither these tests nor the
+standalone plane decoder certify an original frame as complete.
+
 ## Next implementation order
 
 1. Compare the reconstructed dynamic trees against the original x86 DLL
