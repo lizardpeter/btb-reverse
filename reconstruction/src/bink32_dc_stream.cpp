@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <utility>
 
 namespace btb::bink32_recovered {
 std::optional<std::int16_t> read_original_bink_dc_word(
@@ -184,4 +185,31 @@ std::optional<OriginalBinkDcPlane> decode_original_bink_dc_context_packet(
         source,context.table_bit_width,context.symbol_bits,
         context.prefix_mask!=0,maximum_output_words);
 }
+std::optional<BinkDcContextBlocks> decode_original_bink_dc_context_blocks(
+    LsbBitReader& dc_bits,LsbBitReader& ac_bits,
+    const EntropyPlaneSetup& context,std::size_t maximum_blocks) {
+    if(maximum_blocks==0 || maximum_blocks>(1U<<20))
+        return std::nullopt;
+    auto dc_probe=dc_bits;
+    auto ac_probe=ac_bits;
+    auto plane=decode_original_bink_dc_context_packet(
+        dc_probe,context,maximum_blocks);
+    if(!plane)return std::nullopt;
+    BinkDcContextBlocks result{};
+    result.dc_plane=std::move(*plane);
+    BinkDcWordStream words{result.dc_plane.signed_words_le,0};
+    result.blocks.reserve(result.dc_plane.signed_words_le.size()/2);
+    const auto start=ac_probe.bit_position();
+    while(words.remaining_words()!=0) {
+        auto block=decode_original_bink_block_from_dc_plane(
+            words,ac_probe);
+        if(!block)return std::nullopt;
+        result.blocks.push_back(std::move(*block));
+    }
+    result.ac_bits_consumed=ac_probe.bit_position()-start;
+    dc_bits=dc_probe;
+    ac_bits=ac_probe;
+    return result;
+}
+
 } // namespace btb::bink32_recovered
