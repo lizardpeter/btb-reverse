@@ -885,3 +885,56 @@ https://ffmpeg.org/doxygen/8.0/libavcodec_2bink_8c_source.html
 (`read_tree`, `read_motion_values`, `read_block_types`,
 `read_patterns`, `read_colors`, `read_dcs`,
 `bink_decode_plane`).
+
+
+## Native source-driven luma row scheduler (2026-10-16)
+
+`reconstruction/src/bink32_simple_picture.cpp` connects all nine
+compressed Bink picture bundles to their actual row-by-row refill
+scheduling and the already-tested pixel compositor. It decodes a
+conservative but meaningful **compressed-to-pixel** subset:
+
+- SKIP copies the colocated area from the supplied previous luma frame.
+- MOTION consumes genuine signed X and Y bundle values to copy from
+  the previous frame; out-of-bounds references are rejected.
+- FILL consumes one color from the adaptive color bundle.
+- PATTERN consumes two adaptive colors plus eight Huffman pattern bytes,
+  with least-significant-bit-first per-row masks.
+- RAW consumes 64 adaptive colors as a full source pixel block.
+
+On each 8x8 block row the function attempts refills **in original
+0x3000E400 order** (types, 16x16 subtype, colors, pattern, motion
+X/Y, intra/inter DC, run) and only refills when that source's
+previous compressed data was exhausted. Zero-count terminators
+permanently close that source for the rest of the plane. The
+color high-nibble predictor is carried across refills. A plane
+result is emitted only after ALL its 8x8 blocks and the 32-bit
+next-plane alignment decode successfully. The input movie and
+the supplied previous image are never mutated on failure.
+
+The C++26 test `bink32_compressed_simple_picture_luma` exercises a
+two-row mixed compressed picture (SKIP/FILL/MOTION and PATTERN/RAW/SKIP),
+all nine initial bundle classes, adaptive color bytes, pixel-exact
+motion and pattern copying, byte-boundary accounting, and rejection
+of missing previous pixels, truncated compressed data, and invalid
+motion. It also decodes an independent FILL-only picture without a
+previous frame. Synthetic fixture data only; no licensed retail
+movie is checked into the repo.
+
+**Intentionally unsupported:** Scaled 16x16, run-pattern, residue,
+intra DCT and inter DCT, and their extra bitstream reads. Encountering
+these modes fails closed instead of generating approximations. This
+subset is not yet the complete original 2002 frame decoder, does not
+reconstruct frame 1's mixed DCT blocks, cannot recover chroma/alpha
+and audio, and is not swapped into the game host. The separate earlier
+skip-only decoder remains available as a regression and independent
+cross-check for static frames.
+
+Additional correction: the first intra DC sample is **unsigned**,
+while the inter DC initial sample uses an optional sign bit. The
+first-bundle inspection code now configures them separately, as in
+the original `read_dcs` call site.
+
+Reference comparison: FFmpeg libavcodec/bink.c, `read_bundle`,
+`read_colors`, `read_block_types`, `bink_decode_plane`
+(https://ffmpeg.org/doxygen/8.0/libavcodec_2bink_8c_source.html).
