@@ -108,6 +108,24 @@ int main(int argc,char**argv) {
         CHECK(!read_block_entropy_trees(truncated));
         CHECK(truncated.bit_position()==8);
     }
+    {
+        // Candidate four-byte video control word then 23 zero trees.
+        // Bit 32 + 92 entropy bits = absolute bit 124.
+        std::array<std::uint8_t,16> packet{};
+        packet[0]=0x5a;
+        const auto trees=parse_video_entropy_prologue(packet);
+        CHECK(trees&&trees->initial_byte_offset==4);
+        CHECK(trees->final_bit_offset==124);
+        CHECK(trees->trees.consumed_bits==92);
+        CHECK(trees->trees.trees.size()==23);
+        CHECK(!parse_video_entropy_prologue(
+            std::span<const std::uint8_t>(packet).first(15)));
+        CHECK(!parse_video_entropy_prologue(packet,17));
+        CHECK(!parse_video_entropy_prologue(packet,16));
+        // Valid at a nondefault header offset if source is long enough.
+        const auto zero=parse_video_entropy_prologue(packet,0);
+        CHECK(zero&&zero->final_bit_offset==92);
+    }
     // Optional original-asset regression, performed locally using the
     // supplied retail movies; GitHub CI runs the synthetic tests above.
     // Four bytes is the candidate compressed video control word boundary.
