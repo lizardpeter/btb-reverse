@@ -251,7 +251,7 @@ at `0x30011C4B` indexes four addresses stored at `0x3001241C`:
 
 | Command low 2 bits | Original target | Recovered behavior |
 |---|---|---|
-| 0 | `0x30011C52` | Partially inspected, further bit-dependent logic outstanding |
+| 0 | `0x30011C52` | Rewrite source command to `base+0x11`, then fall through to the four-slot decoder used by case 2 |
 | 1 | `0x30011C61` | Expand packed command into 4 index-coded control bytes |
 | 2 | `0x30011C93` | Partially inspected, further bit-dependent logic outstanding |
 | 3 | `0x30011F7F` | Direct signed 16-bit coefficient from magnitude-class bits |
@@ -300,10 +300,12 @@ bit cursor/output writes. The new CTest covers mixed positive/negative
 coefficients, postponed commands, all deferred, truncated input,
 slot bounds and unchanged state on failure.
 
-Together with `bink32_ac_nonzero.cpp`, native C++ now recovers
-jump-table **branches 1, 2 and 3** of the original `0x30011C4B`
-dispatch at the isolated-operation level. Branch 0, dynamic control
-list mutation and the full outer coefficient loop remain unfinished.
+Together with `bink32_ac_nonzero.cpp`, native C++ now models
+**all four branch-table entries** of original `0x30011C4B` at the
+isolated-operation level. Branch 0 is an alias/fallthrough of case 2
+with the original `base + 0x11` rewrite; its exact source positions
+are `0x30011C52..0x30011C5F`. The wider dynamic control-list
+state and complete outer coefficient loop remain unfinished.
 Do not interpret isolated opcode tests as bit-exact real-frame decoding.
 
 ## Next implementation order
