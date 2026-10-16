@@ -3,6 +3,7 @@
 #include "btb/win32_original_game_device.hpp"
 #include "btb/full_game_front_end.hpp"
 #include "btb/full_game_golf.hpp"
+#include "btb/full_game_dino.hpp"
 #include "btb/full_game_fireworks.hpp"
 #include "btb/full_game_bobs_band.hpp"
 #include "btb/full_game_park_designer.hpp"
@@ -182,8 +183,10 @@ struct Host {
         }
 
         // One set of original activity drivers, not cloned effect models.
-        // Other activities are deliberately not registered until their
-        // complete motion/runtime providers are linked.
+        // Dinosaur now uses the nine genuine level folders and original
+        // shared DirectDraw/DirectSound command pipeline. Remaining absent
+        // activities still require source-backed adapters.
+        game.install(ActivityId::Dinosaur,std::make_unique<DinoDriver>(root));
         game.install(ActivityId::Golf,std::make_unique<GolfDriver>(
             root/"Data"/"SubGameGolf",0));
         game.install(ActivityId::Fireworks,std::make_unique<FireworksDriver>(
