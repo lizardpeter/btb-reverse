@@ -2,7 +2,7 @@
 // Bink1 SJPi original-bitstream to pixel bridge for *simple* luma modes.
 // Unlike the block compositor, this owns all nine compressed bundle
 // cursors and refills each on the same source-order rows as 0x3000E400.
-// DCT, residue, run and scaled blocks still require further reconstruction.
+// DCT, residue and run blocks still require further reconstruction.
 #include "btb/bink32_entropy_commands.hpp"
 #include "btb/bink32_block_modes.hpp"
 #include <array>
@@ -17,8 +17,9 @@ struct BinkSimplePictureLuma {
     std::array<std::size_t,9> source_refills{};
     std::size_t next_plane_byte_offset{};
 };
-// Decode a complete 8-bit luma plane consisting only of Skip, Motion,
-// Fill, Pattern and Raw modes directly from its compressed SJPi packet.
+// Decode a complete 8-bit luma plane using Skip, Motion, Fill, Pattern,
+// Raw and source-backed 16x16 Scaled (Fill/Pattern/Raw) modes directly
+// from its compressed SJPi packet.
 // Previous luma is mandatory for referenced blocks; no previous image is
 // required for independent Fill/Pattern/Raw-only planes. Any unsupported
 // mode or malformed source returns nullopt with no partial frame.
