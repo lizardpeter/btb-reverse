@@ -56,6 +56,113 @@ int main() {
         f<<"-1 -1\n";
         f<<"777 999\n-1 -1\n";
     }
+    // The same original CRT generator is owned by the Windows host
+    // and reused across frames. A rejected NativeGameSession update
+    // must NOT consume RNG or permanently mutate Scruffty/food state.
+    {
+        std::ifstream input(root/"Data"/"SubGame1"/"herd.txt");
+        assert(input.good());
+        auto data=btb::herding::parse_data(input);
+        btb::retail::OriginalRetailRandom shared_rng{0x12345678u};
+        fg::NativePicklesMotionSource native{shared_rng};
+        std::vector<btb::herding::RetailEntityRecord32> entities{};
+        std::string error;
+        assert(native.initialize(data,1,entities,error));
+        assert(entities.back().entity_type()==
+               btb::herding::EntityType::Scruffty);
+        auto seed_before=shared_rng.state();
+        entities[0].x=240;entities[0].y=414;
+        entities[0].x_float=240.f;entities[0].y_float=414.f;
+        fg::HerdingObservedFrame first{},replayed{};
+        assert(native.begin_frame(error));
+        assert(!native.begin_frame(error)); // reject nested frame
+        assert(native.advance(data,{}, {},entities,first,error));
+        assert(first.scruffty_patrol_evidence);
+        const auto picked=std::find_if(
+            first.events.begin(),first.events.end(),
+            [](const auto& e) {
+                return e.kind==fg::HerdingObservedKind::PickUpFood &&
+                       e.food==btb::herding::FoodType::SheepFood;
+            });
+        assert(picked!=first.events.end());
+        const int original_voice= picked->random_mod_2;
+        const auto after_first_rng=shared_rng.state();
+        assert(after_first_rng!=seed_before);
+        const auto dog_index=first.scruffty_patrol_evidence->entity_index;
+        const auto first_dog_x=first.motion_records[dog_index].x_float;
+        const auto first_dog_speed=
+            first.motion_records[dog_index].movement_speed;
+        native.rollback_frame();
+        assert(shared_rng.state()==seed_before);
+        assert(native.begin_frame(error));
+        assert(native.advance(data,{}, {},entities,replayed,error));
+        assert(shared_rng.state()==after_first_rng);
+        const auto repeated_pick=std::find_if(
+            replayed.events.begin(),replayed.events.end(),
+            [](const auto& e) {
+                return e.kind==fg::HerdingObservedKind::PickUpFood &&
+                       e.food==btb::herding::FoodType::SheepFood;
+            });
+        assert(repeated_pick!=replayed.events.end());
+        assert(repeated_pick->random_mod_2==original_voice);
+        assert(replayed.scruffty_patrol_evidence);
+        assert(replayed.motion_records[dog_index].x_float==first_dog_x);
+        assert(replayed.motion_records[dog_index].movement_speed==
+               first_dog_speed);
+        native.commit_frame();
+        native.rollback_frame(); // completed transaction cannot rewind
+        assert(shared_rng.state()==after_first_rng);
+
+        // Follower insertion and its source-random voice MUST also
+        // roll back. Retry the same attempted Pickles/sheep contact:
+        // the same sheep must join exactly once, with the same roll.
+        entities=replayed.motion_records;
+        entities[0].x=entities[1].x+
+            (entities[1].source_left-entities[1].source_right)/2;
+        entities[0].y=entities[1].y+
+            (entities[1].source_bottom-entities[1].source_top)/2-
+            (entities[0].source_bottom-entities[0].source_top)+20;
+        entities[0].x_float=static_cast<float>(entities[0].x);
+        entities[0].y_float=static_cast<float>(entities[0].y);
+        const auto pre_join_rng=shared_rng.state();
+        fg::HerdingObservedFrame joining{},joined_again{};
+        assert(native.begin_frame(error));
+        assert(native.advance(data,{}, {},entities,joining,error));
+        const auto first_join=std::find_if(
+            joining.events.begin(),joining.events.end(),
+            [](const auto& e) {
+                return e.kind==fg::HerdingObservedKind::JoinFollower &&
+                       e.entity_index==1;
+            });
+        assert(first_join!=joining.events.end());
+        const auto first_join_voice=first_join->random_mod_2;
+        const auto after_join_rng=shared_rng.state();
+        assert(after_join_rng!=pre_join_rng);
+        native.rollback_frame();
+        assert(shared_rng.state()==pre_join_rng);
+        assert(native.begin_frame(error));
+        assert(native.advance(data,{}, {},entities,joined_again,error));
+        const auto second_join=std::find_if(
+            joined_again.events.begin(),joined_again.events.end(),
+            [](const auto& e) {
+                return e.kind==fg::HerdingObservedKind::JoinFollower &&
+                       e.entity_index==1;
+            });
+        assert(second_join!=joined_again.events.end());
+        assert(second_join->random_mod_2==first_join_voice);
+        assert(shared_rng.state()==after_join_rng);
+        native.commit_frame();
+        entities=joined_again.motion_records;
+        fg::HerdingObservedFrame following{};
+        assert(native.begin_frame(error));
+        assert(native.advance(data,{}, {},entities,following,error));
+        for(const auto& e:following.events)
+            assert(!(e.kind==fg::HerdingObservedKind::JoinFollower &&
+                     e.entity_index==1));
+        native.commit_frame();
+        assert(native.unload(error));
+    }
+
     static_assert(btb::herding::food_pickup_in_range(
         btb::herding::FoodType::RabbitFood,350,390));
     static_assert(!btb::herding::food_pickup_in_range(

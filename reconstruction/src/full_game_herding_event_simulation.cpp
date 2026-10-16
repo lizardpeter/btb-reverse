@@ -227,6 +227,22 @@ bool HerdingEventSimulation::advance(
         error="rendered Herding entity identity/count changed unexpectedly";
         return false;
     }
+    if (!motion_->begin_frame(error)) return false;
+    // The source is not allowed to commit its own tables or shared
+    // random stream before the independent verifier has accepted
+    // the full frame. All early returns (including source failure)
+    // roll it back along with the staged game-state candidate.
+    struct ProvisionalMotionFrame {
+        OriginalHerdingMotionSource& motion;
+        bool committed{};
+        ~ProvisionalMotionFrame() {
+            if(!committed) motion.rollback_frame();
+        }
+        void accept() noexcept {
+            motion.commit_frame();
+            committed=true;
+        }
+    } provisional{*motion_};
     HerdingObservedFrame observed{};
     if (!motion_->advance(
             data_,input,normalized_motion,candidate.entities(),
@@ -813,6 +829,7 @@ bool HerdingEventSimulation::advance(
         std::make_move_iterator(sounds.end()));
     *state_=std::move(candidate);
     scruffty_patrol_state_=staged_scruffty_state;
+    provisional.accept();
     error.clear();
     return true;
 }
