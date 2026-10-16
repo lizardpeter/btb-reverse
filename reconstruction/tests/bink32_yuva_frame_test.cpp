@@ -185,8 +185,10 @@ int main(int argc,char**argv) {
             opaque_skip,w,h,false));
         CHECK(!decode_bink_sjpi_video_frame(
             opaque_skip,w,h,false,&*decoded));
+        const auto alpha_skip=make_sjpi_frame(
+            w,h,{0,0,0,0},true);
         CHECK(!decode_bink_sjpi_video_frame(
-            skip,w,h,true,&*opaque));
+            alpha_skip,w,h,true,&*opaque));
     }
     // An interframe encoded entirely with SKIP must reuse all four
     // previous source planes, including swapped V/U chroma order.
