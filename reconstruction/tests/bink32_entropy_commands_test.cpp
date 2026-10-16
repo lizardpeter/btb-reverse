@@ -163,7 +163,7 @@ int main(int argc,char**argv) {
                           [](auto mode){return mode==0;}));
         CHECK(decoded->next_picture_bit_offset==
               52*8+92+10+5);
-        CHECK(!decode_first_bink_picture_block_types(video,640,64));
+        CHECK(!decode_first_bink_picture_block_types(video,640,32));
         CHECK(!decode_first_bink_picture_block_types(video,0,480));
         CHECK(!decode_first_bink_picture_block_types(video,640,0));
         CHECK(!decode_first_bink_picture_block_types(
