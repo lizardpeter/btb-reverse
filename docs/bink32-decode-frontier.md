@@ -1038,3 +1038,45 @@ intra frame followed by moving pictures, then completing Y/U/V/alpha,
 audio and movie playback. The original DLL remains necessary for full
 retail video in the game until these gaps are closed. Actual 2002
 DLL pixel parity is still unverified.
+
+
+## Source-native Bink1 spatial residue decoder (2026-10-16)
+
+Added `bink32_residue.hpp/.cpp`, recovering the compressed
+**RESIDUE_BLOCK** path distinct from the DCT/AC coefficient decoder.
+The original picture scheduler reads a seven-bit event quota, a
+three-bit starting bit-plane exponent, and a bounded adaptive
+four-coefficient subdivision tree. Newly materialized coefficients
+consume sign bits; previously materialized signed coefficients may
+be refined at each lower bit-plane. The decoder uses the Bink
+8×8 coefficient scan, fixed-size 128-node worklist and 64-leaf
+bookkeeping, returns 64 signed 16-bit coefficients, and commits
+its compressed cursor only after a complete valid read. No
+decoder subprocess or runtime use of the original DLL is involved.
+
+`decode_bink_simple_picture_luma` now accepts actual compressed
+RESIDUE_BLOCK modes. Each consumes source-derived signed X/Y
+motion values and the original residue packet, converts
+its signed 16-bit spatial corrections into modulo-256 byte
+residuals, and submits the block to existing previous-frame
+motion+pixel-addition logic. Any missing reference pixels,
+out-of-range motion, truncated bit planes or unsupported
+block handoff cause a failed frame without publishing pixels.
+
+The new `bink32_original_residue_coefficients` C++26 regression
+tests zero residue, immediate positive/negative leaf coefficients,
+one lower-bit refinement to +3, count-budget exhaustion, signed
+scan placement, invalid quota and bitstream truncation with
+cursor rollback. The compressed-picture test separately encodes
+a 640-bit-position-class full nine-bundle packet for an 8×8
+residue block, checking that one pixel receives +1 and the
+other 63 retain the reference value. Original movie pixel parity
+is still unverified for nontrivial frame content.
+
+**Remaining blockers:** independent intra/inter DCT blocks and
+original quantization placement in the 8×8 source scheduler,
+multi-plane Y/U/V/alpha frame decoding and faithful native
+audio-video playback. Residue support alone is not full
+frame decoding. Original-format structure crosschecked against
+FFmpeg `libavcodec/bink.c` `read_residue` and
+`bink_decode_plane`.
