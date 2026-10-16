@@ -132,6 +132,35 @@ END
            "Data\\SubGameSpudMaze\\timer.bmp");
     assert(frame.effects.draws[4].source_rectangle);
     assert(frame.effects.draws[4].source_rectangle->right==101);
+    // Retail 0041AF60: moving the cursor while in keyboard mode changes
+    // the stored mode but the current frame still takes the keyboard path.
+    frame=game.advance({.pointer_x=450,.pointer_y=267,
+                        .elapsed_centiseconds=410});
+    assert(maze->player()->x==249.0f);
+    assert(!maze->player()->mouse_mode);
+    // Mouse mode uses the real three-sample direction debounce. The first
+    // two stable cursor frames do not move the source character.
+    for(int pass=0;pass<2;++pass) {
+        frame=game.advance({.pointer_x=450,.pointer_y=267,
+                            .elapsed_centiseconds=420+pass*10});
+        assert(maze->player()->x==249.0f);
+        assert(maze->player()->mouse_mode);
+    }
+    frame=game.advance({.pointer_x=450,.pointer_y=267,
+                        .elapsed_centiseconds=440});
+    assert(maze->player()->x==251.0f);
+    assert(frame.kind==fg::FrameKind::ActivityUpdated);
+    assert(!frame.effects.fatal_error);
+    // The same mouse-mode frame that sees keyboard direction writes the
+    // future keyboard mode, but uses mouse input for that call.
+    frame=game.advance({.pointer_x=450,.pointer_y=267,
+                        .elapsed_centiseconds=450,
+                        .directional_input_bits=0x02});
+    assert(maze->player()->mouse_mode);
+    frame=game.advance({.pointer_x=450,.pointer_y=267,
+                        .elapsed_centiseconds=460,
+                        .directional_input_bits=0x02});
+    assert(!maze->player()->mouse_mode);
     // Missing package/NPC simulation must NOT write a fake victory flag.
     assert(frame.effects.progress_writes.empty());
     frame=game.advance({.elapsed_centiseconds=24500});
