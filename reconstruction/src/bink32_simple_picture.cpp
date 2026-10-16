@@ -41,8 +41,16 @@ template<class T> struct SourcePool {
 // must use the full separate 8x8 transform and are NOT accepted here.
 [[nodiscard]] std::optional<std::uint8_t>
 bink_zero_ac_idct_sample(std::int16_t dc,std::uint8_t selector) noexcept {
+    // The original DLL and independently recovered Bink1 intra/inter
+    // reference tables have the same sixteen DC multipliers. Only
+    // those verified DC entries are used in this fast path.
+    constexpr std::array<std::int32_t,16> kReferenceDcQuant{
+        65536,87381,109227,131072,174763,229376,262144,327680,
+        393216,524288,786432,1114112,1441792,1835008,2228224,2883584
+    };
     const auto quant=original_quant_matrix(selector);
-    if(!quant)return std::nullopt;
+    if(!quant || (*quant)[0]!=kReferenceDcQuant[selector])
+        return std::nullopt;
     const auto product=static_cast<std::uint32_t>(
         static_cast<std::int64_t>(dc)*static_cast<std::int64_t>((*quant)[0]));
     const auto scaled=std::bit_cast<std::int32_t>(product)>>11;
