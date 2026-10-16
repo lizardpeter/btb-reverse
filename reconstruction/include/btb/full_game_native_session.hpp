@@ -82,11 +82,13 @@ public:
         NativeGameDevice& device,
         OriginalAssetResolver resolver,
         OriginalStartupMovieCatalog startups,
-        OriginalWalkthroughCatalog walkthroughs)
+        OriginalWalkthroughCatalog walkthroughs,
+        bool skip_video = false)
         : root_(root),device_(device),
           effects_(std::move(resolver)),
           startups_(std::move(startups)),
-          walkthroughs_(std::move(walkthroughs)) {}
+          walkthroughs_(std::move(walkthroughs)),
+          skip_video_(skip_video) {}
 
     [[nodiscard]] CatalogLoadResult load_sound_catalog(
         std::istream& original_list) {
@@ -107,6 +109,8 @@ public:
 
 
     [[nodiscard]] bool failed() const noexcept { return failed_; }
+    // Explicit non-retail development mode: no movie is decoded or drawn.
+    [[nodiscard]] bool skipping_video() const noexcept { return skip_video_; }
     [[nodiscard]] bool has_walkthrough() const noexcept {
         return walkthrough_open_;
     }
@@ -122,6 +126,7 @@ private:
     GameEffectPipeline effects_;
     OriginalStartupMovieCatalog startups_{};
     OriginalWalkthroughCatalog walkthroughs_{};
+    bool skip_video_{};
     bool walkthrough_open_{};
     bool failed_{};
     bool pending_present_{};
