@@ -265,7 +265,9 @@ int main(int argc,char**argv) {
             std::istreambuf_iterator<char>()};
         const auto index=parse_container_index(movie);
         CHECK(index);
-        std::uint64_t frames=0,values=0,zero_fill=0;
+        std::uint64_t frames=0,values=0,zero_fill=0,complete_skip_luma=0;
+        std::vector<std::uint8_t> previous(
+            std::size_t(index->header.width)*index->header.height,0x7d);
         for(std::uint32_t i=1;i<=index->header.frame_count;++i) {
             const auto frame=split_encoded_frame(*index,movie,i);
             CHECK(frame);
@@ -276,6 +278,16 @@ int main(int argc,char**argv) {
             CHECK(decoded->next_picture_bit_offset<=frame->video.size()*8);
             ++frames;
             values+=decoded->first_bundle.modes.size();
+            const auto skip=decode_bink_skip_only_picture_luma(
+                frame->video,index->header.width,index->header.height,
+                previous);
+            if(skip) {
+                CHECK(skip->luma==previous);
+                CHECK(skip->block_types_decoded==
+                      ((std::size_t(index->header.width)/8)*
+                       (std::size_t(index->header.height)/8)));
+                ++complete_skip_luma;
+            }
             if(decoded->first_bundle.encoded_count==560 &&
                decoded->first_bundle.commands.filled_remainder &&
                !decoded->first_bundle.modes.empty() &&
@@ -284,10 +296,11 @@ int main(int argc,char**argv) {
                            [](auto mode){return mode==0;}))
                 ++zero_fill;
         }
-        std::printf("Retail first-picture block bundles: %llu frames, %llu modes, %llu 560-skip fills\\n",
+        std::printf("Retail first-picture block bundles: %llu frames, %llu modes, %llu 560-skip fills, %llu full skip-luma planes\\n",
             static_cast<unsigned long long>(frames),
             static_cast<unsigned long long>(values),
-            static_cast<unsigned long long>(zero_fill));
+            static_cast<unsigned long long>(zero_fill),
+            static_cast<unsigned long long>(complete_skip_luma));
     }
     std::puts("Bink original value-run command expansion: PASS");
 }
