@@ -1220,6 +1220,16 @@ add_test(NAME maze_package_pickup_source
 
 # Real native source Spud Maze initialization, five-screen graph, repair
 # population, bitmap presentation, countdown and no-fake-win teardown.
+# Run real GameRoot Squirrel Run gameplay with every difficulty, authored
+# 95-update assembly animation, decoys, and Wendy completion handoff.
+add_executable(btb_full_game_squirrel_native_tests
+    tests/full_game_squirrel_native_test.cpp)
+target_link_libraries(btb_full_game_squirrel_native_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_full_game_squirrel_native_tests PRIVATE)
+add_test(NAME full_game_squirrel_native
+    COMMAND btb_full_game_squirrel_native_tests)
+
 add_executable(btb_full_game_spud_maze_native_tests
     tests/full_game_spud_maze_native_test.cpp)
 target_link_libraries(btb_full_game_spud_maze_native_tests PRIVATE
