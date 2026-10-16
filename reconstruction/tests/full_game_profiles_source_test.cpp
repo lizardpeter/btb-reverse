@@ -60,6 +60,17 @@ int main() {
     assert(fresh.globals().profile_metadata[2].name_length==1);
     assert(fresh.globals().player_progress[2].values[0]==1);
 
+    // Acceptance of a new player must persist before the post-name-entry
+    // scene movie or first minigame. A restart must recover the same name.
+    assert(frame.profile_saved);
+    assert(fs::exists(absent/"playerinfo.txt"));
+    fg::GameRoot restarted;
+    std::string restart_error;
+    assert(restarted.load_profile_files(absent,restart_error));
+    assert(restarted.globals().profile_metadata[2].name_length==1);
+    assert(restarted.globals().player_progress[2].values[0]==1);
+    assert(restarted.globals().profile_metadata[2].name_glyph_codes[0]==32);
+
     fg::GameRoot first;
     auto& root = first.globals();
     root.profile_metadata[3].badge_index = 2;

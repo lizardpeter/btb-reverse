@@ -111,6 +111,41 @@ int main() {
             "Data/ui/blue name boxed font.bmp"));
     }
     {
+        // Confirmed delete must be durable even if the user quits without
+        // finishing another activity; original per-player data is truncated.
+        GameRoot game;
+        const auto profile_dir=root/"profiles";
+        fs::create_directories(profile_dir);
+        std::string error;
+        assert(game.load_profile_files(profile_dir,error));
+        game.globals().profile_metadata[1].name_length=1;
+        game.globals().profile_metadata[1].badge_index=2;
+        game.globals().profile_metadata[1].name_glyph_codes[0]=32;
+        game.globals().player_progress[1].values[0]=1;
+        assert(game.save_profile_files(profile_dir,error));
+        for(const auto& file:btb::profiles::activity_files_for_profile(1))
+            create_file(profile_dir/file);
+        game.install_profile_screen(adapter(root));
+        game.set_outer_state(State::PlayerProfileAndNameEntry);
+        auto frame=game.advance({.pointer_x=310,.pointer_y=445,
+                                 .click_pulse=true});
+        assert(frame.kind==FrameKind::FrontEndUpdated);
+        frame=game.advance({.pointer_x=130,.pointer_y=310,
+                            .click_pulse=true});
+        assert(frame.kind==FrameKind::FrontEndUpdated);
+        assert(frame.effects.open_yes_no_confirmation);
+        frame=game.advance({.confirmation_resolved=true,
+                            .confirmation_yes=true});
+        assert(frame.kind==FrameKind::FrontEndUpdated);
+        assert(frame.profile_saved);
+        for(const auto& file:btb::profiles::activity_files_for_profile(1))
+            assert(fs::file_size(profile_dir/file)==0);
+        GameRoot restarted;
+        assert(restarted.load_profile_files(profile_dir,error));
+        assert(restarted.globals().profile_metadata[1].name_length==0);
+        assert(restarted.globals().profile_metadata[1].badge_index==-1);
+    }
+    {
         const auto missing=root/"loaddata"/"fontdatablue.txt";
         fs::remove(missing);
         NativeProfileScreenAdapter driver(root,root/"profiles");

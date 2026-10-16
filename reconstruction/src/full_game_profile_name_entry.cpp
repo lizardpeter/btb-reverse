@@ -90,7 +90,21 @@ GameFrame GameRoot::advance_profile_name_entry(
             voice.id,voice.priority,voice.arbitration_class});
     result.clear_translated_character=effects.clear_translated_character;
     if(effects.selected_profile) {
-        static_cast<void>(select_profile(*effects.selected_profile));
+        if(!select_profile(*effects.selected_profile)) {
+            result.kind=FrameKind::FrontEndFailed;
+            result.error="cannot activate newly accepted original profile";
+            return result;
+        }
+        // The first accepted profile must survive quitting before an
+        // activity finishes. Previously only activity completion wrote the
+        // shared five-player save table, silently losing new names.
+        if(!profile_directory_.empty()) {
+            if(!save_profile_files(profile_directory_,result.error)) {
+                result.kind=FrameKind::FrontEndFailed;
+                return result;
+            }
+            result.profile_saved=true;
+        }
         result.effects.next_outer_state=effects.next_outer_state;
         apply_effects(result.effects);
         result.state_changed=true;
