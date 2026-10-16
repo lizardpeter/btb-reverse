@@ -1,6 +1,7 @@
 #include "btb/full_game_herding.hpp"
 #include "btb/full_game_herding_event_simulation.hpp"
 #include "btb/herding_native_pickles_motion.hpp"
+#include "btb/herding_source_pickles_animation.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -46,6 +47,22 @@ int main() {
         btb::herding::FoodType::RabbitFood,350,390));
     static_assert(!btb::herding::food_pickup_in_range(
         btb::herding::FoodType::RabbitFood,365,394)); // exact 40px
+    using btb::herding::original_pickles_keyboard_animation_step;
+    using btb::herding::FoodType;
+    // Real frame loop, not a synthetic render-only animation:
+    // source switch 0x418CE4: carrying rows 20..29/33..38.
+    static_assert(original_pickles_keyboard_animation_step(
+        20,50,true,FoodType::RabbitFood)->countdown==40);
+    static_assert(original_pickles_keyboard_animation_step(
+        20,10,true,FoodType::RabbitFood)->frame==21);
+    static_assert(original_pickles_keyboard_animation_step(
+        29,10,true,FoodType::RabbitFood)->frame==20);
+    static_assert(original_pickles_keyboard_animation_step(
+        38,10,false,FoodType::RabbitFood)->frame==33);
+    static_assert(original_pickles_keyboard_animation_step(
+        15,10,false,FoodType::None)->frame==12);
+    static_assert(original_pickles_keyboard_animation_step(
+        2,60,false,FoodType::None)->frame==12);
     std::srand(123);
     for(int difficulty=0;difficulty<3;++difficulty) {
         fg::GameRoot game;
@@ -86,6 +103,7 @@ int main() {
         assert(live->scene().entities.front().y==390);
         assert(live->scene().entities.front().entity_type()==
                btb::herding::EntityType::FarmerPickles);
+        assert(live->scene().entities.front().animation_frame==33);
         // The retail dog exists on Medium/Hard only. Its first idle
         // frame must still advance animation and +0.01 speed, and the
         // source-controlled animation latch later permits translation.
@@ -119,11 +137,26 @@ int main() {
         assert(live->scene().entities.front().x==351);
         assert(live->scene().entities.front().x_float==351.5f);
         assert(live->scene().entities.front().y==390);
+        assert(live->scene().entities.front().animation_frame==20);
+        assert(live->scene().entities.front().animation_frame_countdown==50);
         assert(live->scene().selected_food==
                btb::herding::FoodType::RabbitFood);
         scene=game.advance({.directional_input_bits=0x01});
         assert(live->scene().entities.front().x==350);
         assert(live->scene().entities.front().x_float==350.f);
+        assert(live->scene().entities.front().animation_frame==20);
+        assert(live->scene().entities.front().animation_frame_countdown==40);
+        // Actual native GameRoot updates advance the ten-frame walk
+        // cycle using the source's -10 / reload-50 countdown.
+        for(int frame=0;frame<4;++frame) {
+            scene=game.advance({.directional_input_bits=0x02});
+            assert(scene.kind==fg::FrameKind::ActivityUpdated);
+            assert(!scene.effects.fatal_error);
+        }
+        assert(live->scene().entities.front().animation_frame==21);
+        assert(live->scene().entities.front().animation_frame_countdown==50);
+        scene=game.advance({});
+        assert(live->scene().entities.front().animation_frame==33);
         assert(scene.effects.progress_writes.empty());
         for(int i=0;i<100;++i) {
             scene=game.advance({});
