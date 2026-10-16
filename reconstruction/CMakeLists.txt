@@ -955,6 +955,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_dc_stream.cpp
     src/bink32_block_modes.cpp
     src/bink32_video_planes.cpp
+    src/bink32_simple_picture.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1796,6 +1797,13 @@ add_executable(btb_bink32_video_planes_tests tests/bink32_video_planes_test.cpp)
 target_link_libraries(btb_bink32_video_planes_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_video_planes_tests PRIVATE)
 add_test(NAME bink32_video_planes_history COMMAND btb_bink32_video_planes_tests)
+
+# Native Bink source-ordered nine-bundle row scheduler, supporting
+# original compressed Skip/Motion/Fill/Pattern/Raw luma subset.
+add_executable(btb_bink32_simple_picture_tests tests/bink32_simple_picture_test.cpp)
+target_link_libraries(btb_bink32_simple_picture_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_simple_picture_tests PRIVATE)
+add_test(NAME bink32_compressed_simple_picture_luma COMMAND btb_bink32_simple_picture_tests)
 
 
 
