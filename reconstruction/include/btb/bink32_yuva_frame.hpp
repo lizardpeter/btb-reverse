@@ -16,7 +16,15 @@ struct BinkNativeYuVaFrame {
     std::size_t width{},height{};
     bool source_has_alpha{true};
     // Canonical display order Y,U,V,A; compressed SJPi order A,Y,V,U.
+    // Display-visible planar Y,U,V,A buffers; odd-size chroma
+    // uses ceil(width/2) by ceil(height/2) dimensions.
     std::array<std::vector<std::uint8_t>,4> planes{};
+    // Private codec domain retains invisible right/bottom 8x8 tile
+    // margins across frames. Motion vectors may reference those
+    // samples, so dropping them after cropping changes future frames.
+    std::array<std::vector<std::uint8_t>,4> codec_planes{};
+    std::array<std::size_t,4> codec_plane_widths{};
+    std::array<std::size_t,4> codec_plane_heights{};
     std::array<std::size_t,4> plane_end_byte_offsets{};
     std::array<std::array<std::size_t,10>,4> mode_counts{};
     std::size_t video_bytes_consumed{};
