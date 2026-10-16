@@ -642,3 +642,23 @@ reference blocks, frame state, and potentially distinct tiling policies.
 This path is not enabled as a replacement for playback and must not be
 described as a retail frame decoder. The original scheduler and pixel
 comparison against the original DLL remain mandatory.
+
+
+### Single-cursor serial entropy-to-raster harness
+
+`decode_original_bink_serial_context_raster16` now accepts **one** bounded
+LSB bit reader. From its current (possibly non-byte-aligned) position it
+decodes the original DC context record, then the AC-mode/quant/iDCT blocks
+sequentially, and assembles a clipped row-major single-channel raster. A
+single probe cursor is committed only when the *entire* raster succeeds.
+
+Tests compare the one-cursor output against the independent two-cursor
+bridge, consume an unaligned three-bit preamble without resetting byte
+alignment, reject a missing final AC byte, and preserve the preexisting
+cursor position on incorrect block count.
+
+This *serial DC-then-AC input layout* is a controlled integration
+scenario, **not** confirmation that arbitrary actual compressed retail
+Bink video packets use that exact ordering. The original `0x3000E400`
+plane/mode scheduler, motion prediction and reference-frame state are
+still needed for retail playback.
