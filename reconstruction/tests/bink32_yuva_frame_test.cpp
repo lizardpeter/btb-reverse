@@ -107,6 +107,40 @@ int main(int argc,char**argv) {
                           [&](auto value){return value==colors[plane];}));
         CHECK(decoded->mode_counts[plane][6]==expected/64);
     }
+    // Byte-for-byte native/reference parity. The actual retail
+    // comparator uses an independently decoded raw yuva420p stream;
+    // here we test exact plane offsets and first differing pixels.
+    std::vector<std::uint8_t> raw_reference;
+    for(const auto& pixels:decoded->planes)
+        raw_reference.insert(raw_reference.end(),
+                             pixels.begin(),pixels.end());
+    const auto parity=compare_bink_yuva_reference(
+        *decoded,raw_reference);
+    CHECK(parity && parity->identical &&
+          parity->total_different_bytes==0);
+    for(const auto& row:parity->planes)
+        CHECK(row.different_bytes==0);
+    raw_reference[1]=static_cast<std::uint8_t>(colors[0]+5);
+    raw_reference[w*h+3]=static_cast<std::uint8_t>(colors[1]-7);
+    const auto diff=compare_bink_yuva_reference(
+        *decoded,raw_reference);
+    CHECK(diff && !diff->identical &&
+          diff->total_different_bytes==2);
+    CHECK(diff->planes[0].different_bytes==1 &&
+          diff->planes[0].first_different_index==1);
+    CHECK(diff->planes[0].first_reference==colors[0]+5 &&
+          diff->planes[0].first_native==colors[0] &&
+          diff->planes[0].maximum_absolute_difference==5);
+    CHECK(diff->planes[1].different_bytes==1 &&
+          diff->planes[1].first_different_index==3 &&
+          diff->planes[1].maximum_absolute_difference==7);
+    CHECK(diff->planes[2].different_bytes==0 &&
+          diff->planes[3].different_bytes==0);
+    CHECK(diff->planes[0].sum_absolute_differences==5 &&
+          diff->planes[1].sum_absolute_differences==7);
+    CHECK(!compare_bink_yuva_reference(
+        *decoded,std::span<const std::uint8_t>(
+            raw_reference).first(raw_reference.size()-1)));
     // An interframe encoded entirely with SKIP must reuse all four
     // previous source planes, including swapped V/U chroma order.
     const auto skip=make_sjpi_frame(w,h,{0,0,0,0},true);
