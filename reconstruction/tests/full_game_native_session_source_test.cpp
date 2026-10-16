@@ -153,7 +153,7 @@ int main() {
     fs::remove_all(directory);
     touch(directory,"data/movies/bink_5.bik");
     touch(directory,"data/sound/help_5.wav");
-    touch(directory,"Data/sound/walkthrough_voice.wav");
+    touch(directory,"Data/h.wav");
     touch(directory,"data/movies/bink_0.bik");
     touch(directory,"data/sound/help_0.wav");
     touch(directory,"Data/movies/start_0.bik");
@@ -172,7 +172,7 @@ int main() {
             startup_fixture(),walkthrough_fixture()
         };
         std::istringstream sound_catalog(
-            "Data/sound/walkthrough_voice.wav 489\n");
+            "Data/h.wav 489\n");
         assert(session.load_sound_catalog(sound_catalog).success);
         game.set_outer_state(State::GolfPregameSetup);
 
