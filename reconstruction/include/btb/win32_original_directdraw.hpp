@@ -55,6 +55,13 @@ public:
                backbuffer_ != nullptr;
     }
 
+    // Borrowed original DirectDraw7 video target. The retail Bink
+    // provider locks and writes this surface only during its frame
+    // decode callback; it does not own or release the COM object.
+    [[nodiscard]] IDirectDrawSurface7* bink_render_target() const noexcept {
+        return backbuffer_;
+    }
+
 private:
     struct OriginalSurface {
         IDirectDrawSurface7* surface{};
