@@ -248,9 +248,9 @@ int main() {
         // group but in a different alignment; use a deliberately
         // truncated stream instead to assert whole-plane rollback.
         auto bad=packed.reader();
-        CHECK(bad.skip(16));
+        CHECK(bad.skip(29)); // only three padding bits remain
         CHECK(!decode_original_bink_dc_delta_plane(bad,3,10));
-        CHECK(bad.bit_position()==16);
+        CHECK(bad.bit_position()==29);
     }
     {
         const std::array<std::uint8_t,1> bits{0};
