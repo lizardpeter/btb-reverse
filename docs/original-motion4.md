@@ -37,6 +37,9 @@ passed every gate: Linux C++26 native core and **148/148 CTests**,
 Python tools, Windows x86 native game/Win32 provider builds and tests,
 and Windows x64 native game/provider builds and regression.
 
-The compiled-source count is **595/615 (96.7%)**; **20** remain.
-Original executable differential checks added in this patch: **0**.
-Fully retail-verified functions: **0/615**.
+**Historical snapshot for this particular batch:** it advanced the compiled
+source inventory to 595/615 on October 15, 2026. The **current** reconstructed
+source inventory is [615/615 (100%)](../analysis/reconstruction/summary.json),
+with **0** original functions awaiting source-stage reconstruction.
+Original executable differential checks added in this historical batch: **0**.
+Fully retail-verified functions in the current reviewed ledger: **0/615**.

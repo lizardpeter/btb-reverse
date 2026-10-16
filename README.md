@@ -2,25 +2,28 @@
 
 Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Windows, 2002).
 
-Current compiled-source milestone (2026-10-15 UTC): **595/615 (96.7%)**
-original discovered function source models compile and link to the native
-game core. **20 remain**, and **148 CTest tests pass**.
+## Original function reconstruction coverage
 
-The newest four original-address source models cover Maze player movement
-(`0041B140`), Spud Maze Bob movement and repairs (`00421360`), the
-eight-state Maze Spud NPC (`0041CCB0`), and source-confirmed home-route
-behavior in the Herding animal update (`00416A30`). [PR #62](https://github.com/lizardpeter/btb-reverse/pull/62)
-passed Linux C++26, Python, Windows x86 and x64 native game/provider CI.
-These source bodies reuse recovered Maze node/proximity, Spud NPC phase,
-and Herding home-route algorithms.
+**615/615 (100%)** of the original PE32 functions are now recorded at
+the **compiles** stage in the reviewed C++26 source inventory; **0 remain**
+unreviewed or architecture-only. Every compile-stage function is associated
+with a C++ source file, validation test, and evidence record. This count is
+maintained in [the generated function summary](analysis/reconstruction/summary.json),
+[the reviewed source ledger](analysis/reconstruction/reviewed_functions.csv),
+and [the full 615-function architecture inventory](docs/architecture-615-functions.md).
 
-**0/615** original bodies have full retail behavioral certification.
-The remaining x87 branches, Herding roam/follower dispatcher paths, native
-game-driver admission, and original executable differential comparisons
-remain unfinished. Compiled-source coverage is not original-binary parity.
-See [the latest movement and NPC batch](docs/original-motion4.md),
-[previous activity coordinators](docs/original-activity4.md),
-and [prior drawing coordinators](docs/original-draw4.md).
+**100% function source coverage is not 100% runtime or binary equivalence.**
+Windows activity/device integration, real Bink playback, original ABI parity,
+and complete start-to-finish retail playthrough certification are tracked
+separately.
+
+The full-function inventory still records **0/615 functions as fully
+retail-behavior-verified**. This is a distinct certification threshold, not
+20 missing C++ function models. Runtime integration, differential testing,
+and the complete playable original-game flow remain separate milestones.
+See [the compiled movement and NPC batch](docs/original-motion4.md),
+[activity coordinators](docs/original-activity4.md),
+and [drawing coordinators](docs/original-draw4.md).
 
 ## Source material
 
@@ -81,14 +84,12 @@ See `docs/initial-analysis.md` for the first verified anchors.
 
 ## First integrated game executable
 
-The new `reconstruction` CMake project now builds `btb_game`, a **Windows
-C++26 preview** that hosts the recovered game-flow dispatcher and a playable
-Dinosaur puzzle using the original `dino.txt` and `piece<ID>.bmp` files.
-
-The preview is a functional *source reconstruction milestone*, **not** the
-complete game or a retail-faithful graphical clone. The other subgames are not
-yet hosted, and the original UI/audio/certificate presentation remain to be
-integrated.
+The `reconstruction` CMake project builds `btb_game` and the
+native Windows C++26 host, with a shared game-flow dispatcher and drivers
+registered for **all ten activities**. That does not imply all ten have
+completed a real on-device playthrough: Spud Skate still needs the
+five-stream movie backend and native Bink playback is being integrated.
+The compiled-source milestone is complete; runtime certification is not.
 
 Build/run instructions and current scope: [Integrated C++26 executable](docs/integrated-cpp26-build.md).
 

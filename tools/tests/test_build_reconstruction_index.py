@@ -44,6 +44,37 @@ class ReconstructionIndexTests(unittest.TestCase):
         self.assertEqual(296, summary["direct_external_edges"])
         self.assertEqual(615, sum(summary["stage_counts"].values()))
 
+    def test_readme_coverage_follows_validated_function_registry(self):
+        # Do not leave an old intermediate batch percentage on the
+        # README after the reviewed/generated 615-address ledger advances.
+        summary = json.loads(
+            (ROOT / "analysis/reconstruction/summary.json").read_text(
+                encoding="utf-8"))
+        counts = summary["stage_counts"]
+        total = summary["ghidra_function_count"]
+        compiled = (counts.get("compiles", 0) +
+                    counts.get("behavior_verified", 0))
+        self.assertEqual(total, sum(counts.values()))
+        self.assertEqual(total, compiled)
+        self.assertEqual(0, counts.get("unreviewed", 0))
+        self.assertEqual(0, counts.get("under_analysis", 0))
+        self.assertEqual(0, counts.get("source_written", 0))
+        with (ROOT / "analysis/reconstruction/reviewed_functions.csv").open(
+                newline="", encoding="utf-8") as handle:
+            reviewed = list(csv.DictReader(handle))
+        self.assertEqual(total, len(reviewed))
+        self.assertEqual(total,
+                         len({r["address"].lower() for r in reviewed}))
+        self.assertTrue(all(
+            r["stage"] in ("compiles", "behavior_verified") and
+            r["cpp_source"] and r["validation_test"] and r["evidence"]
+            for r in reviewed))
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        marker = f"**{compiled}/{total} (100%)**"
+        self.assertIn(marker, readme)
+        self.assertNotIn("595/615 (96.7%)", readme)
+        self.assertIn("runtime or binary equivalence", readme)
+
     def test_queue_does_not_claim_unsourced_implementations(self):
         with (ROOT / "analysis/reconstruction/work_queue.csv").open(newline="", encoding="utf-8") as file:
             rows = list(csv.DictReader(file))
