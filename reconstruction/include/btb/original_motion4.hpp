@@ -30,12 +30,15 @@ struct Npc {
  maze::SpudNpcPhase phase{maze::SpudNpcPhase::SpawnWait};
  I32 screen{},player_screen{},difficulty{},current_node{},
      current_direction{},path_index{},selected_package{-1},
-     spawn_wait{},offscreen_wait{},animation_countdown{},
+     spawn_wait{},spawn_interval{60},offscreen_wait{},animation_countdown{},
      animation_frame{},nearest_node_distance{999999},carry_active{},
      collision_latch{},score{},timer_cooldown{};
  maze::ActorPosition position{};
  std::array<maze::ScreenGraph,3> graphs{};
  std::array<std::array<maze::SpudPackageSlot,4>,3> packages{};
+ // The package slot stores a 0..3 index; the retail pathfinder uses the
+ // separately loaded maze_nodes.txt box-location NODE ID for that index.
+ std::array<std::array<I32,4>,3> package_target_nodes{};
  std::vector<I32> path{};
 };
 struct HerdAnimal {
