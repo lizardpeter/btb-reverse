@@ -1032,6 +1032,7 @@ add_library(btb_recompiled_core STATIC
     src/full_game_bobs_band.cpp
     src/full_game_golf.cpp
     src/full_game_dino.cpp
+    src/full_game_profile_screen_native.cpp
     src/golf_activity.cpp
     src/full_game_herding.cpp
     src/full_game_herding_event_simulation.cpp
