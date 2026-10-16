@@ -921,8 +921,14 @@ motion. It also decodes an independent FILL-only picture without a
 previous frame. Synthetic fixture data only; no licensed retail
 movie is checked into the repo.
 
-**Intentionally unsupported:** Scaled 16x16, run-pattern, residue,
-intra DCT and inter DCT, and their extra bitstream reads. Encountering
+**Intentionally unsupported:** Run-pattern, residue, intra DCT,
+inter DCT, and the DCT/run subordinate 16x16 modes, including their
+additional compressed bitstream reads. Source-backed 16x16 Scaled
+Fill/Pattern/Raw is now supported. It consumes a scaled type marker
+on each of two rows, a single subtype/payload at the even-aligned
+upper-left tile, and writes all four covered 8x8 cells atomically.
+The regression rejects a missing lower-row marker or mismatched
+covered geometry. Encountering
 these modes fails closed instead of generating approximations. This
 subset is not yet the complete original 2002 frame decoder, does not
 reconstruct frame 1's mixed DCT blocks, cannot recover chroma/alpha
@@ -938,3 +944,12 @@ the original `read_dcs` call site.
 Reference comparison: FFmpeg libavcodec/bink.c, `read_bundle`,
 `read_colors`, `read_block_types`, `bink_decode_plane`
 (https://ffmpeg.org/doxygen/8.0/libavcodec_2bink_8c_source.html).
+
+
+Additional regression: the new row scheduler decodes all 4,800
+synthetic static-scene skip blocks through nine real-shaped type
+refills, cross-checking pixels, source refill counts and the final
+byte boundary against the separate earlier skip-only parser. Its
+optional retail-asset command-line mode prints how many full picture
+luma planes are supported by this strict subset; placeholder prior
+pixels are not proof of pixel parity against the original decoder.
