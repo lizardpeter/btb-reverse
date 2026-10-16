@@ -2,6 +2,7 @@
 
 #include "btb/full_game_herding_event_simulation.hpp"
 #include "btb/herding_source_tracked_targets.hpp"
+#include "btb/retail_crt_random.hpp"
 
 namespace btb::full_game {
 
@@ -13,6 +14,9 @@ namespace btb::full_game {
 // Scruffty-animal contacts or delivery.
 class NativePicklesMotionSource final : public OriginalHerdingMotionSource {
 public:
+    NativePicklesMotionSource()=default;
+    explicit NativePicklesMotionSource(retail::OriginalRetailRandom& game_rng) noexcept
+        :shared_random_(&game_rng) {}
     [[nodiscard]] bool initialize(
         const herding::Data& data,int difficulty,
         std::vector<herding::RetailEntityRecord32>& originals,
@@ -26,6 +30,15 @@ public:
         std::string& error) override;
     [[nodiscard]] bool unload(std::string& error) override;
 private:
+    [[nodiscard]] int retail_next_random() noexcept {
+        return shared_random_ ? shared_random_->next_rand()
+                              : standalone_random_.next_rand();
+    }
+    // Production host passes the single process-owned source CRT stream.
+    // Standalone source tests use the same MSVC algorithm with seed 1,
+    // never the platform-dependent host std::rand implementation.
+    retail::OriginalRetailRandom standalone_random_{};
+    retail::OriginalRetailRandom* shared_random_{};
     bool active_{};
     herding::FoodType selected_food_{herding::FoodType::None};
     herding::RetailScrufftyPatrolState scruffty_patrol_state_{};
