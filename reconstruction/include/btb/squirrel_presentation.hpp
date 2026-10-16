@@ -145,6 +145,42 @@ inline constexpr std::array<std::int32_t,3> kConnectorPieceIds{{
     };
 }
 
+// Retail squriel_1_86.bmp is 8772x92: exactly 86 horizontal
+// cells of width 102 and height 92. The source assembly draw in
+// 0x00425F40 obtains these integers at PE VAs 0x0044677C/0x00446780.
+inline constexpr std::int32_t kSourceSquirrelFrameWidth=102;
+inline constexpr std::int32_t kSourceSquirrelFrameHeight=92;
+inline constexpr std::int32_t kSourceSquirrelFrameCount=86;
+
+// 0x00425160 computes initial DAT_00514F98 from the first source
+// connector's 0x00446988 table and 0x004467C0=194. The X baseline
+// uses 0x004467BC=36 and a separately held offset 0x00515084,
+// initialized to zero for an unscrolled new scene.
+inline constexpr std::array<std::int32_t,3>
+kSourceSquirrelStartYOffsets{{40,11,-22}};
+inline constexpr std::int32_t kSourceSquirrelStartX=36;
+inline constexpr std::int32_t kSourceSquirrelStartY=194;
+
+[[nodiscard]] constexpr std::optional<SourceRect>
+source_squirrel_frame_rect(std::int32_t frame) noexcept {
+    if(frame<0||frame>=kSourceSquirrelFrameCount)return std::nullopt;
+    return SourceRect{
+        frame*kSourceSquirrelFrameWidth,0,
+        (frame+1)*kSourceSquirrelFrameWidth,
+        kSourceSquirrelFrameHeight
+    };
+}
+
+[[nodiscard]] constexpr std::optional<Vec2i>
+source_squirrel_start_position(std::int32_t connector) noexcept {
+    if(connector<0||connector>=3)return std::nullopt;
+    return Vec2i{
+        kSourceSquirrelStartX,
+        kSourceSquirrelStartY +
+        kSourceSquirrelStartYOffsets[static_cast<std::size_t>(connector)]
+    };
+}
+
 inline constexpr std::int32_t kConveyorFrameWidth = 640;
 inline constexpr std::int32_t kConveyorFrameHeight = 44;
 inline constexpr std::int32_t kConveyorDestX = 0;
