@@ -35,6 +35,20 @@ int main() {
             assert(easy.phase==0);
             assert(hammer.hammer_held);
         }
+        // Original 0x00423610 overrides initial Easy -1 with a 500-
+        // frame spawn wait on a screen transition.
+        easy.spawn_wait=500;
+        for(int ticks=0;ticks<499;++ticks) {
+            (void)sm::update_pilchard_native(
+                easy,hammer,source,0,{0,1,400.f,200.f,false},rand);
+            assert(easy.phase==0);
+        }
+        (void)sm::update_pilchard_native(
+            easy,hammer,source,0,{0,1,400.f,200.f,false},rand);
+        assert(easy.phase==1);
+        (void)sm::update_pilchard_native(
+            easy,hammer,source,0,{0,1,400.f,200.f,false},rand);
+        assert(easy.phase==2);
     }
     {
         sm::PilchardNative active{};
@@ -66,7 +80,7 @@ int main() {
         // Original Pilchard collision is strictly less than 60 px,
         // cannot steal during repair or when Bob Y >= 360.
         active.phase=5;active.route={0,2};active.route_index=1;
-        active.x=100.f;active.y=200.f;
+        active.x=100.f;active.y=359.f;
         auto safe=sm::update_pilchard_native(
             active,hammer,source,2,{0,1,101.f,360.f,false},rand);
         assert(!safe.hammer_dropped);
