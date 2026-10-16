@@ -1,6 +1,12 @@
 #include "btb/full_game_golf.hpp"
 
 #include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#undef assert
+#define assert(expr) do { if(!(expr)) { \
+    std::fprintf(stderr,"native Golf test failed: %s at %s:%d\\n", \
+        #expr,__FILE__,__LINE__);std::abort();} } while(false)
 #include <filesystem>
 #include <fstream>
 #include <memory>
