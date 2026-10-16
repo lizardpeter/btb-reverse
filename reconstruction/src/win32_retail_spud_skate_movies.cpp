@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <fstream>
+#include <vector>
 #include <limits>
 #include <string>
 #include <system_error>
@@ -107,11 +109,43 @@ bool Win32RetailSpudSkateMovies::open(
             std::string ignored;(void)close(ignored);
             return false;
         }
-        const auto name=
-            std::filesystem::absolute(original_binks[i]).string();
-        handles_[i]=open(name.c_str(),0);
+        // Exact retail 0x00424360, per file: read no more than
+        // 7,000,000 bytes, malloc an owned copy, then
+        // OpenBinkMovieWithFallback(pointer) -> BinkOpen(pointer,
+        // 0x04000000). The original byte buffer must remain valid
+        // until its particular BinkClose, including resynchronization.
+        std::ifstream source(original_binks[i],
+            std::ios::binary|std::ios::ate);
+        constexpr std::streamoff kRetailBinkCapacity=7000000;
+        if(!source) {
+            error="cannot read original Spud Skate Bink: "+
+                  original_binks[i].string();
+            std::string ignored;(void)close(ignored);
+            return false;
+        }
+        const auto size=source.tellg();
+        if(size<=0||size>kRetailBinkCapacity) {
+            error="original Spud Skate Bink is empty or exceeds "
+                  "retail 7MB memory-buffer limit: "+
+                  original_binks[i].string();
+            std::string ignored;(void)close(ignored);
+            return false;
+        }
+        auto& bytes=movie_bytes_[i];
+        bytes.resize(static_cast<std::size_t>(size));
+        source.seekg(0,std::ios::beg);
+        if(!source.read(
+                reinterpret_cast<char*>(bytes.data()),
+                static_cast<std::streamsize>(bytes.size()))) {
+            error="failed original Spud Skate movie memory-buffer read";
+            std::string ignored;(void)close(ignored);
+            return false;
+        }
+        handles_[i]=open(
+            reinterpret_cast<const char*>(bytes.data()),0x04000000u);
         if(!handles_[i]) {
-            error="original BinkOpen failed: "+name;
+            error="original BinkOpen(memory, 0x04000000) failed: "+
+                  original_binks[i].string();
             std::string ignored;(void)close(ignored);
             return false;
         }
@@ -360,6 +394,11 @@ bool Win32RetailSpudSkateMovies::close(
     for(auto& surface:surfaces_) {
         if(surface)surface->Release();
         surface=nullptr;
+    }
+    // Release after BinkClose: the original decoder is permitted to
+    // retain pointers into every movie's unmodified byte buffer.
+    for(auto& bytes:movie_bytes_) {
+        std::vector<std::uint8_t>{}.swap(bytes);
     }
     exports_.unload();
     selected_=0;
