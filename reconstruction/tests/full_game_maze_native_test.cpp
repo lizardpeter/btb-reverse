@@ -1,4 +1,5 @@
 #include "btb/full_game_maze.hpp"
+#include "btb/maze_box_layout.hpp"
 
 #include <cassert>
 #include <cstdio>
@@ -41,6 +42,42 @@ END
 6
 )";
     std::ofstream(root/"loaddata"/"maze_nodes.txt")<<source;
+    // Original 0x0041A730 has 1/2/1, 3/3/2 and 4/4/4
+    // filled slots; duplicate random indices must be retried.
+    for(int difficulty=0;difficulty<3;++difficulty) {
+        unsigned sample=0;
+        auto allocated=btb::maze::allocate_source_boxes(
+            difficulty,[&] {return sample++;});
+        assert(allocated.total==4*(difficulty+1));
+        assert(allocated.remaining==allocated.total);
+        int active=0;
+        for(std::size_t screen=0;screen<3;++screen) {
+            for(std::size_t i=0;i<4;++i) {
+                const auto& slot=allocated.screens[screen][i];
+                if(slot.node_id<0)continue;
+                ++active;
+                assert(slot.status==1);
+                for(std::size_t previous=0;previous<i;++previous)
+                    assert(allocated.screens[screen][previous].node_id!=slot.node_id);
+            }
+        }
+        assert(active==allocated.total);
+    }
+    {
+        // Explicit repeated source random index must use an additional
+        // result rather than silently picking the next free location.
+        const unsigned source_rolls[]{0,0,0,1,2};
+        std::size_t consumed=0;
+        auto allocated=btb::maze::allocate_source_boxes(0,[&] {
+            return source_rolls[consumed++];
+        });
+        assert(consumed==5);
+        assert(allocated.screens[0][0].node_id==0);
+        assert(allocated.screens[1][0].node_id==0);
+        assert(allocated.screens[1][1].node_id==1);
+        assert(allocated.screens[2][0].node_id==2);
+    }
+
     fg::GameRoot game;
     assert(game.select_profile(1));
     auto driver=std::make_unique<fg::MazeDriver>(root,0);
@@ -55,14 +92,26 @@ END
     assert(maze->player()->screen==1);
     assert(maze->player()->node==8);
     assert(maze->player()->x==247.0f&&maze->player()->y==267.0f);
+    assert(maze->boxes().total==4);
+    assert(maze->boxes().remaining==4);
+    assert(maze->boxes().screens[0][0].node_id>=0);
+    assert(maze->boxes().screens[0][1].node_id==-1);
+    assert(maze->boxes().screens[1][0].node_id>=0);
+    assert(maze->boxes().screens[1][1].node_id>=0);
+    assert(maze->boxes().screens[1][0].node_id !=
+           maze->boxes().screens[1][1].node_id);
     auto intro=game.advance({.elapsed_centiseconds=100});
     assert(intro.kind==fg::FrameKind::ActivityUpdated);
     assert(intro.effects.draws[0].source_asset==
            "Data\\SubGameMaze\\MID_MAZE.bmp");
     assert(intro.effects.draws[1].source_asset==
+           "Data\\SubGameMaze\\box.bmp");
+    assert(intro.effects.draws[2].source_asset==
+           "Data\\SubGameMaze\\box.bmp");
+    assert(intro.effects.draws[3].source_asset==
            "Data\\SubGameMaze\\player.bmp");
-    assert(intro.effects.draws[1].x==182);
-    assert(intro.effects.draws[1].y==203);
+    assert(intro.effects.draws[3].x==182);
+    assert(intro.effects.draws[3].y==203);
     assert(intro.effects.audio.size()==1);
     assert(intro.effects.audio[0].sound_id==0x49);
     assert(maze->remaining_seconds()==240);
@@ -78,11 +127,11 @@ END
     assert(!frame.effects.fatal_error);
     assert(maze->player()->x==249.0f);
     assert(maze->remaining_seconds()==239);
-    assert(frame.effects.draws[1].x==184);
-    assert(frame.effects.draws[2].source_asset==
+    assert(frame.effects.draws[3].x==184);
+    assert(frame.effects.draws[4].source_asset==
            "Data\\SubGameSpudMaze\\timer.bmp");
-    assert(frame.effects.draws[2].source_rectangle);
-    assert(frame.effects.draws[2].source_rectangle->right==101);
+    assert(frame.effects.draws[4].source_rectangle);
+    assert(frame.effects.draws[4].source_rectangle->right==101);
     // Missing package/NPC simulation must NOT write a fake victory flag.
     assert(frame.effects.progress_writes.empty());
     frame=game.advance({.elapsed_centiseconds=24500});
