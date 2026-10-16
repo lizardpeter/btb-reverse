@@ -202,6 +202,24 @@ int main() {
         }
         // The binary's exact float direction table, not an arbitrary
         // drift animation, must now move animals in the real world.
+        if(!some_real_animal_moved) {
+            const auto& a=live->scene().entities[1];
+            const auto& hero=live->scene().entities.front();
+            std::fprintf(stderr,
+                "far animal remained still difficulty=%d "
+                "first=(%d,%d) now=(%d,%d) floats=(%.3f,%.3f) "
+                "speed=%.4f dir=%d active=%d behavior=%d timer=%d "
+                "source_rect=(%d,%d,%d,%d) hero=(%d,%d)\\n",
+                difficulty,first_animals.front().first,
+                first_animals.front().second,a.x,a.y,
+                static_cast<double>(a.x_float),
+                static_cast<double>(a.y_float),
+                static_cast<double>(a.movement_speed),
+                a.direction,a.movement_active,a.behavior_state,
+                a.temporary_target_timer,
+                a.source_left,a.source_top,
+                a.source_right,a.source_bottom,hero.x,hero.y);
+        }
         assert(some_real_animal_moved);
         // No fabricated delivery: source animals require autonomous
         // movement/follower collision completion to award Pets Corner.
