@@ -2,6 +2,7 @@
 #include "btb/herding_navigation_boundary.hpp"
 #include "btb/original_herding_init.hpp"
 
+#include <array>
 #include <cmath>
 #include <cstdlib>
 #include <exception>
@@ -92,6 +93,7 @@ bool NativePicklesMotionSource::initialize(
         for(const auto& item:native.entities)
             originals.push_back(convert_original_entity(item));
         active_=true;
+        selected_food_=herding::FoodType::None;
         error.clear();
         return true;
     } catch(const std::exception& e) {
@@ -114,7 +116,35 @@ bool NativePicklesMotionSource::advance(
     }
     observed={};
     observed.motion_records=source;
+    const auto source_food_pickup=[&] {
+        // Source 0x004182B0 checks every original food hotspot using
+        // the final integer Pickles position; it does not require
+        // an invented click or screen-relative cursor hitbox.
+        constexpr std::array<herding::FoodType,3> foods{{
+            herding::FoodType::DuckFood,
+            herding::FoodType::RabbitFood,
+            herding::FoodType::SheepFood
+        }};
+        const auto& pickles=observed.motion_records.front();
+        for(const auto food:foods) {
+            if(food==selected_food_ ||
+               !herding::food_pickup_in_range(
+                   food,pickles.x,pickles.y))continue;
+            HerdingObservedEvent event{};
+            event.kind=HerdingObservedKind::PickUpFood;
+            event.food=food;
+            event.retail_trigger_confirmed=true;
+            event.random_mod_2=std::rand()%2;
+            // There are no invented follower records in the native
+            // first-pass source. The event processor supplies the
+            // exact original food-selection transition and voice.
+            observed.events.push_back(std::move(event));
+            selected_food_=food;
+            break;
+        }
+    };
     if(motion.movement_mask==0) {
+        source_food_pickup();
         error.clear();
         return true;
     }
@@ -153,15 +183,16 @@ bool NativePicklesMotionSource::advance(
     }
     player.movement_active=1;
 
-    // No invented food/follower/Scruffty events. Until the autonomous
-    // UpdateHerdingAnimal source is wired, the original animal records
-    // remain source-owned and the victory count cannot decrease.
+    // Source-confirmed food pickup is supported, but follower and
+    // Scruffty contacts remain unhosted and cannot award victories.
+    source_food_pickup();
     error.clear();
     return true;
 }
 
 bool NativePicklesMotionSource::unload(std::string& error) {
     active_=false;
+    selected_food_=herding::FoodType::None;
     error.clear();
     return true;
 }
