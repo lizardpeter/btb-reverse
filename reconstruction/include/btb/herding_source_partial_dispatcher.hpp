@@ -98,11 +98,19 @@ public:
         if (entity.temporary_target_timer>0) {
             const auto temporary=
                 original_herding_temporary_target_update(entity);
-            if (!temporary || !temporary->branch_taken) {
+            if (!temporary) {
                 result.branch=CoveredAnimalBranch::InvalidSourceState;
                 return result;
             }
             result.entity=temporary->moved;
+            if (!temporary->branch_taken) {
+                // The final 1 -> 0 countdown tick returns to the
+                // otherwise-unrecovered ordinary state-zero dispatch.
+                // The timer transition is real, but the complete
+                // animal step is not covered by this coordinator.
+                result.branch=CoveredAnimalBranch::UncoveredOriginalBranch;
+                return result;
+            }
             result.branch=temporary->early_return
                 ? CoveredAnimalBranch::TemporaryTargetCleared
                 : CoveredAnimalBranch::TemporaryTargetMoving;
