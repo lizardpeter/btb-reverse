@@ -7,6 +7,7 @@
 #include "btb/full_game_spud_maze.hpp"
 #include "btb/full_game_squirrel.hpp"
 #include "btb/full_game_herding.hpp"
+#include "btb/full_game_spud_skate.hpp"
 #include "btb/full_game_herding_event_simulation.hpp"
 #include "btb/herding_native_pickles_motion.hpp"
 #include "btb/retail_crt_random.hpp"
@@ -249,6 +250,13 @@ struct Host {
             std::make_unique<SpudMazeDriver>(root,0));
         game.install(ActivityId::Squirrel,
             std::make_unique<SquirrelDriver>(root,0));
+        // Tenth retail game driver now exists and is source-tested.
+        // There is still NO multi-stream Spud Skate Bink renderer in
+        // this host: passing nullptr intentionally fails admission
+        // rather than fabricating movie frames or progress.
+        game.install(ActivityId::SpudSkate,
+            std::make_unique<SpudSkateDriver>(
+                root,nullptr,&original_game_random));
         // Source-backed initial Pets Corner scene and Pickles navigation.
         // Autonomous animal delivery remains fail-closed (no fake wins).
         game.install(ActivityId::Herding,
