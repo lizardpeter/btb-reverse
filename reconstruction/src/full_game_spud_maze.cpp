@@ -207,10 +207,15 @@ ActivityFrameOutput SpudMazeDriver::draw() const {
             piece_filename(screen,index),p[0],p[1],std::nullopt,true
         });
     }
-    // Source 0x004227F0 uses an 83px-wide repair.bmp sheet for Bob,
-    // with his current animation frame and direction/hammer band.
-    const int frame=std::clamp(bob_.animation,0,30);
-    const int row=bob_.repair_tool_engaged?0:1;
+    // Retail Repair.bmp is exactly 4980x249 (60x3 cells of 83px).
+    // 0x004227F0 selects horizontal frames +30 when Bob holds the
+    // hammer AND faces right/left; the three vertical bands encode
+    // facing right (0), left (1) and forward/back (2).
+    const int facing=bob_.facing==4?3:bob_.facing;
+    const int row=facing==1?0:facing==3?1:2;
+    const int raw_frame=std::clamp(bob_.animation,0,29);
+    const int frame=raw_frame+
+        ((facing==1||facing==3)&&bob_.repair_tool_engaged?30:0);
     out.draws.push_back({
         "Data\\SubGameSpudMaze\\Repair.bmp",
         static_cast<int>(bob_.x)-41,
