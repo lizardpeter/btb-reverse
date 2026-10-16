@@ -43,5 +43,30 @@ int main() {
     const auto expected=static_cast<std::int32_t>(
         std::bit_cast<std::int32_t>(unsigned_low)>>11);
     for(auto sample:*wrap)CHECK(sample==expected);
+    // Whole-block all-DC fast path through 30011590..30011705:
+    // stage 1=(dc*quant)>>11, stage 2=(stage1+127)>>8.
+    std::array<std::int16_t,64> only_dc{};
+    only_dc[0]=256;
+    const auto full=idct_dc_only_block8(only_dc,8192);
+    CHECK(full);
+    for(auto pixel:*full)CHECK(pixel==4);
+    only_dc[0]=-256;
+    const auto negative_block=idct_dc_only_block8(only_dc,8192);
+    CHECK(negative_block);
+    for(auto pixel:*negative_block)CHECK(pixel==252); // -4 mod 256
+    only_dc[0]=0;
+    const auto empty=idct_dc_only_block8(only_dc,8192);
+    CHECK(empty);
+    for(auto pixel:*empty)CHECK(pixel==0);
+    only_dc[0]=2048;
+    const auto scale=idct_dc_only_block8(only_dc,65536);
+    CHECK(scale);
+    for(auto pixel:*scale)CHECK(pixel==0); // 256 narrowed to byte 0
+    only_dc[1]=1;
+    CHECK(!idct_dc_only_block8(only_dc,65536));
+    only_dc[1]=0;
+    CHECK(!idct_dc_only_block8(
+        std::span<const std::int16_t>(only_dc).first(63),65536));
+
     std::puts("Bink original 0x300113CE DC-only iDCT column: PASS");
 }
