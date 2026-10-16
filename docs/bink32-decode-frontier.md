@@ -243,6 +243,43 @@ combination, reference-frame handling, and audio are still outstanding.
 Pixel parity against a running copy of the retail DLL has not yet
 been demonstrated.
 
+## Nonzero AC: original branch-table command expansion and direct coefficient (2026-10-15)
+
+Inspected the supplied original `binkw32.dll` machine code for
+`0x30011B10..30012316`. The first coefficient-code indirect jump
+at `0x30011C4B` indexes four addresses stored at `0x3001241C`:
+
+| Command low 2 bits | Original target | Recovered behavior |
+|---|---|---|
+| 0 | `0x30011C52` | Partially inspected, further bit-dependent logic outstanding |
+| 1 | `0x30011C61` | Expand packed command into 4 index-coded control bytes |
+| 2 | `0x30011C93` | Partially inspected, further bit-dependent logic outstanding |
+| 3 | `0x30011F7F` | Direct signed 16-bit coefficient from magnitude-class bits |
+
+`bink32_ac_nonzero.cpp` adds native C++ for branch 1, emitting
+`(command & 0xfc) + {0x02,0x12,0x22,0x32}` with the same eight-bit
+wrap semantics as the original x86 byte stores. For branch 3 it reads
+the remaining magnitude-class low bits and a sign bit, combines them
+with the original outer loop's `1 << (mode-1)` high-magnitude bit,
+and stores the resulting signed 16-bit coefficient into
+`coefficients[command >> 2]`. The consumed command byte is zeroed
+after success, as in original `0x30012003`.
+
+The previous decoding pass has to supply the exact high-magnitude-class
+bit and remaining bit width; the function deliberately does **not**
+guess the original outer-loop state. Both operations are independently
+source-derived and have release-safe tests for all supported magnitude
+widths, signs, destination indices, command-byte wrapping and
+truncated-bitstream rollback. Local GCC C++23 and Clang ASan/UBSan
+tests passed.
+
+These are original subbranches of the **nonzero-AC** coefficient
+unpacker, not a complete translation of `0x30011B10`. The remaining
+dispatch cases, nested bit-dependent coefficient placement, all
+outer-loop transitions, exact original runtime bit-cursor parity, and
+movie-frame assembly still need implementation. We do not claim the
+result is a complete decoder or DLL-free working video.
+
 ## Next implementation order
 
 1. Compare the reconstructed dynamic trees against the original x86 DLL
