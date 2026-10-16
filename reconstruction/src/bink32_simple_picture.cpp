@@ -72,8 +72,9 @@ std::vector<std::int16_t> dc_words(const OriginalBinkDcPlane& plane) {
 }
 } // namespace
 
-std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
+std::optional<BinkSimplePictureLuma> decode_bink_picture_plane_at(
     std::span<const std::uint8_t> video_packet,
+    std::size_t entropy_tree_byte_offset,
     std::size_t width,std::size_t height,
     std::span<const std::uint8_t> previous_luma) {
     constexpr std::size_t kMaxPixels=64U*1024U*1024U;
@@ -88,12 +89,13 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
     const auto tiles=columns*rows;
     // Each 8x8 pixel block may consume up to 64 color samples.
     const auto maximum_samples=std::min(kMaxPixels,width*height);
-    const auto prologue=parse_alpha_picture_entropy_prologue(video_packet);
+    const auto prologue=parse_video_entropy_prologue(
+        video_packet,entropy_tree_byte_offset);
     if(!prologue)return std::nullopt;
-    const auto& trees=prologue->picture.trees.trees;
+    const auto& trees=prologue->trees.trees;
     LsbBitReader bits(video_packet.subspan(
-        prologue->picture.initial_byte_offset));
-    if(!bits.skip(prologue->picture.trees.consumed_bits))
+        prologue->initial_byte_offset));
+    if(!bits.skip(prologue->trees.consumed_bits))
         return std::nullopt;
 
     SourcePool<std::uint8_t> types{},subtypes{},colors{},patterns{},runs{};
@@ -125,7 +127,7 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
             // read_bink_color_bundle requires the full tree set,
             // including sixteen adaptive high-nibble contexts.
             auto b=read_bink_color_bundle(
-                bits,prologue->picture.trees,width,last_color_high,
+                bits,prologue->trees,width,last_color_high,
                 false,maximum_samples);
             if(!b)return std::nullopt;
             last_color_high=b->next_high_nibble;
@@ -379,7 +381,17 @@ std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
         inter_dc.refills,runs.refills
     };
     result.next_plane_byte_offset=
-        prologue->picture.initial_byte_offset+bits.bit_position()/8;
+        prologue->initial_byte_offset+bits.bit_position()/8;
     return result;
+}
+std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
+    std::span<const std::uint8_t> video_packet,
+    std::size_t width,std::size_t height,
+    std::span<const std::uint8_t> previous_luma) {
+    const auto outer=parse_alpha_picture_entropy_prologue(video_packet);
+    if(!outer)return std::nullopt;
+    return decode_bink_picture_plane_at(
+        video_packet,outer->picture.initial_byte_offset,
+        width,height,previous_luma);
 }
 } // namespace btb::bink32_recovered
