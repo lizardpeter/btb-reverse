@@ -92,4 +92,11 @@ decode_original_bink_dc_delta_plane(
 decode_original_bink_dc_context_packet(
     LsbBitReader& source,unsigned count_width,unsigned value_width,
     bool signed_values,std::size_t maximum_output_words=1U<<20);
+// Use the already-recovered original 0x3000FC00 context setup
+// (EntropyPlaneSetup::table_bit_width, symbol_bits, prefix_mask)
+// directly instead of supplying arbitrary count/magnitude widths.
+[[nodiscard]] std::optional<OriginalBinkDcPlane>
+decode_original_bink_dc_context_packet(
+    LsbBitReader& source,const EntropyPlaneSetup& context,
+    std::size_t maximum_output_words=1U<<20);
 } // namespace btb::bink32_recovered
