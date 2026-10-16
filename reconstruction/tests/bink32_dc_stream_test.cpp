@@ -206,5 +206,68 @@ int main() {
         CHECK(!decode_original_bink_dc_delta_group(bits,5,one_word));
         CHECK(bits.bit_position()==0&&one_word[0]==88);
     }
+    {
+        // Full source 0x30010D94 loop: 8 signed samples of width2
+        // followed by the remaining 2 samples from a zero-width
+        // group. Validate the exact ten LE WORDs subsequently
+        // consumed by the native block DC/AC handoff.
+        TestBits packed;
+        packed.put(2,4);
+        packed.put(1,2);packed.put(0,1); // 3 -> 4
+        packed.put(2,2);packed.put(1,1); // 4 -> 2
+        packed.put(0,2);                 // 2
+        packed.put(3,2);packed.put(0,1); // 2 -> 5
+        for(unsigned k=0;k<4;++k)packed.put(0,2);
+        packed.put(0,4);                 // remaining 2 -> 5,5
+        auto compressed=packed.reader();
+        const auto plane=decode_original_bink_dc_delta_plane(
+            compressed,3,10);
+        CHECK(plane&&plane->final_sample==5);
+        CHECK(plane->consumed_bits==packed.bit_count&&packed.bit_count==27);
+        CHECK(plane->signed_words_le.size()==20);
+        CHECK(compressed.bit_position()==27);
+        const std::array<std::int16_t,10> expected{
+            4,2,2,5,5,5,5,5,5,5
+        };
+        BinkDcWordStream unpacked{plane->signed_words_le,0};
+        for(auto v:expected) {
+            CHECK(read_original_bink_dc_word(unpacked)==v);
+        }
+        CHECK(unpacked.position==20&&unpacked.remaining_words()==0);
+        const std::array<std::uint8_t,2> ac_zero_blocks{0,0};
+        LsbBitReader ac_bits(ac_zero_blocks);
+        BinkDcWordStream first_two{plane->signed_words_le,0};
+        for(unsigned i=0;i<2;++i) {
+            const auto block=decode_original_bink_block_from_dc_plane(
+                first_two,ac_bits);
+            CHECK(block&&block->dc==expected[i]);
+            CHECK(block->decoded.ac.mode==0&&block->decoded.quant_selector==0);
+        }
+        CHECK(first_two.position==4&&ac_bits.bit_position()==16);
+        // Requesting one extra sample would need to consume the same
+        // group but in a different alignment; use a deliberately
+        // truncated stream instead to assert whole-plane rollback.
+        auto bad=packed.reader();
+        CHECK(bad.skip(16));
+        CHECK(!decode_original_bink_dc_delta_plane(bad,3,10));
+        CHECK(bad.bit_position()==16);
+    }
+    {
+        const std::array<std::uint8_t,1> bits{0};
+        LsbBitReader empty_plane(bits);
+        CHECK(empty_plane.skip(3));
+        const auto no_samples=decode_original_bink_dc_delta_plane(
+            empty_plane,-32768,0);
+        CHECK(no_samples&&no_samples->signed_words_le.empty());
+        CHECK(no_samples->final_sample==-32768);
+        CHECK(no_samples->consumed_bits==0&&empty_plane.bit_position()==3);
+        CHECK(!decode_original_bink_dc_delta_plane(
+            empty_plane,0,(1U<<20)+1));
+        CHECK(empty_plane.bit_position()==3);
+        // Need a complete nibble even to decode 1 DC sample.
+        CHECK(empty_plane.skip(4));
+        CHECK(!decode_original_bink_dc_delta_plane(empty_plane,0,1));
+        CHECK(empty_plane.bit_position()==7);
+    }
     std::puts("Bink original predecoded DC stream -> AC/quant IDCT 16x16 pixels: PASS");
 }
