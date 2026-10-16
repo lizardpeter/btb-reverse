@@ -1,6 +1,7 @@
 #include "btb/herding_native_pickles_motion.hpp"
 #include "btb/herding_navigation_boundary.hpp"
 #include "btb/original_herding_init.hpp"
+#include "btb/herding_source_scruffty_patrol.hpp"
 
 #include <array>
 #include <cmath>
@@ -94,6 +95,9 @@ bool NativePicklesMotionSource::initialize(
             originals.push_back(convert_original_entity(item));
         active_=true;
         selected_food_=herding::FoodType::None;
+        // The original initializer resets its patrol waypoint, but not
+        // the process-global frame movement latch 0x443B20.
+        scruffty_patrol_state_.waypoint_index=0;
         error.clear();
         return true;
     } catch(const std::exception& e) {
@@ -116,6 +120,33 @@ bool NativePicklesMotionSource::advance(
     }
     observed={};
     observed.motion_records=source;
+
+    // UpdateHerdingActivity 0x418F23..0x41908D moves Scruffty once
+    // per actual game frame, including frames where Pickles is idle.
+    // Reuse the independently recovered patrol kernel and supply its
+    // before/after evidence to HerdingEventSimulation for validation.
+    // The other animals remain stationary until their source dispatch
+    // and follower branches are connected; no delivery is invented.
+    for(std::size_t i=0;i<source.size();++i) {
+        if(source[i].entity_type()!=herding::EntityType::Scruffty)
+            continue;
+        if(observed.scruffty_patrol_evidence) {
+            error="multiple retail Scruffty entities in Pets Corner";
+            return false;
+        }
+        const auto before=scruffty_patrol_state_;
+        const auto step=herding::original_scruffty_patrol_step(
+            source[i],herding::scruffty_patrol_path(data),before);
+        if(!step) {
+            error="original 0x418F23 Scruffty patrol source invalid";
+            return false;
+        }
+        observed.motion_records[i]=step->animal;
+        observed.scruffty_patrol_evidence=
+            HerdingScrufftyPatrolEvidence{i,source[i],before,step->state};
+        scruffty_patrol_state_=step->state;
+    }
+
     const auto source_food_pickup=[&] {
         // Source 0x004182B0 checks every original food hotspot using
         // the final integer Pickles position; it does not require
@@ -183,8 +214,8 @@ bool NativePicklesMotionSource::advance(
     }
     player.movement_active=1;
 
-    // Source-confirmed food pickup is supported, but follower and
-    // Scruffty contacts remain unhosted and cannot award victories.
+    // Source-confirmed food pickup and Scruffty patrol are supported,
+    // but animal contact/follower delivery is unhosted: no fake wins.
     source_food_pickup();
     error.clear();
     return true;
