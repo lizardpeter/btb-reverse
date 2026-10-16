@@ -4,6 +4,7 @@
 #include "btb/full_game_front_end.hpp"
 #include "btb/full_game_golf.hpp"
 #include "btb/full_game_dino.hpp"
+#include "btb/full_game_profile_screen_native.hpp"
 #include "btb/full_game_fireworks.hpp"
 #include "btb/full_game_bobs_band.hpp"
 #include "btb/full_game_park_designer.hpp"
@@ -218,6 +219,10 @@ struct Host {
         }
         if(!game.load_profile_files(profile_dir,out_error))return false;
         profile_directory=profile_dir;
+        auto native_profiles=std::make_unique<NativeProfileScreenAdapter>(
+            root,profile_dir);
+        if(!native_profiles->initialize(out_error))return false;
+        game.install_profile_screen(std::move(native_profiles));
 
         game.install(ActivityId::Dinosaur,std::make_unique<DinoDriver>(root));
         game.install(ActivityId::Golf,std::make_unique<GolfDriver>(
@@ -233,11 +238,17 @@ struct Host {
         // Start at the original Activity Select rather than inventing an
         // incomplete five-sign profile-entry workflow. Profile 0 is
         // explicitly provisional in this opt-in development host.
-        if(!game.select_profile(selected_profile)) {
-            out_error="could not select requested original profile slot";
-            return false;
+        if(selected_profile>=0) {
+            if(!game.select_profile(selected_profile)) {
+                out_error="requested original profile slot outside 1..5";
+                return false;
+            }
+            game.set_outer_state(game_flow::State::ActivitySelectSetup);
+        } else {
+            // Real source-backed five-sign profile screen, with original
+            // bitmap/font tables and the existing C++26 name-entry caller.
+            game.set_outer_state(game_flow::State::PlayerProfileAndNameEntry);
         }
-        game.set_outer_state(game_flow::State::ActivitySelectSetup);
         device=std::make_unique<Win32OriginalGameDevice>(
             graphics,audio,movies);
         session=std::make_unique<NativeGameSession>(
@@ -382,7 +393,8 @@ LRESULT CALLBACK native_window_proc(
         host->set_pointer(lp);host->native_input.release_mouse();return 0;
     case WM_KEYDOWN:
         host->native_input.key_down(
-            static_cast<unsigned>(wp),(lp&0x40000000)!=0);
+            static_cast<unsigned>(wp),(lp&0x40000000)!=0,
+            (static_cast<unsigned>(lp)>>16U)&0xffU);
         if(wp==VK_ESCAPE)DestroyWindow(hwnd);
         return 0;
     case WM_KEYUP:

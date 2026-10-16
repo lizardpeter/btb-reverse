@@ -47,7 +47,7 @@ GameFrame GameRoot::advance_profile_name_entry(
     }
     auto& s=*name_entry_;
     auto& draws=result.effects.draws;
-    draws.push_back({"Data/ui/enter_name.bmp",0,0});
+    draws.push_back({"Data/ui/enter name.bmp",0,0});
     // 0042DB70 DrawEnterNamePopup executes BEFORE 0042DCC0 keyboard writes.
     // -1 is the original empty badge sentinel. Do not invent a negative
     // bitmap rectangle; the native provider has no drawable cell for it.
@@ -63,7 +63,7 @@ GameFrame GameRoot::advance_profile_name_entry(
     for(int i=0;i<s.length;++i) {
         auto r=name_entry_blue_font_[s.glyphs[static_cast<std::size_t>(i)]];
         ++r.bottom; // source adds one to the inclusive font bottom
-        draws.push_back({"Data/ui/blue_name_boxed_font.bmp",x,200,r,true});
+        draws.push_back({"Data/ui/blue name boxed font.bmp",x,200,r,true});
         x+=r.right-r.left;
     }
     if(++name_entry_blink_>=33)name_entry_blink_=0;

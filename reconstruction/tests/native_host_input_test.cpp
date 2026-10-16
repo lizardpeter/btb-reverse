@@ -13,7 +13,10 @@ int main() {
  native.press_mouse();
  auto frame=native.sample(17,31,0xffffff64U);
  assert(frame.directional_input_bits==(0x01|0x04));
- assert(frame.keyboard_state['A']==0x80);
+ assert(frame.keyboard_state[0x1e]==0x80); // DIK_A, not VK_A
+ assert(frame.keyboard_state['A']==0);
+ assert(native_dik_for_vk('A')==0x1e);
+ assert(native_dik_for_vk('Z')==0x2c);
  assert(frame.pointer_button_held);
  assert(frame.translated_character=='a');
  assert(frame.elapsed_centiseconds==10);
@@ -23,6 +26,12 @@ int main() {
  assert(!native.click_pulse);
  assert(native.sample(17,31,0xffffff69U).translated_character==-1);
  native.release_mouse();
+ native.key_up('A');
+ assert(native.sample(17,31,0xffffff69U).keyboard_state[0x1e]==0);
+ native.key_down('W',false,0x11);
+ assert(native.sample(17,31,0xffffff69U).keyboard_state[0x11]==0x80);
+ native.key_up('W');
+ assert(native.sample(17,31,0xffffff69U).keyboard_state[0x11]==0);
  native.key_up(0x25);native.key_down(0x27,false);native.key_down(0x28,false);
  frame=native.sample(17,31,0xffffff70U);
  assert(frame.directional_input_bits==(0x02|0x04|0x08));
