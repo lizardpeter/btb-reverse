@@ -388,6 +388,41 @@ int main(int argc,char**argv) {
             CHECK(digest==expected[scan]);
         }
     }
+    {
+        // Source-native 8x8 compressed residue block. Motion X/Y are
+        // both zero, and the sparse residue tree adds +1 at scan[4].
+        // Every other pixel must preserve its previous-frame value.
+        Bits encoded;trees(encoded);
+        encoded.put(1,10);encoded.put(1,1);encoded.put(4,4);
+        encoded.put(0,9); // 8-wide plane: 9-bit subtype count
+        encoded.put(0,10); // colors
+        encoded.put(0,10); // pattern
+        for(unsigned component=0;component<2;++component) {
+            encoded.put(1,10);encoded.put(1,1);encoded.put(0,4);
+        }
+        encoded.put(0,10);encoded.put(0,10); // intra/inter DC
+        encoded.put(0,10); // run
+        encoded.put(0,7); // one residue coefficient event
+        encoded.put(0,3); // start at mask=1
+        encoded.put(1,1); // activate group at scan[4..7]
+        encoded.put(0,1); // materialize scan[4]
+        encoded.put(0,1); // positive
+        const auto source=packet(encoded);
+        std::vector<std::uint8_t> previous(64,128);
+        const auto decoded=decode_bink_simple_picture_luma(
+            source,8,8,previous);
+        CHECK(decoded && decoded->mode_counts[4]==1);
+        CHECK(decoded->image.pixels.size()==64);
+        for(std::size_t i=0;i<64;++i)
+            CHECK(decoded->image.pixels[i]==(i==2?129:128));
+        CHECK(decoded->next_plane_byte_offset==
+              52+((encoded.bits+31)/32)*4);
+        CHECK(!decode_bink_simple_picture_luma(source,8,8));
+        auto clipped=source;
+        clipped.resize(69);
+        CHECK(!decode_bink_simple_picture_luma(
+            clipped,8,8,previous));
+    }
     // Optional original BIK smoke: count full compressed luma planes the
     // strict source-native subset supports, without embedding retail
     // assets or claiming original pixel parity from placeholder history.
