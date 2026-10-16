@@ -39,4 +39,16 @@ struct BlockEntropyTrees {
 [[nodiscard]] std::optional<BlockEntropyTrees> read_block_entropy_trees(
     LsbBitReader& bits) noexcept;
 
+// A bounded packet-to-tree bridge. Four bytes is the currently tested
+// candidate start of the entropy header, not yet proven by 0x3000E400.
+struct VideoEntropyPrologue {
+    BlockEntropyTrees trees{};
+    std::size_t initial_byte_offset{};
+    std::size_t final_bit_offset{}; // absolute from packet start
+};
+[[nodiscard]] std::optional<VideoEntropyPrologue>
+parse_video_entropy_prologue(
+    std::span<const std::uint8_t> packet,
+    std::size_t initial_byte_offset=4) noexcept;
+
 } // namespace btb::bink32_recovered
