@@ -90,6 +90,33 @@ These are genuine block-value decoding components but do not yet include
 full coefficient layouts, motion vectors, iDCT, reference frames or
 final YUV->RGB presentation. Full runtime Bink32 removal is still gated.
 
+## Signed coefficients and output pixels (0x30010980 / 0x30012940)
+
+`bink32_signed_coefficients.cpp` now reconstructs the original
+`30010980–30010BE7` signed-coefficient bitstream stage. Each
+compressed command uses one selector bit: in the Huffman branch,
+an original 16-symbol table yields the magnitude, with a sign bit
+only for nonzero magnitudes; in the alternate branch, a four-bit
+immediate magnitude plus conditional sign fills the remaining
+coefficient buffer. The source code is transactional and fails
+closed if the compressed stream is truncated. It does not yet
+turn coefficient arrays into a Bink image-plane transform.
+
+`bink32_pixel_reconstruction.cpp` implements the **pixel output**
+stage of original `30012940`, a motion-predicted 8x8 block whose
+decoded residual bytes are added to the corresponding reference-frame
+bytes with modulo-256 unsigned wrapping (rather than saturation).
+It supports independent reference/output strides, in-place output,
+and incomplete/bogus buffers without partial writes. The intra block
+copy path is also provided for already decoded eight-by-eight pixels.
+
+The new CTests verify Huffman-code-to-signed-byte decoding, immediate
+fill behavior, arithmetic edge cases, reference strides, and full 8x8
+pixel output on synthetic inputs. These are **not** proof of a
+complete Bink32 frame: the original `30012440` inverse-transform and
+residual-producing codec stages still need reconstruction before we
+can provide these compositors with actual decoded retail coefficients.
+
 ## Next implementation order
 
 1. Compare the reconstructed dynamic trees against the original x86 DLL
