@@ -87,4 +87,37 @@ std::optional<std::int16_t> decode_original_bink_dc_delta_group(
     source=bits;
     return std::bit_cast<std::int16_t>(previous);
 }
+std::optional<OriginalBinkDcPlane> decode_original_bink_dc_delta_plane(
+    LsbBitReader& source,std::int16_t previous_dc,
+    std::size_t sample_count) {
+    // Source 30010D94: group_count = min(remaining_count,8),
+    // decode 4-bit width then group_count signed cumulative deltas,
+    // iterate at 30010EC2 until all original output words written.
+    constexpr std::size_t kMaximumDcWords=1U<<20;
+    if(sample_count>kMaximumDcWords)return std::nullopt;
+    auto bits=source;
+    const auto start=bits.bit_position();
+    OriginalBinkDcPlane result{};
+    result.signed_words_le.resize(sample_count*2);
+    std::array<std::int16_t,8> group{};
+    std::size_t emitted=0;
+    while(emitted<sample_count) {
+        const auto n=std::min(std::size_t{8},sample_count-emitted);
+        const auto last=decode_original_bink_dc_delta_group(
+            bits,previous_dc,std::span<std::int16_t>(group).first(n));
+        if(!last)return std::nullopt;
+        previous_dc=*last;
+        for(std::size_t i=0;i<n;++i) {
+            const auto word=std::bit_cast<std::uint16_t>(group[i]);
+            const auto j=(emitted+i)*2;
+            result.signed_words_le[j]=static_cast<std::uint8_t>(word);
+            result.signed_words_le[j+1]=static_cast<std::uint8_t>(word>>8);
+        }
+        emitted+=n;
+    }
+    result.final_sample=previous_dc;
+    result.consumed_bits=bits.bit_position()-start;
+    source=bits;
+    return result;
+}
 } // namespace btb::bink32_recovered
