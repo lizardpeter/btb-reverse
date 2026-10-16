@@ -268,6 +268,73 @@ int main(int argc,char**argv) {
                     static_cast<std::uint8_t>(
                         3*((y/2)*8+(x/2))));
     }
+    {
+        // Compressed RUN mode: true scan order zero traverses
+        // columns alternately downward and upward. Four 16-pixel
+        // lengths each reuse one color, spanning one complete 8x8 tile.
+        Bits encoded;trees(encoded);
+        encoded.put(1,10);encoded.put(1,1);encoded.put(3,4);
+        encoded.put(0,10); // subordinate scaled type
+        encoded.put(4,10);encoded.put(0,1);
+        for(unsigned pixel:{10U,20U,30U,40U}) {
+            encoded.put(pixel>>4,4);
+            encoded.put(pixel&15U,4);
+        }
+        encoded.put(0,10); // pattern bytes
+        encoded.put(0,10);encoded.put(0,10); // X/Y
+        encoded.put(0,10);encoded.put(0,10); // intra/inter DC
+        encoded.put(4,10);encoded.put(1,1);encoded.put(15,4);
+        encoded.put(0,4); // exact 8x8 scan-zero selector
+        for(unsigned i=0;i<4;++i)encoded.put(1,1);
+        const auto source=packet(encoded);
+        const auto image=decode_bink_simple_picture_luma(source,8,8);
+        CHECK(image && image->mode_counts[3]==1);
+        for(std::size_t row=0;row<8;++row)
+            for(std::size_t col=0;col<8;++col)
+                CHECK(image->image.pixels[row*8+col]==
+                      static_cast<std::uint8_t>(10*(1+col/2)));
+        CHECK(image->next_plane_byte_offset==
+              52+((encoded.bits+31)/32)*4);
+        // A currently unsupported scan selector must reject rather
+        // than applying an unrelated traversal to valid run data.
+        auto bad_scan=source;
+        const auto scan_bit=52*8+encoded.bits-8;
+        bad_scan[scan_bit/8]|=
+            static_cast<std::uint8_t>(1U<<(scan_bit%8));
+        CHECK(!decode_bink_simple_picture_luma(bad_scan,8,8));
+        // One missing run color cannot yield a partial frame.
+        auto truncated=source;
+        truncated.resize(source.size()-4);
+        CHECK(!decode_bink_simple_picture_luma(truncated,8,8));
+    }
+    {
+        // Scaled 16x16 RUN: decode exactly one underlying 8x8
+        // pattern and replicate each source pixel 2x on both axes.
+        Bits encoded;trees(encoded);
+        encoded.put(2,10);encoded.put(1,1);encoded.put(1,4);
+        encoded.put(1,10);encoded.put(1,1);encoded.put(3,4);
+        encoded.put(4,10);encoded.put(0,1);
+        for(unsigned pixel:{1U,2U,3U,4U}) {
+            encoded.put(pixel>>4,4);
+            encoded.put(pixel&15U,4);
+        }
+        encoded.put(0,10); // pattern
+        encoded.put(0,10);encoded.put(0,10); // X/Y
+        encoded.put(0,10);encoded.put(0,10); // DC
+        encoded.put(4,10);encoded.put(1,1);encoded.put(15,4);
+        encoded.put(0,4); // scan order 0
+        for(unsigned i=0;i<4;++i)encoded.put(1,1);
+        encoded.put(0,10); // row 1: exhausted subtype
+        encoded.put(0,10); // row 1: exhausted colors
+        encoded.put(0,10); // row 1: exhausted runs
+        const auto image=decode_bink_simple_picture_luma(
+            packet(encoded),16,16);
+        CHECK(image && image->mode_counts[1]==2);
+        for(std::size_t row=0;row<16;++row)
+            for(std::size_t col=0;col<16;++col)
+                CHECK(image->image.pixels[row*16+col]==
+                      static_cast<std::uint8_t>(1+col/4));
+    }
     // Optional original BIK smoke: count full compressed luma planes the
     // strict source-native subset supports, without embedding retail
     // assets or claiming original pixel parity from placeholder history.
