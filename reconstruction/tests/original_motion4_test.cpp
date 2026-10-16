@@ -1,5 +1,11 @@
 #include "btb/original_motion4.hpp"
 #include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#undef assert
+#define assert(expr) do { if(!(expr)) { \
+    std::fprintf(stderr,"original_motion4: %s at %s:%d\\n", \
+        #expr,__FILE__,__LINE__);std::abort();} } while(false)
 #include <cmath>
 #include <stdexcept>
 #include <string>
@@ -131,6 +137,19 @@ int main(){
   static_assert(btb::maze::kSourceNpcSpawnFrames[0]==3000);
   static_assert(btb::maze::kSourceNpcSpawnFrames[1]==2000);
   static_assert(btb::maze::kSourceNpcSpawnFrames[2]==800);
+ }
+ {
+  // Source 0x0041CCB0 phase 1 respawns Spud on Bob's current screen.
+  Host io;Npc s{};s.screen=0;s.player_screen=1;
+  s.phase=btb::maze::SpudNpcPhase::SelectPackage;
+  s.graphs[1].nodes={node(0,40,182),node(15,603,182)};
+  s.packages[1][0]={0,1};
+  s.package_target_nodes[1][0]=0;s.has_box_target_nodes=true;
+  update_maze_spud_npc(s,io);
+  assert(s.screen==1);
+  assert(s.phase==btb::maze::SpudNpcPhase::TravelToPackage);
+  assert(s.selected_package==0);
+  assert(!io.paths.empty()&&io.paths.back()==0);
  }
  {
   Host io;HerdAnimal s{};
