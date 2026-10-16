@@ -1169,6 +1169,24 @@ btb_require_cpp26(btb_full_game_profile_selector_native_tests PRIVATE)
 add_test(NAME full_game_profile_selector_native
     COMMAND btb_full_game_profile_selector_native_tests)
 
+# Actual native Golf completion tests. These existing C++26 files were
+# previously outside the CTest registry and thus never executed by CI.
+add_executable(btb_full_game_golf_source_tests
+    tests/full_game_golf_source_test.cpp)
+target_link_libraries(btb_full_game_golf_source_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_full_game_golf_source_tests PRIVATE)
+add_test(NAME full_game_golf_source
+    COMMAND btb_full_game_golf_source_tests)
+
+add_executable(btb_full_game_adventure_to_golf_source_tests
+    tests/full_game_adventure_to_golf_source_test.cpp)
+target_link_libraries(btb_full_game_adventure_to_golf_source_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_full_game_adventure_to_golf_source_tests PRIVATE)
+add_test(NAME full_game_adventure_to_golf_source
+    COMMAND btb_full_game_adventure_to_golf_source_tests)
+
 add_executable(btb_full_game_dino_native_tests
     tests/full_game_dino_native_test.cpp)
 target_link_libraries(btb_full_game_dino_native_tests PRIVATE
