@@ -36,5 +36,28 @@ int main() {
     LsbBitReader fixed_1(zeros);
     const auto leaf=read_fixed_huffman_symbol(fixed_1,1);
     CHECK(leaf&&leaf->consumed_bits==1&&leaf->value==0);
+    // Retail designstartup.bik frame 24 U plane, final bundle:
+    // selector 8 needs six bits for table indexing, but its last
+    // genuine symbol uses only two bits and three packet bits remain.
+    // Missing LOOKAHEAD can be zero-extended, not the consumed code.
+    const std::array<std::uint8_t,1> packed_tail{0x40};
+    LsbBitReader tail(packed_tail);
+    CHECK(tail.skip(6));
+    const auto short_leaf=read_fixed_huffman_symbol(tail,8);
+    CHECK(short_leaf && short_leaf->value==1 &&
+          short_leaf->consumed_bits==2 && tail.bit_position()==8);
+    // Only one real bit remains, but this particular selector-eight
+    // prefix requires two; do not fabricate any consumed bits.
+    const std::array<std::uint8_t,1> one_bit{0x80};
+    LsbBitReader truncated(one_bit);
+    CHECK(truncated.skip(7));
+    CHECK(!read_fixed_huffman_symbol(truncated,8));
+    CHECK(truncated.bit_position()==7);
+    // Selector 0 always consumes four bits, so a two-bit tail
+    // must still reject even though its lookup can be padded.
+    LsbBitReader fixed_width(packed_tail);
+    CHECK(fixed_width.skip(6));
+    CHECK(!read_fixed_huffman_symbol(fixed_width,0));
+    CHECK(fixed_width.bit_position()==6);
     std::puts("Original 2002 Bink fixed Huffman lookup tables: PASS");
 }
