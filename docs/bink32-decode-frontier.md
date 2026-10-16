@@ -701,3 +701,32 @@ produce the actual per-block commands from the entropy planes and supply
 the correct previous frame. Mode correspondence with the 2002 SJPi DLL
 and full-frame pixel parity remain to be established. It must not be
 enabled as automatic retail playback until those stages are verified.
+
+
+## Stateful YUV-plane reconstruction from resolved block commands (2026-10-16)
+
+The new `bink32_video_planes.hpp/.cpp` connects the Bink block-mode
+compositor to **three-plane, multi-frame** state. `compose_bink_yuv_planes`
+accepts explicit Y and chroma dimensions and three predecoded command
+grids. Each channel uses the bounded 8x8 / 16x16 block compositor,
+including skip, motion, residual, fill, pattern, and direct sample modes.
+
+`BinkYuvFrameHistory::advance` maintains a previous complete YUV frame,
+so motion and skip commands can refer to prior decoded frame samples.
+Keyframes deliberately receive **no previous reference**; a failed
+keyframe does not corrupt the existing history. Cross-plane decoding is
+transactional: invalid commands in V cannot commit otherwise successful
+Y and U results. `reset` clears the prediction history for a new movie
+or seek. Total output is capped at 64 MiB across all three planes.
+
+The new C++26 regression covers an initial 17x9 luma frame and 9x5
+chroma planes, reference reuse, unsigned-byte residual wraparound,
+invalid motion in a late plane, keyframe reset, seek/reset semantics,
+and mismatched dimensions. Local standalone compilation/CTest passed.
+
+**Important:** These are *resolved* Bink block commands, not output
+of the still-unfinished source-native `0x3000E400` mode/bundle parser.
+Plane dimensions and component order remain supplied explicitly;
+conversion to BGRA, original colorimetry and retail pixel hashes
+are not yet implemented or verified. This is frame-state integration,
+not a declaration of DLL-free full-video decoding.
