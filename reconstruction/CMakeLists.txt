@@ -956,6 +956,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_block_modes.cpp
     src/bink32_video_planes.cpp
     src/bink32_simple_picture.cpp
+    src/bink32_residue.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1804,6 +1805,12 @@ add_executable(btb_bink32_simple_picture_tests tests/bink32_simple_picture_test.
 target_link_libraries(btb_bink32_simple_picture_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_simple_picture_tests PRIVATE)
 add_test(NAME bink32_compressed_simple_picture_luma COMMAND btb_bink32_simple_picture_tests)
+
+# Original Bink1 sparse signed residue bitplane reader.
+add_executable(btb_bink32_residue_tests tests/bink32_residue_test.cpp)
+target_link_libraries(btb_bink32_residue_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_residue_tests PRIVATE)
+add_test(NAME bink32_original_residue_coefficients COMMAND btb_bink32_residue_tests)
 
 
 
