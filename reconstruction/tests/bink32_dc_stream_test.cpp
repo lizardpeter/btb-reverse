@@ -451,5 +451,75 @@ int main() {
         CHECK(empty_dc.bit_position()==ctx.table_bit_width);
         CHECK(no_ac.bit_position()==0);
     }
+    {
+        // A contiguous clipped plane from six already-recovered blocks:
+        // 33x17 pixels => 3 columns * 2 rows of 16x16 tiles.
+        std::array<BinkDcAcBlock,6> tiles{};
+        for(std::size_t i=0;i<tiles.size();++i)
+            tiles[i].decoded.pixels.fill(
+                static_cast<std::uint8_t>(i+1));
+        const auto raster=rasterize_bink_blocks16(tiles,33,17);
+        CHECK(raster && raster->width==33 && raster->height==17);
+        CHECK(raster->pixels.size()==33*17);
+        for(std::size_t y=0;y<17;++y)
+            for(std::size_t x=0;x<33;++x)
+                CHECK(raster->pixels[y*33+x]==
+                    static_cast<std::uint8_t>(1+(y/16)*3+x/16));
+        CHECK(!rasterize_bink_blocks16(
+            std::span<const BinkDcAcBlock>(tiles).first(5),33,17));
+        CHECK(!rasterize_bink_blocks16(tiles,0,17));
+        CHECK(!rasterize_bink_blocks16(tiles,33,0));
+        CHECK(!rasterize_bink_blocks16(tiles,16385,1));
+        CHECK(!rasterize_bink_blocks16(tiles,16384,16384));
+    }
+    {
+        // Decoding six actual DC WORDs and six AC-mode0 blocks into a
+        // 33x17 clipped native single-channel pixel surface.
+        const auto ctx=init_entropy_plane(0,0x200,64,11,1,true);
+        TestBits encoded_dc;
+        encoded_dc.put(6,ctx.table_bit_width);
+        encoded_dc.put(100,10);encoded_dc.put(0,1);
+        encoded_dc.put(1,4);
+        for(unsigned i=0;i<5;++i) {
+            encoded_dc.put(1,1);
+            encoded_dc.put(0,1);
+        }
+        const std::array<std::uint8_t,6> ac_zero{};
+        auto expected_dc=encoded_dc.reader();
+        LsbBitReader expected_ac(ac_zero);
+        const auto isolated=decode_original_bink_dc_context_blocks(
+            expected_dc,expected_ac,ctx);
+        CHECK(isolated && isolated->blocks.size()==6);
+        auto dc=encoded_dc.reader();
+        LsbBitReader ac(ac_zero);
+        const auto raster=decode_original_bink_dc_context_raster16(
+            dc,ac,ctx,33,17);
+        CHECK(raster && raster->pixels.size()==33*17);
+        CHECK(dc.bit_position()==encoded_dc.bit_count);
+        CHECK(ac.bit_position()==48);
+        for(std::size_t y=0;y<17;++y)
+            for(std::size_t x=0;x<33;++x) {
+                const auto tile=(y/16)*3+x/16;
+                const auto sample=(y%16)*16+x%16;
+                CHECK(raster->pixels[y*33+x]==
+                    isolated->blocks[tile].decoded.pixels[sample]);
+            }
+        // Six DC samples but only four raster blocks: no partial
+        // stream commits even after the compressed DC record decoded.
+        auto mismatch_dc=encoded_dc.reader();
+        LsbBitReader mismatch_ac(ac_zero);
+        CHECK(!decode_original_bink_dc_context_raster16(
+            mismatch_dc,mismatch_ac,ctx,17,17));
+        CHECK(mismatch_dc.bit_position()==0);
+        CHECK(mismatch_ac.bit_position()==0);
+        // Truncated final AC block also rolls back the full raster.
+        auto truncated_dc=encoded_dc.reader();
+        LsbBitReader truncated_ac(
+            std::span<const std::uint8_t>(ac_zero).first(5));
+        CHECK(!decode_original_bink_dc_context_raster16(
+            truncated_dc,truncated_ac,ctx,33,17));
+        CHECK(truncated_dc.bit_position()==0);
+        CHECK(truncated_ac.bit_position()==0);
+    }
     std::puts("Bink original predecoded DC stream -> AC/quant IDCT 16x16 pixels: PASS");
 }
