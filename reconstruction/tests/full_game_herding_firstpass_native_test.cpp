@@ -10,7 +10,9 @@
 #include "btb/herding_source_home_motion.hpp"
 #include "btb/herding_source_delivered_animation.hpp"
 #include "btb/herding_retail_rect_contact.hpp"
+#include "btb/retail_crt_random.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #undef assert
@@ -117,11 +119,12 @@ int main() {
         std::ifstream infile(root/"Data"/"SubGame1"/"herd.txt");
         assert(infile.good());
         auto data=btb::herding::parse_data(infile);
-        fg::NativePicklesMotionSource native{};
+        btb::retail::OriginalRetailRandom game_rng{123};
+        fg::NativePicklesMotionSource native{game_rng};
         std::vector<btb::herding::RetailEntityRecord32> animals{};
         std::string error{};
-        std::srand(123);
         assert(native.initialize(data,0,animals,error));
+        auto expected_first_selection=game_rng;
         assert(animals.size()==15);
         animals[0].x=240;animals[0].y=414;
         animals[0].x_float=240.f;animals[0].y_float=414.f;
@@ -132,9 +135,28 @@ int main() {
             selected_sheep |= e.kind==fg::HerdingObservedKind::PickUpFood &&
                               e.food==FoodType::SheepFood;
         assert(selected_sheep);
+        const auto expected_voice=expected_first_selection.next_rand()%2;
+        const auto pickup=std::find_if(
+            observation.events.begin(),observation.events.end(),
+            [](const auto& event) {
+                return event.kind==fg::HerdingObservedKind::PickUpFood &&
+                       event.food==FoodType::SheepFood;
+            });
+        assert(pickup!=observation.events.end());
+        assert(pickup->random_mod_2==expected_voice);
         animals=observation.motion_records;
         animals[0].x=500;animals[0].y=520;
         animals[0].x_float=500.f;animals[0].y_float=520.f;
+        // Spawn locations depend on the exact CRT seed. Place this
+        // fixture sheep at the original source attraction anchor,
+        // rather than relying on unrelated host std::rand behavior.
+        animals[1].x=animals[0].x+
+            (animals[1].source_right-animals[1].source_left)/2;
+        animals[1].y=animals[0].y+
+            (animals[0].source_bottom-animals[0].source_top)-20-
+            (animals[1].source_bottom-animals[1].source_top)/2;
+        animals[1].x_float=static_cast<float>(animals[1].x);
+        animals[1].y_float=static_cast<float>(animals[1].y);
         const auto near=btb::herding::original_herding_food_attraction_contact(
             animals[1],animals[0],FoodType::SheepFood,false);
         assert(near.has_value()&&*near);
@@ -394,10 +416,10 @@ int main() {
         std::ifstream infile(root/"Data"/"SubGame1"/"herd.txt");
         assert(infile.good());
         auto data=btb::herding::parse_data(infile);
-        fg::NativePicklesMotionSource native{};
+        btb::retail::OriginalRetailRandom game_rng{321};
+        fg::NativePicklesMotionSource native{game_rng};
         std::vector<btb::herding::RetailEntityRecord32> animals{};
         std::string error{};
-        std::srand(321);
         assert(native.initialize(data,1,animals,error));
         fg::HerdingObservedFrame frame{};
         assert(animals.back().entity_type()==
@@ -409,6 +431,13 @@ int main() {
         animals=frame.motion_records;
         animals[0].x=500; animals[0].y=520;
         animals[0].x_float=500.f;animals[0].y_float=520.f;
+        animals[1].x=animals[0].x+
+            (animals[1].source_right-animals[1].source_left)/2;
+        animals[1].y=animals[0].y+
+            (animals[0].source_bottom-animals[0].source_top)-20-
+            (animals[1].source_bottom-animals[1].source_top)/2;
+        animals[1].x_float=static_cast<float>(animals[1].x);
+        animals[1].y_float=static_cast<float>(animals[1].y);
         assert(native.advance(data,{}, {},animals,frame,error));
         bool followed=false;
         for(const auto& event:frame.events)

@@ -9,6 +9,7 @@
 #include "btb/full_game_herding.hpp"
 #include "btb/full_game_herding_event_simulation.hpp"
 #include "btb/herding_native_pickles_motion.hpp"
+#include "btb/retail_crt_random.hpp"
 #include "btb/full_game_dino.hpp"
 #include "btb/full_game_profile_screen_native.hpp"
 #include "btb/full_game_fireworks.hpp"
@@ -90,6 +91,11 @@ struct Host {
     Win32OriginalDirectDraw graphics{};
     Win32OriginalDirectSound audio{};
     MissingOriginalBinkDecoder movies{};
+    // Native Herding consumes the original 0x42FFC4 MSVC rand stream.
+    // This state is owned by the host, not independently reseeded by
+    // any animal, level, or minigame. Other activity providers still
+    // need to migrate their host rand consumers onto this same stream.
+    retail::OriginalRetailRandom original_game_random{};
     std::unique_ptr<Win32OriginalGameDevice> device{};
     GameRoot game{};
     std::unique_ptr<NativeGameSession> session{};
@@ -133,6 +139,11 @@ struct Host {
             out_error="original game installation directory does not exist";
             return false;
         }
+        // Source 0x004027FB seeds CRT srand with GetTickCount. All
+        // herding initialization and per-frame RNG draws subsequently
+        // share the same value across the life of this Win32 host.
+        original_game_random.apply_original_startup_tick_count(
+            static_cast<std::uint32_t>(GetTickCount()));
         // PE32 00401F80 -> 00401FA0 now owns the actual DD7 creation,
         // windowed native style/menu setup and initial backbuffer clear.
         if(FAILED(original_win32::initialize_display_for_game_window(
@@ -244,7 +255,8 @@ struct Host {
             std::make_unique<HerdingDriver>(
                 root/"Data"/"SubGame1",
                 std::make_unique<HerdingEventSimulation>(
-                    std::make_unique<NativePicklesMotionSource>()),0));
+                    std::make_unique<NativePicklesMotionSource>(
+                        original_game_random)),0));
         game.install(ActivityId::Fireworks,std::make_unique<FireworksDriver>(
             root/"Data"/"SubGameFirework",profile_dir));
         game.install(ActivityId::BobsBand,std::make_unique<BobsBandDriver>(
