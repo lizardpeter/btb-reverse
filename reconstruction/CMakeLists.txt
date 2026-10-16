@@ -1034,6 +1034,7 @@ add_library(btb_recompiled_core STATIC
     src/full_game_maze.cpp
     src/full_game_spud_maze.cpp
     src/spud_maze_pilchard_native.cpp
+    src/full_game_squirrel.cpp
     src/full_game_dino.cpp
     src/full_game_profile_screen_native.cpp
     src/golf_activity.cpp
@@ -1228,6 +1229,15 @@ target_link_libraries(btb_spud_maze_pilchard_native_tests PRIVATE
 btb_require_cpp26(btb_spud_maze_pilchard_native_tests PRIVATE)
 add_test(NAME spud_maze_pilchard_native
     COMMAND btb_spud_maze_pilchard_native_tests)
+
+# Rebased Squirrel gameplay and progression CI after Pilchard.
+add_executable(btb_full_game_squirrel_native_tests
+    tests/full_game_squirrel_native_test.cpp)
+target_link_libraries(btb_full_game_squirrel_native_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_full_game_squirrel_native_tests PRIVATE)
+add_test(NAME full_game_squirrel_native
+    COMMAND btb_full_game_squirrel_native_tests)
 
 add_executable(btb_full_game_spud_maze_native_tests
     tests/full_game_spud_maze_native_test.cpp)
