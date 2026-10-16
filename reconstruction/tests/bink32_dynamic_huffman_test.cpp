@@ -4,6 +4,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <span>
+#include <fstream>
+#include <iterator>
+#include <vector>
+#include <cstdint>
 using namespace btb::bink32_recovered;
 #define CHECK(x) do {if(!(x)) {std::fprintf(stderr,"Bink tree line %d: %s\n",__LINE__,#x);std::abort();}}while(0)
 struct Bits {
@@ -24,7 +28,7 @@ static void verify_permutation(const std::array<std::uint8_t,16>& p) {
     auto sorted=p;std::sort(sorted.begin(),sorted.end());
     for(unsigned j=0;j<16;++j)CHECK(sorted[j]==j);
 }
-int main() {
+int main(int argc,char**argv) {
     {
         Bits b;b.put(0,4);auto r=b.reader();
         const auto tree=read_dynamic_huffman_tree(r);
@@ -104,5 +108,36 @@ int main() {
         CHECK(!read_block_entropy_trees(truncated));
         CHECK(truncated.bit_position()==8);
     }
+    // Optional original-asset regression, performed locally using the
+    // supplied retail movies; GitHub CI runs the synthetic tests above.
+    // Four bytes is the candidate compressed video control word boundary.
+    // Passing this is NOT evidence of coefficient/pixel equivalence.
+    std::uint64_t frame_headers=0,nonzero_selectors=0;
+    for(int arg=1;arg<argc;++arg) {
+        std::ifstream input(argv[arg],std::ios::binary);
+        CHECK(input.good());
+        const std::vector<std::uint8_t> raw{
+            std::istreambuf_iterator<char>(input),
+            std::istreambuf_iterator<char>()};
+        const auto index=parse_container_index(raw);
+        CHECK(index);
+        for(std::uint32_t frame=1;frame<=index->header.frame_count;++frame) {
+            const auto packet=split_encoded_frame(*index,raw,frame);
+            CHECK(packet&&packet->video.size()>4);
+            LsbBitReader cursor(packet->video.subspan(4));
+            const auto entropy=read_block_entropy_trees(cursor);
+            CHECK(entropy&&entropy->consumed_bits>0);
+            CHECK(cursor.bit_position()==entropy->consumed_bits);
+            for(const auto& tree:entropy->trees) {
+                nonzero_selectors+=tree.selector!=0;
+                CHECK(tree.selector<16);
+            }
+            ++frame_headers;
+        }
+    }
+    if(argc>1)std::printf("Retail Bink tree-header candidates: %llu frames, %llu nonzero selectors\\n",
+        static_cast<unsigned long long>(frame_headers),
+        static_cast<unsigned long long>(nonzero_selectors));
+
     std::puts("Original Bink dynamic Huffman permutation and merge: PASS");
 }
