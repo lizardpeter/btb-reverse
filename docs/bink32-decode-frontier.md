@@ -1080,3 +1080,55 @@ audio-video playback. Residue support alone is not full
 frame decoding. Original-format structure crosschecked against
 FFmpeg `libavcodec/bink.c` `read_residue` and
 `bink_decode_plane`.
+
+
+## Original Bink1 DCT coefficient tree and DC-only 8x8 pixels (2026-10-16)
+
+Added `bink32_dct_coefficients.hpp/.cpp`, a separate source-compatible
+8x8 **intra/inter DCT coefficient reader**. It accepts the signed WORD
+from the original per-row DC bundle, then decodes the four-bit AC
+magnitude-plane count, adaptive coefficient-group worklist, deferred
+individual signed leaves, Bink-specific 8x8 coefficient scan order,
+and final four-bit quantizer selector. All input cursor updates are
+transactional; invalid and truncated streams are rejected.
+
+The `bink32_original_dct_coefficients` C++26 regression covers
+a zero-AC record, positive and negative AC leaves at scan index one,
+a signed magnitude-three coefficient, an expanded four-leaf subgroup,
+the external-selector code path and failure rollback.
+
+The original 2002 DLL's recovered 16 quantizer tables have the same
+**DC multipliers** as the independently documented original Bink1
+intra and inter quant tables, in the order:
+65536, 87381, 109227, 131072, 174763, 229376, 262144, 327680,
+393216, 524288, 786432, 1114112, 1441792, 1835008, 2228224,
+2883584. That equality is now checked at runtime before invoking a
+DC-only block. For a DC-only 8x8 inverse transform, the source
+code's vertical DC shortcut followed by identical horizontal
+outputs gives the exact integer operation
+`((dc * quant_dc) >> 11 + 127) >> 8` (parenthesized explicitly in
+C++ code, using x86-compatible 32-bit arithmetic). This yields
+64 equal luma pixel values without guessing an 8x8 AC transform.
+
+`decode_bink_simple_picture_luma` now emits actual compressed
+INTRA pixels when their AC tree has no changed coefficients, INTER
+residuals after source X/Y motion prediction with modular 8-bit
+pixel addition, and Scaled 16x16 INTRA through the existing 2x
+pixel compositor. The regression includes independent DC=8 / quant
+0 output pixel 1, quant 15 output pixel 44, a 255+1 interframe
+wrap to 0, and a full 16x16 scaled intra tile.
+
+**Important fail-closed boundary:** the coefficient reader accepts
+nonzero AC coefficients and exposes all of them, but pixel rendering
+still *rejects* those blocks until the original ordinary 8x8
+integer iDCT and intra/inter 64-entry quantization matrices have been
+verified. The previously recovered scaled 16x16 transform must not
+be substituted for the 8x8 native video transform. This is real
+new native decoding of a DC-only subset, not full independent
+movie-frame playback or an original-DLL pixel-parity certification.
+
+References: FFmpeg `libavcodec/bink.c` `read_dct_coeffs`,
+`unquantize_dct_coeffs`; `libavcodec/binkdsp.c` `bink_idct_col`
+and `bink_idct_put_c`; `libavcodec/binkdata.h` quantizer
+DC coefficients. The reference implementation is used for
+structural cross-checking, not as a linked runtime dependency.
