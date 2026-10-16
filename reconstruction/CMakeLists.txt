@@ -945,6 +945,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_pixel_reconstruction.cpp
     src/bink32_inverse_transform.cpp
     src/bink32_full_idct.cpp
+    src/bink32_original_quant.cpp
 )
 target_include_directories(btb_bink32_recovered PUBLIC include)
 btb_require_cpp26(btb_bink32_recovered PUBLIC)
@@ -1724,6 +1725,12 @@ add_executable(btb_bink32_full_idct_tests tests/bink32_full_idct_test.cpp)
 target_link_libraries(btb_bink32_full_idct_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_full_idct_tests PRIVATE)
 add_test(NAME bink32_original_general_idct COMMAND btb_bink32_full_idct_tests)
+# Full 16 original DLL quant tables -> native integer inverse transform.
+add_executable(btb_bink32_original_quant_tests tests/bink32_original_quant_test.cpp)
+target_link_libraries(btb_bink32_original_quant_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_original_quant_tests PRIVATE)
+add_test(NAME bink32_original_quant_to_idct COMMAND btb_bink32_original_quant_tests)
+
 
 
 
