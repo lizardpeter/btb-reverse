@@ -137,5 +137,74 @@ int main() {
         CHECK(!decode_bink_block_mode_values(bits,tree,0));
         CHECK(bits.bit_position()==5);
     }
+    {
+        // The first real 640x480 startup frames supply 560 mode entries,
+        // then a single fill-zero command. Reconstruct the same bit
+        // framing with deterministic synthetic payload bytes.
+        Writer picture;
+        for(unsigned i=0;i<23;++i)picture.write(0,4); // 23 trees
+        picture.write(560,10);
+        picture.write(1,1);picture.write(0,4);
+        std::vector<std::uint8_t> video(52,0);
+        video[0]=48; // alpha section including its size WORD
+        video[48]=0x12; video[49]=0x34; // picture control
+        video.insert(video.end(),picture.bytes.begin(),picture.bytes.end());
+        const auto decoded=decode_first_bink_picture_block_types(
+            video,640,480);
+        CHECK(decoded&&decoded->first_bundle.encoded_count==560);
+        CHECK(decoded->prologue.alpha_section_bytes==48);
+        CHECK(decoded->prologue.picture_control_word==0x3412);
+        CHECK(decoded->first_bundle.modes.size()==560);
+        CHECK(decoded->first_bundle.commands.filled_remainder);
+        CHECK(std::all_of(decoded->first_bundle.modes.begin(),
+                          decoded->first_bundle.modes.end(),
+                          [](auto mode){return mode==0;}));
+        CHECK(decoded->next_picture_bit_offset==
+              52*8+92+10+5);
+        CHECK(!decode_first_bink_picture_block_types(video,640,64));
+        CHECK(!decode_first_bink_picture_block_types(video,0,480));
+        CHECK(!decode_first_bink_picture_block_types(video,640,0));
+        CHECK(!decode_first_bink_picture_block_types(
+            std::span<const std::uint8_t>(video).first(64),640,480));
+        auto invalid=video;
+        invalid[0]=49;
+        CHECK(!decode_first_bink_picture_block_types(invalid,640,480));
+    }
+    {
+        // Huffman literal 2, then command 12 repeats it four times.
+        // Tests exact count framing, 4/8/12/32-run semantics and
+        // parser rollback on malformed final data.
+        Writer encoded;
+        encoded.write(5,10); // bundle count for width=640
+        encoded.write(0,1); // Huffman stream
+        encoded.write(2,4); // literal
+        encoded.write(0,1);
+        encoded.write(12,4); // repeat length 4
+        LsbBitReader bits(encoded.bytes);
+        const auto bundle=read_bink_block_type_bundle(bits,tree,640,5);
+        CHECK(bundle&&!bundle->end_of_bundle&&bundle->encoded_count==5);
+        CHECK(bundle->modes.size()==5&&bundle->bits_consumed==20);
+        CHECK(bundle->commands.repeat_commands==1);
+        CHECK(std::all_of(bundle->modes.begin(),bundle->modes.end(),
+                          [](auto value){return value==2;}));
+        CHECK(bits.bit_position()==20);
+        auto limited=LsbBitReader(encoded.bytes);
+        CHECK(!read_bink_block_type_bundle(limited,tree,640,4));
+        CHECK(limited.bit_position()==0);
+        Writer invalid;
+        invalid.write(3,10);invalid.write(1,1);invalid.write(10,4);
+        LsbBitReader wrong(invalid.bytes);
+        CHECK(!read_bink_block_type_bundle(wrong,tree,640));
+        CHECK(wrong.bit_position()==0);
+        const std::array<std::uint8_t,2> partial{5,0};
+        LsbBitReader truncated(partial);
+        CHECK(!read_bink_block_type_bundle(truncated,tree,640));
+        CHECK(truncated.bit_position()==0);
+        Writer finish;finish.write(0,10);
+        LsbBitReader ended(finish.bytes);
+        const auto end=read_bink_block_type_bundle(ended,tree,640);
+        CHECK(end&&end->end_of_bundle&&end->modes.empty());
+        CHECK(end->bits_consumed==10&&ended.bit_position()==10);
+    }
     std::puts("Bink original value-run command expansion: PASS");
 }
