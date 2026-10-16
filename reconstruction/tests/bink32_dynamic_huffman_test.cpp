@@ -123,7 +123,8 @@ int main(int argc,char**argv) {
         CHECK(!parse_video_entropy_prologue(packet,17));
         CHECK(!parse_video_entropy_prologue(packet,16));
         // Valid at a nondefault header offset if source is long enough.
-        const auto zero=parse_video_entropy_prologue(packet,0);
+        const std::array<std::uint8_t,16> all_zero{};
+        const auto zero=parse_video_entropy_prologue(all_zero,0);
         CHECK(zero&&zero->final_bit_offset==92);
     }
     // Optional original-asset regression, performed locally using the
