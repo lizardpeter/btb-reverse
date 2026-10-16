@@ -1217,6 +1217,16 @@ btb_require_cpp26(btb_maze_package_pickup_source_tests PRIVATE)
 add_test(NAME maze_package_pickup_source
     COMMAND btb_maze_package_pickup_source_tests)
 
+# Real native source Spud Maze initialization, five-screen graph, repair
+# population, bitmap presentation, countdown and no-fake-win teardown.
+add_executable(btb_full_game_spud_maze_native_tests
+    tests/full_game_spud_maze_native_test.cpp)
+target_link_libraries(btb_full_game_spud_maze_native_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_full_game_spud_maze_native_tests PRIVATE)
+add_test(NAME full_game_spud_maze_native
+    COMMAND btb_full_game_spud_maze_native_tests)
+
 add_executable(btb_full_game_maze_native_tests
     tests/full_game_maze_native_test.cpp)
 target_link_libraries(btb_full_game_maze_native_tests PRIVATE
