@@ -90,6 +90,13 @@ int main() {
         assert(step.effects.audio[0].sound_id==
                btb::spud_maze::kStartupVoiceSoundId);
         assert(step.effects.progress_writes.empty());
+        step=game.advance({.directional_input_bits=0x08,
+                           .elapsed_centiseconds=105});
+        assert(step.kind==fg::FrameKind::ActivityUpdated);
+        assert(live->bob()->y==371.f); // original Up scan code
+        step=game.advance({.directional_input_bits=0x04,
+                           .elapsed_centiseconds=110});
+        assert(live->bob()->y==375.f); // original Down scan code
 
         step=game.advance({.elapsed_centiseconds=10100});
         assert(live->timer()==400-difficulty*100);
