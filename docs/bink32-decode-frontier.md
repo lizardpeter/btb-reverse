@@ -593,3 +593,26 @@ full frame parity.
    to this in-process codec and remove `binkw32.dll` as a runtime dependency.
 
 No claim of playable DLL-free video is made by this batch.
+
+
+## Direct DC context to AC/quant/iDCT batch bridge (2026-10-16)
+
+`decode_original_bink_dc_context_blocks` in
+`reconstruction/src/bink32_dc_stream.cpp` now consumes the
+`0x3000FC00`-derived entropy context directly, expands its complete
+`0x30010BF0` DC record, then consumes one separately encoded AC/quant
+block per signed DC WORD through the existing original integer 16x16
+reconstruction. No caller-built intermediate DC buffer is required.
+
+The bridge accepts separate DC and AC bitreaders, enforces a maximum
+decoded block count, and commits **both** cursors only when *all*
+blocks decode. Regression cases cover three distinct predictor DC
+values, quantized AC-mode-zero blocks, zero-count contexts, late AC
+truncation rollback, and output-size caps.
+
+**Scope:** This is a connected source-based INTRA block-subset harness.
+It does not establish the packet plane boundaries, block traversal/
+mode scheduling, motion compensation, color conversion, or frame-to-frame
+state of the complete `0x3000E400` decoder. It also has not been
+compared to actual retail output. It must not be advertised as a
+complete Bink decoder, or substituted for retail video playback.
