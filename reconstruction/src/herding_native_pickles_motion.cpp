@@ -9,6 +9,7 @@
 #include "btb/herding_source_registration_point.hpp"
 #include "btb/herding_source_home_motion.hpp"
 #include "btb/herding_source_delivered_animation.hpp"
+#include "btb/herding_retail_rect_contact.hpp"
 
 #include <algorithm>
 #include <array>
@@ -375,6 +376,58 @@ bool NativePicklesMotionSource::advance(
                     error="source registered animal to invalid tracked list";
                     return false;
                 }
+            }
+            // Original 0x4179BF..0x417B10 checks animal-FIRST,
+            // Scruffty-SECOND corners. Overlap alone is insufficient:
+            // only a current ordinary follower is distracted. This
+            // branch consumes rand()%400 for its released X target,
+            // then the original short-circuit reaction-voice rolls.
+            if(following) {
+                for(std::size_t dog_index=1;
+                    dog_index<observed.motion_records.size();++dog_index) {
+                    const auto& dog=observed.motion_records[dog_index];
+                    if(dog.entity_type()!=herding::EntityType::Scruffty ||
+                       !herding::original_herding_animal_hits_scruffty(
+                           before,dog))
+                        continue;
+                    HerdingObservedEvent event{};
+                    event.kind=HerdingObservedKind::ScrufftyCollision;
+                    event.entity_index=i;
+                    event.retail_trigger_confirmed=true;
+                    event.retail_rect_contact=HerdingCollisionEvidence{
+                        herding::original_herding_entity_rect(before),
+                        herding::original_herding_entity_rect(dog)};
+                    event.random_mod_400=std::rand()%400;
+
+                    // Source 0x417A43..0x417AF7: the x86 branch
+                    // first tests parity, conditionally makes another
+                    // parity call, then chooses the final sound. Do
+                    // NOT collapse this to one rand()%N: the shared
+                    // original random stream must consume each draw.
+                    if((std::rand()%2)==0) {
+                        if((std::rand()%2)==0)
+                            event.source_verified_sound_id=
+                                0x250+(std::rand()%2);
+                        else
+                            event.source_verified_sound_id=0x264;
+                    } else {
+                        event.source_verified_sound_id=
+                            0x266+(std::rand()%2);
+                    }
+                    observed.events.push_back(std::move(event));
+                    follower_indices_.erase(
+                        std::remove(follower_indices_.begin(),
+                            follower_indices_.end(),i),
+                        follower_indices_.end());
+                    // The event bridge writes the real 200-tick
+                    // escape target after validating native corners;
+                    // animal movement starts on the NEXT game tick.
+                    break;
+                }
+                if(std::find(follower_indices_.begin(),
+                             follower_indices_.end(),i)==
+                   follower_indices_.end())
+                    continue;
             }
             const auto contact=herding::original_herding_food_attraction_contact(
                 before,hero,selected_food_,following);
