@@ -412,6 +412,64 @@ bool HerdingEventSimulation::advance(
             return false;
         }
     }
+    // Replay the original two-stage route from the PRE-FRAME entity
+    // and its signed sprite anchor. A forged 10px arrival must never
+    // deliver an animal or decrement the global count.
+    for(const auto& probe:observed.home_motion_evidence) {
+        if(probe.entity_index==0 ||
+           probe.entity_index>=candidate.entities().size()) {
+            error="original home motion source references missing animal";
+            return false;
+        }
+        const auto& prior=candidate.entities()[probe.entity_index];
+        if(prior.entity_id!=probe.before.entity_id ||
+           prior.type!=probe.before.type ||
+           prior.behavior_state!=probe.before.behavior_state ||
+           prior.x!=probe.before.x || prior.y!=probe.before.y ||
+           prior.x_float!=probe.before.x_float ||
+           prior.y_float!=probe.before.y_float ||
+           prior.movement_speed!=probe.before.movement_speed) {
+            error="original home-route motion before-state is stale";
+            return false;
+        }
+        const auto expected=herding::original_herding_home_route_motion(prior);
+        if(!expected ||
+           expected->source_anchor.x!=probe.source_actor_anchor.x ||
+           expected->source_anchor.y!=probe.source_actor_anchor.y ||
+           expected->source_target.x!=probe.source_target.x ||
+           expected->source_target.y!=probe.source_target.y ||
+           expected->source_arrived!=probe.arrived) {
+            error="retail signed home-route anchor/10px gate mismatches source";
+            return false;
+        }
+        const auto& actual=observed.motion_records[probe.entity_index];
+        constexpr float kHomeX87Tolerance=0.001f;
+        if(actual.x!=expected->moved.x ||
+           actual.y!=expected->moved.y ||
+           actual.direction!=expected->moved.direction ||
+           actual.movement_active!=expected->moved.movement_active ||
+           actual.animation_frame!=expected->moved.animation_frame ||
+           actual.animation_frame_countdown!=
+               expected->moved.animation_frame_countdown ||
+           actual.movement_speed!=expected->moved.movement_speed ||
+           std::fabs(actual.x_float-expected->moved.x_float)>
+               kHomeX87Tolerance ||
+           std::fabs(actual.y_float-expected->moved.y_float)>
+               kHomeX87Tolerance) {
+            error="original home-route steering/animation contradicts native frame";
+            return false;
+        }
+        const bool arrival_event=std::any_of(
+            observed.events.begin(),observed.events.end(),
+            [&](const auto& event) {
+                return event.kind==HerdingObservedKind::ReachHomeWaypoint &&
+                    event.entity_index==probe.entity_index;
+            });
+        if(arrival_event!=probe.arrived) {
+            error="native home delivery event lacks original pre-move 10px gate";
+            return false;
+        }
+    }
     // Independent replay of the retail 0x41721E tracked-target branch.
     // Its <30 arrival burns an original RNG call, removes only tracked
     // membership, emits a distinct 0->1 event, and never advances the

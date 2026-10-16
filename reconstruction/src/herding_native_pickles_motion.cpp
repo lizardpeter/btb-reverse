@@ -7,6 +7,7 @@
 #include "btb/herding_source_temporary_target.hpp"
 #include "btb/herding_source_follower_approach.hpp"
 #include "btb/herding_source_registration_point.hpp"
+#include "btb/herding_source_home_motion.hpp"
 
 #include <algorithm>
 #include <array>
@@ -262,6 +263,33 @@ bool NativePicklesMotionSource::advance(
                 route.entity_index=i;
                 route.retail_trigger_confirmed=true;
                 observed.events.push_back(std::move(route));
+                continue;
+            }
+            // Retail states 10..14 steer to each species' entrance;
+            // states 20..24 steer to the selected animal's final home
+            // waypoint. All share the 0x415D70 native heading and
+            // source's signed actor origin rather than sprite top-left.
+            if((before.behavior_state>=10 &&
+                before.behavior_state<=14) ||
+               (before.behavior_state>=20 &&
+                before.behavior_state<=24)) {
+                const auto home_step=
+                    herding::original_herding_home_route_motion(before);
+                if(!home_step) {
+                    error="retail home entrance/waypoint motion invalid";
+                    return false;
+                }
+                observed.motion_records[i]=home_step->moved;
+                observed.home_motion_evidence.push_back({
+                    i,before,home_step->source_anchor,
+                    home_step->source_target,home_step->source_arrived});
+                if(home_step->source_arrived) {
+                    HerdingObservedEvent arrival{};
+                    arrival.kind=HerdingObservedKind::ReachHomeWaypoint;
+                    arrival.entity_index=i;
+                    arrival.retail_trigger_confirmed=true;
+                    observed.events.push_back(std::move(arrival));
+                }
                 continue;
             }
             if(before.behavior_state!=0)continue;

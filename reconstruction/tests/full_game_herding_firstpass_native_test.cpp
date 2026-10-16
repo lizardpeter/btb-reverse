@@ -7,6 +7,7 @@
 #include "btb/herding_source_temporary_target.hpp"
 #include "btb/herding_source_registration_point.hpp"
 #include "btb/herding_source_follower_approach.hpp"
+#include "btb/herding_source_home_motion.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -273,6 +274,83 @@ int main() {
         assert(observation.temporary_target_evidence.front().source_returned_early);
         assert(observation.motion_records[1].temporary_target_timer==0);
         assert(native.unload(error));
+    }
+    // Exercise genuine first/second stage home-route updates with
+    // source animal sprite origins, NOT actor-space target positions.
+    // The native adapter only supplies source-confirmed events; the
+    // event simulation owns all state transitions and progress.
+    {
+        std::ifstream infile(root/"Data"/"SubGame1"/"herd.txt");
+        assert(infile.good());
+        auto data=btb::herding::parse_data(infile);
+        fg::NativePicklesMotionSource motion{};
+        std::vector<btb::herding::RetailEntityRecord32> animals{};
+        std::string error{};
+        std::srand(456);
+        assert(motion.initialize(data,0,animals,error));
+        constexpr int animal_indices[]{1,4,7};
+        const btb::herding::EntityType species[]{
+            btb::herding::EntityType::Sheep,
+            btb::herding::EntityType::Rabbit,
+            btb::herding::EntityType::Duck
+        };
+        fg::HerdingObservedFrame frame{};
+        for(int stage=0;stage<2;++stage) {
+            for(int n=0;n<3;++n) {
+                auto& animal=animals[animal_indices[n]];
+                animal.behavior_state=stage==0?10:20;
+                const auto target=btb::herding::original_herding_current_home_target(
+                    species[n],animal.behavior_state);
+                assert(target);
+                const auto origin=
+                    btb::herding::original_herding_home_entity_origin_for_target(
+                        species[n],*target);
+                assert(origin);
+                animal.x=origin->x;animal.y=origin->y;
+                animal.x_float=static_cast<float>(animal.x);
+                animal.y_float=static_cast<float>(animal.y);
+                animal.movement_speed=0.0f;
+            }
+            assert(motion.advance(data,{}, {},animals,frame,error));
+            assert(frame.home_motion_evidence.size()==3);
+            int home_event_count=0;
+            for(const auto& event:frame.events)
+                if(event.kind==fg::HerdingObservedKind::ReachHomeWaypoint)
+                    ++home_event_count;
+            assert(home_event_count==3);
+            for(const auto& probe:frame.home_motion_evidence) {
+                assert(probe.arrived);
+                const auto expected=
+                    btb::herding::original_herding_home_route_motion(
+                        probe.before);
+                assert(expected);
+                const auto& actual=frame.motion_records[probe.entity_index];
+                assert(actual.x==expected->moved.x);
+                assert(actual.y==expected->moved.y);
+                assert(actual.movement_speed==expected->moved.movement_speed);
+                assert(actual.animation_frame_countdown==
+                       expected->moved.animation_frame_countdown);
+            }
+            animals=frame.motion_records;
+        }
+        // Strict boundary: standing 10 world units away from the
+        // original offset ACTOR target must never deliver early.
+        auto& sheep=animals[1];
+        sheep.behavior_state=10;
+        const auto target=btb::herding::home_entrance_target(
+            btb::herding::EntityType::Sheep);
+        const auto origin=
+            btb::herding::original_herding_home_entity_origin_for_target(
+                btb::herding::EntityType::Sheep,target);
+        assert(origin);
+        sheep.x=origin->x+10;sheep.y=origin->y;
+        sheep.x_float=static_cast<float>(sheep.x);
+        sheep.y_float=static_cast<float>(sheep.y);
+        assert(motion.advance(data,{}, {},animals,frame,error));
+        for(const auto& event:frame.events)
+            assert(!(event.kind==fg::HerdingObservedKind::ReachHomeWaypoint &&
+                     event.entity_index==1));
+        assert(motion.unload(error));
     }
     std::srand(123);
     for(int difficulty=0;difficulty<3;++difficulty) {

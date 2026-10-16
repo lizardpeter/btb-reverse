@@ -461,16 +461,20 @@ int main() {
     assert(remaining==9);
     assert(scene.entities[1].behavior_state==10);
 
-    source->forced_sheep_position=h::home_entrance_target(
-        h::EntityType::Sheep);
+    source->forced_sheep_position=
+        h::original_herding_home_entity_origin_for_target(
+            h::EntityType::Sheep,
+            h::home_entrance_target(h::EntityType::Sheep));
     source->scheduled={waypoint1};
     assert(simulation.advance(
         {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
     assert(remaining==9);
     assert(scene.entities[1].behavior_state==20);
 
-    source->forced_sheep_position=*h::home_entry_target(
-        h::EntityType::Sheep,20);
+    source->forced_sheep_position=
+        h::original_herding_home_entity_origin_for_target(
+            h::EntityType::Sheep,
+            *h::home_entry_target(h::EntityType::Sheep,20));
     source->scheduled={waypoint2};
     assert(simulation.advance(
         {},h::pickles_keyboard_motion(0),scene,remaining,sounds,error));
