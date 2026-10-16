@@ -15,9 +15,8 @@ class SpudMazeInputPort final : public original_motion4::IO {
 public:
     SpudMazeInputPort(const ActivityFrameInput& input,
                       ActivityFrameOutput& effects,
-                      int& pilchard_spawn_delay)
-        :input_(input),effects_(effects),
-         pilchard_spawn_delay_(pilchard_spawn_delay) {}
+                      spud_maze::PilchardNative& pilchard)
+        :input_(input),effects_(effects),pilchard_(pilchard) {}
 
     original_motion4::Input player_input(bool spud) override {
         if(!spud)
@@ -41,9 +40,11 @@ public:
         });
     }
     void spud_spawn_delay_reset() override {
-        // The original outer game resets Pilchard's future spawn timer
-        // on a Bob screen transition. Full Pilchard updates are pending.
-        pilchard_spawn_delay_=0;
+        // Exact 0x00423610 ResetPilchardSpawnDelay: phase 0, 500 ticks,
+        // including Easy mode where the initial -1 only disables the
+        // initial spawn. Moving screens restarts this independent timer.
+        pilchard_.phase=0;
+        pilchard_.spawn_wait=500;
     }
     float npc_distance_to_player(const original_motion4::Npc&) override {
         throw std::logic_error("Maze NPC interface in Spud Maze");
@@ -84,7 +85,7 @@ public:
 private:
     const ActivityFrameInput& input_;
     ActivityFrameOutput& effects_;
-    int& pilchard_spawn_delay_;
+    spud_maze::PilchardNative& pilchard_;
     bool repair_begun_{};
 };
 
@@ -343,7 +344,7 @@ ActivityFrameOutput SpudMazeDriver::advance(
                 }
             }
         } else {
-            SpudMazeInputPort io(input,out,spawned_pilchard_delay_);
+            SpudMazeInputPort io(input,out,pilchard_);
             original_motion4::update_spud_maze_bob(bob_,io);
             if(io.repair_begun()) {
                 repair_animation_frames_=4;
