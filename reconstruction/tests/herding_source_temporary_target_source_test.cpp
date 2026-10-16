@@ -59,7 +59,26 @@ int main() {
     assert(far_step->branch_taken);
     assert(!far_step->early_return);
     assert(!far_step->continue_normal_update);
-    assert(far_step->moved.temporary_target_timer==200);
+    assert(far_step->moved.temporary_target_timer==199);
+    // 0x416A9D decrements +0x58 ahead of state-zero dispatch.
+    // Timer 1 falls to zero and must NOT steer toward stale target.
+    auto last=original_fixture();
+    last.temporary_target_timer=1;
+    last.target_x=900;last.target_y=900;
+    const auto last_step=h::original_herding_temporary_target_update(last);
+    assert(last_step);
+    assert(!last_step->branch_taken);
+    assert(last_step->continue_normal_update);
+    assert(!last_step->early_return);
+    assert(last_step->moved.temporary_target_timer==0);
+    assert(last_step->moved.x==last.x && last_step->moved.y==last.y);
+    auto penultimate=last;
+    penultimate.temporary_target_timer=2;
+    const auto penultimate_step=
+        h::original_herding_temporary_target_update(penultimate);
+    assert(penultimate_step && penultimate_step->branch_taken);
+    assert(!penultimate_step->continue_normal_update);
+    assert(penultimate_step->moved.temporary_target_timer==1);
     assert(far_step->moved.movement_speed==3.0f);
     assert(far_step->moved.x_float>200.0f);
     assert(far_step->moved.y_float>200.0f);
