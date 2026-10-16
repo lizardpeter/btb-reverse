@@ -6,6 +6,32 @@
 
 int main() {
     using namespace btb::full_game;
+    // Each constant comes from the corresponding original PE32
+    // pregame dispatcher write to DAT_00446FD8 (0x42AAED..0x42C84E).
+    constexpr std::array<int,10> original_voices{{
+        0x1f5,0x1f0,0x1f9,0x1fa,0x1e9,
+        0x1e8,0x1f3,0x1f7,0x1f4,0x1f1
+    }};
+    for(int i=0;i<10;++i) {
+        assert(retail_walkthrough_hover_voice(
+            i,63,157,false)==original_voices[i]);
+        assert(!retail_walkthrough_hover_voice(
+            i,63,157,true));
+        assert(!retail_walkthrough_hover_voice(
+            i,49,157,false));
+        assert(!retail_walkthrough_hover_voice(
+            i,365,157,false));
+        assert(!retail_walkthrough_hover_voice(
+            i,63,140,false));
+        assert(!retail_walkthrough_hover_voice(
+            i,63,350,false));
+        assert(retail_walkthrough_hover_voice(
+            i,50,141,false)==original_voices[i]);
+        assert(retail_walkthrough_hover_voice(
+            i,364,349,false)==original_voices[i]);
+    }
+    assert(!retail_walkthrough_hover_voice(-1,63,157,false));
+    assert(!retail_walkthrough_hover_voice(10,63,157,false));
     const std::string retail = R"(data//movies//herdwalthrough.bik data//sound//herdwalthroughhelp.wav
 data//movies//dinowalthrough.bik data//sound//dinowalthroughhelp.wav
 data//movies//skate1walthrough.bik data//sound//skate1walthroughhelp.wav
