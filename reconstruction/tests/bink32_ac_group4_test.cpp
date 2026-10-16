@@ -89,5 +89,27 @@ int main() {
         CHECK(!decode_bink_ac_group4_0(bits,ctrl,0,1,coeff));
     }
 
+    {
+        // Original EAX width may exceed the magnitude class-bit index.
+        // Four direct coefficients with EAX=7, high bit=8 are valid
+        // under the actual 30011CDA bitreader.
+        Writer encoded;
+        for(unsigned i=0;i<4;++i) {
+            encoded.write(0,1);
+            encoded.write(0x52+i,7);
+            encoded.write(i&1,1);
+        }
+        auto bits=encoded.reader();
+        std::array<std::int16_t,64> coeff{};
+        std::uint8_t ctrl=(8U<<2)|2U;
+        const auto group=decode_bink_ac_group4_2(bits,ctrl,7,8,coeff);
+        CHECK(group&&group->written_count==4&&group->deferred_count==0);
+        CHECK(group->consumed_bits==36&&bits.bit_position()==36);
+        for(unsigned i=0;i<4;++i) {
+            const auto value=static_cast<int>((0x52U+i)|8U);
+            CHECK(coeff[8+i]==(i&1?-value:value));
+        }
+    }
+
     std::puts("Bink original AC group-of-four coefficient/control decoding: PASS");
 }
