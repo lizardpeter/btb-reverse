@@ -214,7 +214,11 @@ int main(int argc,char**argv) {
         // empty auxiliary bundles on the first row, and 32-bit plane
         // alignment. This is full source-driven luma *copy* semantics.
         Writer picture;
-        for(unsigned i=0;i<23;++i)picture.write(0,4);
+        // A twenty-bit first tree plus twenty-two zero trees matches
+        // the 108-bit header length of the real static retail frames.
+        picture.write(1,4);picture.write(1,1);picture.write(2,3);
+        picture.write(0,4);picture.write(1,4);picture.write(2,4);
+        for(unsigned i=0;i<22;++i)picture.write(0,4);
         constexpr unsigned columns=80,rows=60;
         for(unsigned row=0;row<rows;++row) {
             if(row%7==0) {
