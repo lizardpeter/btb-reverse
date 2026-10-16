@@ -25,5 +25,6 @@ public:
     [[nodiscard]] bool unload(std::string& error) override;
 private:
     bool active_{};
+    herding::FoodType selected_food_{herding::FoodType::None};
 };
 } // namespace btb::full_game
