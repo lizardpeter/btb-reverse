@@ -344,4 +344,102 @@ std::optional<BinkPatternBundle> read_bink_pattern_bundle(
     return out;
 }
 
+
+std::optional<BinkRunBundle> read_bink_run_bundle(
+    LsbBitReader& bits,const DynamicHuffmanTree& tree,
+    std::size_t plane_width,std::size_t maximum_values) {
+    if(!plane_width || plane_width>16384 || !maximum_values ||
+       maximum_values>(1U<<20))return std::nullopt;
+    const auto count_width=init_entropy_plane(
+        0,0x200U,static_cast<std::uint32_t>(plane_width),4,48,false)
+        .table_bit_width;
+    if(!count_width || count_width>24)return std::nullopt;
+    auto probe=bits;
+    const auto start=probe.bit_position();
+    const auto count=probe.read(count_width);
+    if(!count || *count>maximum_values)return std::nullopt;
+    BinkRunBundle out{};
+    out.encoded_count=*count;
+    if(!*count) {
+        out.end_of_bundle=true;
+    } else {
+        const auto uniform=probe.read(1);
+        if(!uniform)return std::nullopt;
+        out.constant_bundle=*uniform!=0;
+        out.values.resize(*count);
+        if(*uniform) {
+            const auto v=probe.read(4);
+            if(!v)return std::nullopt;
+            std::fill(out.values.begin(),out.values.end(),
+                      static_cast<std::uint8_t>(*v));
+        } else {
+            for(auto& value:out.values) {
+                const auto v=read_dynamic_huffman_symbol(probe,tree);
+                if(!v)return std::nullopt;
+                value=v->value;
+            }
+        }
+    }
+    out.bits_consumed=probe.bit_position()-start;
+    bits=probe;
+    return out;
+}
+std::optional<BinkColorBundle> read_bink_color_bundle(
+    LsbBitReader& bits,const BlockEntropyTrees& trees,
+    std::size_t plane_width,std::uint8_t previous_high_nibble,
+    bool early_signed_color_format,std::size_t maximum_values) {
+    if(!plane_width || plane_width>16384 || !maximum_values ||
+       maximum_values>(1U<<20) || previous_high_nibble>=16)
+        return std::nullopt;
+    const auto count_width=init_entropy_plane(
+        0,0x200U,static_cast<std::uint32_t>(plane_width),4,64,false)
+        .table_bit_width;
+    if(!count_width || count_width>24)return std::nullopt;
+    auto probe=bits;
+    const auto start=probe.bit_position();
+    const auto count=probe.read(count_width);
+    if(!count || *count>maximum_values)return std::nullopt;
+    BinkColorBundle out{};
+    out.encoded_count=*count;
+    auto last_high=previous_high_nibble;
+    if(!*count) {
+        out.end_of_bundle=true;
+    } else {
+        const auto uniform=probe.read(1);
+        if(!uniform)return std::nullopt;
+        out.constant_bundle=*uniform!=0;
+        const auto read_one=[&]() -> std::optional<std::uint8_t> {
+            // The original 23 contexts consist of 2 leading type
+            // trees, 16 adaptive color-high trees and 5 trailing
+            // low-color/pattern/motionX/motionY/run trees.
+            const auto high=read_dynamic_huffman_symbol(
+                probe,trees.trees[2+last_high]);
+            if(!high)return std::nullopt;
+            const auto low=read_dynamic_huffman_symbol(
+                probe,trees.trees[18]);
+            if(!low)return std::nullopt;
+            last_high=high->value;
+            return early_signed_color_format
+                ? combine_bink_signed_nibbles(last_high,low->value)
+                : static_cast<std::uint8_t>((last_high<<4)|low->value);
+        };
+        out.values.resize(*count);
+        if(*uniform) {
+            const auto value=read_one();
+            if(!value)return std::nullopt;
+            std::fill(out.values.begin(),out.values.end(),*value);
+        } else {
+            for(auto& value:out.values) {
+                const auto next=read_one();
+                if(!next)return std::nullopt;
+                value=*next;
+            }
+        }
+    }
+    out.next_high_nibble=last_high;
+    out.bits_consumed=probe.bit_position()-start;
+    bits=probe;
+    return out;
+}
+
 } // namespace btb::bink32_recovered
