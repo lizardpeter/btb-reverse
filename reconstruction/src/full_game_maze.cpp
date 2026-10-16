@@ -254,7 +254,7 @@ ActivityFrameOutput MazeDriver::draw() const {
         }
     }
     const auto sprite=maze::actor_source_rect(
-        player_.facing,player_.frozen?pickup_animation_frame_:0);
+        player_.frozen?pickup_animation_frame_:0,player_.facing);
     const auto where=maze::player_destination(player_.x,player_.y);
     output.draws.push_back({
         "Data\\SubGameMaze\\player.bmp",where.x,where.y,
@@ -265,7 +265,7 @@ ActivityFrameOutput MazeDriver::draw() const {
     // substituted with a fake actor standing on the map.
     if(static_cast<int>(npc_.phase)>1 && npc_.screen==player_.screen) {
         const auto spud_frame=maze::actor_source_rect(
-            npc_.current_direction,npc_.animation_frame);
+            npc_.animation_frame,npc_.current_direction);
         const auto spud=maze::spud_destination(
             npc_.position.x,npc_.position.y,0);
         output.draws.push_back({
