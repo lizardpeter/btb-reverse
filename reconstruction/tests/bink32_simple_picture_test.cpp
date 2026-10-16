@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
+#include <iterator>
 #include <span>
 #include <vector>
 using namespace btb::bink32_recovered;
@@ -32,7 +34,7 @@ static std::vector<std::uint8_t> packet(const Bits& bits) {
 static void trees(Bits& writer) {
     for(unsigned i=0;i<23;++i)writer.put(0,4);
 }
-int main() {
+int main(int argc,char**argv) {
     // Six real compressed 8x8 block types, spanning TWO rows,
     // decoded with all nine source bundle refills and actual
     // reference pixels. The standard mode set is:
@@ -130,5 +132,44 @@ int main() {
     CHECK(std::all_of(independent->image.pixels.begin(),
                       independent->image.pixels.end(),
                       [](auto p){return p==0x79;}));
+    // Optional original BIK smoke: count full compressed luma planes the
+    // strict source-native subset supports, without embedding retail
+    // assets or claiming original pixel parity from placeholder history.
+    for(int arg=1;arg<argc;++arg) {
+        std::ifstream in(argv[arg],std::ios::binary);
+        CHECK(in.good());
+        std::vector<std::uint8_t> movie{
+            std::istreambuf_iterator<char>(in),
+            std::istreambuf_iterator<char>()};
+        const auto index=parse_container_index(movie);
+        CHECK(index);
+        std::vector<std::uint8_t> previous(
+            std::size_t(index->header.width)*index->header.height,0x80);
+        std::size_t supported=0,first_without_reference=0;
+        std::array<std::size_t,10> totals{};
+        for(std::uint32_t frame=1;frame<=index->header.frame_count;++frame) {
+            const auto parts=split_encoded_frame(*index,movie,frame);
+            CHECK(parts);
+            if((index->video_flags&0x00100000U)==0)continue;
+            const auto simple=decode_bink_simple_picture_luma(
+                parts->video,index->header.width,index->header.height,
+                previous);
+            if(simple) {
+                ++supported;
+                previous=simple->image.pixels;
+                for(std::size_t i=0;i<totals.size();++i)
+                    totals[i]+=simple->mode_counts[i];
+            } else if(frame==1) {
+                ++first_without_reference;
+            }
+        }
+        std::printf(
+            "Retail Bink strict simple-luma subset: %zu/%u frames; "
+            "skip=%zu motion=%zu fill=%zu pattern=%zu raw=%zu; "
+            "initial-frame-needs-full-decoder=%zu\\n",
+            supported,index->header.frame_count,
+            totals[0],totals[2],totals[6],totals[8],totals[9],
+            first_without_reference);
+    }
     std::puts("Native Bink compressed simple-picture row scheduling: PASS");
 }
