@@ -66,7 +66,7 @@ original_pickles_keyboard_animation_step(
 static_assert(original_pickles_keyboard_animation_step(
     0,0,false,FoodType::None)->frame==12);
 static_assert(original_pickles_keyboard_animation_step(
-    0,0,true,FoodType::None)->frame==0);
+    30,0,true,FoodType::None)->frame==0);
 static_assert(original_pickles_keyboard_animation_step(
     29,10,true,FoodType::RabbitFood)->frame==20);
 static_assert(original_pickles_keyboard_animation_step(
