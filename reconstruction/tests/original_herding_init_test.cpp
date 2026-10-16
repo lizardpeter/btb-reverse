@@ -54,6 +54,11 @@ int main(){
   assert(s.entities[1].x==600&&s.entities[1].y==550);
   assert(s.entities[2].x==750&&s.entities[2].y==550);
   assert(s.entities[1].type==1&&s.entities[4].type==2);
+  // The retail initializer explicitly sets animal AI +0x50 to zero
+  // after writing their entity TYPE at +0x30. The inactive TYPE 17
+  // from table prefill must never be confused for behavior_state.
+  assert(s.entities[0].behavior==0);
+  for(int i=1;i<=9;++i)assert(s.entities[i].behavior==0);
   assert(s.entities[1].bitmap!=0);
   assert(s.original_polygon.size()==12);
   assert(s.original_polygon[0].x==0&&s.original_polygon[0].y==0);
@@ -68,6 +73,7 @@ int main(){
   Host io;State s;s.difficulty=2;s.volume=100;
   initialize_herding(s,io);
   assert(s.difficulty==2&&s.leader_count==15&&io.rng==15);
+  for(int i=1;i<=15;++i)assert(s.entities[i].behavior==0);
   assert(s.entities.size()==22);
   assert(s.entities.back().type==7&&s.entities.back().x==100);
   assert(s.gate_left_index==19&&s.gate_right_index==20);
