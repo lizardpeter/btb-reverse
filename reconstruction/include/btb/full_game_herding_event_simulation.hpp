@@ -190,6 +190,16 @@ struct HerdingObservedFrame {
 class OriginalHerdingMotionSource {
 public:
     virtual ~OriginalHerdingMotionSource() = default;
+    // Recoverable native-source transaction. An observed frame is
+    // PROVISIONAL until HerdingEventSimulation independently verifies
+    // motion, collision evidence and all behavior events. Derived
+    // adapters can snapshot internal follower/target/RNG state here.
+    // Default no-op keeps existing deterministic source test adapters.
+    [[nodiscard]] virtual bool begin_frame(std::string& error) {
+        error.clear();return true;
+    }
+    virtual void commit_frame() noexcept {}
+    virtual void rollback_frame() noexcept {}
     [[nodiscard]] virtual bool initialize(
         const herding::Data& data,
         int difficulty,
