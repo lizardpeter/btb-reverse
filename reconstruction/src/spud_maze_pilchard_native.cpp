@@ -84,7 +84,7 @@ PilchardFrame update_pilchard_native(
     s.offscreen_frames=0;
     switch(s.phase) {
     case 0:
-        if(start_delay<0)return out; // the retail Easy -1 sentinel
+        if(s.spawn_wait<0)return out; // retail initial Easy -1 sentinel
         if(--s.spawn_wait<1)s.phase=1;
         return out;
     case 1:{
