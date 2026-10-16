@@ -22,12 +22,22 @@ struct BinkSimplePictureLuma {
 // as full-resolution Y. All output offsets are absolute packet bytes.
 // Unlike the alpha-aware wrapper below, this does not skip any leading
 // picture-control DWORD: the caller must supply the tree start.
+// When requested, captures the first precise refusal point inside a
+// plane (rather than hiding it behind an opaque nullopt). Offsets are
+// relative to the original plane entropy-tree start, and line refers
+// to the native decoder source revision used for the audit.
+struct BinkPlaneDecodeDiagnostic {
+    std::size_t row{},column{},bit_offset{};
+    unsigned source_line{};
+    std::uint8_t mode{255};
+};
 [[nodiscard]] std::optional<BinkSimplePictureLuma>
 decode_bink_picture_plane_at(
     std::span<const std::uint8_t> video_packet,
     std::size_t entropy_tree_byte_offset,
     std::size_t width,std::size_t height,
-    std::span<const std::uint8_t> previous_plane={});
+    std::span<const std::uint8_t> previous_plane={},
+    BinkPlaneDecodeDiagnostic* diagnostic=nullptr);
 
 // Decode a complete 8-bit luma plane using Skip, Motion, Fill, Pattern,
 // Raw, signed spatial Residue, full Intra/Inter DCT, all sixteen
