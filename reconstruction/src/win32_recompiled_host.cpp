@@ -3,6 +3,7 @@
 #include "btb/win32_original_game_device.hpp"
 #include "btb/full_game_front_end.hpp"
 #include "btb/full_game_golf.hpp"
+#include "btb/full_game_maze.hpp"
 #include "btb/full_game_dino.hpp"
 #include "btb/full_game_profile_screen_native.hpp"
 #include "btb/full_game_fireworks.hpp"
@@ -227,6 +228,7 @@ struct Host {
         game.install(ActivityId::Dinosaur,std::make_unique<DinoDriver>(root));
         game.install(ActivityId::Golf,std::make_unique<GolfDriver>(
             root/"Data"/"SubGameGolf",0));
+        game.install(ActivityId::Maze,std::make_unique<MazeDriver>(root,0));
         game.install(ActivityId::Fireworks,std::make_unique<FireworksDriver>(
             root/"Data"/"SubGameFirework",profile_dir));
         game.install(ActivityId::BobsBand,std::make_unique<BobsBandDriver>(
