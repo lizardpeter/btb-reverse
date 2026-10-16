@@ -12,6 +12,7 @@
 #include "btb/herding_retail_rect_contact.hpp"
 #include "btb/retail_crt_random.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #undef assert
