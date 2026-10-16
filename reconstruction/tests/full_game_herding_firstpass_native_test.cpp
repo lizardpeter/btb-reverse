@@ -86,6 +86,22 @@ int main() {
         assert(live->scene().entities.front().y==390);
         assert(live->scene().entities.front().entity_type()==
                btb::herding::EntityType::FarmerPickles);
+        // The retail dog exists on Medium/Hard only. Its first idle
+        // frame must still advance animation and +0.01 speed, and the
+        // source-controlled animation latch later permits translation.
+        int scruffty_start_x=0,scruffty_start_y=0;
+        bool found_scruffty=false;
+        for(const auto& entity:live->scene().entities) {
+            if(entity.entity_type()!=btb::herding::EntityType::Scruffty)
+                continue;
+            assert(!found_scruffty);
+            found_scruffty=true;
+            assert(entity.animation_frame==1);
+            assert(entity.movement_speed>0.0f);
+            scruffty_start_x=entity.x;
+            scruffty_start_y=entity.y;
+        }
+        assert(found_scruffty==(difficulty>0));
         bool background=false,pickles=false,surround=false;
         for(const auto& draw:scene.effects.draws) {
             background|=draw.source_asset.find("PC_Background")!=
@@ -113,6 +129,19 @@ int main() {
             scene=game.advance({});
             assert(scene.kind==fg::FrameKind::ActivityUpdated);
             assert(scene.effects.progress_writes.empty());
+        }
+        // After 100 live frames, the native dog must have visibly
+        // patrolled, not merely advanced a hidden source counter.
+        if(difficulty>0) {
+            bool moved_scruffty=false;
+            for(const auto& entity:live->scene().entities) {
+                if(entity.entity_type()!=btb::herding::EntityType::Scruffty)
+                    continue;
+                moved_scruffty=entity.x!=scruffty_start_x ||
+                               entity.y!=scruffty_start_y;
+                assert(entity.movement_speed>0.1f);
+            }
+            assert(moved_scruffty);
         }
         // No fabricated delivery: source animals require autonomous
         // movement/follower collision completion to award Pets Corner.
