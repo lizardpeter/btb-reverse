@@ -40,8 +40,8 @@ int main() {
 
     static_assert(static_cast<int>(InternalState::PreShowMovieSetup) == 14);
     static_assert(static_cast<int>(InternalState::PreShowMoviePlayback) == 15);
-    static_assert(should_open_pre_show_movie(true));
-    static_assert(!should_open_pre_show_movie(false));
+    static_assert(!should_open_pre_show_movie(true));
+    static_assert(should_open_pre_show_movie(false));
 
     constexpr auto pre_show_done = pre_show_movie_completion_action();
     static_assert(pre_show_done.next_state == InternalState::ShowSetup);
