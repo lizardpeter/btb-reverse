@@ -78,6 +78,7 @@ struct Host {
     // GameDevice only asks it to blit the currently decoded surface.
     Win32RetailSpudSkateMovies* skate_movies{};
     std::unique_ptr<Win32RetailFireworksMovieBank> fireworks_bank{};
+    FireworksDriver* fireworks_driver{};
     // Native Herding consumes the original 0x42FFC4 MSVC rand stream.
     // This state is owned by the host, not independently reseeded by
     // any animal, level, or minigame. Other activity providers still
@@ -226,6 +227,7 @@ struct Host {
         auto native_profiles=std::make_unique<NativeProfileScreenAdapter>(
             root,profile_dir);
         if(!native_profiles->initialize(out_error))return false;
+        auto* original_profile_font=native_profiles.get();
         game.install_profile_screen(std::move(native_profiles));
 
         game.install(ActivityId::Dinosaur,std::make_unique<DinoDriver>(root));
@@ -264,7 +266,7 @@ struct Host {
                 &original_game_random));
         fireworks_bank=std::make_unique<Win32RetailFireworksMovieBank>(
             graphics,root);
-        game.install(ActivityId::Fireworks,std::make_unique<FireworksDriver>(
+        auto fireworks_activity=std::make_unique<FireworksDriver>(
             root/"Data"/"SubGameFirework",profile_dir,
             [this](const fs::path& movie,std::string& error) {
                 return movies.open_global(movie,error);
@@ -294,7 +296,27 @@ struct Host {
                         return fireworks_bank->restart(index,error);
                     },out,error);
             },
-            &original_game_random));
+            &original_game_random,
+            [this,original_profile_font](
+                int player,profiles::ProfileInfo& info,
+                std::span<const Rect>& glyphs,std::string& error) {
+                if(player<0 ||
+                   static_cast<std::size_t>(player)>=
+                       game.globals().profile_metadata.size()) {
+                    error="retail certificate selected profile is invalid";
+                    return false;
+                }
+                info=game.globals().profile_metadata[
+                    static_cast<std::size_t>(player)];
+                glyphs=original_profile_font->brown_font_rectangles();
+                if(glyphs.empty()) {
+                    error="original fontdatabrown.txt not loaded";
+                    return false;
+                }
+                error.clear();return true;
+            });
+        fireworks_driver=fireworks_activity.get();
+        game.install(ActivityId::Fireworks,std::move(fireworks_activity));
         game.install(ActivityId::BobsBand,std::make_unique<BobsBandDriver>(
             root/"Data"/"SubGameOpen",profile_dir));
         game.install(ActivityId::ParkDesigner,
@@ -320,8 +342,15 @@ struct Host {
             [this](std::string& error)->bool {
                 if(skate_movies &&
                    !skate_movies->blit_selected(error))return false;
-                return !fireworks_bank ||
-                    fireworks_bank->blit_queued_show(error);
+                // A source show that just advanced to certificate no longer
+                // owns the DD7 video overlay. Never paint its previous frame
+                // over the certificate's own original artwork.
+                if(fireworks_bank && fireworks_driver &&
+                   fireworks_driver->initialized() &&
+                   fireworks_driver->editor().internal_state==
+                       fireworks::InternalState::ShowPlayback)
+                    return fireworks_bank->blit_queued_show(error);
+                error.clear();return true;
             });
         session=std::make_unique<NativeGameSession>(
             game,*device,OriginalAssetResolver{root},
