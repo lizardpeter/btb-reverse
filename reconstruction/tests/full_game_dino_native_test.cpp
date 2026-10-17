@@ -139,6 +139,17 @@ int main() {
         assert(game.globals().player_progress[1].values[
             static_cast<std::size_t>(btb::progress::Slot::DinoRaptor)]==1);
 
+        // This completed original Dino certificate uses the SAME
+        // 0x00409730 shared printer as Fireworks, not an unhosted error.
+        frame=game.advance({
+            .pointer_x=320,.pointer_y=440,.click_pulse=true});
+        assert(frame.kind==FrameKind::ActivityUpdated);
+        assert(frame.effects.request_original_frame_print);
+        assert(!frame.effects.fatal_error);
+        assert(draw_has(frame.effects,
+            "Data/SubGameFirework/certprintdep.bmp"));
+        assert(!frame.effects.save_and_unload);
+
         std::string error;
         assert(game.unload_current(error));
         assert(!actual->initialized());
