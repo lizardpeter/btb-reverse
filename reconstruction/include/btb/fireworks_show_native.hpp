@@ -2,7 +2,6 @@
 #include "btb/fireworks_sequence.hpp"
 #include "btb/fireworks_movie_bank_manifest.hpp"
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -44,10 +43,13 @@ using ShowMovieRestart = std::function<bool(
         crowd_movie_index_for_phase(runtime.crowd_phase()));
     if(!step(crowd,0,340,input.crowd_movie_finished,error))
         return false;
+    // Retail rewinds a completed crowd-loop immediately, BEFORE walking the
+    // authored pool; a row-one firework can alias this same Bink index.
+    if(crowd==kOriginalCrowdLoopMovie &&
+       input.crowd_movie_finished &&
+       !restart(kOriginalCrowdLoopMovie,error))return false;
 
     const auto& active=runtime.event_pool().records();
-    std::array<std::size_t,kActiveEventCapacity> source_movie_for_slot{};
-    source_movie_for_slot.fill(kOriginalFireworkMovieCount);
     for(std::size_t slot=0;slot<active.size();++slot) {
         const auto& record=active[slot];
         if(record.free())continue;
@@ -64,36 +66,29 @@ using ShowMovieRestart = std::function<bool(
                   "Bink index 23 outside original bank";
             return false;
         }
-        source_movie_for_slot[slot]=movie;
         const int x=row==0?0:(row==1?440:220);
         const int y=row==2?200:0;
         if(!step(movie,x,y,input.active_event_movie_finished[slot],error))
             return false;
+        // Like the source 40-record loop, rewind a completed clip before
+        // the next record can use that same original Bink stream.
+        if(input.active_event_movie_finished[slot] &&
+           !restart(movie,error))return false;
     }
 
     if(!step(kOriginalTopMiddleMovie,220,0,
              input.top_middle_movie_finished,error))
         return false;
+    if(input.top_middle_movie_finished &&
+       !restart(kOriginalTopMiddleMovie,error))return false;
 
     // The original scheduling/phase/pool model owns all source decisions.
     // Its new events intentionally did not pass through BinkDoFrame above.
     out=runtime.update(sequence,input);
 
-    // Complete clips were physically copied and queued BEFORE rewind.
-    // The queued DD7 blit still presents those decoded final pixels.
-    for(const auto slot:out.completed_event_slots) {
-        if(slot>=source_movie_for_slot.size()||
-           source_movie_for_slot[slot]>=kOriginalFireworkMovieCount) {
-            error="completed source Fireworks event has no original movie";
-            return false;
-        }
-        if(!restart(source_movie_for_slot[slot],error))return false;
-    }
-    if(out.crowd.restart_movie &&
-       !restart(kOriginalCrowdLoopMovie,error))return false;
-    if(out.restart_top_middle_movie &&
-       !restart(kOriginalTopMiddleMovie,error))return false;
-
+    // Source movie rewinds already occurred directly after each physical
+    // decode. The source model now releases corresponding pool slots and
+    // launches the NEW events, which do not draw until the next tick.
     error.clear();
     return true;
 }
