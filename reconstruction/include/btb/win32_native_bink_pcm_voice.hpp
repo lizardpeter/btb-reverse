@@ -10,6 +10,8 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
+#include <mmsystem.h>
+#include <mmreg.h>
 #include <dsound.h>
 #include "btb/bink32_audio_movie.hpp"
 #include <cstdint>
