@@ -464,6 +464,21 @@ LRESULT CALLBACK native_window_proc(
     case WM_DESTROY:
         host->running=false;
         KillTimer(hwnd,kNativeTimer);
+        // The original activity owns its per-player save file (Fireworks
+        // firedataN, Park Designer dypdataN, Band compositions, etc).
+        // Save/unload it BEFORE writing global profile records. Previously,
+        // closing the window skipped all activity-specific persistence.
+        {
+            std::string unload_error;
+            if(!host->game.unload_current(unload_error)) {
+                const auto msg=unload_error.empty()
+                  ? "Native activity could not save its original data"
+                  : unload_error;
+                MessageBoxA(hwnd,msg.c_str(),
+                    "Native activity save/unload failed",
+                    MB_OK|MB_ICONERROR);
+            }
+        }
         if(!host->profile_directory.empty()) {
             std::string save_error;
             if(!host->game.save_profile_files(
