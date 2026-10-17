@@ -42,7 +42,7 @@ class BitWriter:
         )
 
 
-def movie(path: Path, rate: int, channels: int, dct: bool, blocks: int) -> None:
+def movie(path: Path, rate: int, channels: int, dct: bool, blocks: int, loud: bool) -> None:
     bits = 9 if rate < 22050 else 10 if rate < 44100 else 11
     if not dct and channels == 2:
         bits += 1
@@ -57,14 +57,16 @@ def movie(path: Path, rate: int, channels: int, dct: bool, blocks: int) -> None:
         for channel in range(channels if dct else 1):
             # DC and AC use different quantizations. Include signed values,
             # nonzero widths, a zero-run, two blocks and stereo variants.
-            w.put(23, 5)
-            w.put(1 + block + channel, 23)
+            w.put(18 if loud else 23, 5)
+            w.put((32768 + block * 4096 + channel * 2048)
+                  if loud else (1 + block + channel), 23)
             w.put((block + channel) % 2, 1)
-            w.put(22, 5)
-            w.put(2, 23)
+            w.put(16 if loud else 22, 5)
+            w.put(8192 if loud else 2, 23)
             w.put(0, 1)
             for band in range(bands):
-                w.put(10 if band == 0 else 0, 8)
+                w.put(60 if (loud and band == 0) else
+                      (10 if band == 0 else 0), 8)
             for start in range(2, n, 8):
                 w.put(0, 1)
                 width = 3 if start == 2 else 0
@@ -99,6 +101,13 @@ def movie(path: Path, rate: int, channels: int, dct: bool, blocks: int) -> None:
     path.write_bytes(bik)
 
 
+def signed16_samples(path: Path) -> tuple[int, ...]:
+    data = path.read_bytes()
+    if not data or len(data) % 2:
+        raise AssertionError(f"Invalid raw s16 output: {path}")
+    return struct.unpack(f"<{len(data) // 2}h", data)
+
+
 def float_samples(path: Path) -> tuple[float, ...]:
     data = path.read_bytes()
     if not data or len(data) % 4:
@@ -111,18 +120,24 @@ def float_samples(path: Path) -> tuple[float, ...]:
 
 def run(native: Path, ffmpeg: str) -> None:
     cases = [
-        ("bink_dct_mono", 11025, 1, True, 2),
-        ("bink_rdft_mono", 11025, 1, False, 2),
-        ("bink_dct_stereo", 44100, 2, True, 1),
-        ("bink_rdft_stereo", 44100, 2, False, 1),
+        ("bink_dct_mono", 11025, 1, True, 2, False),
+        ("bink_rdft_mono", 11025, 1, False, 2, False),
+        ("bink_dct_stereo", 44100, 2, True, 1, False),
+        ("bink_rdft_stereo", 44100, 2, False, 1, False),
+        ("bink_dct_mono_loud", 11025, 1, True, 2, True),
+        ("bink_rdft_mono_loud", 11025, 1, False, 2, True),
+        ("bink_dct_stereo_loud", 44100, 2, True, 1, True),
+        ("bink_rdft_stereo_loud", 44100, 2, False, 1, True),
     ]
     with tempfile.TemporaryDirectory(prefix="bink1-audio-parity-") as temp:
         root = Path(temp)
-        for name, rate, channels, dct, blocks in cases:
+        for name, rate, channels, dct, blocks, loud in cases:
             source = root / (name + ".bik")
             expected = root / (name + ".ffmpeg.f32")
             actual = root / (name + ".native.f32")
-            movie(source, rate, channels, dct, blocks)
+            expected_s16 = root / (name + ".ffmpeg.s16")
+            actual_s16 = root / (name + ".native.s16")
+            movie(source, rate, channels, dct, blocks, loud)
             subprocess.run(
                 [ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error",
                  "-f", "bink", "-i", str(source), "-map", "0:a:0",
@@ -151,12 +166,33 @@ def run(native: Path, ffmpeg: str) -> None:
             # Float FFT backends need not agree bit-for-bit. Nevertheless
             # this is <0.2% of the strongest synthetic signals, sufficient
             # to catch missing/incorrect normalization or coefficient signs.
-            if max_difference > 2.0e-7:
+            if max_difference > (1.0e-5 if loud else 2.0e-7):
                 raise AssertionError(
-                    f"{name}: native Bink1 audio differs from FFmpeg "
-                    f"beyond 2e-7 absolute tolerance"
+                    f"{name}: native float audio differs from FFmpeg "
+                    f"beyond bounded transform tolerance"
                 )
-    print("All four synthetic Bink1 native-vs-FFmpeg audio comparisons passed.")
+            subprocess.run(
+                [ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error",
+                 "-f", "bink", "-i", str(source), "-map", "0:a:0",
+                 "-f", "s16le", "-y", str(expected_s16)],
+                check=True,
+            )
+            subprocess.run(
+                [str(native), str(source), "0", "--output-s16le",
+                 str(actual_s16)],
+                check=True,
+            )
+            ref_pcm, native_pcm = signed16_samples(expected_s16), signed16_samples(actual_s16)
+            if len(ref_pcm) != len(native_pcm):
+                raise AssertionError(f"{name}: signed PCM count mismatch")
+            pcm_max = max(abs(a - b) for a, b in zip(ref_pcm, native_pcm))
+            print(f"{name}: signed PCM16 max LSB difference={pcm_max}", flush=True)
+            if pcm_max > 1:
+                raise AssertionError(
+                    f"{name}: native signed PCM16 differs from FFmpeg by >1 LSB")
+            if loud and max(abs(x) for x in ref_pcm) < 100:
+                raise AssertionError(f"{name}: loud signal not actually audible")
+    print("All eight synthetic Bink1 native-vs-FFmpeg F32 and PCM16 comparisons passed.")
 
 
 def main() -> None:
