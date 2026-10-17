@@ -6,6 +6,7 @@
 #include "btb/full_game_runtime.hpp"
 
 #include <filesystem>
+#include <functional>
 #include <optional>
 #include <string>
 #include <utility>
@@ -16,15 +17,26 @@ namespace btb::full_game {
 // It uses the original 18-cell int32 save representation, source rectangle
 // tables and the recovered Bob/Wendy animation and control decisions.
 //
-// The 23-movie Bink bank is NOT emulated here. Entering the pre-show, preview,
-// show or certificate states requires a separate real Bink presentation
-// provider and is explicitly reported as unsupported rather than skipped.
+// The original pre-show transition movie uses the shared native Bink provider.
+// The separate 23-movie Fireworks bank, previews, show and certificate are
+// still unhosted and remain fail-closed rather than artificially completed.
 class FireworksDriver final : public ActivityDriver {
 public:
+    // Source pre-show 14->15 uses the shared original BinkOpen with disk
+    // movie flags. Production Win32 supplies the actual x86 decoder; tests
+    // may supply a frame-source fixture without bypassing this boundary.
+    using OpenPreShowMovie = std::function<bool(
+        const std::filesystem::path&,std::string&)>;
+    using CancelPreShowMovie = std::function<void()>;
+
     FireworksDriver(std::filesystem::path original_data_dir,
-                    std::filesystem::path save_dir)
+                    std::filesystem::path save_dir,
+                    OpenPreShowMovie open_pre_show_movie = {},
+                    CancelPreShowMovie cancel_pre_show_movie = {})
         : original_data_dir_(std::move(original_data_dir)),
-          save_dir_(std::move(save_dir)) {}
+          save_dir_(std::move(save_dir)),
+          open_pre_show_movie_(std::move(open_pre_show_movie)),
+          cancel_pre_show_movie_(std::move(cancel_pre_show_movie)) {}
 
     [[nodiscard]] bool initialize(
         int player_index, std::string& error) override;
@@ -55,6 +67,9 @@ private:
     fireworks::EditorRuntimeState editor_{};
     int player_index_{-1};
     bool awaiting_delete_confirmation_{};
+    OpenPreShowMovie open_pre_show_movie_{};
+    CancelPreShowMovie cancel_pre_show_movie_{};
+    bool pre_show_movie_open_{};
 };
 
 } // namespace btb::full_game

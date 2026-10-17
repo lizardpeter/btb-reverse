@@ -92,6 +92,7 @@ bool FireworksDriver::initialize(int player_index, std::string& error) {
         editor_ = fireworks::EditorRuntimeState{};
         player_index_ = player_index;
         awaiting_delete_confirmation_ = false;
+        pre_show_movie_open_ = false;
         error.clear();
         return true;
     } catch (const std::exception& ex) {
@@ -178,12 +179,73 @@ ActivityFrameOutput FireworksDriver::advance(
 
     using fireworks::InternalState;
     auto state = editor_.internal_state;
-    if (state != InternalState::Editor &&
-        state != InternalState::DeleteSelected &&
-        state != InternalState::EditorDragRelease) {
+    const auto draw_original_editor = [&]() {
+        const auto frame = fireworks::run_retail_editor_frame(
+            editor_,sequence_,*layout_,input.pointer_x,input.pointer_y);
+        output.draws.reserve(frame.draw_commands.size()+1);
+        for(const auto& draw:frame.draw_commands)
+            output.draws.push_back(convert_draw(draw));
+        for(const auto& tick:frame.placement_ticks)
+            if(tick.sound_id)append_sound(output,*tick.sound_id);
+    };
+
+    // Retail state 14 waits until the just-requested managed Play voice
+    // has started. Only then does it open the original disk Bink and
+    // advance to state 15; no elapsed-time or synthetic EOS shortcut.
+    if(state == InternalState::PreShowMovieSetup) {
+        if(!fireworks::should_open_pre_show_movie(
+                input.managed_sound_playing)) {
+            draw_original_editor();
+            return output;
+        }
+        if(!open_pre_show_movie_ || !cancel_pre_show_movie_) {
+            output.fatal_error=
+                "original Fireworks pre-show Bink open/close provider is unavailable";
+            return output;
+        }
+        const auto movie=original_data_dir_.parent_path()/
+            "movies"/"fireworkcomplete.bik";
+        std::string error;
+        if(!open_pre_show_movie_(movie,error)) {
+            output.fatal_error=error.empty()
+                ? "original fireworkcomplete.bik could not open" : error;
+            return output;
+        }
+        pre_show_movie_open_=true;
+        editor_.internal_state=InternalState::PreShowMoviePlayback;
+        // The native renderer clears the now-empty editor surface as retail
+        // does before drawing the original Bink frames on later ticks.
+        return output;
+    }
+    if(state == InternalState::PreShowMoviePlayback) {
+        if(!input.original_global_movie_finished) {
+            // The real Bink device already copied the image into its
+            // DirectDraw target before the game-state dispatch.
+            output.retain_original_global_movie_pixels=true;
+            return output;
+        }
+        // The original global Bink service has already BinkClosed on
+        // true EOS. No extra activity-owned close should affect a later movie.
+        pre_show_movie_open_=false;
+        const auto finish=fireworks::pre_show_movie_completion_action();
+        editor_.internal_state=finish.next_state;
+        if(finish.stop_all_managed_sounds)
+            output.audio.push_back({AudioOperation::StopManagedSounds});
+        output.audio.push_back({
+            AudioOperation::ManagedSoundId,{},finish.sound_id,
+            finish.sound_priority,finish.arbitration_class,
+            finish.mark_sound_slot_input_interruptible
+        });
+        // State 8 must subsequently load the authentic 23-movie bank. This
+        // transition alone does not pretend the authored show is complete.
+        return output;
+    }
+    if(state != InternalState::Editor &&
+       state != InternalState::DeleteSelected &&
+       state != InternalState::EditorDragRelease) {
         output.fatal_error =
-            "Fireworks pre-show/Bink playback/certificate requires original "
-            "movie-bank host; refusing synthetic completion";
+            "Fireworks show/preview/certificate requires original "
+            "23-movie Bink bank; refusing synthetic completion";
         return output;
     }
 
@@ -243,15 +305,7 @@ ActivityFrameOutput FireworksDriver::advance(
         }
     }
 
-    const auto frame = fireworks::run_retail_editor_frame(
-        editor_, sequence_, *layout_, input.pointer_x, input.pointer_y);
-    output.draws.reserve(frame.draw_commands.size() + 1);
-    for (const auto& command : frame.draw_commands) {
-        output.draws.push_back(convert_draw(command));
-    }
-    for (const auto& tick : frame.placement_ticks) {
-        if (tick.sound_id) append_sound(output, *tick.sound_id);
-    }
+    draw_original_editor();
     if (const auto overlay = control_overlay(control)) {
         output.draws.push_back(*overlay);
     }
@@ -262,6 +316,17 @@ bool FireworksDriver::unload(std::string& error) {
     if (!layout_) {
         error.clear();
         return true;
+    }
+    // Leaving during original state-15 playback must release its real
+    // x86 Bink handle. Otherwise the shared movie service would keep
+    // decoding over the next native menu after Fireworks was unloaded.
+    if (pre_show_movie_open_) {
+        if (!cancel_pre_show_movie_) {
+            error="cannot release active original Fireworks Bink decoder";
+            return false;
+        }
+        cancel_pre_show_movie_();
+        pre_show_movie_open_=false;
     }
 
     std::error_code ec;
@@ -296,6 +361,7 @@ bool FireworksDriver::unload(std::string& error) {
     editor_ = fireworks::EditorRuntimeState{};
     player_index_ = -1;
     awaiting_delete_confirmation_ = false;
+    pre_show_movie_open_=false;
     error.clear();
     return true;
 }
