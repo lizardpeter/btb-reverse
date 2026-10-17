@@ -26,7 +26,7 @@ describe_bink_audio_tracks(const ContainerIndex& index) noexcept {
         // unsafe to schedule even when its current frame is empty.
         const auto rate=static_cast<std::uint16_t>(source.codec_flags);
         const auto flags=static_cast<std::uint16_t>(source.codec_flags>>16);
-        if(rate<1000||rate>192000 || !source.max_decoded_bytes ||
+        if(rate<1000 || !source.max_decoded_bytes ||
            source.max_decoded_bytes>100'000'000)
             return std::nullopt;
         parsed.push_back(BinkAudioTrackSpec{
@@ -42,6 +42,13 @@ describe_bink_audio_tracks(const ContainerIndex& index) noexcept {
 std::optional<BinkAudioBlockPacket>
 inspect_bink_audio_packet(const AudioPacket& packet,
                           const BinkAudioTrackSpec& track) noexcept {
+    // A zero compressed-length frame is a legitimate empty track packet,
+    // not a truncated packet or an invented audio block.
+    if(packet.compressed.empty()) {
+        return BinkAudioBlockPacket{
+            0,{},track.track_id,track.sample_rate,track.channels,
+            track.transform};
+    }
     if(packet.compressed.size()<4)return std::nullopt;
     const auto decoded_bytes=le32(packet.compressed.first(4));
     // Bink's decoded-byte prefix is NOT the compressed packet length and
