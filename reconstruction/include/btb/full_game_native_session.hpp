@@ -22,7 +22,7 @@ struct PhysicalFrameObservation {
 
 enum class PhysicalPresentationStage {
     ObserveDevice, GameAdvance, MovieResolve, MovieOpen,
-    MovieClose, AssetResolve, SubmitAudio, SubmitDraw, Present
+    MovieClose, AssetResolve, SubmitAudio, SubmitDraw, Print, Present
 };
 
 struct PhysicalPresentationError {
@@ -58,6 +58,13 @@ public:
     [[nodiscard]] virtual bool draw_ordered(
         const std::vector<ResolvedDraw>& draws,
         std::string& error) = 0;
+    // Called ONLY after the authentic ordered DD7 frame has been drawn.
+    // Platform implementations must report actual printing errors. A user
+    // cancelling the native dialog is normal, and is not called 'printed'.
+    [[nodiscard]] virtual bool print_current_frame(std::string& error) {
+        error="native original-frame printer unavailable";
+        return false;
+    }
     [[nodiscard]] virtual bool present(std::string& error) = 0;
 };
 
