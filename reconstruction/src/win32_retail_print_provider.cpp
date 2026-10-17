@@ -157,7 +157,7 @@ bool Win32RetailPrintProvider::print_original_backbuffer(
     }
     const int w=frame.info.bmiHeader.biWidth;
     const int h=-frame.info.bmiHeader.biHeight;
-    const double scale=std::min(
+    const double scale=(std::min)(
         static_cast<double>(paper_w)/w,
         static_cast<double>(paper_h)/h);
     const int draw_w=static_cast<int>(w*scale);
