@@ -42,6 +42,7 @@ private:
     std::unique_ptr<Win32NativeBinkPcmVoice> voice_{};
     bool voice_started_{};
     std::uint32_t voice_rate_{};
+    std::uint64_t voice_end_wall_us_{},voice_end_sample_us_{};
     std::optional<bink32_recovered::BinkNativeSilentMovie> global_;
     std::optional<bink32_recovered::BinkNativeSilentMovie> walkthrough_;
     IDirectDrawSurface7* walkthrough_surface_{};
