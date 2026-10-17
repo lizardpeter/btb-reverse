@@ -7,6 +7,7 @@
 
 #include <array>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -47,9 +48,11 @@ public:
     SpudSkateDriver(
         std::filesystem::path original_root,
         std::unique_ptr<SpudSkateMovieSource> original_movies,
-        retail::OriginalRetailRandom* game_random=nullptr)
+        retail::OriginalRetailRandom* game_random=nullptr,
+        std::function<bool(int)> spud_maze_completed_for_player={})
         : root_(std::move(original_root)),
-          movies_(std::move(original_movies)),random_(game_random) {}
+          movies_(std::move(original_movies)),random_(game_random),
+          spud_maze_completed_(std::move(spud_maze_completed_for_player)) {}
 
     void configure_menu_state(
         const RetailMenuState& menu) noexcept override;
@@ -84,6 +87,10 @@ private:
     std::unique_ptr<SpudSkateMovieSource> movies_{};
     retail::OriginalRetailRandom* random_{};
     retail::OriginalRetailRandom fallback_rng_{};
+    // Source 0x424690 reads retail player-progress slot 59 using the
+    // selected player's 400-byte record. The native Windows host
+    // provides that source of truth rather than a constant false.
+    std::function<bool(int)> spud_maze_completed_{};
     spud_skate::TimingData timing_{};
     spud_skate::SoundData sounds_{};
     spud_skate::RuntimeState state_{};

@@ -242,7 +242,14 @@ struct Host {
         skate_movies=skate_backend.get();
         game.install(ActivityId::SpudSkate,
             std::make_unique<SpudSkateDriver>(
-                root,std::move(skate_backend),&original_game_random));
+                root,std::move(skate_backend),&original_game_random,
+                [this](int profile)->bool {
+                    const auto& records=game.globals().player_progress;
+                    return profile>=0 &&
+                           static_cast<std::size_t>(profile)<records.size() &&
+                           records[static_cast<std::size_t>(profile)].get(
+                               progress::Slot::SpudMaze)==1;
+                }));
         // Source-backed initial Pets Corner scene and Pickles navigation.
         // Autonomous animal delivery remains fail-closed (no fake wins).
         game.install(ActivityId::Herding,

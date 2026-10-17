@@ -202,8 +202,17 @@ ActivityFrameOutput SpudSkateDriver::advance(
             out.fatal_error=error;return out;
         }
     } else if(state_.phase==spud_skate::PlaybackPhase::EndMovie) {
+        // Original UpdateAndDrawSpudSkatePlayback 0x424690 reads
+        // record[selected_player].progress[59] before determining
+        // whether completion code 2 should be raised. This is the
+        // real persisted Spud Maze prerequisite, not an invented
+        // per-frame input and not necessarily the current activity.
+        const bool maze_completed=
+            spud_maze_completed_ &&
+            spud_maze_completed_(player_index_);
         const auto end=spud_skate::update_end_movie_phase(state_,{
-            frame.end_movie_finished,input.managed_sound_playing,false});
+            frame.end_movie_finished,input.managed_sound_playing,
+            maze_completed});
         if(end.stop_all_managed_sounds)
             out.audio.push_back({AudioOperation::StopManagedSounds});
         if(end.result &&
@@ -212,6 +221,8 @@ ActivityFrameOutput SpudSkateDriver::advance(
         }
         if(end.mark_spud_skate_progress_complete)
             out.progress_writes.push_back({progress::Slot::SpudSkate,1});
+        if(end.set_shared_completion_code_2)
+            out.shared_completion_code=2;
         if(end.complete_activity) {
             out.audio.push_back({AudioOperation::StopBackingTrack});
             out.next_outer_state=spud_skate::kPlayAgainOuterState;
