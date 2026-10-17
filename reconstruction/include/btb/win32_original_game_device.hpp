@@ -68,6 +68,7 @@ public:
     [[nodiscard]] bool draw_ordered(
         const std::vector<ResolvedDraw>& draws,
         std::string& error) override;
+    [[nodiscard]] bool print_current_frame(std::string& error) override;
     [[nodiscard]] bool present(std::string& error) override;
 
 private:
