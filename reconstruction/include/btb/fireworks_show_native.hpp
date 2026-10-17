@@ -2,6 +2,7 @@
 #include "btb/fireworks_sequence.hpp"
 #include "btb/fireworks_movie_bank_manifest.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -45,6 +46,8 @@ using ShowMovieRestart = std::function<bool(
         return false;
 
     const auto& active=runtime.event_pool().records();
+    std::array<std::size_t,kActiveEventCapacity> source_movie_for_slot{};
+    source_movie_for_slot.fill(kOriginalFireworkMovieCount);
     for(std::size_t slot=0;slot<active.size();++slot) {
         const auto& record=active[slot];
         if(record.free())continue;
@@ -61,6 +64,7 @@ using ShowMovieRestart = std::function<bool(
                   "Bink index 23 outside original bank";
             return false;
         }
+        source_movie_for_slot[slot]=movie;
         const int x=row==0?0:(row==1?440:220);
         const int y=row==2?200:0;
         if(!step(movie,x,y,input.active_event_movie_finished[slot],error))
@@ -78,15 +82,12 @@ using ShowMovieRestart = std::function<bool(
     // Complete clips were physically copied and queued BEFORE rewind.
     // The queued DD7 blit still presents those decoded final pixels.
     for(const auto slot:out.completed_event_slots) {
-        const auto& record=active[slot];
-        if(record.row<0||record.row>=3) {
-            error="invalid completed Fireworks event row";return false;
+        if(slot>=source_movie_for_slot.size()||
+           source_movie_for_slot[slot]>=kOriginalFireworkMovieCount) {
+            error="completed source Fireworks event has no original movie";
+            return false;
         }
-        // runtime.update only overwrites the type to -1 on completion,
-        // so resolve the matching movie through its still-observed record
-        // BEFORE calling update, instead of using mutated record.type.
-        // See the captured source movie IDs below.
-        (void)record;
+        if(!restart(source_movie_for_slot[slot],error))return false;
     }
     if(out.crowd.restart_movie &&
        !restart(kOriginalCrowdLoopMovie,error))return false;
