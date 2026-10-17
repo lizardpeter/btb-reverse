@@ -1,4 +1,7 @@
 #include "btb/fireworks_certificate.hpp"
+#include "btb/fireworks_certificate_native.hpp"
+#include <array>
+#include <string>
 
 #include <cassert>
 
@@ -85,4 +88,52 @@ int main() {
     constexpr auto badge4 = certificate_badge_source_rect(4);
     static_assert(badge4.left == 200);
     static_assert(badge4.right == 250);
+
+    // Physical certificate draws original sprites, not host vector text.
+    btb::profiles::ProfileInfo profile{};
+    profile.name_length=2;
+    profile.badge_index=4;
+    profile.name_glyph_codes[0]=0;
+    profile.name_glyph_codes[1]=1;
+    std::array<btb::full_game::Rect,191> original_brown{};
+    original_brown[0]={0,0,10,18};
+    original_brown[1]={20,0,40,18};
+    btb::full_game::ActivityFrameOutput frame{};
+    std::string error;
+    assert(render_original_certificate(
+        profile,original_brown,frame,error));
+    assert(frame.draws.size()==4);
+    assert(frame.draws[0].source_asset==
+           "Data/SubGameFirework/certificate.bmp");
+    assert(frame.draws[0].x==0 && frame.draws[0].y==0);
+    assert(frame.draws[1].source_asset==
+           "Data/ui/enter name boxed font.bmp");
+    assert(frame.draws[1].x==476 && frame.draws[1].y==135);
+    assert(frame.draws[1].source_rectangle->bottom==19);
+    assert(frame.draws[2].x==486);
+    assert(frame.draws[2].source_rectangle->left==20);
+    assert(frame.draws[3].source_asset=="Data/ui/fonttools.bmp");
+    assert(frame.draws[3].x==471 && frame.draws[3].y==156);
+    assert(frame.draws[3].source_rectangle->left==200);
+    assert(frame.draws[3].source_rectangle->right==250);
+    assert(frame.draws[3].source_rectangle->bottom==45);
+    draw_original_certificate_print_hover(frame,false);
+    assert(frame.draws.back().source_asset==
+           "Data/SubGameFirework/certprint.bmp");
+    assert(frame.draws.back().x==292 && frame.draws.back().y==417);
+    draw_original_certificate_print_hover(frame,true);
+    assert(frame.draws.back().source_asset==
+           "Data/SubGameFirework/certprintdep.bmp");
+
+    profile.name_glyph_codes[1]=200;
+    frame={};
+    assert(!render_original_certificate(
+        profile,original_brown,frame,error));
+    assert(error.find("glyph")!=std::string::npos);
+    profile.name_glyph_codes[1]=1;
+    profile.badge_index=6;
+    frame={};
+    assert(!render_original_certificate(
+        profile,original_brown,frame,error));
+    assert(error.find("badge")!=std::string::npos);
 }
