@@ -1381,6 +1381,13 @@ add_executable(btb_full_game_fireworks_transition_tests
 target_link_libraries(btb_full_game_fireworks_transition_tests PRIVATE
     btb_recompiled_core)
 btb_require_cpp26(btb_full_game_fireworks_transition_tests PRIVATE)
+# These fixtures assert real frame and audio transitions; ensure they run
+# even for Windows Release builds where NDEBUG would normally remove them.
+if(MSVC)
+    target_compile_options(btb_full_game_fireworks_transition_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(btb_full_game_fireworks_transition_tests PRIVATE -UNDEBUG)
+endif()
 add_test(NAME full_game_fireworks_transition
     COMMAND btb_full_game_fireworks_transition_tests)
 
