@@ -1,0 +1,419 @@
+#include "btb/bink32_simple_picture.hpp"
+#include "btb/bink32_run_scan.hpp"
+#include "btb/bink32_residue.hpp"
+#include "btb/bink32_dct_coefficients.hpp"
+#include "btb/bink32_dct_pixels.hpp"
+#include "btb/bink32_original_quant.hpp"
+#include <algorithm>
+#include <array>
+#include <bit>
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <utility>
+#include <vector>
+
+namespace btb::bink32_recovered {
+namespace {
+template<class T> struct SourcePool {
+    std::vector<T> values{};
+    std::size_t cursor{};
+    std::size_t refills{};
+    bool ended{};
+    [[nodiscard]] bool needs_refill() const noexcept {
+        return !ended && cursor==values.size();
+    }
+    void refill(std::vector<T> next,bool end) {
+        values=std::move(next);
+        cursor=0;
+        ended=end;
+        ++refills;
+    }
+    [[nodiscard]] std::optional<T> take() noexcept {
+        if(cursor==values.size())return std::nullopt;
+        return values[cursor++];
+    }
+};
+// The Bink1 8x8 integer IDCT has an exact DC-only fast path:
+// quantize its DC word, then each of the eight identical row results
+// uses the decoder's (value + 127) >> 8 rounding operation.
+// The original 2002 DLL quant tables' DC column matches Bink1
+// intra/inter quant tables at all 16 selectors. AC-bearing DCT blocks
+// must use the full separate 8x8 transform and are NOT accepted here.
+[[nodiscard]] std::optional<std::uint8_t>
+bink_zero_ac_idct_sample(std::int16_t dc,std::uint8_t selector) noexcept {
+    // The original DLL and independently recovered Bink1 intra/inter
+    // reference tables have the same sixteen DC multipliers. Only
+    // those verified DC entries are used in this fast path.
+    constexpr std::array<std::int32_t,16> kReferenceDcQuant{
+        65536,87381,109227,131072,174763,229376,262144,327680,
+        393216,524288,786432,1114112,1441792,1835008,2228224,2883584
+    };
+    const auto quant=original_quant_matrix(selector);
+    if(!quant || (*quant)[0]!=kReferenceDcQuant[selector])
+        return std::nullopt;
+    const auto product=static_cast<std::uint32_t>(
+        static_cast<std::int64_t>(dc)*static_cast<std::int64_t>((*quant)[0]));
+    const auto scaled=std::bit_cast<std::int32_t>(product)>>11;
+    const auto rounded=std::bit_cast<std::int32_t>(
+        std::bit_cast<std::uint32_t>(scaled)+127U)>>8;
+    return static_cast<std::uint8_t>(rounded);
+}
+std::vector<std::int16_t> dc_words(const OriginalBinkDcPlane& plane) {
+    std::vector<std::int16_t> words;
+    words.reserve(plane.signed_words_le.size()/2);
+    for(std::size_t i=0;i+1<plane.signed_words_le.size();i+=2) {
+        auto raw=static_cast<std::uint16_t>(
+            plane.signed_words_le[i] |
+            std::uint16_t(plane.signed_words_le[i+1])<<8);
+        words.push_back(std::bit_cast<std::int16_t>(raw));
+    }
+    return words;
+}
+} // namespace
+
+std::optional<BinkSimplePictureLuma> decode_bink_picture_plane_at(
+    std::span<const std::uint8_t> video_packet,
+    std::size_t entropy_tree_byte_offset,
+    std::size_t width,std::size_t height,
+    std::span<const std::uint8_t> previous_luma,
+    BinkPlaneDecodeDiagnostic* diagnostic) {
+    constexpr std::size_t kMaxPixels=64U*1024U*1024U;
+    constexpr std::size_t kMaxTiles=1U<<20;
+    if(!width || !height || width>16384 || height>16384 ||
+       (width%8)!=0 || (height%8)!=0 ||
+       width>kMaxPixels/height ||
+       (!previous_luma.empty() && previous_luma.size()!=width*height))
+        return std::nullopt;
+    const auto columns=width/8,rows=height/8;
+    if(columns>kMaxTiles/rows)return std::nullopt;
+    const auto tiles=columns*rows;
+    // Each 8x8 pixel block may consume up to 64 color samples.
+    const auto maximum_samples=std::min(kMaxPixels,width*height);
+    const auto prologue=parse_video_entropy_prologue(
+        video_packet,entropy_tree_byte_offset);
+    if(!prologue)return std::nullopt;
+    const auto& trees=prologue->trees.trees;
+    LsbBitReader bits(video_packet.subspan(
+        prologue->initial_byte_offset));
+    if(!bits.skip(prologue->trees.consumed_bits))
+        return std::nullopt;
+
+
+    std::size_t diagnostic_row=0,diagnostic_col=0;
+    std::uint8_t diagnostic_mode=255;
+    const auto reject=[&](unsigned line)
+        -> std::optional<BinkSimplePictureLuma> {
+        if(diagnostic) {
+            diagnostic->row=diagnostic_row;
+            diagnostic->column=diagnostic_col;
+            diagnostic->bit_offset=
+                entropy_tree_byte_offset*8+bits.bit_position();
+            diagnostic->source_line=line;
+            diagnostic->mode=diagnostic_mode;
+        }
+        return std::nullopt;
+    };
+    SourcePool<std::uint8_t> types{},subtypes{},colors{},patterns{},runs{};
+    SourcePool<std::int8_t> motion_x{},motion_y{};
+    SourcePool<std::int16_t> intra_dc{},inter_dc{};
+    std::uint8_t last_color_high=0;
+    const auto intra_context=init_entropy_plane(
+        0,0x200U,static_cast<std::uint32_t>(width),11,1,false);
+    const auto inter_context=init_entropy_plane(
+        0,0x200U,static_cast<std::uint32_t>(width),11,1,true);
+
+    std::vector<BinkBlockCommand> commands(tiles);
+    BinkSimplePictureLuma result{};
+
+    // Bink 0x3000E400 checks all nine bundle refill sources at EACH
+    // row boundary, in strict sequence. Ended sources cannot restart.
+    for(std::size_t row=0;row<rows;++row) {
+        diagnostic_row=row;
+        diagnostic_col=0;
+        diagnostic_mode=255;
+        if(types.needs_refill()) {
+            auto b=read_bink_block_type_bundle(bits,trees[0],width,tiles);
+            if(!b)return reject(__LINE__);
+            types.refill(std::move(b->modes),b->end_of_bundle);
+        }
+        if(subtypes.needs_refill()) {
+            auto b=read_bink_block_type_bundle(bits,trees[1],width/2,tiles);
+            if(!b)return reject(__LINE__);
+            subtypes.refill(std::move(b->modes),b->end_of_bundle);
+        }
+        if(colors.needs_refill()) {
+            // read_bink_color_bundle requires the full tree set,
+            // including sixteen adaptive high-nibble contexts.
+            auto b=read_bink_color_bundle(
+                bits,prologue->trees,width,last_color_high,
+                false,maximum_samples);
+            if(!b)return reject(__LINE__);
+            last_color_high=b->next_high_nibble;
+            colors.refill(std::move(b->values),b->end_of_bundle);
+        }
+        if(patterns.needs_refill()) {
+            auto b=read_bink_pattern_bundle(
+                bits,trees[19],width,maximum_samples);
+            if(!b)return reject(__LINE__);
+            patterns.refill(std::move(b->values),b->end_of_bundle);
+        }
+        if(motion_x.needs_refill()) {
+            auto b=read_bink_signed_motion_bundle(
+                bits,trees[20],width,tiles);
+            if(!b)return reject(__LINE__);
+            motion_x.refill(std::move(b->values),b->end_of_bundle);
+        }
+        if(motion_y.needs_refill()) {
+            auto b=read_bink_signed_motion_bundle(
+                bits,trees[21],width,tiles);
+            if(!b)return reject(__LINE__);
+            motion_y.refill(std::move(b->values),b->end_of_bundle);
+        }
+        if(intra_dc.needs_refill()) {
+            auto b=decode_original_bink_dc_context_packet(
+                bits,intra_context,tiles);
+            if(!b)return reject(__LINE__);
+            auto v=dc_words(*b);
+            intra_dc.refill(std::move(v),b->signed_words_le.empty());
+        }
+        if(inter_dc.needs_refill()) {
+            auto b=decode_original_bink_dc_context_packet(
+                bits,inter_context,tiles);
+            if(!b)return reject(__LINE__);
+            auto v=dc_words(*b);
+            inter_dc.refill(std::move(v),b->signed_words_le.empty());
+        }
+        if(runs.needs_refill()) {
+            auto b=read_bink_run_bundle(bits,trees[22],width,
+                                        maximum_samples);
+            if(!b)return reject(__LINE__);
+            runs.refill(std::move(b->values),b->end_of_bundle);
+        }
+
+        // A scaled 16x16 tile consumes one block type on the top
+        // row and a matching marker on the bottom row, but only ONE
+        // subtype/pixel payload at its upper-left corner.
+        for(std::size_t col=0;col<columns;) {
+            diagnostic_col=col;
+            diagnostic_mode=255;
+            const auto encoded=types.take();
+            if(!encoded || *encoded>=result.mode_counts.size())
+                return reject(__LINE__);
+            diagnostic_mode=*encoded;
+            ++result.mode_counts[*encoded];
+            const auto mode=static_cast<BinkBlockMode>(*encoded);
+            auto& cmd=commands[row*columns+col];
+            const auto populate_pixels=[&](BinkBlockMode pixels)->bool {
+                if(pixels==BinkBlockMode::Fill) {
+                    const auto color=colors.take();
+                    if(!color)return false;
+                    cmd.fill=*color;
+                    return true;
+                }
+                if(pixels==BinkBlockMode::Pattern) {
+                    for(auto& color:cmd.pattern_colors) {
+                        const auto value=colors.take();
+                        if(!value)return false;
+                        color=*value;
+                    }
+                    for(auto& mask:cmd.pattern_rows) {
+                        const auto value=patterns.take();
+                        if(!value)return false;
+                        mask=*value;
+                    }
+                    return true;
+                }
+                if(pixels==BinkBlockMode::Raw) {
+                    for(auto& value:cmd.samples) {
+                        const auto color=colors.take();
+                        if(!color)return false;
+                        value=*color;
+                    }
+                    return true;
+                }
+                if(pixels==BinkBlockMode::Intra) {
+                    const auto dc=intra_dc.take();
+                    if(!dc)return false;
+                    const auto dct=decode_bink_dct_coefficients(bits,*dc);
+                    if(!dct)return false;
+                    const auto pixels8=reconstruct_bink_dct_pixels(
+                        *dct,BinkDctQuantFamily::Intra);
+                    if(!pixels8)return false;
+                    if(dct->changed_count==0) {
+                        // Keep the separately derived exact DC-only
+                        // fast path as an independent parity check.
+                        const auto dc_only=bink_zero_ac_idct_sample(
+                            *dc,dct->quant_selector);
+                        if(!dc_only || std::any_of(
+                             pixels8->begin(),pixels8->end(),
+                             [&](auto p){return p!=*dc_only;}))
+                            return false;
+                    }
+                    cmd.samples=*pixels8;
+                    return true;
+                }
+                if(pixels==BinkBlockMode::Run) {
+                    // Original Bink1: a four-bit pattern selects one
+                    // of sixteen exact 64-coordinate scan orders.
+                    // Run and color bundle consumption is independent
+                    // of the selected pixel permutation.
+                    const auto scan=bits.read(4);
+                    if(!scan)return false;
+                    const auto emit=[&](std::size_t index,
+                                        std::uint8_t pixel) {
+                        cmd.samples[bink_run_scan_pixel(
+                            static_cast<std::uint8_t>(*scan),index)]=pixel;
+                    };
+                    std::size_t written=0;
+                    while(written<63) {
+                        const auto encoded=runs.take();
+                        if(!encoded)return false;
+                        const std::size_t n=std::size_t(*encoded)+1;
+                        if(n>64-written)return false;
+                        const auto repeat=bits.read(1);
+                        if(!repeat)return false;
+                        if(*repeat) {
+                            const auto color=colors.take();
+                            if(!color)return false;
+                            for(std::size_t i=0;i<n;++i)
+                                emit(written+i,*color);
+                        } else {
+                            for(std::size_t i=0;i<n;++i) {
+                                const auto color=colors.take();
+                                if(!color)return false;
+                                emit(written+i,*color);
+                            }
+                        }
+                        written+=n;
+                    }
+                    if(written==63) {
+                        const auto last=colors.take();
+                        if(!last)return false;
+                        emit(63,*last);
+                    }
+                    return written>=63;
+                }
+                return false;
+            };
+            if(mode==BinkBlockMode::Scaled) {
+                if(col&1U || col+1>=columns)return reject(__LINE__);
+                if(row&1U) {
+                    // Original odd-row scaled marker has no new
+                    // pixels. Verify it covers the previous anchor.
+                    if(commands[(row-1)*columns+col].mode!=
+                           BinkBlockMode::Scaled ||
+                       cmd.mode!=BinkBlockMode::Covered ||
+                       commands[row*columns+col+1].mode!=
+                           BinkBlockMode::Covered)
+                        return reject(__LINE__);
+                    col+=2;
+                    continue;
+                }
+                if(row+1>=rows)return reject(__LINE__);
+                const auto subtype=subtypes.take();
+                if(!subtype)return reject(__LINE__);
+                cmd.mode=BinkBlockMode::Scaled;
+                cmd.scaled_submode=static_cast<BinkBlockMode>(*subtype);
+                // These three source-backed scaled payloads already
+                // have an exact nearest-neighbor 2x pixel compositor.
+                if(!populate_pixels(cmd.scaled_submode))
+                    return reject(__LINE__);
+                commands[row*columns+col+1].mode=BinkBlockMode::Covered;
+                commands[(row+1)*columns+col].mode=BinkBlockMode::Covered;
+                commands[(row+1)*columns+col+1].mode=BinkBlockMode::Covered;
+                col+=2;
+                continue;
+            }
+            if(cmd.mode==BinkBlockMode::Covered)
+                return reject(__LINE__);
+            cmd.mode=mode;
+            switch(mode) {
+            case BinkBlockMode::Skip:
+                break;
+            case BinkBlockMode::Motion:
+            case BinkBlockMode::Residue: {
+                // Both block modes use source X/Y motion prediction.
+                // Residue then adds a Bink bit-plane-coded spatial
+                // 8x8 correction to those previous-frame samples.
+                const auto mx=motion_x.take();
+                const auto my=motion_y.take();
+                if(!mx || !my)return reject(__LINE__);
+                cmd.motion_x=*mx;
+                cmd.motion_y=*my;
+                if(mode==BinkBlockMode::Residue) {
+                    const auto residue=decode_bink_residue_packet(bits);
+                    if(!residue)return reject(__LINE__);
+                    for(std::size_t n=0;n<64;++n)
+                        cmd.residuals[n]=std::bit_cast<std::int8_t>(
+                            static_cast<std::uint8_t>(
+                                residue->coefficients[n]));
+                }
+                break;
+            }
+            case BinkBlockMode::Intra:
+                if(!populate_pixels(mode))return reject(__LINE__);
+                break;
+            case BinkBlockMode::Inter: {
+                const auto mx=motion_x.take();
+                const auto my=motion_y.take();
+                const auto dc=inter_dc.take();
+                if(!mx || !my || !dc)return reject(__LINE__);
+                const auto dct=decode_bink_dct_coefficients(bits,*dc);
+                if(!dct)return reject(__LINE__);
+                const auto pixel_residuals=reconstruct_bink_dct_pixels(
+                    *dct,BinkDctQuantFamily::Inter);
+                if(!pixel_residuals)return reject(__LINE__);
+                if(dct->changed_count==0) {
+                    const auto dc_only=bink_zero_ac_idct_sample(
+                        *dc,dct->quant_selector);
+                    if(!dc_only || std::any_of(
+                        pixel_residuals->begin(),pixel_residuals->end(),
+                        [&](auto p){return p!=*dc_only;}))
+                        return reject(__LINE__);
+                }
+                cmd.motion_x=*mx;
+                cmd.motion_y=*my;
+                for(std::size_t i=0;i<64;++i)
+                    cmd.residuals[i]=std::bit_cast<std::int8_t>(
+                        (*pixel_residuals)[i]);
+                break;
+            }
+            case BinkBlockMode::Fill:
+            case BinkBlockMode::Pattern:
+            case BinkBlockMode::Run:
+            case BinkBlockMode::Raw:
+                if(!populate_pixels(mode))return reject(__LINE__);
+                break;
+            default:
+                // All currently recognized source-native modes above
+                // have explicit pixel reconstruction; reject the rest.
+                return reject(__LINE__);
+            }
+            ++col;
+        }
+    }
+    if(!bits.align(4))return reject(__LINE__);
+    auto output=compose_bink_mode_plane(width,height,commands,previous_luma);
+    if(!output)return reject(__LINE__);
+    result.image=std::move(*output);
+    result.source_refills={
+        types.refills,subtypes.refills,colors.refills,patterns.refills,
+        motion_x.refills,motion_y.refills,intra_dc.refills,
+        inter_dc.refills,runs.refills
+    };
+    result.next_plane_byte_offset=
+        prologue->initial_byte_offset+bits.bit_position()/8;
+    return result;
+}
+std::optional<BinkSimplePictureLuma> decode_bink_simple_picture_luma(
+    std::span<const std::uint8_t> video_packet,
+    std::size_t width,std::size_t height,
+    std::span<const std::uint8_t> previous_luma) {
+    const auto outer=parse_alpha_picture_entropy_prologue(video_packet);
+    if(!outer)return std::nullopt;
+    return decode_bink_picture_plane_at(
+        video_packet,outer->picture.initial_byte_offset,
+        width,height,previous_luma);
+}
+} // namespace btb::bink32_recovered
