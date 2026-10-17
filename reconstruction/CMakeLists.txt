@@ -966,6 +966,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_audio_inverse.cpp
     src/bink32_audio_stream.cpp
     src/bink32_audio_pcm.cpp
+    src/bink32_audio_movie.cpp
     src/bink32_residue.cpp
     src/bink32_dct_coefficients.cpp
     src/bink32_dct_pixels.cpp
@@ -1881,6 +1882,13 @@ add_executable(btb_bink32_audio_pcm_tests tests/bink32_audio_pcm_test.cpp)
 target_link_libraries(btb_bink32_audio_pcm_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_audio_pcm_tests PRIVATE)
 add_test(NAME bink32_audio_pcm16_format COMMAND btb_bink32_audio_pcm_tests)
+
+# Original BIK -> in-memory PCM and sample-accurate per-video-frame
+# timestamps, deliberately not connected to the game sound runtime yet.
+add_executable(btb_bink32_audio_movie_tests tests/bink32_audio_movie_test.cpp)
+target_link_libraries(btb_bink32_audio_movie_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_movie_tests PRIVATE)
+add_test(NAME bink32_audio_movie_timing COMMAND btb_bink32_audio_movie_tests)
 
 # Read-only retail BIK audio packet audit. Optionally exports experimental
 # interleaved F32 for external differential testing, never native playback.
