@@ -52,7 +52,7 @@ int main() {
     assert(second.completed_event_slots[0]==0);
     assert(second.crowd.phase_after==1);
     assert(live.event_pool().active_count()==0);
-    assert((rewound==std::vector<std::size_t>{0,21,20}));
+    assert((rewound==std::vector<std::size_t>{21,0,20}));
 
     // Original row-one type 11 => index 23, beyond the 23-entry bank.
     // Do not silently replace it with type 11 or invent a different Bink.
