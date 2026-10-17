@@ -1337,6 +1337,7 @@ if(WIN32)
         src/win32_native_silent_bink_provider.cpp
         src/win32_retail_bink_provider.cpp
         src/win32_hybrid_bink_provider.cpp
+        src/win32_native_bink_pcm_voice.cpp
         src/win32_original_game_device.cpp
         src/win32_original_platform_link.cpp
         src/win32_recompiled_host.cpp
