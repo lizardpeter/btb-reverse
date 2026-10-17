@@ -73,7 +73,7 @@ int main() {
     frame=session->decode(AudioPacket{0,double_packet});
     CHECK(frame&&frame->block_count==2);
     CHECK(frame->samples.size()==1&&frame->samples[0].size()==ready*2);
-    CHECK(frame->samples[0][0]!=0);
+    CHECK(frame->samples[0][100]!=0); // after the first overlap region
 
     // A multi-block packet fails atomically if block 2 is truncated.
     BitWriter invalid;
