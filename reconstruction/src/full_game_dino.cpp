@@ -277,6 +277,14 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
                 print.overlay_x,print.overlay_y,std::nullopt,true
             });
         }
+        if(print.draw_print_bar_before_print) {
+            // Original source draws the keyed 00508AD0 registered
+            // Data/ui/printbar.bmp over the certificate at (0,0)
+            // before exporting the actual DD7 backbuffer to PrintDlg.
+            out.draws.push_back({
+                "Data/ui/printbar.bmp",0,0,std::nullopt,true
+            });
+        }
         if(print.invoke_shared_print) {
             // Dino and Fireworks share the original 0x00409730 printer.
             // The pressed original sprite is rendered first, and the real
