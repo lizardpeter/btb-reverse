@@ -60,7 +60,7 @@ int main(int argc,char** argv) {
     if(argc!=3 && argc!=5) {
         std::fprintf(stderr,
             "Usage: %s original.bik zero_based_track_index"
-            " [--output-f32 candidate_audio.f32]\n"
+            " [--output-f32 candidate_audio.f32 | --output-s16le candidate_audio.pcm]\n"
             "Candidate PCM is experimental and not retail-verified.\n",
             argv[0]);
         return 2;
