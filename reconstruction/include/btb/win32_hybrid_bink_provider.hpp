@@ -13,8 +13,11 @@ namespace btb::full_game {
 class Win32HybridBinkProvider final : public OriginalBinkProvider {
 public:
     Win32HybridBinkProvider(Win32OriginalDirectDraw& renderer,
-                            std::filesystem::path root)
-        : native_(renderer),retail_(renderer,std::move(root)) {}
+                            Win32OriginalDirectSound& audio,
+                            std::filesystem::path root,
+                            bool experimental_audio=false)
+        : native_(renderer,audio,experimental_audio),
+          retail_(renderer,std::move(root)) {}
     [[nodiscard]] bool open_global(
         const std::filesystem::path& movie,
         std::string& error) override;
