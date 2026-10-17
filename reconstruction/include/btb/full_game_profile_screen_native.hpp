@@ -27,6 +27,10 @@ public:
         return blue_font_;
     }
     [[nodiscard]] std::span<const Rect>
+        brown_font_rectangles() const noexcept {
+        return brown_font_;
+    }
+    [[nodiscard]] std::span<const Rect>
         badge_rectangles() const noexcept override {
         return badges_;
     }
