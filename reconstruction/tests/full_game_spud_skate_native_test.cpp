@@ -185,6 +185,38 @@ int main() {
     assert(game.unload(error));
     assert(source->closes==1);
 
+    // A genuine decoder may report its terminal Bink frame on the
+    // SAME update that Spud Skate starts the managed result voices.
+    // The state transition must not preempt that just-submitted audio,
+    // even though the previous sound observation was idle.
+    auto short_end_movies=std::make_unique<DecodedFiveBinks>();
+    short_end_movies->real_decoded_frames={
+        {660,true,false,true}, // first source pass
+        {660,false,false,true}, // second source pass -> end.bik
+        {-1,false,true,false}, // actual final decoded frame
+        {-1,false,true,false}, // newly submitted voice is playing
+        {-1,false,true,false}  // managed voice now idle
+    };
+    fg::SpudSkateDriver quick_end(path,std::move(short_end_movies));
+    assert(quick_end.initialize(0,error));
+    frame=quick_end.advance({});
+    assert(!frame.fatal_error);
+    frame=quick_end.advance({});
+    assert(quick_end.phase()==skate::PlaybackPhase::EndMovie);
+    frame=quick_end.advance({});
+    assert(!frame.fatal_error);
+    assert(frame.progress_writes.size()==1);
+    assert(!frame.audio.empty());
+    assert(!frame.save_and_unload);
+    assert(quick_end.phase()==skate::PlaybackPhase::EndMovie);
+    frame=quick_end.advance({.managed_sound_playing=true});
+    assert(!frame.save_and_unload);
+    assert(frame.progress_writes.empty());
+    frame=quick_end.advance({});
+    assert(frame.save_and_unload);
+    assert(quick_end.phase()==skate::PlaybackPhase::Complete);
+    assert(quick_end.unload(error));
+
     // Original frame observation is authoritative. A missing or
     // unsynchronized Bink frame must fail, not advance source score.
     auto invalid=std::make_unique<DecodedFiveBinks>();
