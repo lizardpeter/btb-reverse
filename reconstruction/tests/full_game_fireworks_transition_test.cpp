@@ -152,6 +152,8 @@ int main() {
     assert(ready_bank.editor().internal_state==fw::InternalState::ShowSetup);
     const auto opening=ready_bank.advance({});
     assert(!opening.fatal_error);
+    assert(opening.audio.size()==1);
+    assert(opening.audio[0].operation==fg::AudioOperation::StopManagedSounds);
     assert(bank_opens==1);
     assert(original_bank_source==original);
     assert(ready_bank.editor().internal_state==fw::InternalState::ShowPlayback);
