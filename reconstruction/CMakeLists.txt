@@ -1891,6 +1891,12 @@ target_link_libraries(btb_bink32_audio_movie_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_audio_movie_tests PRIVATE)
 add_test(NAME bink32_audio_movie_timing COMMAND btb_bink32_audio_movie_tests)
 
+# Audio-master timebase resilience to DirectSound cursor jitter and EOS.
+add_executable(btb_bink32_audio_master_clock_tests tests/bink32_audio_master_clock_test.cpp)
+target_link_libraries(btb_bink32_audio_master_clock_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_master_clock_tests PRIVATE)
+add_test(NAME bink32_audio_master_clock COMMAND btb_bink32_audio_master_clock_tests)
+
 # Read-only retail BIK audio packet audit. Optionally exports experimental
 # interleaved F32 for external differential testing, never native playback.
 add_executable(btb_bink32_native_audio_audit tools/bink32_native_audio_audit.cpp)
