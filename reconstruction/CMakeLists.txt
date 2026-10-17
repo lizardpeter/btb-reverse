@@ -958,6 +958,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_simple_picture.cpp
     src/bink32_yuva_frame.cpp
     src/bink32_native_video_stream.cpp
+    src/bink32_surface_convert.cpp
     src/bink32_residue.cpp
     src/bink32_dct_coefficients.cpp
     src/bink32_dct_pixels.cpp
@@ -1324,6 +1325,7 @@ if(WIN32)
         src/win32_native_bitmap_registry.cpp
         src/win32_original_directsound.cpp
         src/win32_original_bink_exports.cpp
+        src/win32_native_bink_surface.cpp
         src/win32_original_game_device.cpp
         src/win32_original_platform_link.cpp
         src/win32_recompiled_host.cpp
@@ -1823,6 +1825,19 @@ add_test(NAME bink32_original_sjpi_yuva_frame COMMAND btb_bink32_yuva_frame_test
 add_executable(btb_bink32_retail_video_audit tools/bink32_retail_video_audit.cpp)
 target_link_libraries(btb_bink32_retail_video_audit PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_retail_video_audit PRIVATE)
+
+# DLL-free native movie frame -> packed RGB/DirectDraw presentation bridge.
+# Exercise odd chroma, alpha, row pitch and invalid-surface atomic rejection.
+add_executable(btb_bink32_surface_convert_tests tests/bink32_surface_convert_test.cpp)
+target_link_libraries(btb_bink32_surface_convert_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_surface_convert_tests PRIVATE)
+add_test(NAME bink32_native_surface_convert COMMAND btb_bink32_surface_convert_tests)
+
+# Dump a decoded retail BIK frame as a P6 image for visual review without
+# either binkw32.dll or FFmpeg at runtime. Original assets stay user-owned.
+add_executable(btb_bink32_native_frame_dump tools/bink32_native_frame_dump.cpp)
+target_link_libraries(btb_bink32_native_frame_dump PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_native_frame_dump PRIVATE)
 
 # Original Bink1 sparse signed residue bitplane reader.
 add_executable(btb_bink32_residue_tests tests/bink32_residue_test.cpp)
