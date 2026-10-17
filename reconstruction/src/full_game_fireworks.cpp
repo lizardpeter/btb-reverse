@@ -96,7 +96,6 @@ bool FireworksDriver::initialize(int player_index, std::string& error) {
         movie_bank_open_ = false;
         show_runtime_.reset();
         show_started_centiseconds_ = 0;
-        crowd_end_sound_started_ = false;
         error.clear();
         return true;
     } catch (const std::exception& ex) {
@@ -259,7 +258,6 @@ ActivityFrameOutput FireworksDriver::advance(
         movie_bank_open_=true;
         show_runtime_.reset();
         show_started_centiseconds_=input.elapsed_centiseconds;
-        crowd_end_sound_started_=false;
         editor_.internal_state=InternalState::ShowPlayback;
         return output;
     }
@@ -276,11 +274,10 @@ ActivityFrameOutput FireworksDriver::advance(
         physical.elapsed_ticks=static_cast<std::int32_t>(
             elapsed<0?0:elapsed>2147483647LL?2147483647LL:elapsed);
         physical.any_managed_sound_playing=input.managed_sound_playing;
-        // State-9 source first stops other voices and starts 349. With
-        // that exclusive voice in the native manager, its observed
-        // physical playback status is the source IsSoundIdPlaying gate.
+        // Physical per-ID status from recovered IsSoundIdPlaying(349),
+        // including the real DirectSound slot GetStatus observations.
         physical.crowd_end_sound_playing=
-            crowd_end_sound_started_ && input.managed_sound_playing;
+            input.fireworks_crowd_end_sound_playing;
         if(original_random_ && show_runtime_.crowd_phase()<3 &&
            !input.managed_sound_playing) {
             physical.random_chance_roll_0_to_9=
@@ -304,8 +301,6 @@ ActivityFrameOutput FireworksDriver::advance(
             append_sound(output,*decisions.sound_id,
                          decisions.sound_priority,
                          decisions.sound_arbitration_class);
-            if(*decisions.sound_id==fireworks::kCrowdEndSoundId)
-                crowd_end_sound_started_=true;
         }
         if(decisions.stop_all_for_certificate)
             output.audio.push_back({AudioOperation::StopManagedSounds});
