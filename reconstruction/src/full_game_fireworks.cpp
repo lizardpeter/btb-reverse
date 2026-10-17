@@ -92,6 +92,7 @@ bool FireworksDriver::initialize(int player_index, std::string& error) {
         editor_ = fireworks::EditorRuntimeState{};
         player_index_ = player_index;
         awaiting_delete_confirmation_ = false;
+        pre_show_movie_open_ = false;
         error.clear();
         return true;
     } catch (const std::exception& ex) {
@@ -197,9 +198,9 @@ ActivityFrameOutput FireworksDriver::advance(
             draw_original_editor();
             return output;
         }
-        if(!open_pre_show_movie_) {
+        if(!open_pre_show_movie_ || !cancel_pre_show_movie_) {
             output.fatal_error=
-                "original Fireworks pre-show Bink provider is unavailable";
+                "original Fireworks pre-show Bink open/close provider is unavailable";
             return output;
         }
         const auto movie=original_data_dir_.parent_path()/
@@ -210,6 +211,7 @@ ActivityFrameOutput FireworksDriver::advance(
                 ? "original fireworkcomplete.bik could not open" : error;
             return output;
         }
+        pre_show_movie_open_=true;
         editor_.internal_state=InternalState::PreShowMoviePlayback;
         // The native renderer clears the now-empty editor surface as retail
         // does before drawing the original Bink frames on later ticks.
@@ -222,6 +224,9 @@ ActivityFrameOutput FireworksDriver::advance(
             output.retain_original_global_movie_pixels=true;
             return output;
         }
+        // The original global Bink service has already BinkClosed on
+        // true EOS. No extra activity-owned close should affect a later movie.
+        pre_show_movie_open_=false;
         const auto finish=fireworks::pre_show_movie_completion_action();
         editor_.internal_state=finish.next_state;
         if(finish.stop_all_managed_sounds)
@@ -312,6 +317,17 @@ bool FireworksDriver::unload(std::string& error) {
         error.clear();
         return true;
     }
+    // Leaving during original state-15 playback must release its real
+    // x86 Bink handle. Otherwise the shared movie service would keep
+    // decoding over the next native menu after Fireworks was unloaded.
+    if (pre_show_movie_open_) {
+        if (!cancel_pre_show_movie_) {
+            error="cannot release active original Fireworks Bink decoder";
+            return false;
+        }
+        cancel_pre_show_movie_();
+        pre_show_movie_open_=false;
+    }
 
     std::error_code ec;
     std::filesystem::create_directories(save_dir_, ec);
@@ -345,6 +361,7 @@ bool FireworksDriver::unload(std::string& error) {
     editor_ = fireworks::EditorRuntimeState{};
     player_index_ = -1;
     awaiting_delete_confirmation_ = false;
+    pre_show_movie_open_=false;
     error.clear();
     return true;
 }
