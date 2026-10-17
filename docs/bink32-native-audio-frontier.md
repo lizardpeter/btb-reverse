@@ -1,53 +1,72 @@
-# Original 2002 Bink1 audio: native decoding frontier
+# Original Bink1 native audio — reconstruction and experimental playback
 
-This is **not yet a playable native audio decoder**. The original BTB
-Bink video path has independently verified YUV frame parity, but compressed
-audio, overlap/add, PCM conversion and DirectSound synchronization remain
-separate tasks. Do not mark the game DLL-free on account of this work.
+**Status:** The native SJPi Bink1 decoder reconstructs PCM16, but original
+retail BIK audio is **not yet certified**. Production gameplay continues
+to use the original x86 binkw32.dll for audio-bearing movies. Native
+silent-video playback works without that DLL.
 
-## Implemented in C++ (source-only, no external codecs)
+## Implemented
 
-- \`bink32_audio_packets\`: parse the 12-byte per-track descriptors
-  ([maximum uncompressed bytes, 16-bit sample rate plus 16-bit flags,
-  track identifier]); preserve DCT/RDFT, mono/stereo and output preference.
-  Distinguish zero-length track packets from a nonempty packet with a
-  declared uncompressed length prefix.
-- \`bink32_audio_spectrum\`: parse the compressed Bink1 (SJPi, **not** Bink
-  version 'b' or Bink Audio 2) spectral block into frequency-domain floats:
-  29-bit signed exponent/mantissa DC values, 8-bit quantizer selectors,
-  25 critical-frequency boundaries, 8 or extended RLE coefficient groups,
-  zero width groups, signed variable-width coefficients, and stereo DCT
-  versus interleaved RDFT topology. Return the exact bit cursor for a
-  caller to process a subsequent DWORD-aligned audio block.
-- Synthetic release/CI tests for low/middle/high sample rates, 2048-point
-  stereo DCT, 4096-point stereo RDFT, nonzero signed coefficients, zero
-  spectra, mismatched format and truncated bitstreams.
+- bink32_audio_packets: source track metadata, codec flags, bounds and
+  original per-frame length-prefixed audio.
+- bink32_audio_spectrum: compressed 29-bit signed DC floats, quantization
+  bands and variable-width/RLE signed AC coefficients.
+- bink32_audio_inverse: FFT-backed inverse DCT-III and inverse real DFT,
+  without an FFmpeg/FFTW runtime dependency.
+- bink32_audio_overlap: source 1/16-block overlap history and channel-aware
+  blending. Transactional packet rollback protects that history.
+- bink32_audio_stream: multiple compressed audio blocks per BIK video frame.
+- bink32_audio_pcm: deterministic, bounded PCM16 output, mono/stereo
+  interleaving, ties-to-even rounding, clipping and exact packet-byte checks.
+- bink32_audio_movie: read-only BIK-to-memory PCM reconstruction, maximum
+  64 MiB, with audio sample position indexed by original video frame.
+- win32_native_bink_pcm_voice: an actual DirectSound8 sample buffer, with
+  start/stop/seek and playback-cursor observation.
+- win32_native_silent_bink_provider: developer-only A/V path that uses
+  the actual DirectSound playback position as video master clock.
+  Full audio mode is not selected unless explicitly requested.
 
-Band derivation and compressed-format structure were cross-checked against
-independent open FFmpeg Bink audio format documentation:
-https://ffmpeg.org/doxygen/trunk/binkaudio_8c_source.html
+## Validated
+
+The previous Linux reconstruction CI run passed all 192/192 tests. All
+eight independent synthetic original-format SJPi Bink audio comparisons
+against FFmpeg passed, including loud and near-silent mono/stereo
+DCT/RDFT fixtures. Candidate native PCM16 differed from FFmpeg by at most
+one 16-bit sample level (seven of eight matched exactly). Peak candidate
+float deviation was 3.3e-6 on a louder stereo DCT fixture.
+
+This is **synthetic independent differential parity**, not evidence that
+all original 2002 retail movies are correct. The complete in-memory movie
+assembler, DirectSound8 voice and opt-in A/V integration need their
+latest Windows CI and actual retail playback verification.
+
+## Developer-only opt-in
+
+For a locally installed, unmodified original-game movie, set in
+PowerShell before launching the native original-game executable:
+
+    $env:BTB_EXPERIMENTAL_NATIVE_BINK_AUDIO = "1"
+
+By default, the hybrid provider continues to select the original
+binkw32.dll for files carrying compressed audio. The preview accepts
+exactly one decoded source audio track, the original 640x480 global
+video geometry, and a working game-owned DirectSound8 device. It neither
+silently drops extra tracks nor writes decoded media to disk. Unsupported
+movies fall back to the original x86 DLL when available. Instruction
+walkthroughs continue to use the separate original help WAV behavior.
+
+## Release blockers
+
+1. Verify packet coverage, output gain, timing and PCM from actual
+   unmodified retail BIKs against an independent reference.
+2. Exercise DirectSound8 playback and DirectDraw7 game video on real
+   Windows devices (x86 and x64), including final frames and long A/V drift.
+3. Measure in-memory buffer limits/startup latency and add backpressured
+   streaming for longer movies if needed.
+4. Reconcile the hundreds-of-commits-old decoder branch with modern
+   main without overwriting gameplay changes.
+5. Only then consider making native audio the default.
+
+Codec references: https://ffmpeg.org/doxygen/trunk/binkaudio_8c_source.html
 and https://www.ffmpeg.org/doxygen/7.1/wma__freqs_8c.html .
-These references are **not** native runtime dependencies. Native
-compressed-audio output has not been differentially certified against
-FFmpeg or the 2002 DLL.
-
-## What must be finished before audio can replace the original DLL
-
-1. Audit original track metadata and all compressed blocks in the retail
-   movies; verify quantization/bit cursor and count blocks when a frame
-   contains more than one compressed audio transform.
-2. Implement and validate inverse DCT and inverse real DFT with the
-   correct 2002 Bink1 normalization and channel conventions.
-3. Retain and mix the 1/16-block history across blocks and frame
-   boundaries. Handle empty packet frames without inventing PCM.
-4. Generate native PCM with exact sample count, gain and clipping,
-   and feed it to the actual DirectSound provider.
-5. Synchronize against the movie clock, seek and pause lifecycle;
-   certify original x86 and native x64 game playback against the
-   retail BIK assets with independent reference samples.
-
-\`Win32HybridBinkProvider\` keeps the real original-DLL path for
-audio-bearing files. Never substitute a silent video for a movie that has
-an audio track. Native video may be used directly only for explicitly
-audio-free files; x86 still requires the original user-supplied DLL for
-compressed-audio playback, and x64 must fail visibly for those movies.
+The game links neither reference decoder.
