@@ -94,6 +94,9 @@ bool FireworksDriver::initialize(int player_index, std::string& error) {
         awaiting_delete_confirmation_ = false;
         pre_show_movie_open_ = false;
         movie_bank_open_ = false;
+        show_runtime_.reset();
+        show_started_centiseconds_ = 0;
+        crowd_end_sound_started_ = false;
         error.clear();
         return true;
     } catch (const std::exception& ex) {
@@ -254,8 +257,63 @@ ActivityFrameOutput FireworksDriver::advance(
             return output;
         }
         movie_bank_open_=true;
+        show_runtime_.reset();
+        show_started_centiseconds_=input.elapsed_centiseconds;
+        crowd_end_sound_started_=false;
         editor_.internal_state=InternalState::ShowPlayback;
-        // Never invent show movie frames, audio, or certificate success.
+        return output;
+    }
+    if(state == InternalState::ShowPlayback) {
+        if(!movie_bank_open_ || !advance_show_frame_) {
+            output.fatal_error=
+                "Fireworks show lacks the original decoder/compositor";
+            return output;
+        }
+        fireworks::ShowFrameInput physical{};
+        const auto elapsed=static_cast<std::int64_t>(
+            input.elapsed_centiseconds)-
+            static_cast<std::int64_t>(show_started_centiseconds_);
+        physical.elapsed_ticks=static_cast<std::int32_t>(
+            elapsed<0?0:elapsed>2147483647LL?2147483647LL:elapsed);
+        physical.any_managed_sound_playing=input.managed_sound_playing;
+        // State-9 source first stops other voices and starts 349. With
+        // that exclusive voice in the native manager, its observed
+        // physical playback status is the source IsSoundIdPlaying gate.
+        physical.crowd_end_sound_playing=
+            crowd_end_sound_started_ && input.managed_sound_playing;
+        if(original_random_ && show_runtime_.crowd_phase()<3 &&
+           !input.managed_sound_playing) {
+            physical.random_chance_roll_0_to_9=
+                original_random_->next_rand()%10;
+            if(physical.random_chance_roll_0_to_9==0)
+                physical.random_variant_roll_0_to_24=
+                    original_random_->next_rand()%25;
+        }
+        fireworks::ShowFrameOutput decisions{};
+        std::string error;
+        if(!advance_show_frame_(
+                sequence_,show_runtime_,physical,decisions,error)) {
+            output.fatal_error=error.empty()
+                ? "original Fireworks Bink show frame could not decode"
+                : error;
+            return output;
+        }
+        if(decisions.stop_all_before_sound)
+            output.audio.push_back({AudioOperation::StopManagedSounds});
+        if(decisions.sound_id) {
+            append_sound(output,*decisions.sound_id,
+                         decisions.sound_priority,
+                         decisions.sound_arbitration_class);
+            if(*decisions.sound_id==fireworks::kCrowdEndSoundId)
+                crowd_end_sound_started_=true;
+        }
+        if(decisions.stop_all_for_certificate)
+            output.audio.push_back({AudioOperation::StopManagedSounds});
+        if(decisions.enter_certificate)
+            editor_.internal_state=InternalState::Certificate;
+        // Render_ordered clears the normal DD7 backbuffer; the native
+        // game device then blits exactly the queued decoded effect movies
+        // in original crowd/active/topmiddle source order.
         return output;
     }
     if(state != InternalState::Editor &&
@@ -389,6 +447,9 @@ bool FireworksDriver::unload(std::string& error) {
     awaiting_delete_confirmation_ = false;
     pre_show_movie_open_=false;
     movie_bank_open_=false;
+    show_runtime_.reset();
+    show_started_centiseconds_=0;
+    crowd_end_sound_started_=false;
     error.clear();
     return true;
 }
