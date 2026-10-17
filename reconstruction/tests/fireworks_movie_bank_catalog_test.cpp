@@ -6,6 +6,20 @@
 
 int main() {
     using namespace btb::fireworks;
+    static_assert(kOriginalFireworkReadCapacity==1500000);
+    static_assert(original_firework_surface_size(0).width==220);
+    static_assert(original_firework_surface_size(7).height==340);
+    static_assert(original_firework_surface_size(8).width==220);
+    static_assert(original_firework_surface_size(8).height==140);
+    static_assert(original_firework_surface_size(11).height==140);
+    static_assert(original_firework_surface_size(12).width==200);
+    static_assert(original_firework_surface_size(19).height==340);
+    static_assert(original_firework_surface_size(20).width==220);
+    static_assert(original_firework_surface_size(20).height==200);
+    static_assert(original_firework_surface_size(21).width==640);
+    static_assert(original_firework_surface_size(21).height==140);
+    static_assert(original_firework_surface_size(22).width==640);
+    static_assert(original_firework_surface_size(23).width==0);
     static_assert(kOriginalFireworkMovieCount==23);
     static_assert(kOriginalTopMiddleMovie==20);
     static_assert(kOriginalCrowdLoopMovie==21);
