@@ -421,10 +421,11 @@ The exact runtime order is now resolved. Action **27 / Play** is the only editor
 control that enters state 14. The Play-button path starts managed sound **880**
 and writes internal state **14**.
 
-State 14 calls `AnyManagedSoundPlaying`. If it returns 0, retail simply redraws
-the editor and remains in state 14. Once it returns 1, retail clears the
-display, disables input, opens `Data\\movies\\fireworkcomplete.bik`, and
-enters state **15**. Despite the filename, this movie is therefore on the
+State 14 calls `AnyManagedSoundPlaying`. If it returns **1**, retail redraws
+the editor and remains in state 14 while the Play voice is active. Once it
+returns **0**, retail clears the display, disables input, opens
+`Data\\movies\\fireworkcomplete.bik`, and enters state **15**. The recovered
+`UpdateFireworksActivity` PE32 at `0x00413F10` confirms this polarity. Despite the filename, this movie is therefore on the
 **pre-show transition path**, not after the authored fireworks.
 
 State 15 runs the shared Bink player. When `fireworkcomplete.bik` finishes,
