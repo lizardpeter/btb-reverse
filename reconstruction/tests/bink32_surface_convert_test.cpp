@@ -1,5 +1,7 @@
 #include "btb/bink32_surface_convert.hpp"
+#include <algorithm>
 #include <array>
+#include <span>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
