@@ -178,6 +178,8 @@ int main() {
             ++source_show_calls;
             observed_elapsed=in.elapsed_ticks;
             assert(in.random_chance_roll_0_to_9==-1);
+            if(source_show_calls==2)
+                assert(in.crowd_end_sound_playing);
             result={};
             if(source_show_calls==1) {
                 result.stop_all_before_sound=true;
@@ -203,7 +205,8 @@ int main() {
     assert(playing.audio[1].sound_id==fw::kCrowdEndSoundId);
     assert(shows.editor().internal_state==fw::InternalState::ShowPlayback);
     assert(!shows.advance({
-        .elapsed_centiseconds=461,.managed_sound_playing=true}).fatal_error);
+        .elapsed_centiseconds=461,.managed_sound_playing=true,
+        .fireworks_crowd_end_sound_playing=true}).fatal_error);
     assert(source_show_calls==2);
     assert(observed_elapsed==21);
     assert(shows.unload(error));
