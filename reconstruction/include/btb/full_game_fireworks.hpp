@@ -1,6 +1,7 @@
 #pragma once
 
 #include "btb/fireworks_editor.hpp"
+#include "btb/fireworks_certificate.hpp"
 #include "btb/fireworks_layout.hpp"
 #include "btb/fireworks_sequence.hpp"
 #include "btb/full_game_runtime.hpp"
@@ -9,6 +10,7 @@
 #include <filesystem>
 #include <functional>
 #include <optional>
+#include <span>
 #include <string>
 #include <utility>
 
@@ -40,6 +42,11 @@ public:
         const fireworks::Sequence&,fireworks::RetailShowRuntime&,
         fireworks::ShowFrameInput,fireworks::ShowFrameOutput&,
         std::string&)>;
+    // Reads the active *original* profile metadata and font rectangles.
+    // The native profile screen owns these original retail font coordinates.
+    using CertificateProfile = std::function<bool(
+        int,profiles::ProfileInfo&,std::span<const Rect>&,
+        std::string&)>;
 
     FireworksDriver(std::filesystem::path original_data_dir,
                     std::filesystem::path save_dir,
@@ -48,7 +55,8 @@ public:
                     OpenMovieBank open_movie_bank = {},
                     CloseMovieBank close_movie_bank = {},
                     AdvanceShowFrame advance_show_frame = {},
-                    retail::OriginalRetailRandom* original_random = nullptr)
+                    retail::OriginalRetailRandom* original_random = nullptr,
+                    CertificateProfile certificate_profile = {})
         : original_data_dir_(std::move(original_data_dir)),
           save_dir_(std::move(save_dir)),
           open_pre_show_movie_(std::move(open_pre_show_movie)),
@@ -56,7 +64,8 @@ public:
           open_movie_bank_(std::move(open_movie_bank)),
           close_movie_bank_(std::move(close_movie_bank)),
           advance_show_frame_(std::move(advance_show_frame)),
-          original_random_(original_random) {}
+          original_random_(original_random),
+          certificate_profile_(std::move(certificate_profile)) {}
 
     [[nodiscard]] bool initialize(
         int player_index, std::string& error) override;
@@ -97,6 +106,8 @@ private:
     retail::OriginalRetailRandom* original_random_{};
     fireworks::RetailShowRuntime show_runtime_{};
     std::int32_t show_started_centiseconds_{};
+    CertificateProfile certificate_profile_{};
+    fireworks::CertificateInteractionState certificate_state_{};
 
 };
 
