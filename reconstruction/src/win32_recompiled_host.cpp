@@ -1,6 +1,7 @@
 #include "btb/win32_recompiled_host.hpp"
 #if defined(_WIN32)
 #include "btb/win32_original_game_device.hpp"
+#include "btb/win32_native_silent_bink_provider.hpp"
 #include "btb/full_game_front_end.hpp"
 #include "btb/full_game_golf.hpp"
 #include "btb/full_game_fireworks.hpp"
@@ -33,36 +34,14 @@ namespace btb::full_game {
 namespace {
 namespace fs=std::filesystem;
 
-// No original movie handle is opened. Nonmovie activity frames can run,
-// but a Bink request is a hard failure. Never signal a movie as "finished"
-// without decoding its actual frames.
-class MissingOriginalBinkDecoder final : public OriginalBinkProvider {
-public:
-    bool service(bool& finished,std::string& error) override {
-        finished=false;error.clear();return true; // no movie is active
-    }
-    bool open_global(const fs::path&,std::string& error) override {
-        error="original 32-bit Bink movie decoder is not connected";return false;
-    }
-    bool open_walkthrough(const fs::path&,const fs::path&,
-                          std::string& error) override {
-        error="original Bink walkthrough decoder is not connected";return false;
-    }
-    bool close_walkthrough(std::string& error) override {
-        error="no original Bink walkthrough decoder was opened";return false;
-    }
-    bool render_walkthrough_overlay(std::string& error) override {
-        // All attempted walkthrough opens fail above, so no overlay exists.
-        error.clear();return true;
-    }
-};
+// Native SJPi Bink video for source movies with no compressed audio.
 
 struct Host {
     HWND window{};
     fs::path root{};
     Win32OriginalDirectDraw graphics{};
     Win32OriginalDirectSound audio{};
-    MissingOriginalBinkDecoder movies{};
+    Win32NativeSilentBinkProvider movies{graphics};
     std::unique_ptr<Win32OriginalGameDevice> device{};
     GameRoot game{};
     std::unique_ptr<NativeGameSession> session{};
