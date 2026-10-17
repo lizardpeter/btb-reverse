@@ -33,8 +33,7 @@ void Win32NativeSilentBinkProvider::reset_global() noexcept {
     global_.reset();
     voice_.reset();
     voice_started_=false;
-    voice_rate_=0;
-    voice_end_wall_us_=voice_end_sample_us_=0;
+    audio_clock_.reset();
 }
 
 bool Win32NativeSilentBinkProvider::open_global(
@@ -77,7 +76,7 @@ bool Win32NativeSilentBinkProvider::open_global(
         auto sound=std::make_unique<Win32NativeBinkPcmVoice>(
             audio_.device_for_native_bink_pcm());
         if(!sound->load(*audio,error))return false;
-        voice_rate_=audio->sample_rate;
+        audio_clock_.emplace(audio->sample_rate,audio->sample_frames());
         voice_=std::move(sound);
         opened=std::move(candidate);
     }
@@ -113,20 +112,18 @@ bool Win32NativeSilentBinkProvider::service(
         auto position=voice_->observe(error);
         if(!position)return false;
         audio_finished=position->complete;
-        const auto samples=position->decoded_sample_frame;
-        const std::uint64_t audio_pts=
-            (samples/voice_rate_)*1'000'000ULL+
-            ((samples%voice_rate_)*1'000'000ULL)/voice_rate_;
-        if(audio_finished) {
-            if(!voice_end_wall_us_) {
-                voice_end_wall_us_=timestamp;
-                voice_end_sample_us_=audio_pts;
-            }
-            timestamp=voice_end_sample_us_+
-                      (timestamp-voice_end_wall_us_);
-        } else {
-            timestamp=audio_pts;
+        if(!audio_clock_) {
+            error="experimental native Bink audio clock was not initialized";
+            return false;
         }
+        const auto master=audio_clock_->observe(
+            timestamp,position->decoded_sample_frame,
+            position->complete);
+        if(!master) {
+            error="experimental native Bink audio playback timebase invalid";
+            return false;
+        }
+        timestamp=*master;
     }
     bool video_finished=false;
     const bool ok=global_->service(
