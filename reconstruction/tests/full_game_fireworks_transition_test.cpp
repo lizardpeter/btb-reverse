@@ -205,7 +205,7 @@ int main() {
     assert(playing.audio[1].sound_id==fw::kCrowdEndSoundId);
     assert(shows.editor().internal_state==fw::InternalState::ShowPlayback);
     assert(!shows.advance({
-        .elapsed_centiseconds=461,.managed_sound_playing=true,
+        .managed_sound_playing=true,.elapsed_centiseconds=461,
         .fireworks_crowd_end_sound_playing=true}).fatal_error);
     assert(source_show_calls==2);
     assert(observed_elapsed==21);
