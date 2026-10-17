@@ -1376,6 +1376,14 @@ foreach(test_target IN ITEMS btb_profile_name_entry_tests
     endif()
 endforeach()
 
+add_executable(btb_full_game_fireworks_transition_tests
+    tests/full_game_fireworks_transition_test.cpp)
+target_link_libraries(btb_full_game_fireworks_transition_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_full_game_fireworks_transition_tests PRIVATE)
+add_test(NAME full_game_fireworks_transition
+    COMMAND btb_full_game_fireworks_transition_tests)
+
 add_executable(btb_full_game_spud_skate_native_tests
     tests/full_game_spud_skate_native_test.cpp)
 target_link_libraries(btb_full_game_spud_skate_native_tests PRIVATE
