@@ -265,10 +265,55 @@ bool Win32RetailFireworksMovieBank::blit_frame(
         static_cast<int>(height_[index]),x,y,error);
 }
 
+void Win32RetailFireworksMovieBank::release_queued_show() noexcept {
+    for(auto& cue:queued_show_blits_) {
+        if(cue.frozen_pixels)cue.frozen_pixels->Release();
+        cue.frozen_pixels=nullptr;
+    }
+    queued_show_blits_.clear();
+}
+
+void Win32RetailFireworksMovieBank::begin_show_frame() noexcept {
+    release_queued_show();
+}
+
+bool Win32RetailFireworksMovieBank::freeze_prior_uses(
+    std::size_t index,std::string& error) {
+
+    if(index>=surfaces_.size()||!surfaces_[index]) {
+        error="source Fireworks clip has no DD7 decoder surface";
+        return false;
+    }
+    for(auto& cue:queued_show_blits_) {
+        if(cue.index!=index || cue.frozen_pixels)continue;
+        IDirectDrawSurface7* snapshot=nullptr;
+        if(!draw_.create_bink_offscreen_surface(
+               static_cast<int>(width_[index]),
+               static_cast<int>(height_[index]),snapshot,error))
+            return false;
+        const RECT source{0,0,
+            static_cast<LONG>(width_[index]),
+            static_cast<LONG>(height_[index])};
+        const auto hr=snapshot->BltFast(
+            0,0,surfaces_[index],&source,DDBLTFAST_WAIT);
+        if(FAILED(hr)) {
+            snapshot->Release();
+            error="original Fireworks duplicate-stream DD7 snapshot failed";
+            return false;
+        }
+        cue.frozen_pixels=snapshot;
+    }
+    error.clear();return true;
+}
+
 bool Win32RetailFireworksMovieBank::decode_and_queue(
     std::size_t index,int x,int y,bool& finished,
     std::string& error) {
 
+    // DecodeAndBlitBinkFrame presents immediately in the original game.
+    // This host presents after GameRoot dispatch. Freeze any earlier cue
+    // referring to this stream BEFORE its next BinkDoFrame replaces pixels.
+    if(!freeze_prior_uses(index,error))return false;
     if(!decode_frame(index,finished,error))return false;
     // Queue also on the decoder's following-physical-tick EOS, because
     // the original final image must be visible BEFORE BinkGoto rewinds.
@@ -296,7 +341,7 @@ bool Win32RetailFireworksMovieBank::blit_queued_show(
         // BinkGoto has since rewound the decoder, its last copied DD7 pixels
         // remain valid for this single present.
         if(!draw_.blit_bink_offscreen_surface(
-               surfaces_[cue.index],
+               cue.frozen_pixels ? cue.frozen_pixels : surfaces_[cue.index],
                static_cast<int>(width_[cue.index]),
                static_cast<int>(height_[cue.index]),
                cue.x,cue.y,error))return false;
@@ -319,7 +364,7 @@ bool Win32RetailFireworksMovieBank::close(std::string& error) {
     // Decoder handles must close BEFORE freeing their source memory.
     for(auto& bytes:bytes_)
         std::vector<std::uint8_t>{}.swap(bytes);
-    queued_show_blits_.clear();
+    release_queued_show();
     has_frame_.fill(false);
     final_frame_copied_.fill(false);
     width_.fill(0);
