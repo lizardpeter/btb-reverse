@@ -959,6 +959,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_yuva_frame.cpp
     src/bink32_native_video_stream.cpp
     src/bink32_surface_convert.cpp
+    src/bink32_native_movie_player.cpp
     src/bink32_residue.cpp
     src/bink32_dct_coefficients.cpp
     src/bink32_dct_pixels.cpp
