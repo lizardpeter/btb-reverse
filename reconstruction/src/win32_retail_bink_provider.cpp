@@ -1,4 +1,5 @@
 #include "btb/win32_retail_bink_provider.hpp"
+#include "btb/bink_system.hpp"
 
 #if defined(_WIN32)
 #include <cstdint>
@@ -58,6 +59,7 @@ Win32RetailBinkProvider::~Win32RetailBinkProvider() {
     close_global();
 }
 void Win32RetailBinkProvider::close_global() noexcept {
+    global_terminal_frame_copied_=false;
 #if !defined(_WIN64)
     if(global_) {
         if(auto close=require_export<BinkCloseFn>(
@@ -152,6 +154,15 @@ bool Win32RetailBinkProvider::service(
     error.clear();return true; // No movie can open via x86 DLL.
 #else
     if(!global_) {error.clear();return true;}
+    // Last tick's final decoded pixels have now survived one complete
+    // native frame submission/presentation opportunity. The movie may
+    // transition without erasing an unseen terminal image.
+    if(global_terminal_frame_copied_) {
+        close_global();
+        global_finished=true;
+        error.clear();
+        return true;
+    }
     auto* surface=renderer_.bink_render_target();
     if(!surface) {
         error="Bink render target was destroyed while movie active";
@@ -166,6 +177,13 @@ bool Win32RetailBinkProvider::service(
     const auto next=require_export<BinkNextFn>(exports_,"BinkNextFrame");
     if(!wait||!decode||!copy||!format||!next) {
         error="original Bink frame API is incomplete";
+        return false;
+    }
+    const auto& current=*static_cast<OriginalBink32Header*>(global_);
+    const auto decision=bink::global_host_frame_decision(
+        current.frame_num,current.frames,global_terminal_frame_copied_);
+    if(!decision.decode) {
+        error="original Bink global frame header out of range";
         return false;
     }
     // BinkWait=nonzero means the frame is not yet due. Retain
@@ -196,13 +214,14 @@ bool Win32RetailBinkProvider::service(
     }
     // Source 0x4090D0 checks the observed HBINK frame header
     // before advancing. Never infer EOS from elapsed wall time.
-    const auto& header=*static_cast<OriginalBink32Header*>(global_);
-    if(header.frame_num>=header.frames) {
-        close_global();
-        global_finished=true;
-    } else {
+    // Original 0x4090D0 checks the HBINK header AFTER decoding/copying.
+    // Our NativeGameSession observes this movie BEFORE it draws/presents,
+    // so keep that last image alive across this tick. A following service()
+    // can then notify GameRoot without losing the original terminal frame.
+    if(decision.terminal_frame_copied)
+        global_terminal_frame_copied_=true;
+    else if(decision.advance)
         next(global_);
-    }
     error.clear();return true;
 #endif
 }

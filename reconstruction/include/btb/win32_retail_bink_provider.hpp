@@ -52,6 +52,9 @@ private:
     std::filesystem::path root_;
     Win32OriginalBinkExports exports_{};
     void* global_{};
+    // Tracks actual BinkDoFrame + DirectDraw pixel copy, not just HBINK
+    // reaching Frames. Completion is returned on the next host tick.
+    bool global_terminal_frame_copied_{};
     // Original 0x4281D0 owns the Bink movie's memory until close,
     // a separate 282x179 DD7 surface, and a looping Bink handle.
     std::vector<std::uint8_t> walkthrough_bytes_{};
