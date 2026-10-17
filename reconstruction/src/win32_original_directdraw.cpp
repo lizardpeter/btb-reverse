@@ -321,6 +321,58 @@ bool Win32OriginalDirectDraw::restore_for_frame(std::string& error) {
     return initialized() && restore_lost_surfaces(error);
 }
 
+bool Win32OriginalDirectDraw::create_bink_offscreen_surface(
+    int width,int height,IDirectDrawSurface7*& output,
+    std::string& error) {
+    output=nullptr;
+    if(!initialized()||width<1||height<1||
+       width>640||height>480) {
+        error="cannot allocate original Bink movie surface without live DD7";
+        return false;
+    }
+    DDSURFACEDESC2 desc{};
+    desc.dwSize=sizeof(desc);
+    desc.dwFlags=DDSD_CAPS|DDSD_WIDTH|DDSD_HEIGHT;
+    desc.ddsCaps.dwCaps=DDSCAPS_OFFSCREENPLAIN|DDSCAPS_SYSTEMMEMORY;
+    desc.dwWidth=static_cast<DWORD>(width);
+    desc.dwHeight=static_cast<DWORD>(height);
+    const auto hr=draw_->CreateSurface(&desc,&output,nullptr);
+    if(FAILED(hr)||!output) {
+        output=nullptr;
+        error=hresult_description("original DD7 Bink offscreen",hr);
+        return false;
+    }
+    error.clear();
+    return true;
+}
+
+bool Win32OriginalDirectDraw::blit_bink_offscreen_surface(
+    IDirectDrawSurface7* source,int width,int height,
+    int x,int y,std::string& error) {
+    if(!initialized()||!source||
+       width<1||height<1||x<0||y<0||
+       x+width>display::kRetailWidth||
+       y+height>display::kRetailHeight) {
+        error="original Bink source surface or viewport invalid";
+        return false;
+    }
+    RECT rect{0,0,width,height};
+    auto hr=backbuffer_->BltFast(
+        static_cast<DWORD>(x),static_cast<DWORD>(y),
+        source,&rect,DDBLTFAST_WAIT);
+    if(hr==DDERR_SURFACELOST) {
+        surface_lost_during_draw_=true;
+        error="original Bink offscreen source or backbuffer lost";
+        return false;
+    }
+    if(FAILED(hr)) {
+        error=hresult_description("original Bink DD7 viewport blit",hr);
+        return false;
+    }
+    error.clear();return true;
+}
+
+
 bool Win32OriginalDirectDraw::present(std::string& error) {
     if (!initialized()) {
         error="cannot present before original display initialization";
