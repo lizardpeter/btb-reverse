@@ -194,9 +194,10 @@ ActivityFrameOutput FireworksDriver::advance(
             if(tick.sound_id)append_sound(output,*tick.sound_id);
     };
 
-    // Retail state 14 waits until the just-requested managed Play voice
-    // has started. Only then does it open the original disk Bink and
-    // advance to state 15; no elapsed-time or synthetic EOS shortcut.
+    // Retail state 14 redraws while any managed voice (including Play 880)
+    // is still active. Only once the real DirectSound observation goes idle
+    // does it open the original disk Bink and advance to state 15.
+    // No clock, inferred audio status, or synthetic EOS shortcut.
     if(state == InternalState::PreShowMovieSetup) {
         if(!fireworks::should_open_pre_show_movie(
                 input.managed_sound_playing)) {
