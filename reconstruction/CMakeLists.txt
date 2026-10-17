@@ -1809,3 +1809,272 @@ if(MSVC)
 else()
  target_compile_options(btb_original_last2_tests PRIVATE -UNDEBUG)
 endif()
+
+# Portable native Bink1 codec and test suite, kept isolated from current
+# production Windows Bink game-host playback to avoid regressions.
+add_library(btb_bink32_recovered STATIC
+    src/bink32_recovered.cpp
+    src/bink32_container.cpp
+    src/bink32_playback.cpp
+    src/bink32_packet_decode.cpp
+    src/bink32_fixed_huffman.cpp
+    src/bink32_dynamic_huffman.cpp
+    src/bink32_entropy_commands.cpp
+    src/bink32_signed_coefficients.cpp
+    src/bink32_pixel_reconstruction.cpp
+    src/bink32_inverse_transform.cpp
+    src/bink32_full_idct.cpp
+    src/bink32_original_quant.cpp
+    src/bink32_ac_nonzero.cpp
+    src/bink32_ac_group4.cpp
+    src/bink32_ac_command_pass.cpp
+    src/bink32_ac_unit_pass.cpp
+    src/bink32_ac_outer_levels.cpp
+    src/bink32_ac_block_pixels.cpp
+    src/bink32_dc_stream.cpp
+    src/bink32_block_modes.cpp
+    src/bink32_video_planes.cpp
+    src/bink32_simple_picture.cpp
+    src/bink32_yuva_frame.cpp
+    src/bink32_native_video_stream.cpp
+    src/bink32_surface_convert.cpp
+    src/bink32_native_movie_player.cpp
+    src/bink32_audio_packets.cpp
+    src/bink32_audio_spectrum.cpp
+    src/bink32_audio_overlap.cpp
+    src/bink32_audio_inverse.cpp
+    src/bink32_audio_stream.cpp
+    src/bink32_audio_pcm.cpp
+    src/bink32_audio_movie.cpp
+    src/bink32_residue.cpp
+    src/bink32_dct_coefficients.cpp
+    src/bink32_dct_pixels.cpp
+)
+target_include_directories(btb_bink32_recovered PUBLIC include)
+btb_require_cpp26(btb_bink32_recovered PUBLIC)
+
+add_executable(btb_bink32_recovered_tests tests/bink32_recovered_test.cpp)
+target_link_libraries(btb_bink32_recovered_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_recovered_tests PRIVATE)
+add_test(NAME bink32_recovered_export_source COMMAND btb_bink32_recovered_tests)
+add_executable(btb_bink32_container_tests tests/bink32_container_test.cpp)
+target_link_libraries(btb_bink32_container_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_container_tests PRIVATE)
+add_test(NAME bink32_native_container_index COMMAND btb_bink32_container_tests)
+add_executable(btb_bink32_playback_tests tests/bink32_playback_test.cpp)
+target_link_libraries(btb_bink32_playback_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_playback_tests PRIVATE)
+add_test(NAME bink32_native_pause_and_seek COMMAND btb_bink32_playback_tests)
+# Source-derived real BinkDoFrame frame demultiplexer + entropy bitstream.
+add_executable(btb_bink32_packet_decode_tests tests/bink32_packet_decode_test.cpp)
+target_link_libraries(btb_bink32_packet_decode_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_packet_decode_tests PRIVATE)
+add_test(NAME bink32_source_frame_packets COMMAND btb_bink32_packet_decode_tests)
+add_executable(btb_bink32_fixed_huffman_tests tests/bink32_fixed_huffman_test.cpp)
+target_link_libraries(btb_bink32_fixed_huffman_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_fixed_huffman_tests PRIVATE)
+add_test(NAME bink32_original_fixed_huffman COMMAND btb_bink32_fixed_huffman_tests)
+# Original 3000FCB0 tree construction and 300100E0 merge helper.
+add_executable(btb_bink32_dynamic_huffman_tests tests/bink32_dynamic_huffman_test.cpp)
+target_link_libraries(btb_bink32_dynamic_huffman_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_dynamic_huffman_tests PRIVATE)
+add_test(NAME bink32_original_dynamic_huffman COMMAND btb_bink32_dynamic_huffman_tests)
+add_executable(btb_bink32_entropy_commands_tests tests/bink32_entropy_commands_test.cpp)
+target_link_libraries(btb_bink32_entropy_commands_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_entropy_commands_tests PRIVATE)
+add_test(NAME bink32_original_value_run_commands COMMAND btb_bink32_entropy_commands_tests)
+# Original Bink internal 0x30010980 signed-magnitude coefficient reader.
+add_executable(btb_bink32_signed_coefficients_tests tests/bink32_signed_coefficients_test.cpp)
+target_link_libraries(btb_bink32_signed_coefficients_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_signed_coefficients_tests PRIVATE)
+add_test(NAME bink32_original_signed_coefficients COMMAND btb_bink32_signed_coefficients_tests)
+# Source-derived output pixels: Bink 2002 0x30012940 residual + reference
+# frame, with 8x8 strides and true mod-256 arithmetic.
+add_executable(btb_bink32_pixel_reconstruction_tests tests/bink32_pixel_reconstruction_test.cpp)
+target_link_libraries(btb_bink32_pixel_reconstruction_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_pixel_reconstruction_tests PRIVATE)
+add_test(NAME bink32_original_pixel_residual COMMAND btb_bink32_pixel_reconstruction_tests)
+# Bink32 original 0x300113CE partial 8x8 IDCT (DC-only column fast path).
+add_executable(btb_bink32_inverse_transform_tests tests/bink32_inverse_transform_test.cpp)
+target_link_libraries(btb_bink32_inverse_transform_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_inverse_transform_tests PRIVATE)
+add_test(NAME bink32_original_idct_dc_only COMMAND btb_bink32_inverse_transform_tests)
+# Complete source-derived Bink x86 two-pass inverse transform at
+# 0x30011350..0x30011715, 8x8 coeffs -> doubled 16x16 pixels.
+add_executable(btb_bink32_full_idct_tests tests/bink32_full_idct_test.cpp)
+target_link_libraries(btb_bink32_full_idct_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_full_idct_tests PRIVATE)
+add_test(NAME bink32_original_general_idct COMMAND btb_bink32_full_idct_tests)
+# Full 16 original DLL quant tables -> native integer inverse transform.
+add_executable(btb_bink32_original_quant_tests tests/bink32_original_quant_test.cpp)
+target_link_libraries(btb_bink32_original_quant_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_original_quant_tests PRIVATE)
+add_test(NAME bink32_original_quant_to_idct COMMAND btb_bink32_original_quant_tests)
+# Original 0x30011C4B jump table cases 1 and 3 (signed AC coefficients).
+add_executable(btb_bink32_ac_nonzero_tests tests/bink32_ac_nonzero_test.cpp)
+target_link_libraries(btb_bink32_ac_nonzero_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_ac_nonzero_tests PRIVATE)
+add_test(NAME bink32_original_nonzero_AC_branches COMMAND btb_bink32_ac_nonzero_tests)
+add_executable(btb_bink32_ac_group4_tests tests/bink32_ac_group4_test.cpp)
+target_link_libraries(btb_bink32_ac_group4_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_ac_group4_tests PRIVATE)
+add_test(NAME bink32_original_AC_group4 COMMAND btb_bink32_ac_group4_tests)
+# Deterministic 50k-input malformed bitstream rollback and cursor invariants.
+add_executable(btb_bink32_ac_group4_fuzz_tests tests/bink32_ac_group4_fuzz_test.cpp)
+target_link_libraries(btb_bink32_ac_group4_fuzz_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_ac_group4_fuzz_tests PRIVATE)
+add_test(NAME bink32_original_AC_50k_invariants COMMAND btb_bink32_ac_group4_fuzz_tests)
+# Actual 0x30011BF0..0x3001202A mutable pending command stack
+# within ONE 2002 Bink coefficient magnitude-class pass.
+add_executable(btb_bink32_ac_command_pass_tests tests/bink32_ac_command_pass_test.cpp)
+target_link_libraries(btb_bink32_ac_command_pass_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_ac_command_pass_tests PRIVATE)
+add_test(NAME bink32_original_AC_mutable_pass COMMAND btb_bink32_ac_command_pass_tests)
+# Original Bink second AC phase 0x30012030..0x300122E7, +/-1
+# coefficient output and shared mutable pending command pointers.
+add_executable(btb_bink32_ac_unit_pass_tests tests/bink32_ac_unit_pass_test.cpp)
+target_link_libraries(btb_bink32_ac_unit_pass_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_ac_unit_pass_tests PRIVATE)
+add_test(NAME bink32_original_AC_unit_pass COMMAND btb_bink32_ac_unit_pass_tests)
+# Real Bink 0x30011B10 outer mode scheduler for source-supported
+# all 16 four-bit modes (0..15) with verified x86 read widths and final +/-1 pass.
+add_executable(btb_bink32_ac_outer_levels_tests tests/bink32_ac_outer_levels_test.cpp)
+target_link_libraries(btb_bink32_ac_outer_levels_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_ac_outer_levels_tests PRIVATE)
+add_test(NAME bink32_original_AC_outer_levels COMMAND btb_bink32_ac_outer_levels_tests)
+# End-to-end subset: original AC mode 0..15 and pending-command passes
+# -> all 16 original quant matrices -> integer iDCT -> 16x16 pixels.
+add_executable(btb_bink32_ac_block_pixels_tests tests/bink32_ac_block_pixels_test.cpp)
+target_link_libraries(btb_bink32_ac_block_pixels_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_ac_block_pixels_tests PRIVATE)
+add_test(NAME bink32_original_all_modes_to_pixels COMMAND btb_bink32_ac_block_pixels_tests)
+# DC words produced by original 0x30010BF0 are handed off at
+# original 0x3000F087 before the AC decoder. This test exercises
+# real signed DC cursor semantics through all-mode AC and iDCT.
+add_executable(btb_bink32_dc_stream_tests tests/bink32_dc_stream_test.cpp)
+target_link_libraries(btb_bink32_dc_stream_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_dc_stream_tests PRIVATE)
+add_test(NAME bink32_original_DC_AC_quant_pixels COMMAND btb_bink32_dc_stream_tests)
+
+add_executable(btb_bink32_block_modes_tests tests/bink32_block_modes_test.cpp)
+target_link_libraries(btb_bink32_block_modes_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_block_modes_tests PRIVATE)
+add_test(NAME bink32_block_modes_pixels COMMAND btb_bink32_block_modes_tests)
+
+# Stateful original Bink per-plane compositor: Y/U/V decode is atomic,
+# reference-frame history resets on keyframes and rejects malformed motion.
+add_executable(btb_bink32_video_planes_tests tests/bink32_video_planes_test.cpp)
+target_link_libraries(btb_bink32_video_planes_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_video_planes_tests PRIVATE)
+add_test(NAME bink32_video_planes_history COMMAND btb_bink32_video_planes_tests)
+
+# Native Bink source-ordered nine-bundle row scheduler, supporting
+# original compressed Skip/Motion/Fill/Pattern/Raw luma subset.
+add_executable(btb_bink32_simple_picture_tests tests/bink32_simple_picture_test.cpp)
+target_link_libraries(btb_bink32_simple_picture_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_simple_picture_tests PRIVATE)
+add_test(NAME bink32_compressed_simple_picture_luma COMMAND btb_bink32_simple_picture_tests)
+
+# Native SJPi original compressed frame assembly in A/Y/V/U order,
+# decoded canonical Y/U/V/A, preserving complete reference history.
+add_executable(btb_bink32_yuva_frame_tests tests/bink32_yuva_frame_test.cpp)
+target_link_libraries(btb_bink32_yuva_frame_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_yuva_frame_tests PRIVATE)
+add_test(NAME bink32_original_sjpi_yuva_frame COMMAND btb_bink32_yuva_frame_tests)
+
+# Native retail SJPi movie parity audit. Reads supplied original BIK
+# and optionally independent raw yuva420p reference frames; no RAD
+# DLL, FFmpeg binary or proprietary assets required to build.
+add_executable(btb_bink32_retail_video_audit tools/bink32_retail_video_audit.cpp)
+target_link_libraries(btb_bink32_retail_video_audit PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_retail_video_audit PRIVATE)
+
+# DLL-free native movie frame -> packed RGB/DirectDraw presentation bridge.
+# Exercise odd chroma, alpha, row pitch and invalid-surface atomic rejection.
+add_executable(btb_bink32_surface_convert_tests tests/bink32_surface_convert_test.cpp)
+target_link_libraries(btb_bink32_surface_convert_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_surface_convert_tests PRIVATE)
+add_test(NAME bink32_native_surface_convert COMMAND btb_bink32_surface_convert_tests)
+
+# Native audio stream metadata + first compressed block envelope, no PCM
+# claims. Explicitly protects buffer sizing prior to future DCT/RDFT decoding.
+add_executable(btb_bink32_audio_packets_tests tests/bink32_audio_packets_test.cpp)
+target_link_libraries(btb_bink32_audio_packets_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_packets_tests PRIVATE)
+add_test(NAME bink32_audio_packet_preflight COMMAND btb_bink32_audio_packets_tests)
+
+# Real Bink1 compressed audio -> spectral coefficients (not PCM yet).
+add_executable(btb_bink32_audio_spectrum_tests tests/bink32_audio_spectrum_test.cpp)
+target_link_libraries(btb_bink32_audio_spectrum_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_spectrum_tests PRIVATE)
+add_test(NAME bink32_audio_spectrum_dct_rdft COMMAND btb_bink32_audio_spectrum_tests)
+
+# Post-inverse-transform Bink1 1/16 overlap history, not yet PCM output.
+add_executable(btb_bink32_audio_overlap_tests tests/bink32_audio_overlap_test.cpp)
+target_link_libraries(btb_bink32_audio_overlap_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_overlap_tests PRIVATE)
+add_test(NAME bink32_audio_overlap_history COMMAND btb_bink32_audio_overlap_tests)
+
+# Fast dependency-free candidate native inverse transforms, verified
+# analytically before any comparison to retail decoded PCM.
+add_executable(btb_bink32_audio_inverse_tests tests/bink32_audio_inverse_test.cpp)
+target_link_libraries(btb_bink32_audio_inverse_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_inverse_tests PRIVATE)
+add_test(NAME bink32_audio_inverse_dct_rdft COMMAND btb_bink32_audio_inverse_tests)
+
+# Experimental complete packet -> spectral -> inverse FFT -> overlap,
+# including >1 transform per audio frame; never wired to live DirectSound.
+add_executable(btb_bink32_audio_stream_tests tests/bink32_audio_stream_test.cpp)
+target_link_libraries(btb_bink32_audio_stream_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_stream_tests PRIVATE)
+add_test(NAME bink32_audio_stream_multiblock COMMAND btb_bink32_audio_stream_tests)
+
+# Bounded signed PCM16 output contract, not yet selected by runtime.
+add_executable(btb_bink32_audio_pcm_tests tests/bink32_audio_pcm_test.cpp)
+target_link_libraries(btb_bink32_audio_pcm_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_pcm_tests PRIVATE)
+add_test(NAME bink32_audio_pcm16_format COMMAND btb_bink32_audio_pcm_tests)
+
+# Original BIK -> in-memory PCM and sample-accurate per-video-frame
+# timestamps, deliberately not connected to the game sound runtime yet.
+add_executable(btb_bink32_audio_movie_tests tests/bink32_audio_movie_test.cpp)
+target_link_libraries(btb_bink32_audio_movie_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_movie_tests PRIVATE)
+add_test(NAME bink32_audio_movie_timing COMMAND btb_bink32_audio_movie_tests)
+
+# Audio-master timebase resilience to DirectSound cursor jitter and EOS.
+add_executable(btb_bink32_audio_master_clock_tests tests/bink32_audio_master_clock_test.cpp)
+target_link_libraries(btb_bink32_audio_master_clock_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_master_clock_tests PRIVATE)
+add_test(NAME bink32_audio_master_clock COMMAND btb_bink32_audio_master_clock_tests)
+
+# Read-only retail BIK audio packet audit. Optionally exports experimental
+# interleaved F32 for external differential testing, never native playback.
+add_executable(btb_bink32_native_audio_audit tools/bink32_native_audio_audit.cpp)
+target_link_libraries(btb_bink32_native_audio_audit PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_native_audio_audit PRIVATE)
+
+# Dump a decoded retail BIK frame as a P6 image for visual review without
+# either binkw32.dll or FFmpeg at runtime. Original assets stay user-owned.
+add_executable(btb_bink32_native_frame_dump tools/bink32_native_frame_dump.cpp)
+target_link_libraries(btb_bink32_native_frame_dump PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_native_frame_dump PRIVATE)
+
+# Original Bink1 sparse signed residue bitplane reader.
+add_executable(btb_bink32_residue_tests tests/bink32_residue_test.cpp)
+target_link_libraries(btb_bink32_residue_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_residue_tests PRIVATE)
+add_test(NAME bink32_original_residue_coefficients COMMAND btb_bink32_residue_tests)
+
+# Original Bink1 8x8 coefficient tree and quantization-selector parser.
+add_executable(btb_bink32_dct_coefficients_tests tests/bink32_dct_coefficients_test.cpp)
+target_link_libraries(btb_bink32_dct_coefficients_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_dct_coefficients_tests PRIVATE)
+add_test(NAME bink32_original_dct_coefficients COMMAND btb_bink32_dct_coefficients_tests)
+
+# Original Bink1 8x8 inverse transform and distinct intra/inter
+# quantization matrices (full AC support).
+add_executable(btb_bink32_dct_pixels_tests tests/bink32_dct_pixels_test.cpp)
+target_link_libraries(btb_bink32_dct_pixels_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_dct_pixels_tests PRIVATE)
+add_test(NAME bink32_original_dct_pixels COMMAND btb_bink32_dct_pixels_tests)
