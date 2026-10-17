@@ -112,6 +112,7 @@ int main() {
         source->real_decoded_frames={
             {660,true,false,true},
             {660,false,false,true},
+            {-1,false,false,false},
             {-1,false,false,false}
         };
         int checked_profile=-1;
@@ -142,6 +143,7 @@ int main() {
             assert(*award.shared_completion_code==2);
         assert(!award.save_and_unload);
         const auto repeat=selected_player.advance({});
+        assert(!repeat.fatal_error);
         assert(!repeat.shared_completion_code);
         assert(repeat.progress_writes.empty());
         assert(selected_player.unload(source_error));
