@@ -1,7 +1,7 @@
 #include "btb/win32_recompiled_host.hpp"
 #if defined(_WIN32)
 #include "btb/win32_original_game_device.hpp"
-#include "btb/win32_native_silent_bink_provider.hpp"
+#include "btb/win32_hybrid_bink_provider.hpp"
 #include "btb/full_game_front_end.hpp"
 #include "btb/full_game_golf.hpp"
 #include "btb/full_game_fireworks.hpp"
@@ -41,7 +41,7 @@ struct Host {
     fs::path root{};
     Win32OriginalDirectDraw graphics{};
     Win32OriginalDirectSound audio{};
-    Win32NativeSilentBinkProvider movies{graphics};
+    Win32HybridBinkProvider movies{graphics,root};
     std::unique_ptr<Win32OriginalGameDevice> device{};
     GameRoot game{};
     std::unique_ptr<NativeGameSession> session{};
