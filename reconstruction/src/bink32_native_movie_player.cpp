@@ -10,7 +10,8 @@
 
 namespace btb::bink32_recovered {
 std::optional<BinkNativeSilentMovie> BinkNativeSilentMovie::open_bytes(
-    std::vector<std::uint8_t> original_bik,std::string& error) {
+    std::vector<std::uint8_t> original_bik,std::string& error,
+    bool experimental_audio_tracks) {
     // Inspect the original header BEFORE moving ownership into the stream.
     const auto index=parse_container_index(original_bik);
     if(!index || index->header.magic!=Magic::SJPi) {
@@ -20,7 +21,7 @@ std::optional<BinkNativeSilentMovie> BinkNativeSilentMovie::open_bytes(
     // No silent degradation: even a track whose first packet has zero
     // compressed bytes may become audible later. Refuse all track-bearing
     // streams until native Bink audio is implemented and certified.
-    if(!index->tracks.empty()) {
+    if(!index->tracks.empty()&&!experimental_audio_tracks) {
         error="native Bink compressed audio is not decoded; "+
               std::to_string(index->tracks.size())+
               " audio track(s) require the original decoder";
@@ -62,7 +63,8 @@ std::optional<BinkNativeSilentMovie> BinkNativeSilentMovie::open_bytes(
 }
 
 std::optional<BinkNativeSilentMovie> BinkNativeSilentMovie::open_file(
-    const std::filesystem::path& file,std::string& error) {
+    const std::filesystem::path& file,std::string& error,
+    bool experimental_audio_tracks) {
     std::ifstream input(file,std::ios::binary|std::ios::ate);
     if(!input) {error="cannot open original Bink movie";return std::nullopt;}
     const auto size=input.tellg();
@@ -78,7 +80,8 @@ std::optional<BinkNativeSilentMovie> BinkNativeSilentMovie::open_file(
         error="cannot read complete original Bink movie";
         return std::nullopt;
     }
-    return open_bytes(std::move(bytes),error);
+    return open_bytes(
+        std::move(bytes),error,experimental_audio_tracks);
 }
 
 bool BinkNativeSilentMovie::service(
