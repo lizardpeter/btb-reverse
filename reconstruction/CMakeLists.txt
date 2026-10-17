@@ -960,6 +960,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_native_video_stream.cpp
     src/bink32_surface_convert.cpp
     src/bink32_native_movie_player.cpp
+    src/bink32_audio_packets.cpp
     src/bink32_residue.cpp
     src/bink32_dct_coefficients.cpp
     src/bink32_dct_pixels.cpp
@@ -1836,6 +1837,13 @@ add_executable(btb_bink32_surface_convert_tests tests/bink32_surface_convert_tes
 target_link_libraries(btb_bink32_surface_convert_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_surface_convert_tests PRIVATE)
 add_test(NAME bink32_native_surface_convert COMMAND btb_bink32_surface_convert_tests)
+
+# Native audio stream metadata + first compressed block envelope, no PCM
+# claims. Explicitly protects buffer sizing prior to future DCT/RDFT decoding.
+add_executable(btb_bink32_audio_packets_tests tests/bink32_audio_packets_test.cpp)
+target_link_libraries(btb_bink32_audio_packets_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_packets_tests PRIVATE)
+add_test(NAME bink32_audio_packet_preflight COMMAND btb_bink32_audio_packets_tests)
 
 # Dump a decoded retail BIK frame as a P6 image for visual review without
 # either binkw32.dll or FFmpeg at runtime. Original assets stay user-owned.
