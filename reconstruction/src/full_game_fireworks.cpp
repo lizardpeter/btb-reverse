@@ -1,4 +1,5 @@
 #include "btb/full_game_fireworks.hpp"
+#include "btb/fireworks_certificate_native.hpp"
 
 #include <array>
 #include <cstdint>
@@ -96,6 +97,7 @@ bool FireworksDriver::initialize(int player_index, std::string& error) {
         movie_bank_open_ = false;
         show_runtime_.reset();
         show_started_centiseconds_ = 0;
+        certificate_state_={};
         error.clear();
         return true;
     } catch (const std::exception& ex) {
@@ -319,6 +321,69 @@ ActivityFrameOutput FireworksDriver::advance(
         // in original crowd/active/topmiddle source order.
         return output;
     }
+    if(state == InternalState::Certificate) {
+        if(!certificate_profile_) {
+            output.fatal_error=
+                "original selected-profile glyph/badge service unavailable";
+            return output;
+        }
+        profiles::ProfileInfo profile{};
+        std::span<const Rect> font{};
+        std::string error;
+        if(!certificate_profile_(player_index_,profile,font,error)) {
+            output.fatal_error=error.empty()
+                ? "original certificate profile metadata unavailable" : error;
+            return output;
+        }
+        if(!fireworks::render_original_certificate(
+                profile,font,output,error)) {
+            output.fatal_error=error;
+            return output;
+        }
+        fireworks::CertificateInteractionInput buttons{};
+        buttons.mouse_x=input.pointer_x;
+        buttons.mouse_y=input.pointer_y;
+        buttons.click_active=input.click_pulse;
+        buttons.any_managed_sound_playing=input.managed_sound_playing;
+        // Source requests the CRT random stream only after the real
+        // voice-busy gate, the hover hit and its one-shot latch.
+        if(!buttons.click_active &&
+           !fireworks::certificate_print_hit(
+               buttons.mouse_x,buttons.mouse_y) &&
+           !buttons.any_managed_sound_playing &&
+           !certificate_state_.random_voice_latched &&
+           original_random_) {
+            buttons.candidate_random_mod_8=original_random_->next_rand()%8;
+            // The executable draws a second independent roll only when
+            // the first candidate differs from the stored candidate.
+            if(fireworks::certificate_random_voice_sound_id(
+                   buttons.candidate_random_mod_8)!=
+               certificate_state_.last_random_candidate_id)
+                buttons.playback_random_mod_8=original_random_->next_rand()%8;
+        }
+        auto decision=fireworks::update_certificate_interaction(
+            certificate_state_,buttons);
+        certificate_state_=decision.state;
+        if(fireworks::certificate_print_hit(
+               input.pointer_x,input.pointer_y) &&
+           !input.click_pulse)
+            fireworks::draw_original_certificate_print_hover(output,false);
+        if(decision.sound_id)
+            append_sound(output,*decision.sound_id,
+                decision.sound_priority,decision.sound_arbitration_class);
+        if(decision.stop_all_managed_sounds)
+            output.audio.push_back({AudioOperation::StopManagedSounds});
+        if(decision.action==
+           fireworks::CertificateActionKind::PrintCurrentFrame) {
+            // Original ExportAndPrintGameImage is a separate native
+            // printer provider. Refuse the click until it is connected:
+            // this path must never claim the certificate was printed.
+            fireworks::draw_original_certificate_print_hover(output,true);
+            output.fatal_error=
+                "original Fireworks print bitmap/printer adapter unavailable";
+        }
+        return output;
+    }
     if(state != InternalState::Editor &&
        state != InternalState::DeleteSelected &&
        state != InternalState::EditorDragRelease) {
@@ -452,6 +517,7 @@ bool FireworksDriver::unload(std::string& error) {
     movie_bank_open_=false;
     show_runtime_.reset();
     show_started_centiseconds_=0;
+    certificate_state_={};
     error.clear();
     return true;
 }
