@@ -129,6 +129,39 @@ int main() {
     assert(cancelled.unload(error)); // safe idempotent teardown
     assert(closes==1);
 
+    // State 8 opens all 23 source movies through their own decoder bank
+    // after the actual pre-show reaches EOS, then enters source state 9.
+    int bank_opens=0,bank_closes=0;
+    fs::path original_bank_source;
+    fg::FireworksDriver ready_bank(original,save,
+        [&](const fs::path&,std::string& e) {e.clear();return true;},
+        [&]() {},
+        [&](const fs::path& source,std::string& e) {
+            original_bank_source=source;
+            ++bank_opens;
+            e.clear();return true;
+        },
+        [&]() {++bank_closes;});
+    assert(ready_bank.initialize(0,error));
+    assert(!ready_bank.advance({
+        .pointer_x=320,.pointer_y=440,.click_pulse=true}).fatal_error);
+    assert(!ready_bank.advance({.managed_sound_playing=true}).fatal_error);
+    assert(!ready_bank.advance({
+        .original_global_movie_finished=true}).fatal_error);
+    assert(ready_bank.editor().internal_state==fw::InternalState::ShowSetup);
+    const auto opening=ready_bank.advance({});
+    assert(!opening.fatal_error);
+    assert(bank_opens==1);
+    assert(original_bank_source==original);
+    assert(ready_bank.editor().internal_state==fw::InternalState::ShowPlayback);
+    const auto still_unsupported=ready_bank.advance({});
+    assert(still_unsupported.fatal_error);
+    assert(!still_unsupported.save_and_unload);
+    assert(ready_bank.unload(error));
+    assert(bank_closes==1);
+    assert(ready_bank.unload(error));
+    assert(bank_closes==1);
+
     // Missing Bink provider cannot silently complete or advance state 14.
     fg::FireworksDriver absent(original,save);
     assert(absent.initialize(1,error));

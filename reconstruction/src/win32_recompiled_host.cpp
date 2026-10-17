@@ -10,6 +10,7 @@
 #include "btb/full_game_herding.hpp"
 #include "btb/full_game_spud_skate.hpp"
 #include "btb/win32_retail_spud_skate_movies.hpp"
+#include "btb/win32_retail_fireworks_movie_bank.hpp"
 #include "btb/full_game_herding_event_simulation.hpp"
 #include "btb/herding_native_pickles_motion.hpp"
 #include "btb/retail_crt_random.hpp"
@@ -75,6 +76,7 @@ struct Host {
     // Borrowed pointer; the actual decoder is owned by SpudSkateDriver.
     // GameDevice only asks it to blit the currently decoded surface.
     Win32RetailSpudSkateMovies* skate_movies{};
+    std::unique_ptr<Win32RetailFireworksMovieBank> fireworks_bank{};
     // Native Herding consumes the original 0x42FFC4 MSVC rand stream.
     // This state is owned by the host, not independently reseeded by
     // any animal, level, or minigame. Other activity providers still
@@ -259,14 +261,21 @@ struct Host {
                     std::make_unique<NativePicklesMotionSource>(
                         original_game_random)),0,
                 &original_game_random));
+        fireworks_bank=std::make_unique<Win32RetailFireworksMovieBank>(
+            graphics,root);
         game.install(ActivityId::Fireworks,std::make_unique<FireworksDriver>(
             root/"Data"/"SubGameFirework",profile_dir,
             [this](const fs::path& movie,std::string& error) {
-                // Retail state 14 opens Data/movies/fireworkcomplete.bik via
-                // the existing x86 BinkOpen(flags=0) + DirectDraw provider.
                 return movies.open_global(movie,error);
             },
-            [this]() { movies.cancel_global_movie(); }));
+            [this]() { movies.cancel_global_movie(); },
+            [this](const fs::path& source,std::string& error) {
+                return fireworks_bank->open(source,error);
+            },
+            [this]() {
+                std::string ignored;
+                (void)fireworks_bank->close(ignored);
+            }));
         game.install(ActivityId::BobsBand,std::make_unique<BobsBandDriver>(
             root/"Data"/"SubGameOpen",profile_dir));
         game.install(ActivityId::ParkDesigner,

@@ -93,6 +93,7 @@ bool FireworksDriver::initialize(int player_index, std::string& error) {
         player_index_ = player_index;
         awaiting_delete_confirmation_ = false;
         pre_show_movie_open_ = false;
+        movie_bank_open_ = false;
         error.clear();
         return true;
     } catch (const std::exception& ex) {
@@ -240,6 +241,23 @@ ActivityFrameOutput FireworksDriver::advance(
         // transition alone does not pretend the authored show is complete.
         return output;
     }
+    if(state == InternalState::ShowSetup) {
+        if(!open_movie_bank_ || !close_movie_bank_) {
+            output.fatal_error=
+                "original Fireworks 23-movie bank provider unavailable";
+            return output;
+        }
+        std::string error;
+        if(!open_movie_bank_(original_data_dir_,error)) {
+            output.fatal_error=error.empty()
+                ? "original Fireworks 23-movie bank cannot load" : error;
+            return output;
+        }
+        movie_bank_open_=true;
+        editor_.internal_state=InternalState::ShowPlayback;
+        // Never invent show movie frames, audio, or certificate success.
+        return output;
+    }
     if(state != InternalState::Editor &&
        state != InternalState::DeleteSelected &&
        state != InternalState::EditorDragRelease) {
@@ -328,6 +346,14 @@ bool FireworksDriver::unload(std::string& error) {
         cancel_pre_show_movie_();
         pre_show_movie_open_=false;
     }
+    if(movie_bank_open_) {
+        if(!close_movie_bank_) {
+            error="cannot release original Fireworks 23-movie bank";
+            return false;
+        }
+        close_movie_bank_();
+        movie_bank_open_=false;
+    }
 
     std::error_code ec;
     std::filesystem::create_directories(save_dir_, ec);
@@ -362,6 +388,7 @@ bool FireworksDriver::unload(std::string& error) {
     player_index_ = -1;
     awaiting_delete_confirmation_ = false;
     pre_show_movie_open_=false;
+    movie_bank_open_=false;
     error.clear();
     return true;
 }
