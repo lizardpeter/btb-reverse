@@ -964,6 +964,7 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_audio_spectrum.cpp
     src/bink32_audio_overlap.cpp
     src/bink32_audio_inverse.cpp
+    src/bink32_audio_stream.cpp
     src/bink32_residue.cpp
     src/bink32_dct_coefficients.cpp
     src/bink32_dct_pixels.cpp
@@ -1866,6 +1867,13 @@ add_executable(btb_bink32_audio_inverse_tests tests/bink32_audio_inverse_test.cp
 target_link_libraries(btb_bink32_audio_inverse_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_audio_inverse_tests PRIVATE)
 add_test(NAME bink32_audio_inverse_dct_rdft COMMAND btb_bink32_audio_inverse_tests)
+
+# Experimental complete packet -> spectral -> inverse FFT -> overlap,
+# including >1 transform per audio frame; never wired to live DirectSound.
+add_executable(btb_bink32_audio_stream_tests tests/bink32_audio_stream_test.cpp)
+target_link_libraries(btb_bink32_audio_stream_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_stream_tests PRIVATE)
+add_test(NAME bink32_audio_stream_multiblock COMMAND btb_bink32_audio_stream_tests)
 
 # Dump a decoded retail BIK frame as a P6 image for visual review without
 # either binkw32.dll or FFmpeg at runtime. Original assets stay user-owned.
