@@ -54,6 +54,34 @@ int main() {
     assert(live.event_pool().active_count()==0);
     assert((rewound==std::vector<std::size_t>{21,0,20}));
 
+    // Two original grid rows may play the same Bink bank index in a
+    // single rendered game tick. The native DD7 queue must preserve both
+    // source positions and freeze the first decoded pixels before reuse.
+    Sequence duplicate;
+    assert(duplicate.commit_placement(0,0,FireworkType::RedAirbomb));
+    assert(duplicate.commit_placement(2,0,FireworkType::RedAirbomb));
+    RetailShowRuntime duplicate_runtime;
+    std::vector<Clip> same_stream;
+    const ShowMovieStep duplicate_decode=[&](
+        std::size_t index,int x,int y,bool& finished,
+        std::string& error) {
+        same_stream.emplace_back(index,x,y);
+        finished=false;
+        error.clear();return true;
+    };
+    ShowFrameOutput duplicate_0,duplicate_200,duplicate_201;
+    assert(advance_native_fireworks_show(duplicate,duplicate_runtime,
+        {.elapsed_ticks=0},duplicate_decode,restart,duplicate_0,error));
+    same_stream.clear();
+    assert(advance_native_fireworks_show(duplicate,duplicate_runtime,
+        {.elapsed_ticks=200},duplicate_decode,restart,duplicate_200,error));
+    assert(duplicate_200.launched_events.size()==1);
+    same_stream.clear();
+    assert(advance_native_fireworks_show(duplicate,duplicate_runtime,
+        {.elapsed_ticks=201},duplicate_decode,restart,duplicate_201,error));
+    assert((same_stream==std::vector<Clip>{
+        {21,0,340},{0,0,0},{0,220,200},{20,220,0}}));
+
     // Original row-one type 11 => index 23, beyond the 23-entry bank.
     // Do not silently replace it with type 11 or invent a different Bink.
     Sequence invalid;
