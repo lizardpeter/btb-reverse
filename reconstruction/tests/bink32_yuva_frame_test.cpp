@@ -1,6 +1,7 @@
 #include "btb/bink32_yuva_frame.hpp"
 #include "btb/bink32_native_video_stream.hpp"
 #include "btb/bink32_native_movie_player.hpp"
+#include "btb/bink32_surface_convert.hpp"
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -384,10 +385,20 @@ int main(int argc,char**argv) {
         CHECK(playback->frame_count()==2 && playback->width()==w &&
               playback->height()==h);
         CHECK(!playback->current_frame());
+        // End-to-end native path: indexed source BIK -> entropy decode
+        // -> Y/U/V/A -> packed DirectDraw-format pixels, without the DLL.
+        std::vector<std::uint8_t> target_pixels(w*h*4,0x5a);
+        BinkPackedSurface target{target_pixels,w*4,w,h,4,
+                                 0x00ff0000,0x0000ff00,0x000000ff};
         std::uint32_t uploads=0;
         BinkNativeSilentMovie::Presenter present=[&](
             const BinkNativeYuVaFrame& f,std::string& out_error) {
             CHECK(f.planes==decoded->planes);
+            CHECK(blit_bink_yuva_to_surface(f,target)==
+                  BinkSurfaceResult::ok);
+            // Bink alpha composites over existing destination RGB and
+            // leaves the X byte alone on every packed 32-bit pixel.
+            CHECK(target_pixels[0]!=0x5a && target_pixels[3]==0x5a);
             ++uploads;
             out_error.clear();
             return true;
