@@ -153,16 +153,17 @@ int main() {
     assert(play.kind == FrameKind::ActivityUpdated);
     assert(live->editor().internal_state ==
            btb::fireworks::InternalState::PreShowMovieSetup);
-    // State 14 waits until the original managed Play voice has started.
-    const auto waiting = root.advance({});
+    // Retail 0x00413F10 redraws while the Play voice is still playing.
+    // It opens the original Bink only when DirectSound reports silence.
+    auto sound_active = ActivityFrameInput{};
+    sound_active.managed_sound_playing = true;
+    const auto waiting = root.advance(sound_active);
     assert(waiting.kind == FrameKind::ActivityUpdated);
     assert(live->editor().internal_state ==
            btb::fireworks::InternalState::PreShowMovieSetup);
-    // Once the real audio manager is playing, the missing decoder must
-    // fail closed rather than fabricating a pre-show movie or certificate.
-    auto sound_active = ActivityFrameInput{};
-    sound_active.managed_sound_playing = true;
-    const auto unsupported = root.advance(sound_active);
+    // The missing authentic decoder must then fail explicitly; never
+    // synthesize a pre-show movie on the silent transition.
+    const auto unsupported = root.advance({});
     assert(unsupported.kind == FrameKind::ActivityFailed);
     assert(unsupported.error.find("Bink") != std::string::npos);
     assert(!unsupported.effects.save_and_unload);
