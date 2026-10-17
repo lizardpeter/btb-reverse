@@ -100,6 +100,53 @@ int main() {
         assert(!absent.initialized());
     }
 
+    // Source 0x00424690 checks the SELECTED PLAYER'S Spud Maze slot
+    // 59 when the Spud Skate result branch awards slot 60. A
+    // different saved profile, a missing prerequisite, and a finished
+    // prerequisite must not be confused. No fabricated win if the
+    // other activity has not been completed.
+    for(const bool maze_completed:{false,true}) {
+        std::array<bool,3> player_maze_progress{{false,
+            maze_completed,false}};
+        auto source=std::make_unique<DecodedFiveBinks>();
+        source->real_decoded_frames={
+            {660,true,false,true},
+            {660,false,false,true},
+            {-1,false,false,false}
+        };
+        int checked_profile=-1;
+        fg::SpudSkateDriver selected_player(
+            path,std::move(source),nullptr,
+            [&](int profile)->bool {
+                checked_profile=profile;
+                return profile>=0 &&
+                    static_cast<std::size_t>(profile)<
+                        player_maze_progress.size() &&
+                    player_maze_progress[static_cast<std::size_t>(profile)];
+            });
+        std::string source_error;
+        assert(selected_player.initialize(1,source_error));
+        const auto first_pass=selected_player.advance({});
+        assert(!first_pass.fatal_error);
+        const auto second_pass=selected_player.advance({});
+        assert(!second_pass.fatal_error);
+        assert(selected_player.phase()==skate::PlaybackPhase::EndMovie);
+        const auto award=selected_player.advance({});
+        assert(!award.fatal_error);
+        assert(checked_profile==1);
+        assert(award.progress_writes.size()==1);
+        assert(award.progress_writes[0].slot==
+            btb::progress::Slot::SpudSkate);
+        assert(award.shared_completion_code.has_value()==maze_completed);
+        if(maze_completed)
+            assert(*award.shared_completion_code==2);
+        assert(!award.save_and_unload);
+        const auto repeat=selected_player.advance({});
+        assert(!repeat.shared_completion_code);
+        assert(repeat.progress_writes.empty());
+        assert(selected_player.unload(source_error));
+    }
+
     btb::retail::OriginalRetailRandom shared_rng{77};
     auto movies=std::make_unique<DecodedFiveBinks>();
     auto* source=movies.get();
