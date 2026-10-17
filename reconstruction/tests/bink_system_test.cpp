@@ -210,6 +210,26 @@ int main() {
     static_assert(!global_lock_fail.close_movie);
     static_assert(!global_lock_fail.copy_to_surface);
 
+    // Native host must present the final global intro/movie pixels before
+    // allowing the movie-completion flag to advance the menu state.
+    constexpr auto global_first=global_host_frame_decision(1,3,false);
+    static_assert(global_first.decode && global_first.advance);
+    static_assert(!global_first.terminal_frame_copied);
+    static_assert(!global_first.report_complete);
+    constexpr auto global_last=global_host_frame_decision(3,3,false);
+    static_assert(global_last.decode && !global_last.advance);
+    static_assert(global_last.terminal_frame_copied);
+    static_assert(!global_last.report_complete);
+    constexpr auto global_after_present=global_host_frame_decision(3,3,true);
+    static_assert(!global_after_present.decode);
+    static_assert(global_after_present.report_complete);
+    constexpr auto one_frame=global_host_frame_decision(1,1,false);
+    static_assert(one_frame.terminal_frame_copied);
+    static_assert(!one_frame.report_complete);
+    static_assert(global_host_frame_decision(1,1,true).report_complete);
+    static_assert(!global_host_frame_decision(0,3,false).decode);
+    static_assert(!global_host_frame_decision(4,3,false).decode);
+
     static_assert(kMinimumBinkVolume == 37);
     static_assert(bink_volume_from_game_volume(0) == 37);
     static_assert(bink_volume_from_game_volume(4) == 37);
