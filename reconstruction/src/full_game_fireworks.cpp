@@ -452,7 +452,6 @@ bool FireworksDriver::unload(std::string& error) {
     movie_bank_open_=false;
     show_runtime_.reset();
     show_started_centiseconds_=0;
-    crowd_end_sound_started_=false;
     error.clear();
     return true;
 }
