@@ -61,6 +61,7 @@ public:
     [[nodiscard]] IDirectDrawSurface7* bink_render_target() const noexcept {
         return backbuffer_;
     }
+    [[nodiscard]] HWND window_handle() const noexcept {return hwnd_;}
 
     // Bink movie frames decode into source-sized offscreen DD7 surfaces.
     // Caller owns returned COM reference, and presents it only after
