@@ -1,5 +1,6 @@
 #include "btb/full_game_fireworks.hpp"
 
+#include <array>
 #include <cassert>
 #include <filesystem>
 #include <fstream>
@@ -167,6 +168,9 @@ int main() {
     // physical decoder input and returns native show output, not fake time.
     int source_show_calls=0,source_bank_close=0;
     int observed_elapsed=-1;
+    std::array<fg::Rect,191> brown_font{};
+    brown_font[0]={0,0,10,18};
+    brown_font[1]={20,0,40,18};
     fg::FireworksDriver shows(original,save,
         [&](const fs::path&,std::string& e) {e.clear();return true;},
         [&]() {},
@@ -186,7 +190,20 @@ int main() {
                 result.sound_id=fw::kCrowdEndSoundId;
                 result.sound_priority=50;
                 result.sound_arbitration_class=1;
+            } else if(source_show_calls==3) {
+                result.enter_certificate=true;
             }
+            error.clear();return true;
+        },
+        nullptr,
+        [&](int player,btb::profiles::ProfileInfo& profile,
+            std::span<const fg::Rect>& font,std::string& error)->bool {
+            assert(player==0);
+            profile.name_length=2;
+            profile.badge_index=4;
+            profile.name_glyph_codes[0]=0;
+            profile.name_glyph_codes[1]=1;
+            font=brown_font;
             error.clear();return true;
         });
     assert(shows.initialize(0,error));
@@ -209,6 +226,38 @@ int main() {
         .fireworks_crowd_end_sound_playing=true}).fatal_error);
     assert(source_show_calls==2);
     assert(observed_elapsed==21);
+    const auto finale=shows.advance({.elapsed_centiseconds=500});
+    assert(!finale.fatal_error);
+    assert(source_show_calls==3);
+    assert(shows.editor().internal_state==fw::InternalState::Certificate);
+    const auto certificate=shows.advance({
+        .pointer_x=320,.pointer_y=440});
+    assert(!certificate.fatal_error);
+    assert(certificate.draws.size()==5);
+    assert(certificate.draws[0].source_asset==
+           "Data/SubGameFirework/certificate.bmp");
+    assert(certificate.draws[1].source_asset==
+           "Data/ui/enter name boxed font.bmp");
+    assert(certificate.draws[1].x==476);
+    assert(certificate.draws[3].source_asset==
+           "Data/ui/fonttools.bmp");
+    assert(certificate.draws[4].source_asset==
+           "Data/SubGameFirework/certprint.bmp");
+    assert(certificate.audio.size()==1);
+    assert(certificate.audio[0].sound_id==143);
+    const auto hovered_again=shows.advance({
+        .pointer_x=320,.pointer_y=440});
+    assert(!hovered_again.fatal_error);
+    assert(hovered_again.audio.empty());
+    const auto printing=shows.advance({
+        .pointer_x=320,.pointer_y=440,.click_pulse=true});
+    assert(printing.fatal_error);
+    assert(printing.fatal_error->find("printer")!=std::string::npos);
+    assert(printing.audio.size()==1);
+    assert(printing.audio[0].operation==
+           fg::AudioOperation::StopManagedSounds);
+    assert(!printing.save_and_unload);
+    assert(shows.editor().internal_state==fw::InternalState::Certificate);
     assert(shows.unload(error));
     assert(source_bank_close==1);
 
