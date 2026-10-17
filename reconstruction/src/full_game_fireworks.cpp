@@ -259,6 +259,10 @@ ActivityFrameOutput FireworksDriver::advance(
             return output;
         }
         movie_bank_open_=true;
+        // Original 0x00413F10 state 8 always calls StopAllManagedSounds
+        // before entering state 9; the state-15 voice ID 142 must not
+        // continue underneath the authored fireworks and crowd audio.
+        output.audio.push_back({AudioOperation::StopManagedSounds});
         show_runtime_.reset();
         show_started_centiseconds_=input.elapsed_centiseconds;
         editor_.internal_state=InternalState::ShowPlayback;
