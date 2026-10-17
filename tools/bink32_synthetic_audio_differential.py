@@ -79,7 +79,10 @@ def movie(path: Path, rate: int, channels: int, dct: bool, blocks: int, loud: bo
                             w.put(j % 2, 1)
         w.align32()
     bitstream = w.data()
-    declared_pcm_bytes = (n - n // 16) * channels * 2 * blocks
+    # Stereo RDFT encodes one 2x-long interleaved transform; multiplying
+    # by source channels *again* would double-count the actual PCM samples.
+    transform_channels = channels if dct else 1
+    declared_pcm_bytes = (n - n // 16) * transform_channels * 2 * blocks
     audio = struct.pack("<I", declared_pcm_bytes) + bitstream
     # One little-endian audio payload length precedes each track. The video
     # image is intentionally dummy data; tests map ONLY stream 0:a:0.
