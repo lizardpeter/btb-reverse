@@ -37,6 +37,18 @@ public:
         std::size_t index,int x,int y,std::string& error);
     [[nodiscard]] bool restart(std::size_t index,std::string& error);
     [[nodiscard]] bool close(std::string& error);
+    // Win32 GameRoot decodes real Bink surfaces during state-9 dispatch;
+    // these source overlays are presented only AFTER the DD7 backing frame.
+    struct ShowBlit {
+        std::size_t index{};
+        int x{},y{};
+    };
+    void begin_show_frame() noexcept {queued_show_blits_.clear();}
+    [[nodiscard]] bool decode_and_queue(
+        std::size_t index,int x,int y,bool& finished,
+        std::string& error);
+    [[nodiscard]] bool blit_queued_show(std::string& error);
+
     [[nodiscard]] bool ready() const noexcept {return ready_;}
     [[nodiscard]] bool has_frame(std::size_t index) const noexcept {
         return index<has_frame_.size() && has_frame_[index];
@@ -56,6 +68,7 @@ private:
     std::array<std::uint32_t,23> height_{};
     std::array<bool,23> has_frame_{};
     std::array<bool,23> final_frame_copied_{};
+    std::vector<ShowBlit> queued_show_blits_{};
     bool ready_{};
 };
 
