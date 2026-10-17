@@ -255,3 +255,38 @@ Covered source-level behavior includes:
 
 The current reconstruction tests preserve the retail oddities rather than
 normalizing them for the later modern rewrite.
+
+
+## Native `btb_game.exe` printer integration (October 2026)
+
+The shared source printer above documents the **retail executable**.
+The recompiled Windows game now uses a compatible physical printer
+provider in `win32_retail_print_provider.cpp` to avoid leaving
+`PrintMe.bmp` on disk: it captures the already composed DirectDraw7
+backbuffer into an in-memory DIB, presents the real `PrintDlgA`, and
+submits with Win32 `StartDocA`, `StartPage`, `StretchDIBits`,
+`EndPage`, and `EndDoc`. Both **Fireworks** and **Dinosaur** request
+this service through the same game-frame command. Print cancellation
+does not enqueue a job or award progress. Printer errors propagate back
+to the native session instead of being swallowed.
+
+Retail-print parity changes in this implementation:
+- The real source **scale mode 2** geometry comes from
+  `printing::compute_target_rect`, including the horizontal/vertical
+  screen-to-printer DPI ratios, the 1.5× Y multiplier, original
+  left/top/right/bottom semantics, and original stretch mode 3.
+- On original 16-bit RGB DD7 surfaces, the bytes follow the recovered
+  `0x00409460` mask-shift and **G,R,B** sequence, through the existing
+  tested `printing::export_pixel_bytes` helper.
+- Only non-retail extra pixel formats use validated general conversion.
+- The original mode-2 leaked `GetDC(owner_hwnd)`; the recompiled game
+  samples the same DPI but releases its DC, to avoid resource exhaustion.
+- Modal `PrintDlgA` pumps Win32 messages. The game host suppresses nested
+  `WM_TIMER` frame ticks while the current game frame is printing; the
+  original bitmap and DirectDraw present are not re-entered.
+
+The existing platform-independent print tests verify recovered layout
+and source-channel helpers. Native Windows x86/x64 compile CI still
+cannot certify a physical printer or PDF-printer output. Paper output,
+driver-specific palette behavior, and Windows retail comparisons require
+a real source-asset test.
