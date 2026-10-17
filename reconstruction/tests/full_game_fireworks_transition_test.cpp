@@ -64,16 +64,16 @@ int main() {
            sound.sound_id==880)played_voice=true;
     assert(played_voice);
 
-    // Retail waits for the *actual* managed sound system. Silence cannot
-    // bypass state 14 or request movie playback.
+    // Original 0x00413F10 state 14 waits WHILE sound 880 is playing.
+    // The Bink opens only after its actual DirectSound status goes idle.
     const auto waiting=activity.advance({
-        .pointer_x=320,.pointer_y=440,.managed_sound_playing=false});
+        .pointer_x=320,.pointer_y=440,.managed_sound_playing=true});
     assert(!waiting.fatal_error);
     assert(!waiting.draws.empty());
     assert(opens==0);
 
     const auto started=activity.advance({
-        .pointer_x=320,.pointer_y=440,.managed_sound_playing=true});
+        .pointer_x=320,.pointer_y=440,.managed_sound_playing=false});
     assert(!started.fatal_error);
     assert(opens==1);
     assert(observed_movie==root/"Data"/"movies"/"fireworkcomplete.bik");
@@ -122,7 +122,7 @@ int main() {
     assert(cancelled.initialize(1,error));
     assert(!cancelled.advance({
         .pointer_x=320,.pointer_y=440,.click_pulse=true}).fatal_error);
-    assert(!cancelled.advance({.managed_sound_playing=true}).fatal_error);
+    assert(!cancelled.advance({.managed_sound_playing=false}).fatal_error);
     assert(cancelled.editor().internal_state==
            fw::InternalState::PreShowMoviePlayback);
     assert(cancelled.unload(error));
@@ -146,7 +146,7 @@ int main() {
     assert(ready_bank.initialize(0,error));
     assert(!ready_bank.advance({
         .pointer_x=320,.pointer_y=440,.click_pulse=true}).fatal_error);
-    assert(!ready_bank.advance({.managed_sound_playing=true}).fatal_error);
+    assert(!ready_bank.advance({.managed_sound_playing=false}).fatal_error);
     assert(!ready_bank.advance({
         .original_global_movie_finished=true}).fatal_error);
     assert(ready_bank.editor().internal_state==fw::InternalState::ShowSetup);
@@ -209,7 +209,7 @@ int main() {
     assert(shows.initialize(0,error));
     assert(!shows.advance({
         .pointer_x=320,.pointer_y=440,.click_pulse=true}).fatal_error);
-    assert(!shows.advance({.managed_sound_playing=true}).fatal_error);
+    assert(!shows.advance({.managed_sound_playing=false}).fatal_error);
     assert(!shows.advance({
         .original_global_movie_finished=true}).fatal_error);
     assert(!shows.advance({.elapsed_centiseconds=440}).fatal_error);
@@ -267,7 +267,7 @@ int main() {
     const auto play=absent.advance({
         .pointer_x=320,.pointer_y=440,.click_pulse=true});
     assert(!play.fatal_error);
-    const auto rejected=absent.advance({.managed_sound_playing=true});
+    const auto rejected=absent.advance({.managed_sound_playing=false});
     assert(rejected.fatal_error);
     assert(absent.editor().internal_state==
            fw::InternalState::PreShowMovieSetup);
