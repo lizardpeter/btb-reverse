@@ -66,6 +66,20 @@ int main() {
     static_assert(kRetailPlaybackPasses == 2);
     static_assert(kRetailScoringOpportunities == 15);
     static_assert(kRetailMaximumScore == 45);
+    // The source Bink decoder must copy frame Frames before reporting
+    // EOS; never skip the terminal image or call BinkNextFrame beyond
+    // the real end. A second observation reports end, not a replay
+    // of the terminal decode.
+    static_assert(original_end_bink_decode_decision(1,30,false).decode_frame);
+    static_assert(original_end_bink_decode_decision(1,30,false).next_frame);
+    static_assert(!original_end_bink_decode_decision(30,30,false).next_frame);
+    static_assert(original_end_bink_decode_decision(30,30,false).decode_frame);
+    static_assert(!original_end_bink_decode_decision(30,30,false).report_finished);
+    static_assert(original_end_bink_decode_decision(30,30,true).report_finished);
+    static_assert(!original_end_bink_decode_decision(30,30,true).decode_frame);
+    static_assert(!original_end_bink_decode_decision(31,30,false).decode_frame);
+    static_assert(!original_end_bink_decode_decision(0,30,false).report_finished);
+
     static_assert(kMaximumScore == 45);
 
     static_assert(kMovieScreenX == 20);
@@ -275,6 +289,28 @@ int main() {
     assert(!end_step.result_one_shot);
     assert(end_step.complete_activity);
     assert(result_state.phase == PlaybackPhase::Complete);
+
+    // A single-frame end.bik (or a slow native frame arriving at its
+    // final movie frame) must still play the newly-started result
+    // voice before the activity is marked complete. The pre-frame
+    // managed-sound observation is necessarily idle at voice setup.
+    RuntimeState instant_terminal;
+    instant_terminal.phase=PlaybackPhase::EndMovie;
+    instant_terminal.score=7;
+    auto terminal_step=update_end_movie_phase(
+        instant_terminal,{true,false,false});
+    assert(terminal_step.result_one_shot);
+    assert(terminal_step.mark_spud_skate_progress_complete);
+    assert(!terminal_step.complete_activity);
+    assert(instant_terminal.phase==PlaybackPhase::EndMovie);
+    terminal_step=update_end_movie_phase(
+        instant_terminal,{true,true,false});
+    assert(!terminal_step.result_one_shot);
+    assert(!terminal_step.complete_activity);
+    terminal_step=update_end_movie_phase(
+        instant_terminal,{true,false,false});
+    assert(terminal_step.complete_activity);
+    assert(instant_terminal.phase==PlaybackPhase::Complete);
 
     static_assert(kSpudSkateMusicIndex == 8);
     static_assert(kSpudSkateStartupSoundId == 758);
