@@ -384,7 +384,12 @@ ActivityFrameOutput FireworksDriver::advance(
             // backbuffer. Request the host printer AFTER the DD7 draws
             // and BEFORE Flip/Blt. Cancellation stays inside Win32 print
             // dialog and cannot become a fake certificate completion.
-            fireworks::draw_original_certificate_print_hover(output,true);
+            // Source 0x004138A0 does NOT draw the hover sprite here.
+            // It blits the registered original 00508AD0 printbar.bmp
+            // at (0,0), then exports THAT composed DD7 backbuffer.
+            output.draws.push_back({
+                "Data/ui/printbar.bmp",0,0,std::nullopt,true
+            });
             output.request_original_frame_print=true;
         }
         return output;
