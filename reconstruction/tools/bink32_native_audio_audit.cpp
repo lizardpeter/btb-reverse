@@ -4,6 +4,7 @@
 // No proprietary movie bytes or RAD/FFmpeg dependency are embedded.
 // Output is NOT yet certified equal to the 2002 Bink DLL PCM stream.
 #include "btb/bink32_audio_stream.hpp"
+#include "btb/bink32_audio_pcm.hpp"
 #include "btb/bink32_audio_packets.hpp"
 #include "btb/bink32_container.hpp"
 #include "btb/bink32_packet_decode.hpp"
@@ -64,7 +65,8 @@ int main(int argc,char** argv) {
             argv[0]);
         return 2;
     }
-    if(argc==5 && std::string_view(argv[3])!="--output-f32")return 2;
+    const bool s16=argc==5 && std::string_view(argv[3])=="--output-s16le";
+    if(argc==5 && !s16 && std::string_view(argv[3])!="--output-f32")return 2;
     unsigned chosen{};
     const std::string_view arg(argv[2]);
     const auto number=std::from_chars(arg.data(),arg.data()+arg.size(),chosen);
@@ -105,7 +107,7 @@ int main(int argc,char** argv) {
     std::ofstream pcm;
     if(argc==5) {
         pcm.open(argv[4],std::ios::binary|std::ios::trunc);
-        if(!pcm){std::fputs("Unable to open output f32.\n",stderr);return 1;}
+        if(!pcm){std::fputs("Unable to open candidate output.\n",stderr);return 1;}
     }
     std::size_t blocks=0,skipped=0;
     std::uint64_t output_values=0;
@@ -138,9 +140,28 @@ int main(int argc,char** argv) {
                 maximum=std::max(maximum,std::abs(double(sample)));
             }
         }
-        if(argc==5 && !save_samples(pcm,*result,decoder->layout())) {
-            std::fprintf(stderr,"Cannot write output for movie frame %u\n",frame);
-            return 1;
+        if(argc==5) {
+            if(s16) {
+                const auto packed=encode_bink1_pcm16(*result,decoder->layout());
+                if(!packed) {
+                    std::fprintf(stderr,
+                        "PCM16 structural mismatch in source frame %u: "
+                        "declared bytes=%u\n",
+                        frame,result->declared_pcm_bytes);
+                    return 1;
+                }
+                const auto data=serialize_bink1_pcm16_le(
+                    packed->interleaved_samples);
+                pcm.write(reinterpret_cast<const char*>(data.data()),
+                          static_cast<std::streamsize>(data.size()));
+                if(!pcm) {
+                    std::fprintf(stderr,"PCM16 output failed at frame %u\n",frame);
+                    return 1;
+                }
+            } else if(!save_samples(pcm,*result,decoder->layout())) {
+                std::fprintf(stderr,"F32 output failed at frame %u\n",frame);
+                return 1;
+            }
         }
     }
     std::printf("Native Bink1 audio structural audit: %u/%u packets, "
