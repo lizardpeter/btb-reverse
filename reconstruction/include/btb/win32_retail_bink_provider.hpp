@@ -40,6 +40,9 @@ public:
         const std::filesystem::path& help_wav,
         std::string& error) override;
     [[nodiscard]] bool close_walkthrough(std::string& error) override;
+    // Fireworks pre-show state 15 uses the same retail Bink disk player.
+    // On an activity leave before EOS, cancel it before entering menus.
+    void cancel_global_movie() noexcept {close_global();}
     [[nodiscard]] bool render_walkthrough_overlay(
         std::string& error) override;
 

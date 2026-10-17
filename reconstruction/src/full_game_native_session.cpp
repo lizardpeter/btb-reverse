@@ -41,6 +41,7 @@ NativeSessionFrame NativeGameSession::tick(
     }
 
     input.managed_sound_playing = physical.any_managed_voice_playing;
+    input.original_global_movie_finished = physical.global_movie_finished;
     // Explicit non-retail --skip-bink routing. Retail 0x41 plays the
     // scene-set clip after a newly created profile and then enters 0x04.
     // Do NOT skip 0x40 by guessing its destination: that shared movie uses
@@ -181,8 +182,9 @@ NativeSessionFrame NativeGameSession::tick(
     const auto mode=root_.globals().dispatcher.generic_screen_mode;
     const bool global_movie_frame =
         !skip_video_ &&
-        frame.prepared.game.kind == FrameKind::Intercept &&
-        (mode == 13 || mode == 14);
+        ((frame.prepared.game.kind == FrameKind::Intercept &&
+          (mode == 13 || mode == 14)) ||
+         frame.prepared.game.effects.retain_original_global_movie_pixels);
     if (!global_movie_frame &&
         !device_.draw_ordered(frame.prepared.resources.draws,error)) {
         fail(frame,PhysicalPresentationStage::SubmitDraw,error);

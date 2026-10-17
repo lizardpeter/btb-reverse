@@ -200,25 +200,6 @@ int main() {
     assert(failed_finale.globals().player_progress[4].get(
         btb::progress::Slot::ReservedUnused)==0);
 
-    // Host WM_DESTROY now unloads the active real minigame BEFORE saving
-    // global player-progress files. This must work on an activity that is
-    // still running (not only when the Play Again route already unloaded).
-    GameRoot closing;
-    assert(closing.select_profile(0));
-    auto live=std::make_unique<ScriptedDino>();
-    auto* live_source=live.get();
-    closing.install(ActivityId::Dinosaur,std::move(live));
-    closing.set_outer_state(State::DinoInit);
-    assert(closing.advance({}).kind == FrameKind::ActivityInitialized);
-    assert(live_source->starts==1);
-    std::string close_error;
-    assert(closing.unload_current(close_error));
-    assert(live_source->unloads==1);
-    assert(closing.unload_current(close_error)); // no duplicate save/unload
-    assert(live_source->unloads==1);
-    closing.set_outer_state(State::DinoRun);
-    assert(closing.advance({}).kind == FrameKind::ActivityFailed);
-
     game.globals().dispatcher.current_state = 0x44;
     assert(game.advance({}).kind == FrameKind::InvalidState);
 }

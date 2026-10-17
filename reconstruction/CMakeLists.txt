@@ -1376,6 +1376,21 @@ foreach(test_target IN ITEMS btb_profile_name_entry_tests
     endif()
 endforeach()
 
+add_executable(btb_full_game_fireworks_transition_tests
+    tests/full_game_fireworks_transition_test.cpp)
+target_link_libraries(btb_full_game_fireworks_transition_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_full_game_fireworks_transition_tests PRIVATE)
+# These fixtures assert real frame and audio transitions; ensure they run
+# even for Windows Release builds where NDEBUG would normally remove them.
+if(MSVC)
+    target_compile_options(btb_full_game_fireworks_transition_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(btb_full_game_fireworks_transition_tests PRIVATE -UNDEBUG)
+endif()
+add_test(NAME full_game_fireworks_transition
+    COMMAND btb_full_game_fireworks_transition_tests)
+
 add_executable(btb_full_game_spud_skate_native_tests
     tests/full_game_spud_skate_native_test.cpp)
 target_link_libraries(btb_full_game_spud_skate_native_tests PRIVATE

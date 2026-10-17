@@ -122,6 +122,31 @@ public:
     }
 };
 
+// Frame fixture models Fireworks state-15 preserving an already-decoded
+// original Bink surface. No fake Bink bytes or timers are presented.
+class SourceMovieActivity final : public ActivityDriver {
+public:
+    int frames{};
+    [[nodiscard]] bool initialize(int,std::string& error) override {
+        error.clear();return true;
+    }
+    [[nodiscard]] ActivityFrameOutput advance(
+        const ActivityFrameInput& input) override {
+        ++frames;
+        ActivityFrameOutput output{};
+        if(!input.original_global_movie_finished)
+            output.retain_original_global_movie_pixels=true;
+        else
+            output.draws.push_back({
+                "Data/ui/original.bmp",0,0,std::nullopt,false
+            });
+        return output;
+    }
+    [[nodiscard]] bool unload(std::string& error) override {
+        error.clear();return true;
+    }
+};
+
 class Instruction final : public FrontEndDriver {
 public:
     bool initialize(
@@ -295,6 +320,52 @@ int main() {
                PhysicalPresentationStage::AssetResolve);
         assert(device.draw_count == 1);
     }
+    // Fireworks state 15: the Bink service has already decoded a frame
+    // into the shared DD7 render target before GameRoot::advance. Do not
+    // invoke the ordinary activity draw path, which would clear that movie.
+    // The original true decoder EOS releases that protection on a later
+    // frame and restores regular source bitmap presentation.
+    touch(directory,"Data/ui/original.bmp");
+    {
+        GameRoot game;
+        assert(game.select_profile(0));
+        auto movie=std::make_unique<SourceMovieActivity>();
+        auto* raw_movie=movie.get();
+        game.install(ActivityId::Fireworks,std::move(movie));
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture()
+        };
+        game.set_outer_state(State::FireworksInit);
+        const auto setup=session.tick({},false,false,true);
+        assert(!setup.failure && setup.ready_for_present);
+        const int before_movie_draws=device.draw_count;
+        std::string present_error;
+        assert(session.present_prepared(present_error));
+        const int before_movie_presents=device.present_count;
+
+        device.sample.global_movie_finished=false;
+        const auto movie_frame=session.tick({},false,false,true);
+        assert(!movie_frame.failure && movie_frame.ready_for_present);
+        assert(movie_frame.prepared.game.effects
+                   .retain_original_global_movie_pixels);
+        assert(raw_movie->frames==1);
+        assert(device.draw_count==before_movie_draws);
+        assert(session.present_prepared(present_error));
+        assert(device.present_count==before_movie_presents+1);
+
+        device.sample.global_movie_finished=true;
+        const auto finished=session.tick({},false,false,true);
+        assert(!finished.failure && finished.ready_for_present);
+        assert(!finished.prepared.game.effects
+                    .retain_original_global_movie_pixels);
+        assert(raw_movie->frames==2);
+        assert(device.draw_count==before_movie_draws+1);
+        assert(session.present_prepared(present_error));
+        assert(device.present_count==before_movie_presents+2);
+    }
+
     // Exercise the REAL deferred two-phase NativeGameSession path used
     // by original RunActiveGameFrame (00402440) before DD7 presentation.
     touch(directory,"Data/ui/original.bmp");

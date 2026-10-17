@@ -260,7 +260,13 @@ struct Host {
                         original_game_random)),0,
                 &original_game_random));
         game.install(ActivityId::Fireworks,std::make_unique<FireworksDriver>(
-            root/"Data"/"SubGameFirework",profile_dir));
+            root/"Data"/"SubGameFirework",profile_dir,
+            [this](const fs::path& movie,std::string& error) {
+                // Retail state 14 opens Data/movies/fireworkcomplete.bik via
+                // the existing x86 BinkOpen(flags=0) + DirectDraw provider.
+                return movies.open_global(movie,error);
+            },
+            [this]() { movies.cancel_global_movie(); }));
         game.install(ActivityId::BobsBand,std::make_unique<BobsBandDriver>(
             root/"Data"/"SubGameOpen",profile_dir));
         game.install(ActivityId::ParkDesigner,

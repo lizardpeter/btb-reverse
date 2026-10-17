@@ -187,6 +187,9 @@ struct ActivityFrameInput {
     std::array<std::uint8_t,256> keyboard_state{};
     int translated_character{-1};
     bool pointer_button_held{};
+    // Physical Bink EOS from the native Win32 decoder, observed before
+    // this game's state handler. Never synthesize it from wall time.
+    bool original_global_movie_finished{};
 };
 
 struct ActivityFrameOutput {
@@ -207,6 +210,9 @@ struct ActivityFrameOutput {
     // Runtime provider failures must not silently submit a partially
     // reconstructed activity frame as if the original game succeeded.
     std::optional<std::string> fatal_error{};
+    // Fireworks' original pre-show Bink is already in the common DirectDraw
+    // video surface. Do not erase that frame with an empty activity draw list.
+    bool retain_original_global_movie_pixels{};
 };
 
 // Native service bridge for the actual retail 0x0042E110 five-sign selector.
