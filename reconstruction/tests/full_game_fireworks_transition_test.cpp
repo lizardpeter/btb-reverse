@@ -162,6 +162,53 @@ int main() {
     assert(ready_bank.unload(error));
     assert(bank_closes==1);
 
+    // Full GameRoot production driver now runs source state 9 instead of
+    // failing right after the bank opens. The fixture callback observes
+    // physical decoder input and returns native show output, not fake time.
+    int source_show_calls=0,source_bank_close=0;
+    int observed_elapsed=-1;
+    fg::FireworksDriver shows(original,save,
+        [&](const fs::path&,std::string& e) {e.clear();return true;},
+        [&]() {},
+        [&](const fs::path&,std::string& e) {e.clear();return true;},
+        [&]() {++source_bank_close;},
+        [&](const fw::Sequence&,fw::RetailShowRuntime&,
+            fw::ShowFrameInput in,fw::ShowFrameOutput& result,
+            std::string& error)->bool {
+            ++source_show_calls;
+            observed_elapsed=in.elapsed_ticks;
+            assert(in.random_chance_roll_0_to_9==-1);
+            result={};
+            if(source_show_calls==1) {
+                result.stop_all_before_sound=true;
+                result.sound_id=fw::kCrowdEndSoundId;
+                result.sound_priority=50;
+                result.sound_arbitration_class=1;
+            }
+            error.clear();return true;
+        });
+    assert(shows.initialize(0,error));
+    assert(!shows.advance({
+        .pointer_x=320,.pointer_y=440,.click_pulse=true}).fatal_error);
+    assert(!shows.advance({.managed_sound_playing=true}).fatal_error);
+    assert(!shows.advance({
+        .original_global_movie_finished=true}).fatal_error);
+    assert(!shows.advance({.elapsed_centiseconds=440}).fatal_error);
+    const auto playing=shows.advance({.elapsed_centiseconds=455});
+    assert(!playing.fatal_error);
+    assert(source_show_calls==1);
+    assert(observed_elapsed==15);
+    assert(playing.audio.size()==2);
+    assert(playing.audio[0].operation==fg::AudioOperation::StopManagedSounds);
+    assert(playing.audio[1].sound_id==fw::kCrowdEndSoundId);
+    assert(shows.editor().internal_state==fw::InternalState::ShowPlayback);
+    assert(!shows.advance({
+        .elapsed_centiseconds=461,.managed_sound_playing=true}).fatal_error);
+    assert(source_show_calls==2);
+    assert(observed_elapsed==21);
+    assert(shows.unload(error));
+    assert(source_bank_close==1);
+
     // Missing Bink provider cannot silently complete or advance state 14.
     fg::FireworksDriver absent(original,save);
     assert(absent.initialize(1,error));
