@@ -1,0 +1,110 @@
+name: BO2 All Maps Original Spawn Census - Public Runner
+
+on:
+  push:
+    branches:
+      - ci/bo2-retail-spawn-census-20261017
+    paths:
+      - .github/workflows/bo2-all-maps-spawn-census.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  retail-world-census:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install open-source, published T6 entity extractor
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/oat /tmp/bo2/zone/all /tmp/bo2/report
+          curl -fL --retry 4 --retry-delay 2 \
+            'https://github.com/Laupetin/OpenAssetTools/releases/download/v0.33.0/oat-linux.tar.gz' \
+            -o /tmp/oat.tar.gz
+          tar -xzf /tmp/oat.tar.gz -C /tmp/oat
+          UNLINKER="$(find /tmp/oat -type f \( -name Unlinker -o -name OAT.Unlinker \) -print -quit)"
+          test -n "$UNLINKER"
+          chmod +x "$UNLINKER"
+          echo "UNLINKER=$UNLINKER" >> "$GITHUB_ENV"
+          "$UNLINKER" --version
+
+      - name: Acquire shared original BO2 zone dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in common_mp common_patch_mp patch_mp code_post_gfx_mp common_zm patch_zm code_post_gfx_zm; do
+            curl -fL --retry 4 --retry-delay 3 \
+              "https://r2.houseofkublai.com/bo2/zone/all/$name.ff" \
+              -o "/tmp/bo2/zone/all/$name.ff"
+            sha256sum "/tmp/bo2/zone/all/$name.ff" >> /tmp/bo2/report/shared-source-sha256.txt
+          done
+
+      - name: Extract real retail source positions across all BO2 world maps
+        shell: bash
+        run: |
+          set -uo pipefail
+          mp_maps=(mp_bridge mp_carrier mp_castaway mp_concert mp_dig mp_dockside mp_downhill mp_drone mp_express mp_frostbite mp_hijacked mp_hydro mp_la mp_magma mp_meltdown mp_mirage mp_nightclub mp_nuketown_2020 mp_overflow mp_paintball mp_pod mp_raid mp_skate mp_slums mp_socotra mp_studio mp_takeoff mp_turbine mp_uplink mp_vertigo mp_village)
+          zm_maps=(zm_buried zm_highrise zm_nuked zm_prison zm_tomb zm_transit zm_transit_dr)
+          printf 'map\tfastfile_bytes\tunlink_exit\taudit_exit\n' > /tmp/bo2/report/all-results.tsv
+          errors=0
+          for map in "${mp_maps[@]}" "${zm_maps[@]}"; do
+            echo "::group::$map"
+            mkdir -p "/tmp/bo2/report/$map"
+            ff="/tmp/bo2/zone/all/$map.ff"
+            curl -fsSL --retry 4 --retry-delay 3 \
+              "https://r2.houseofkublai.com/bo2/zone/all/$map.ff" -o "$ff"
+            download_rc=$?
+            bytes=$(stat -c '%s' "$ff" 2>/dev/null || echo 0)
+            unlink_rc=125
+            audit_rc=125
+            if (( download_rc == 0 && bytes > 1000 )); then
+              sha256sum "$ff" >> /tmp/bo2/report/world-source-sha256.txt
+              "$UNLINKER" --no-color --skip-obj \
+                --include-assets mapents,addonmapents \
+                --search-path "/tmp/bo2/zone/all" \
+                --output-folder "/tmp/bo2/report/$map/export" \
+                "$ff" >"/tmp/bo2/report/$map/unlink.log" 2>&1
+              unlink_rc=$?
+              python3 tools/bo2_spawn_census.py "$map" \
+                "/tmp/bo2/report/$map/export" \
+                "/tmp/bo2/report/$map/spawns.json" \
+                > "/tmp/bo2/report/$map/census.log" 2>&1
+              audit_rc=$?
+              cat "/tmp/bo2/report/$map/census.log"
+              if (( unlink_rc != 0 )); then tail -n 20 "/tmp/bo2/report/$map/unlink.log"; fi
+            else
+              echo "Could not download $map from R2 ($download_rc)" | tee "/tmp/bo2/report/$map/census.log"
+            fi
+            printf '%s\t%s\t%s\t%s\n' "$map" "$bytes" "$unlink_rc" "$audit_rc" \
+              | tee -a /tmp/bo2/report/all-results.tsv
+            (( download_rc != 0 || unlink_rc != 0 || audit_rc != 0 )) && errors=$((errors + 1))
+            rm -f "$ff"
+            echo "::endgroup::"
+          done
+          echo "$errors" > /tmp/bo2/report/failures.count
+          printf 'Checked %s maps, %s failures\n' "$((${#mp_maps[@]} + ${#zm_maps[@]}))" "$errors"
+
+      - name: Upload audit JSON, per-map logs and source checksums
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bo2-all-maps-retail-spawn-census
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            /tmp/bo2/report/*.tsv
+            /tmp/bo2/report/*.txt
+            /tmp/bo2/report/*.count
+            /tmp/bo2/report/*/census.log
+            /tmp/bo2/report/*/spawns.json
+            /tmp/bo2/report/*/unlink.log
+
+      - name: Require every world map to have decoded source spawns
+        shell: bash
+        run: |
+          test "$(cat /tmp/bo2/report/failures.count)" = "0"
