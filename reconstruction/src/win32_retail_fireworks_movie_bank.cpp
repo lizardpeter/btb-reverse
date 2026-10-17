@@ -291,7 +291,7 @@ bool Win32RetailFireworksMovieBank::freeze_prior_uses(
                static_cast<int>(width_[index]),
                static_cast<int>(height_[index]),snapshot,error))
             return false;
-        const RECT source{0,0,
+        RECT source{0,0,
             static_cast<LONG>(width_[index]),
             static_cast<LONG>(height_[index])};
         const auto hr=snapshot->BltFast(
