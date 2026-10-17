@@ -256,7 +256,9 @@ int main() {
     assert(!printing.fatal_error);
     assert(printing.request_original_frame_print);
     assert(printing.draws.back().source_asset==
-           "Data/SubGameFirework/certprintdep.bmp");
+           "Data/ui/printbar.bmp");
+    assert(printing.draws.back().x==0);
+    assert(printing.draws.back().y==0);
     assert(printing.audio.size()==1);
     assert(printing.audio[0].operation==
            fg::AudioOperation::StopManagedSounds);
