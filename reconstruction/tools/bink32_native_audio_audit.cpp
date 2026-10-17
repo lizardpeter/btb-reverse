@@ -7,6 +7,7 @@
 #include "btb/bink32_audio_packets.hpp"
 #include "btb/bink32_container.hpp"
 #include "btb/bink32_packet_decode.hpp"
+#include <algorithm>
 #include <bit>
 #include <charconv>
 #include <cmath>
