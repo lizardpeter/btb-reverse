@@ -69,6 +69,7 @@ private:
     std::size_t selected_{};
     bool active_{};
     bool in_end_movie_{};
+    bool final_end_frame_decoded_{};
     bool has_decoded_frame_{};
     std::uint32_t last_observed_frame_{};
 };
