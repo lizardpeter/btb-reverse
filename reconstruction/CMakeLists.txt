@@ -1391,6 +1391,18 @@ endif()
 add_test(NAME full_game_fireworks_transition
     COMMAND btb_full_game_fireworks_transition_tests)
 
+add_executable(btb_fireworks_native_show_tests
+    tests/fireworks_native_show_test.cpp)
+target_link_libraries(btb_fireworks_native_show_tests PRIVATE
+    btb_recompiled_core)
+btb_require_cpp26(btb_fireworks_native_show_tests PRIVATE)
+if(MSVC)
+    target_compile_options(btb_fireworks_native_show_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(btb_fireworks_native_show_tests PRIVATE -UNDEBUG)
+endif()
+add_test(NAME fireworks_native_show COMMAND btb_fireworks_native_show_tests)
+
 add_executable(btb_fireworks_movie_bank_catalog_tests
     tests/fireworks_movie_bank_catalog_test.cpp)
 target_include_directories(btb_fireworks_movie_bank_catalog_tests PRIVATE include)

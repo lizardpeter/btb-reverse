@@ -190,6 +190,9 @@ struct ActivityFrameInput {
     // Physical Bink EOS from the native Win32 decoder, observed before
     // this game's state handler. Never synthesize it from wall time.
     bool original_global_movie_finished{};
+    // Source IsSoundIdPlaying(349) from the exact managed-slot map AND
+    // actual DirectSound GetStatus; not inferred from any-playing.
+    bool fireworks_crowd_end_sound_playing{};
 };
 
 struct ActivityFrameOutput {
