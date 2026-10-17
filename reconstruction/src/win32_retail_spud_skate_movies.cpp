@@ -170,6 +170,7 @@ bool Win32RetailSpudSkateMovies::open(
     }
     selected_=0;
     in_end_movie_=false;
+    final_end_frame_decoded_=false;
     has_decoded_frame_=false;
     last_observed_frame_=0;
     active_=true;
@@ -238,9 +239,18 @@ bool Win32RetailSpudSkateMovies::observe(
     }
     if(in_end_movie_) {
         const auto& stream=header(handles_[4]);
-        if(stream.frame_num>=stream.frames) {
+        const auto terminal=
+            spud_skate::original_end_bink_decode_decision(
+                static_cast<int>(stream.frame_num),
+                static_cast<int>(stream.frames),
+                final_end_frame_decoded_);
+        if(terminal.report_finished) {
             result.end_movie_finished=true;
             error.clear();return true;
+        }
+        if(!terminal.decode_frame) {
+            error="original end.bik frame header is outside decoded range";
+            return false;
         }
         // Source 0x424690: actual end.bik decompression and DD7
         // presentation, never an artificial completion countdown.
@@ -252,8 +262,13 @@ bool Win32RetailSpudSkateMovies::observe(
             Sleep(1);
         }
         if(!decode_to_surface(4,error))return false;
-        next(handles_[4]);
+        // The last Bink frame is a real source frame too. Decode and
+        // copy it EXACTLY ONCE, do not advance beyond the last frame,
+        // and only report EOS on the next observed host tick so it
+        // can actually be submitted through DirectDraw.
         has_decoded_frame_=true;
+        if(terminal.next_frame)next(handles_[4]);
+        else final_end_frame_decoded_=true;
         error.clear();
         return true;
     }
@@ -366,6 +381,7 @@ bool Win32RetailSpudSkateMovies::begin_end_movie(
         return false;
     }
     in_end_movie_=true;
+    final_end_frame_decoded_=false;
     has_decoded_frame_=false;
     error.clear();return true;
 }
@@ -403,6 +419,7 @@ bool Win32RetailSpudSkateMovies::close(
     exports_.unload();
     selected_=0;
     in_end_movie_=false;
+    final_end_frame_decoded_=false;
     has_decoded_frame_=false;
     last_observed_frame_=0;
     active_=false;

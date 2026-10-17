@@ -161,7 +161,12 @@ EndMovieFrameStep update_end_movie_phase(
     // On the final Bink frame retail still draws the end-movie surface, then
     // waits until managed audio is idle before setting phase 2.
     step.draw_or_decode_end_movie = true;
-    if (!input.any_managed_sound_playing) {
+    // When first entering this result branch the host has NOT yet
+    // submitted the managed voices to DirectSound. Therefore the
+    // pre-frame observation can say 'idle' even though this frame
+    // is about to play the retail completion speech. Do not unload
+    // the activity in the very same frame that starts that speech.
+    if (!input.any_managed_sound_playing && !step.result_one_shot) {
         state.phase = PlaybackPhase::Complete;
         step.complete_activity = true;
     }

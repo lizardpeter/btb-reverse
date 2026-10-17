@@ -22,6 +22,27 @@ inline constexpr std::int32_t kRetailMaximumScore =
     kRetailScoringOpportunities *
     static_cast<std::int32_t>(StuntQuality::Good);
 
+// The physical original Bink decoder retains its final frame:
+ // 0x00424690 checks FrameNum == Frames before dispatching the
+// transition but the source last frame must have been decoded and
+// copied once. The host must not claim the end from a header alone.
+// This is separate from the 660 two-pass gameplay marker.
+struct EndBinkDecodeDecision {
+    bool decode_frame{};
+    bool next_frame{};
+    bool report_finished{};
+};
+[[nodiscard]] constexpr EndBinkDecodeDecision
+original_end_bink_decode_decision(
+    std::int32_t frame,std::int32_t total_frames,
+    bool last_frame_decoded) noexcept {
+    if(frame<1 || total_frames<1 || frame>total_frames)
+        return {};
+    if(frame==total_frames && last_frame_decoded)
+        return {false,false,true};
+    return {true,frame<total_frames,false};
+}
+
 enum class PlaybackPhase : std::int32_t {
     SynchronizedRun = 0,
     EndMovie = 1,
