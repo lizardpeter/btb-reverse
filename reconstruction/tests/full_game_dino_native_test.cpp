@@ -147,6 +147,8 @@ int main() {
         assert(frame.effects.request_original_frame_print);
         assert(!frame.effects.fatal_error);
         assert(draw_has(frame.effects,
+            "Data/ui/printbar.bmp"));
+        assert(!draw_has(frame.effects,
             "Data/SubGameFirework/certprintdep.bmp"));
         assert(!frame.effects.save_and_unload);
 
