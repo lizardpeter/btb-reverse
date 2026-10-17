@@ -4,6 +4,7 @@
 // production retail-DLL fallback must handle those until native audio ships.
 #if defined(_WIN32)
 #include "btb/bink32_native_movie_player.hpp"
+#include "btb/bink32_audio_master_clock.hpp"
 #include "btb/win32_native_bink_pcm_voice.hpp"
 #include "btb/win32_original_game_device.hpp"
 #include <cstdint>
@@ -41,8 +42,8 @@ private:
     bool experimental_audio_{};
     std::unique_ptr<Win32NativeBinkPcmVoice> voice_{};
     bool voice_started_{};
-    std::uint32_t voice_rate_{};
-    std::uint64_t voice_end_wall_us_{},voice_end_sample_us_{};
+    std::optional<bink32_recovered::Bink1AudioMasterClock>
+        audio_clock_{};
     std::optional<bink32_recovered::BinkNativeSilentMovie> global_;
     std::optional<bink32_recovered::BinkNativeSilentMovie> walkthrough_;
     IDirectDrawSurface7* walkthrough_surface_{};
