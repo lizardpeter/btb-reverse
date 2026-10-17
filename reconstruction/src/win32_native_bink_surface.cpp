@@ -3,6 +3,7 @@
 #include "btb/bink32_surface_convert.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 namespace btb::full_game {
 bool copy_native_bink_frame_to_directdraw(
     IDirectDrawSurface7* surface,
@@ -30,7 +31,7 @@ bool copy_native_bink_frame_to_directdraw(
         const auto row_pitch=static_cast<std::size_t>(info.lPitch);
         const auto bpp=static_cast<std::uint8_t>(
             info.ddpfPixelFormat.dwRGBBitCount/8);
-        if(frame.height>0 && row_pitch<=SIZE_MAX/frame.height) {
+        if(frame.height>0 && row_pitch<=std::numeric_limits<std::size_t>::max()/frame.height) {
             const auto total=row_pitch*frame.height;
             btb::bink32_recovered::BinkPackedSurface target{
                 {static_cast<std::uint8_t*>(info.lpSurface),total},
