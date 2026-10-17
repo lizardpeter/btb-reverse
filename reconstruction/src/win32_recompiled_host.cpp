@@ -265,7 +265,8 @@ struct Host {
                 // Retail state 14 opens Data/movies/fireworkcomplete.bik via
                 // the existing x86 BinkOpen(flags=0) + DirectDraw provider.
                 return movies.open_global(movie,error);
-            }));
+            },
+            [this]() { movies.cancel_global_movie(); }));
         game.install(ActivityId::BobsBand,std::make_unique<BobsBandDriver>(
             root/"Data"/"SubGameOpen",profile_dir));
         game.install(ActivityId::ParkDesigner,
