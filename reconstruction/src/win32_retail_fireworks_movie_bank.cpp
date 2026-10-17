@@ -110,13 +110,17 @@ bool Win32RetailFireworksMovieBank::open(
                 "cannot open original Fireworks Bink: "+paths[i].string(),
                 error);
         const auto count=source.tellg();
-        // Fail rather than allocate from an untrusted/corrupt size. This
-        // sanity bound is a host safety limit, not an invented retail frame.
-        constexpr std::streamoff kMaxSafeBinkFile=256*1024*1024;
-        if(count<=0||count>kMaxSafeBinkFile)
+        // Retail 0x004115C0 performs fread into one 1,500,000-byte
+        // scratch allocation, then copies the bytes it actually read.
+        // Reject oversized files instead of silently truncating a user's
+        // original Bink and misreporting a valid decoded movie.
+        constexpr std::streamoff kRetailReadCapacity=
+            static_cast<std::streamoff>(
+                fireworks::kOriginalFireworkReadCapacity);
+        if(count<=0||count>kRetailReadCapacity)
             return reject_and_close(
-                "original Fireworks Bink has invalid or excessive size: "+
-                paths[i].string(),error);
+                "original Fireworks Bink is empty or exceeds the retail "
+                "1,500,000-byte staging limit: "+paths[i].string(),error);
         auto& bytes=bytes_[i];
         bytes.resize(static_cast<std::size_t>(count));
         source.seekg(0,std::ios::beg);
@@ -137,17 +141,19 @@ bool Win32RetailFireworksMovieBank::open(
                 "original Fireworks BinkOpen(memory) failed: "+
                 paths[i].string(),error);
         const auto& info=header(handles_[i]);
+        const auto surface=fireworks::original_firework_surface_size(i);
         if(info.width==0||info.height==0||
-           info.width>640||info.height>480||
+           info.width>static_cast<std::uint32_t>(surface.width)||
+           info.height>static_cast<std::uint32_t>(surface.height)||
            info.frames==0||info.frame_num!=1)
             return reject_and_close(
-                "original Fireworks bank decoder returned invalid header: "+
-                paths[i].string(),error);
-        width_[i]=info.width;
-        height_[i]=info.height;
+                "original Fireworks Bink exceeds original DD7 surface "
+                "geometry or has invalid frame header: "+paths[i].string(),
+                error);
+        width_[i]=static_cast<std::uint32_t>(surface.width);
+        height_[i]=static_cast<std::uint32_t>(surface.height);
         if(!draw_.create_bink_offscreen_surface(
-               static_cast<int>(info.width),
-               static_cast<int>(info.height),surfaces_[i],error)) {
+               surface.width,surface.height,surfaces_[i],error)) {
             const auto cause=error;
             return reject_and_close(cause,error);
         }
