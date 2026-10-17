@@ -34,14 +34,22 @@ namespace btb::full_game {
 namespace {
 namespace fs=std::filesystem;
 
-// Native SJPi Bink video for source movies with no compressed audio.
+// Developer-only native Bink audio preview. Default remains the validated
+// retail 2002 Bink DLL for audio-bearing movies until real-asset parity.
+[[nodiscard]] bool opt_in_native_bink_audio() noexcept {
+    wchar_t value[2]{};
+    return GetEnvironmentVariableW(
+        L"BTB_EXPERIMENTAL_NATIVE_BINK_AUDIO",value,2)==1 &&
+        value[0]==L'1';
+}
 
 struct Host {
     HWND window{};
     fs::path root{};
     Win32OriginalDirectDraw graphics{};
     Win32OriginalDirectSound audio{};
-    Win32HybridBinkProvider movies{graphics,root};
+    Win32HybridBinkProvider movies{
+        graphics,audio,root,opt_in_native_bink_audio()};
     std::unique_ptr<Win32OriginalGameDevice> device{};
     GameRoot game{};
     std::unique_ptr<NativeGameSession> session{};
