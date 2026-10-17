@@ -1,7 +1,7 @@
 #include "btb/win32_recompiled_host.hpp"
 #if defined(_WIN32)
 #include "btb/win32_original_game_device.hpp"
-#include "btb/win32_retail_bink_provider.hpp"
+#include "btb/win32_hybrid_bink_provider.hpp"
 #include "btb/full_game_front_end.hpp"
 #include "btb/full_game_golf.hpp"
 #include "btb/full_game_maze.hpp"
@@ -47,6 +47,15 @@ namespace btb::full_game {
 namespace {
 namespace fs=std::filesystem;
 
+// Native movie audio/video require separate explicit developer opt-ins.
+// Normal retail playback remains unchanged, including Fireworks cancellation.
+[[nodiscard]] bool native_bink_opt_in(const wchar_t* key) noexcept {
+    wchar_t value[3]{};
+    return GetEnvironmentVariableW(key,value,3)==1 &&
+           value[0]==L'1';
+}
+
+
 // Profile persistence is independent of the original Bink decoder.
 // Keep source-format progress away from installed retail save files.
 std::optional<fs::path> native_profile_env_path(const wchar_t* key) {
@@ -73,7 +82,7 @@ struct Host {
     Win32OriginalDirectSound audio{};
     // The original 2002 binkw32.dll is directly callable from
     // the native x86 build; the x64 build rejects that ABI safely.
-    Win32RetailBinkProvider movies;
+    Win32HybridBinkProvider movies;
     // Borrowed pointer; the actual decoder is owned by SpudSkateDriver.
     // GameDevice only asks it to blit the currently decoded surface.
     Win32RetailSpudSkateMovies* skate_movies{};
@@ -98,7 +107,10 @@ struct Host {
     original_active_frame::State original_frame{};
 
     explicit Host(fs::path original_root,bool skip,int profile)
-        :root(std::move(original_root)),movies(graphics,root),
+        :root(std::move(original_root)),
+         movies(graphics,audio,root,
+                native_bink_opt_in(L"BTB_EXPERIMENTAL_NATIVE_BINK_AUDIO"),
+                native_bink_opt_in(L"BTB_EXPERIMENTAL_NATIVE_BINK_VIDEO")),
          skip_video(skip),selected_profile(profile) {}
 
     [[nodiscard]] static bool parse_bitmap_names(

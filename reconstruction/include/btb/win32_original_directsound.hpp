@@ -41,6 +41,10 @@ public:
         std::string& error);
     [[nodiscard]] bool apply(
         const ResolvedSoundEffect& effect,std::string& error);
+    // Borrowed device; native movie voice AddRefs before using it.
+    [[nodiscard]] IDirectSound8* device_for_native_bink_pcm() const noexcept {
+        return sound_;
+    }
     void shutdown() noexcept;
 
 private:
