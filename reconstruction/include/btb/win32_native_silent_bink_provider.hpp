@@ -16,6 +16,7 @@ public:
     explicit Win32NativeSilentBinkProvider(Win32OriginalDirectDraw& renderer)
         : renderer_(renderer) {}
     ~Win32NativeSilentBinkProvider() override;
+    void reset_global() noexcept { global_.reset(); }
     [[nodiscard]] bool open_global(
         const std::filesystem::path& movie,std::string& error) override;
     [[nodiscard]] bool service(
