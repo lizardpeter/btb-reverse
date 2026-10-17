@@ -277,11 +277,20 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
                 print.overlay_x,print.overlay_y,std::nullopt,true
             });
         }
+        if(print.draw_print_bar_before_print) {
+            // Original source draws the keyed 00508AD0 registered
+            // Data/ui/printbar.bmp over the certificate at (0,0)
+            // before exporting the actual DD7 backbuffer to PrintDlg.
+            out.draws.push_back({
+                "Data/ui/printbar.bmp",0,0,std::nullopt,true
+            });
+        }
         if(print.invoke_shared_print) {
-            // Printing is a separate shared Win32 source provider. Do not
-            // silently claim the certificate was printed without it.
-            out.fatal_error="original Dinosaur certificate print provider "
-                            "is not yet connected";
+            // Dino and Fireworks share the original 0x00409730 printer.
+            // The pressed original sprite is rendered first, and the real
+            // native device prints that DD7 frame before presentation.
+            out.audio.push_back({AudioOperation::StopManagedSounds});
+            out.request_original_frame_print=true;
         }
     }
     return out;

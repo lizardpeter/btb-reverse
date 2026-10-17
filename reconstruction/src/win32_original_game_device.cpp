@@ -1,4 +1,5 @@
 #include "btb/win32_original_game_device.hpp"
+#include "btb/win32_retail_print_provider.hpp"
 
 #if defined(_WIN32)
 namespace btb::full_game {
@@ -51,6 +52,11 @@ bool Win32OriginalGameDevice::draw_ordered(
     // Source-backed looping walkthrough Bink overlays belong above the
     // original instructional background and button surfaces.
     return bink_.render_walkthrough_overlay(error);
+}
+
+bool Win32OriginalGameDevice::print_current_frame(std::string& error) {
+    return Win32RetailPrintProvider::print_original_backbuffer(
+        draw_.bink_render_target(),draw_.window_handle(),error);
 }
 
 bool Win32OriginalGameDevice::present(std::string& error) {

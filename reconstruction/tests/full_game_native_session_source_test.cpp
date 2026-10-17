@@ -72,6 +72,9 @@ public:
     int sound_count{};
     int draw_count{};
     int present_count{};
+    int print_count{};
+    bool fail_print{};
+    std::vector<std::string> operation_order{};
     bool fail_draw{};
     bool fail_present{};
     std::string last_movie{};
@@ -106,6 +109,7 @@ public:
     bool draw_ordered(const std::vector<ResolvedDraw>& draws,
                       std::string& error) override {
         ++draw_count;
+        operation_order.push_back("draw");
         if (fail_draw) {
             error="forced DirectDraw provider failure";
             return false;
@@ -115,8 +119,18 @@ public:
         }
         error.clear();return true;
     }
+    bool print_current_frame(std::string& error) override {
+        ++print_count;
+        operation_order.push_back("print");
+        if(fail_print) {
+            error="the original Windows printer rejected this print";
+            return false;
+        }
+        error.clear();return true;
+    }
     bool present(std::string& error) override {
         ++present_count;
+        operation_order.push_back("present");
         if(fail_present){error="forced native presentation failure";return false;}
         error.clear();return true;
     }
@@ -143,6 +157,24 @@ public:
         return output;
     }
     [[nodiscard]] bool unload(std::string& error) override {
+        error.clear();return true;
+    }
+};
+
+class SourcePrintActivity final : public ActivityDriver {
+public:
+    bool initialize(int,std::string& error) override {
+        error.clear();return true;
+    }
+    ActivityFrameOutput advance(const ActivityFrameInput& input) override {
+        ActivityFrameOutput out;
+        out.draws.push_back({
+            "Data/ui/original.bmp",0,0,std::nullopt,false
+        });
+        out.request_original_frame_print=input.click_pulse;
+        return out;
+    }
+    bool unload(std::string& error) override {
         error.clear();return true;
     }
 };
@@ -364,6 +396,64 @@ int main() {
         assert(device.draw_count==before_movie_draws+1);
         assert(session.present_prepared(present_error));
         assert(device.present_count==before_movie_presents+2);
+    }
+
+    // A click requests the actual Windows print service after original
+    // DD7 draw and BEFORE Flip/Blt. The core never invents a print result.
+    {
+        GameRoot game;
+        assert(game.select_profile(0));
+        game.install(ActivityId::Fireworks,
+            std::make_unique<SourcePrintActivity>());
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture()
+        };
+        game.set_outer_state(State::FireworksInit);
+        const auto initialized=session.tick({},false,false,true);
+        assert(initialized.ready_for_present && !initialized.failure);
+        std::string error;
+        assert(session.present_prepared(error));
+        device.operation_order.clear();
+        const auto click=session.tick({.click_pulse=true},true,false,true);
+        assert(!click.failure && click.ready_for_present);
+        assert(click.prepared.game.effects.request_original_frame_print);
+        assert(device.print_count==1);
+        assert((device.operation_order==std::vector<std::string>{
+            "draw","print"}));
+        assert(session.present_prepared(error));
+        assert((device.operation_order==std::vector<std::string>{
+            "draw","print","present"}));
+        const auto next=session.tick({},false,false,true);
+        assert(!next.failure && next.ready_for_present);
+        assert(device.print_count==1); // one print per requested click
+        assert(session.present_prepared(error));
+    }
+    {
+        GameRoot game;
+        assert(game.select_profile(0));
+        game.install(ActivityId::Fireworks,
+            std::make_unique<SourcePrintActivity>());
+        Device device;
+        device.fail_print=true;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture()
+        };
+        game.set_outer_state(State::FireworksInit);
+        const auto initialized=session.tick({},false,false,true);
+        assert(initialized.ready_for_present);
+        std::string error;
+        assert(session.present_prepared(error));
+        const auto rejected=session.tick(
+            {.click_pulse=true},true,false,true);
+        assert(rejected.failure);
+        assert(rejected.failure->stage==PhysicalPresentationStage::Print);
+        assert(rejected.failure->message.find("printer")!=std::string::npos);
+        assert(!rejected.ready_for_present);
+        assert(device.print_count==1);
+        assert(device.present_count==1);
     }
 
     // Exercise the REAL deferred two-phase NativeGameSession path used

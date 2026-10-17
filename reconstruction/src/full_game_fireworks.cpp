@@ -380,12 +380,17 @@ ActivityFrameOutput FireworksDriver::advance(
             output.audio.push_back({AudioOperation::StopManagedSounds});
         if(decision.action==
            fireworks::CertificateActionKind::PrintCurrentFrame) {
-            // Original ExportAndPrintGameImage is a separate native
-            // printer provider. Refuse the click until it is connected:
-            // this path must never claim the certificate was printed.
-            fireworks::draw_original_certificate_print_hover(output,true);
-            output.fatal_error=
-                "original Fireworks print bitmap/printer adapter unavailable";
+            // Original 0x00409730 prints the *composited* current
+            // backbuffer. Request the host printer AFTER the DD7 draws
+            // and BEFORE Flip/Blt. Cancellation stays inside Win32 print
+            // dialog and cannot become a fake certificate completion.
+            // Source 0x004138A0 does NOT draw the hover sprite here.
+            // It blits the registered original 00508AD0 printbar.bmp
+            // at (0,0), then exports THAT composed DD7 backbuffer.
+            output.draws.push_back({
+                "Data/ui/printbar.bmp",0,0,std::nullopt,true
+            });
+            output.request_original_frame_print=true;
         }
         return output;
     }

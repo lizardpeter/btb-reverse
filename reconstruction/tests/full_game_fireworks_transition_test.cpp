@@ -253,12 +253,17 @@ int main() {
     assert(hovered_again.audio.empty());
     const auto printing=shows.advance({
         .pointer_x=320,.pointer_y=440,.click_pulse=true});
-    assert(printing.fatal_error);
-    assert(printing.fatal_error->find("printer")!=std::string::npos);
+    assert(!printing.fatal_error);
+    assert(printing.request_original_frame_print);
+    assert(printing.draws.back().source_asset==
+           "Data/ui/printbar.bmp");
+    assert(printing.draws.back().x==0);
+    assert(printing.draws.back().y==0);
     assert(printing.audio.size()==1);
     assert(printing.audio[0].operation==
            fg::AudioOperation::StopManagedSounds);
     assert(!printing.save_and_unload);
+    assert(printing.progress_writes.empty());
     assert(shows.editor().internal_state==fw::InternalState::Certificate);
     assert(shows.unload(error));
     assert(source_bank_close==1);
