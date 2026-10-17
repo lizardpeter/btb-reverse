@@ -1,5 +1,6 @@
 #include "btb/full_game_fireworks.hpp"
 
+#include <array>
 #include <cassert>
 #include <filesystem>
 #include <fstream>
@@ -63,16 +64,16 @@ int main() {
            sound.sound_id==880)played_voice=true;
     assert(played_voice);
 
-    // Retail waits for the *actual* managed sound system. Silence cannot
-    // bypass state 14 or request movie playback.
+    // Original 0x00413F10 state 14 waits WHILE sound 880 is playing.
+    // The Bink opens only after its actual DirectSound status goes idle.
     const auto waiting=activity.advance({
-        .pointer_x=320,.pointer_y=440,.managed_sound_playing=false});
+        .pointer_x=320,.pointer_y=440,.managed_sound_playing=true});
     assert(!waiting.fatal_error);
     assert(!waiting.draws.empty());
     assert(opens==0);
 
     const auto started=activity.advance({
-        .pointer_x=320,.pointer_y=440,.managed_sound_playing=true});
+        .pointer_x=320,.pointer_y=440,.managed_sound_playing=false});
     assert(!started.fatal_error);
     assert(opens==1);
     assert(observed_movie==root/"Data"/"movies"/"fireworkcomplete.bik");
@@ -121,7 +122,7 @@ int main() {
     assert(cancelled.initialize(1,error));
     assert(!cancelled.advance({
         .pointer_x=320,.pointer_y=440,.click_pulse=true}).fatal_error);
-    assert(!cancelled.advance({.managed_sound_playing=true}).fatal_error);
+    assert(!cancelled.advance({.managed_sound_playing=false}).fatal_error);
     assert(cancelled.editor().internal_state==
            fw::InternalState::PreShowMoviePlayback);
     assert(cancelled.unload(error));
@@ -145,12 +146,14 @@ int main() {
     assert(ready_bank.initialize(0,error));
     assert(!ready_bank.advance({
         .pointer_x=320,.pointer_y=440,.click_pulse=true}).fatal_error);
-    assert(!ready_bank.advance({.managed_sound_playing=true}).fatal_error);
+    assert(!ready_bank.advance({.managed_sound_playing=false}).fatal_error);
     assert(!ready_bank.advance({
         .original_global_movie_finished=true}).fatal_error);
     assert(ready_bank.editor().internal_state==fw::InternalState::ShowSetup);
     const auto opening=ready_bank.advance({});
     assert(!opening.fatal_error);
+    assert(opening.audio.size()==1);
+    assert(opening.audio[0].operation==fg::AudioOperation::StopManagedSounds);
     assert(bank_opens==1);
     assert(original_bank_source==original);
     assert(ready_bank.editor().internal_state==fw::InternalState::ShowPlayback);
@@ -167,6 +170,9 @@ int main() {
     // physical decoder input and returns native show output, not fake time.
     int source_show_calls=0,source_bank_close=0;
     int observed_elapsed=-1;
+    std::array<fg::Rect,191> brown_font{};
+    brown_font[0]={0,0,10,18};
+    brown_font[1]={20,0,40,18};
     fg::FireworksDriver shows(original,save,
         [&](const fs::path&,std::string& e) {e.clear();return true;},
         [&]() {},
@@ -186,13 +192,26 @@ int main() {
                 result.sound_id=fw::kCrowdEndSoundId;
                 result.sound_priority=50;
                 result.sound_arbitration_class=1;
+            } else if(source_show_calls==3) {
+                result.enter_certificate=true;
             }
+            error.clear();return true;
+        },
+        nullptr,
+        [&](int player,btb::profiles::ProfileInfo& profile,
+            std::span<const fg::Rect>& font,std::string& error)->bool {
+            assert(player==0);
+            profile.name_length=2;
+            profile.badge_index=4;
+            profile.name_glyph_codes[0]=0;
+            profile.name_glyph_codes[1]=1;
+            font=brown_font;
             error.clear();return true;
         });
     assert(shows.initialize(0,error));
     assert(!shows.advance({
         .pointer_x=320,.pointer_y=440,.click_pulse=true}).fatal_error);
-    assert(!shows.advance({.managed_sound_playing=true}).fatal_error);
+    assert(!shows.advance({.managed_sound_playing=false}).fatal_error);
     assert(!shows.advance({
         .original_global_movie_finished=true}).fatal_error);
     assert(!shows.advance({.elapsed_centiseconds=440}).fatal_error);
@@ -209,6 +228,38 @@ int main() {
         .fireworks_crowd_end_sound_playing=true}).fatal_error);
     assert(source_show_calls==2);
     assert(observed_elapsed==21);
+    const auto finale=shows.advance({.elapsed_centiseconds=500});
+    assert(!finale.fatal_error);
+    assert(source_show_calls==3);
+    assert(shows.editor().internal_state==fw::InternalState::Certificate);
+    const auto certificate=shows.advance({
+        .pointer_x=320,.pointer_y=440});
+    assert(!certificate.fatal_error);
+    assert(certificate.draws.size()==5);
+    assert(certificate.draws[0].source_asset==
+           "Data/SubGameFirework/certificate.bmp");
+    assert(certificate.draws[1].source_asset==
+           "Data/ui/enter name boxed font.bmp");
+    assert(certificate.draws[1].x==476);
+    assert(certificate.draws[3].source_asset==
+           "Data/ui/fonttools.bmp");
+    assert(certificate.draws[4].source_asset==
+           "Data/SubGameFirework/certprint.bmp");
+    assert(certificate.audio.size()==1);
+    assert(certificate.audio[0].sound_id==143);
+    const auto hovered_again=shows.advance({
+        .pointer_x=320,.pointer_y=440});
+    assert(!hovered_again.fatal_error);
+    assert(hovered_again.audio.empty());
+    const auto printing=shows.advance({
+        .pointer_x=320,.pointer_y=440,.click_pulse=true});
+    assert(printing.fatal_error);
+    assert(printing.fatal_error->find("printer")!=std::string::npos);
+    assert(printing.audio.size()==1);
+    assert(printing.audio[0].operation==
+           fg::AudioOperation::StopManagedSounds);
+    assert(!printing.save_and_unload);
+    assert(shows.editor().internal_state==fw::InternalState::Certificate);
     assert(shows.unload(error));
     assert(source_bank_close==1);
 
@@ -218,7 +269,7 @@ int main() {
     const auto play=absent.advance({
         .pointer_x=320,.pointer_y=440,.click_pulse=true});
     assert(!play.fatal_error);
-    const auto rejected=absent.advance({.managed_sound_playing=true});
+    const auto rejected=absent.advance({.managed_sound_playing=false});
     assert(rejected.fatal_error);
     assert(absent.editor().internal_state==
            fw::InternalState::PreShowMovieSetup);

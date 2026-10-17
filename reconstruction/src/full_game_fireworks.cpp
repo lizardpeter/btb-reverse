@@ -1,4 +1,5 @@
 #include "btb/full_game_fireworks.hpp"
+#include "btb/fireworks_certificate_native.hpp"
 
 #include <array>
 #include <cstdint>
@@ -96,6 +97,7 @@ bool FireworksDriver::initialize(int player_index, std::string& error) {
         movie_bank_open_ = false;
         show_runtime_.reset();
         show_started_centiseconds_ = 0;
+        certificate_state_={};
         error.clear();
         return true;
     } catch (const std::exception& ex) {
@@ -192,9 +194,10 @@ ActivityFrameOutput FireworksDriver::advance(
             if(tick.sound_id)append_sound(output,*tick.sound_id);
     };
 
-    // Retail state 14 waits until the just-requested managed Play voice
-    // has started. Only then does it open the original disk Bink and
-    // advance to state 15; no elapsed-time or synthetic EOS shortcut.
+    // Retail state 14 redraws while any managed voice (including Play 880)
+    // is still active. Only once the real DirectSound observation goes idle
+    // does it open the original disk Bink and advance to state 15.
+    // No clock, inferred audio status, or synthetic EOS shortcut.
     if(state == InternalState::PreShowMovieSetup) {
         if(!fireworks::should_open_pre_show_movie(
                 input.managed_sound_playing)) {
@@ -256,6 +259,10 @@ ActivityFrameOutput FireworksDriver::advance(
             return output;
         }
         movie_bank_open_=true;
+        // Original 0x00413F10 state 8 always calls StopAllManagedSounds
+        // before entering state 9; the state-15 voice ID 142 must not
+        // continue underneath the authored fireworks and crowd audio.
+        output.audio.push_back({AudioOperation::StopManagedSounds});
         show_runtime_.reset();
         show_started_centiseconds_=input.elapsed_centiseconds;
         editor_.internal_state=InternalState::ShowPlayback;
@@ -317,6 +324,69 @@ ActivityFrameOutput FireworksDriver::advance(
         // Render_ordered clears the normal DD7 backbuffer; the native
         // game device then blits exactly the queued decoded effect movies
         // in original crowd/active/topmiddle source order.
+        return output;
+    }
+    if(state == InternalState::Certificate) {
+        if(!certificate_profile_) {
+            output.fatal_error=
+                "original selected-profile glyph/badge service unavailable";
+            return output;
+        }
+        profiles::ProfileInfo profile{};
+        std::span<const Rect> font{};
+        std::string error;
+        if(!certificate_profile_(player_index_,profile,font,error)) {
+            output.fatal_error=error.empty()
+                ? "original certificate profile metadata unavailable" : error;
+            return output;
+        }
+        if(!fireworks::render_original_certificate(
+                profile,font,output,error)) {
+            output.fatal_error=error;
+            return output;
+        }
+        fireworks::CertificateInteractionInput buttons{};
+        buttons.mouse_x=input.pointer_x;
+        buttons.mouse_y=input.pointer_y;
+        buttons.click_active=input.click_pulse;
+        buttons.any_managed_sound_playing=input.managed_sound_playing;
+        // Source requests the CRT random stream only after the real
+        // voice-busy gate, the hover hit and its one-shot latch.
+        if(!buttons.click_active &&
+           !fireworks::certificate_print_hit(
+               buttons.mouse_x,buttons.mouse_y) &&
+           !buttons.any_managed_sound_playing &&
+           !certificate_state_.random_voice_latched &&
+           original_random_) {
+            buttons.candidate_random_mod_8=original_random_->next_rand()%8;
+            // The executable draws a second independent roll only when
+            // the first candidate differs from the stored candidate.
+            if(fireworks::certificate_random_voice_sound_id(
+                   buttons.candidate_random_mod_8)!=
+               certificate_state_.last_random_candidate_id)
+                buttons.playback_random_mod_8=original_random_->next_rand()%8;
+        }
+        auto decision=fireworks::update_certificate_interaction(
+            certificate_state_,buttons);
+        certificate_state_=decision.state;
+        if(fireworks::certificate_print_hit(
+               input.pointer_x,input.pointer_y) &&
+           !input.click_pulse)
+            fireworks::draw_original_certificate_print_hover(output,false);
+        if(decision.sound_id)
+            append_sound(output,*decision.sound_id,
+                decision.sound_priority,decision.sound_arbitration_class);
+        if(decision.stop_all_managed_sounds)
+            output.audio.push_back({AudioOperation::StopManagedSounds});
+        if(decision.action==
+           fireworks::CertificateActionKind::PrintCurrentFrame) {
+            // Original ExportAndPrintGameImage is a separate native
+            // printer provider. Refuse the click until it is connected:
+            // this path must never claim the certificate was printed.
+            fireworks::draw_original_certificate_print_hover(output,true);
+            output.fatal_error=
+                "original Fireworks print bitmap/printer adapter unavailable";
+        }
         return output;
     }
     if(state != InternalState::Editor &&
@@ -452,6 +522,7 @@ bool FireworksDriver::unload(std::string& error) {
     movie_bank_open_=false;
     show_runtime_.reset();
     show_started_centiseconds_=0;
+    certificate_state_={};
     error.clear();
     return true;
 }

@@ -85,6 +85,12 @@ add_executable(btb_fireworks_certificate_tests
     tests/fireworks_certificate_test.cpp
 )
 target_link_libraries(btb_fireworks_certificate_tests PRIVATE btb_fireworks)
+btb_require_cpp26(btb_fireworks_certificate_tests PRIVATE)
+if(MSVC)
+    target_compile_options(btb_fireworks_certificate_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(btb_fireworks_certificate_tests PRIVATE -UNDEBUG)
+endif()
 add_test(NAME fireworks_certificate COMMAND btb_fireworks_certificate_tests)
 
 add_executable(btb_fireworks_editor_tests

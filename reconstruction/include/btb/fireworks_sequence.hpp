@@ -75,13 +75,15 @@ enum class InternalState : std::int32_t {
     return state != InternalState::LegacyCompleteAndExit;
 }
 
-// Pressing Play enters state 14. Retail does not advance to the transition
-// movie until AnyManagedSoundPlaying() returns true. One direct Play-control
-// path starts sound 880 immediately before writing state 14; the shared editor
-// action path can also write state 14 directly.
+// PE32 UpdateFireworksActivity (0x00413F10), state 14:
+// while AnyManagedSoundPlaying() == 1, redraw editor and WAIT.
+// Once all managed voices have finished (result == 0), stop soundtrack,
+// disable input, and open Data/movies/fireworkcomplete.bik.
+// Sound 880 is started on the Play control and must not be interrupted
+// merely because it is already playing at entry to state 14.
 [[nodiscard]] constexpr bool should_open_pre_show_movie(
     bool any_managed_sound_playing) noexcept {
-    return any_managed_sound_playing;
+    return !any_managed_sound_playing;
 }
 
 // When fireworkcomplete.bik finishes in state 15, retail re-enables input,
