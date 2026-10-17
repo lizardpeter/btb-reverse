@@ -1,4 +1,5 @@
 #include "btb/win32_retail_print_provider.hpp"
+#include "btb/printing_system.hpp"
 #if defined(_WIN32)
 #include <commdlg.h>
 #include <algorithm>
@@ -89,18 +90,35 @@ struct CapturedFrame {
                 std::uint32_t value=0;
                 for(unsigned b=0;b<bytes_per_pixel;++b)
                     value|=static_cast<std::uint32_t>(pixel[b])<<(b*8);
-                std::uint8_t red=0,green=0,blue=0;
-                if(indexed) {
-                    const auto& entry=palette[value&0xff];
-                    red=entry.peRed;green=entry.peGreen;blue=entry.peBlue;
+                if(rgb && bpp==16) {
+                    // Exact source PE32 0x00409460 export:
+                    // the retail 16-bit DD7 bitmap writes G,R,B bytes
+                    // (not B,G,R) using shift-only mask extraction, not
+                    // normalized 0..255 channel scaling. These three
+                    // bytes were then read as BMP color bytes by
+                    // LoadImageA in ExportAndPrintGameImage. Recreate
+                    // the same visible printed pixels in our memory DIB.
+                    const auto retail=printing::export_pixel_bytes(
+                        static_cast<std::uint16_t>(value),
+                        format.dwRBitMask,format.dwGBitMask,
+                        format.dwBBitMask);
+                    out[4*x]=retail.byte0;
+                    out[4*x+1]=retail.byte1;
+                    out[4*x+2]=retail.byte2;
                 } else {
-                    red=channel(value,format.dwRBitMask);
-                    green=channel(value,format.dwGBitMask);
-                    blue=channel(value,format.dwBBitMask);
+                    std::uint8_t red=0,green=0,blue=0;
+                    if(indexed) {
+                        const auto& entry=palette[value&0xff];
+                        red=entry.peRed;green=entry.peGreen;blue=entry.peBlue;
+                    } else {
+                        red=channel(value,format.dwRBitMask);
+                        green=channel(value,format.dwGBitMask);
+                        blue=channel(value,format.dwBBitMask);
+                    }
+                    out[4*x]=blue;
+                    out[4*x+1]=green;
+                    out[4*x+2]=red;
                 }
-                out[4*x]=blue;
-                out[4*x+1]=green;
-                out[4*x+2]=red;
                 out[4*x+3]=0;
             }
         }
@@ -155,19 +173,42 @@ bool Win32RetailPrintProvider::print_original_backbuffer(
         release();error="printer reports no valid printable dimensions";
         return false;
     }
-    const int w=frame.info.bmiHeader.biWidth;
-    const int h=-frame.info.bmiHeader.biHeight;
-    const double scale=(std::min)(
-        static_cast<double>(paper_w)/w,
-        static_cast<double>(paper_h)/h);
-    const int draw_w=static_cast<int>(w*scale);
-    const int draw_h=static_cast<int>(h*scale);
-    if(draw_w<=0||draw_h<=0) {
-        release();error="printer image scaling generated invalid dimensions";
+    // The original 0x00409730 printer forces scale mode 2. Its recovered
+    // 0x00405490 geometry uses the owner window's screen DPI and the
+    // selected printer's DPI, magnifies Y by 1.5, and then stores raw
+    // right/bottom RECT coordinates as scaled W/H (rather than left+W).
+    // Reuse the tested source helper instead of generic fit-to-page.
+    const HDC screen_dc=GetDC(window);
+    if(!screen_dc) {
+        release();error="cannot obtain original owner-window screen DPI";
         return false;
     }
-    const int left=(paper_w-draw_w)/2;
-    const int top=(paper_h-draw_h)/2;
+    const printing::ScreenMetrics screen{
+        GetDeviceCaps(screen_dc,LOGPIXELSX),
+        GetDeviceCaps(screen_dc,LOGPIXELSY)
+    };
+    // Unlike the original PE32, do not leak a window DC on every print.
+    ReleaseDC(window,screen_dc);
+    const int w=frame.info.bmiHeader.biWidth;
+    const int h=-frame.info.bmiHeader.biHeight;
+    const auto position=printing::compute_target_rect(
+        printing::ScaleMode::RetailScreenScaled,
+        {w,h},
+        {paper_w,paper_h,
+         GetDeviceCaps(dlg.hDC,LOGPIXELSX),
+         GetDeviceCaps(dlg.hDC,LOGPIXELSY)},
+        screen);
+    if(!position.changed) {
+        release();error="retail source printer DPI/geometry unavailable";
+        return false;
+    }
+    const int left=position.rect.left,top=position.rect.top;
+    const int draw_w=position.rect.right-left;
+    const int draw_h=position.rect.bottom-top;
+    if(draw_w<=0||draw_h<=0) {
+        release();error="retail print mode 2 produced an invalid rectangle";
+        return false;
+    }
     DOCINFOA doc{};
     doc.cbSize=sizeof(doc);
     doc.lpszDocName="Bob the Builder - Bob Builds a Park";
@@ -180,7 +221,8 @@ bool Win32RetailPrintProvider::print_original_backbuffer(
         error="native printer rejected StartPage";
         return false;
     }
-    SetStretchBltMode(dlg.hDC,HALFTONE);
+    // 0x004057E0 sends the literal retail stretch-mode 3.
+    SetStretchBltMode(dlg.hDC,printing::kStretchMode);
     const int written=StretchDIBits(
         dlg.hDC,left,top,draw_w,draw_h,
         0,0,w,h,frame.pixels.data(),&frame.info,

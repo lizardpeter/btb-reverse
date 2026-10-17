@@ -92,6 +92,10 @@ struct Host {
     int pointer_x{320},pointer_y{240};
     NativeHostInput native_input{};
     bool running{};
+    // PrintDlgA runs a nested modal Win32 message loop on this thread.
+    // WM_TIMER must never reenter GameRoot/NativeGameSession while a
+    // certificate print is capturing its already-submitted frame.
+    bool native_frame_active{};
     bool skip_video{};
     int selected_profile{};
     original_win32::RetailWindowState retail_window{};
@@ -374,6 +378,12 @@ struct Host {
 
     [[nodiscard]] bool step() {
         if(!running||!session)return false;
+        if(native_frame_active)return true;
+        struct FrameScope {
+            bool& flag;
+            explicit FrameScope(bool& value):flag(value) {flag=true;}
+            ~FrameScope(){flag=false;}
+        } frame_scope{native_frame_active};
         // The original CD volume label is not extracted/validated in this
         // source-only opt-in development host. The frame driver explicitly
         // marks this compatibility waiver instead of claiming disc parity.
@@ -466,6 +476,12 @@ LRESULT CALLBACK native_window_proc(
     auto* host=reinterpret_cast<Host*>(
         GetWindowLongPtrW(hwnd,GWLP_USERDATA));
     if(!host)return DefWindowProcW(hwnd,msg,wp,lp);
+    // Windows' modal PrintDlgA pumps the owner's WM_TIMER events while
+    // an original frame is already mid-draw/printing. Ignore nested ticks
+    // before even reaching the original window-proc shim; resume when the
+    // physical dialog closes and the existing frame can finish presenting.
+    if(msg==WM_TIMER && wp==kNativeTimer && host->native_frame_active)
+        return 0;
     // Original 004020D0 is now on the genuine Win32 message path, before
     // application-specific game activity and mouse input handling.
     const auto original_result=original_win32::main_window_proc_recompiled(

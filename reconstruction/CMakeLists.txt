@@ -1458,7 +1458,8 @@ if(WIN32)
     target_include_directories(btb_original_win32_platform PUBLIC include)
     btb_require_cpp26(btb_original_win32_platform PUBLIC)
     target_link_libraries(btb_original_win32_platform PUBLIC
-        btb_recompiled_core ddraw dxguid dsound winmm ole32 gdi32 user32 comdlg32)
+        btb_recompiled_core btb_printing_system
+        ddraw dxguid dsound winmm ole32 gdi32 user32 comdlg32)
     target_link_libraries(btb_game PRIVATE btb_original_win32_platform)
 
     target_link_libraries(btb_game PRIVATE shell32)
