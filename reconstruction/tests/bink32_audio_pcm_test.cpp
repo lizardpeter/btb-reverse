@@ -42,8 +42,9 @@ int main(){
     source.declared_pcm_bytes=8;
     const auto rdft=encode_bink1_pcm16(source,layout);
     CHECK(rdft&&rdft->channels==2&&rdft->frame_count()==2);
-    CHECK(rdft->interleaved_samples==std::vector<std::int16_t>{
-        3277,-3277,16384,-16384});
+    const std::vector<std::int16_t> expected_rdft{
+        3277,-3277,16384,-16384};
+    CHECK(rdft->interleaved_samples==expected_rdft);
     // Reject a partial stereo frame rather than dropping a channel value.
     source.samples={{0.1f,0.2f,0.3f}};
     source.declared_pcm_bytes=6;
