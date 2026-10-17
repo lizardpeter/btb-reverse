@@ -41,6 +41,18 @@ jobs:
         env:
           CXX: g++-14
         run: cmake -S reconstruction -B build/reconstruction
+      # Publish the small standalone native decoder before compiling
+      # the entire large game reconstruction, so retail differential
+      # tests can run promptly against user-supplied read-only media.
+      - name: Build native Bink retail audit first
+        run: cmake --build build/reconstruction --parallel --target btb_bink32_retail_video_audit
+      - name: Upload native Bink retail audit executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: bink32-native-retail-audit
+          path: build/reconstruction/btb_bink32_retail_video_audit
+          if-no-files-found: error
+          retention-days: 7
       - name: Build reconstruction
         run: cmake --build build/reconstruction --parallel
       - name: Test reconstruction
