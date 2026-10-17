@@ -1875,6 +1875,12 @@ target_link_libraries(btb_bink32_audio_stream_tests PRIVATE btb_bink32_recovered
 btb_require_cpp26(btb_bink32_audio_stream_tests PRIVATE)
 add_test(NAME bink32_audio_stream_multiblock COMMAND btb_bink32_audio_stream_tests)
 
+# Read-only retail BIK audio packet audit. Optionally exports experimental
+# interleaved F32 for external differential testing, never native playback.
+add_executable(btb_bink32_native_audio_audit tools/bink32_native_audio_audit.cpp)
+target_link_libraries(btb_bink32_native_audio_audit PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_native_audio_audit PRIVATE)
+
 # Dump a decoded retail BIK frame as a P6 image for visual review without
 # either binkw32.dll or FFmpeg at runtime. Original assets stay user-owned.
 add_executable(btb_bink32_native_frame_dump tools/bink32_native_frame_dump.cpp)
