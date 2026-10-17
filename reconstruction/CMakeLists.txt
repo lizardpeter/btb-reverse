@@ -12,6 +12,51 @@ function(btb_require_cpp26 target scope)
     endif()
 endfunction()
 
+# Portable native Bink1 codec and test suite, kept isolated from current
+# production Windows Bink game-host playback to avoid regressions.
+add_library(btb_bink32_recovered STATIC
+    src/bink32_recovered.cpp
+    src/bink32_container.cpp
+    src/bink32_playback.cpp
+    src/bink32_packet_decode.cpp
+    src/bink32_fixed_huffman.cpp
+    src/bink32_dynamic_huffman.cpp
+    src/bink32_entropy_commands.cpp
+    src/bink32_signed_coefficients.cpp
+    src/bink32_pixel_reconstruction.cpp
+    src/bink32_inverse_transform.cpp
+    src/bink32_full_idct.cpp
+    src/bink32_original_quant.cpp
+    src/bink32_ac_nonzero.cpp
+    src/bink32_ac_group4.cpp
+    src/bink32_ac_command_pass.cpp
+    src/bink32_ac_unit_pass.cpp
+    src/bink32_ac_outer_levels.cpp
+    src/bink32_ac_block_pixels.cpp
+    src/bink32_dc_stream.cpp
+    src/bink32_block_modes.cpp
+    src/bink32_video_planes.cpp
+    src/bink32_simple_picture.cpp
+    src/bink32_yuva_frame.cpp
+    src/bink32_native_video_stream.cpp
+    src/bink32_surface_convert.cpp
+    src/bink32_native_movie_player.cpp
+    src/bink32_audio_packets.cpp
+    src/bink32_audio_spectrum.cpp
+    src/bink32_audio_overlap.cpp
+    src/bink32_audio_inverse.cpp
+    src/bink32_audio_stream.cpp
+    src/bink32_audio_pcm.cpp
+    src/bink32_audio_movie.cpp
+    src/bink32_residue.cpp
+    src/bink32_dct_coefficients.cpp
+    src/bink32_dct_pixels.cpp
+)
+target_include_directories(btb_bink32_recovered PUBLIC include)
+btb_require_cpp26(btb_bink32_recovered PUBLIC)
+
+
+
 
 add_library(btb_dino
     src/dino_level.cpp
@@ -1809,49 +1854,6 @@ if(MSVC)
 else()
  target_compile_options(btb_original_last2_tests PRIVATE -UNDEBUG)
 endif()
-
-# Portable native Bink1 codec and test suite, kept isolated from current
-# production Windows Bink game-host playback to avoid regressions.
-add_library(btb_bink32_recovered STATIC
-    src/bink32_recovered.cpp
-    src/bink32_container.cpp
-    src/bink32_playback.cpp
-    src/bink32_packet_decode.cpp
-    src/bink32_fixed_huffman.cpp
-    src/bink32_dynamic_huffman.cpp
-    src/bink32_entropy_commands.cpp
-    src/bink32_signed_coefficients.cpp
-    src/bink32_pixel_reconstruction.cpp
-    src/bink32_inverse_transform.cpp
-    src/bink32_full_idct.cpp
-    src/bink32_original_quant.cpp
-    src/bink32_ac_nonzero.cpp
-    src/bink32_ac_group4.cpp
-    src/bink32_ac_command_pass.cpp
-    src/bink32_ac_unit_pass.cpp
-    src/bink32_ac_outer_levels.cpp
-    src/bink32_ac_block_pixels.cpp
-    src/bink32_dc_stream.cpp
-    src/bink32_block_modes.cpp
-    src/bink32_video_planes.cpp
-    src/bink32_simple_picture.cpp
-    src/bink32_yuva_frame.cpp
-    src/bink32_native_video_stream.cpp
-    src/bink32_surface_convert.cpp
-    src/bink32_native_movie_player.cpp
-    src/bink32_audio_packets.cpp
-    src/bink32_audio_spectrum.cpp
-    src/bink32_audio_overlap.cpp
-    src/bink32_audio_inverse.cpp
-    src/bink32_audio_stream.cpp
-    src/bink32_audio_pcm.cpp
-    src/bink32_audio_movie.cpp
-    src/bink32_residue.cpp
-    src/bink32_dct_coefficients.cpp
-    src/bink32_dct_pixels.cpp
-)
-target_include_directories(btb_bink32_recovered PUBLIC include)
-btb_require_cpp26(btb_bink32_recovered PUBLIC)
 
 add_executable(btb_bink32_recovered_tests tests/bink32_recovered_test.cpp)
 target_link_libraries(btb_bink32_recovered_tests PRIVATE btb_bink32_recovered)
