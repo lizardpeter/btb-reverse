@@ -1378,6 +1378,7 @@ endforeach()
 
 add_executable(btb_fireworks_movie_bank_catalog_tests
     tests/fireworks_movie_bank_catalog_test.cpp)
+target_include_directories(btb_fireworks_movie_bank_catalog_tests PRIVATE include)
 btb_require_cpp26(btb_fireworks_movie_bank_catalog_tests PRIVATE)
 if(MSVC)
     target_compile_options(btb_fireworks_movie_bank_catalog_tests PRIVATE /UNDEBUG)
