@@ -1448,6 +1448,7 @@ if(WIN32)
         src/win32_retail_bink_provider.cpp
         src/win32_retail_spud_skate_movies.cpp
         src/win32_retail_fireworks_movie_bank.cpp
+        src/win32_retail_print_provider.cpp
         src/win32_original_game_device.cpp
         src/win32_original_platform_link.cpp
         src/win32_recompiled_host.cpp
@@ -1457,7 +1458,7 @@ if(WIN32)
     target_include_directories(btb_original_win32_platform PUBLIC include)
     btb_require_cpp26(btb_original_win32_platform PUBLIC)
     target_link_libraries(btb_original_win32_platform PUBLIC
-        btb_recompiled_core ddraw dxguid dsound winmm ole32 gdi32 user32)
+        btb_recompiled_core ddraw dxguid dsound winmm ole32 gdi32 user32 comdlg32)
     target_link_libraries(btb_game PRIVATE btb_original_win32_platform)
 
     target_link_libraries(btb_game PRIVATE shell32)
