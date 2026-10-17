@@ -31,6 +31,7 @@ public:
         std::filesystem::path installed_retail_root)
         : renderer_(renderer),root_(std::move(installed_retail_root)) {}
     ~Win32RetailBinkProvider() override;
+    void reset_global() noexcept { close_global(); }
     [[nodiscard]] bool service(bool& global_finished,
                                std::string& error) override;
     [[nodiscard]] bool open_global(
