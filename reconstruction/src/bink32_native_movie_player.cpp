@@ -117,6 +117,7 @@ bool BinkNativeSilentMovie::service(
         }
         pending_=decoded!=0;
     }
+    bool terminal_just_uploaded=false;
     if(pending_) {
         const auto* frame=stream_.current_frame();
         if(!frame||!present(*frame,error)) {
@@ -124,12 +125,13 @@ bool BinkNativeSilentMovie::service(
             return false;
         }
         published_frame_=stream_.frame_number();
+        terminal_just_uploaded=stream_.at_end();
         pending_=false;
     }
     // A prolonged host stall may pass EOS, but never finish while any
     // undecoded frames remain or terminal pixels are unpresented.
     if(stream_.at_end() && published_frame_==stream_.frame_count() &&
-       elapsed>=end_us_) {
+       !terminal_just_uploaded && elapsed>=end_us_) {
         completed_=true;
         finished=true;
     }
