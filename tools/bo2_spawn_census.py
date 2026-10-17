@@ -105,10 +105,13 @@ def main() -> None:
             else:
                 found.append(record)
         counts = collections.Counter(row["group"] for row in found)
+        unknown_classes = collections.Counter(row["classname"] for row in found
+                                              if row["group"] == "unclassified")
         report["sources"].append({
             "export": str(path.relative_to(root)),
             "mapent_count": len(entities),
             "classifications": dict(sorted(counts.items())),
+            "unclassified_classnames": dict(sorted(unknown_classes.items())),
             "located_spawn_candidates": found,
             "unlocated_spawn_candidates": invalid,
         })
@@ -121,7 +124,12 @@ def main() -> None:
     report["totals"] = dict(sorted(report["totals"].items()))
     opts.json_output.parent.mkdir(parents=True, exist_ok=True)
     opts.json_output.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
-    print(json.dumps({"map": opts.map_id, **report["totals"]}, sort_keys=True))
+    all_unknown = collections.Counter()
+    for source in report["sources"]:
+        all_unknown.update(source["unclassified_classnames"])
+    print(json.dumps({"map": opts.map_id, **report["totals"],
+                      "unclassified_by_class": dict(all_unknown.most_common(12))},
+                     sort_keys=True))
 
 
 if __name__ == "__main__":
