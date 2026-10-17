@@ -265,6 +265,45 @@ bool Win32RetailFireworksMovieBank::blit_frame(
         static_cast<int>(height_[index]),x,y,error);
 }
 
+bool Win32RetailFireworksMovieBank::decode_and_queue(
+    std::size_t index,int x,int y,bool& finished,
+    std::string& error) {
+
+    if(!decode_frame(index,finished,error))return false;
+    // Queue also on the decoder's following-physical-tick EOS, because
+    // the original final image must be visible BEFORE BinkGoto rewinds.
+    if(has_frame(index))
+        queued_show_blits_.push_back({index,x,y});
+    error.clear();return true;
+}
+
+bool Win32RetailFireworksMovieBank::blit_queued_show(
+    std::string& error) {
+    if(queued_show_blits_.empty()) {
+        error.clear();return true;
+    }
+    if(!ready_) {
+        error="Fireworks show DD7 blit queued after Bink bank was closed";
+        return false;
+    }
+    for(const auto& cue:queued_show_blits_) {
+        if(cue.index>=surfaces_.size()||!surfaces_[cue.index]) {
+            error="original Fireworks queued a nonexistent DD7 surface";
+            return false;
+        }
+        // The pure source show coordinator queues in ORIGINAL overlay order:
+        // crowd, existing authored effect records, and topmiddle. Even when
+        // BinkGoto has since rewound the decoder, its last copied DD7 pixels
+        // remain valid for this single present.
+        if(!draw_.blit_bink_offscreen_surface(
+               surfaces_[cue.index],
+               static_cast<int>(width_[cue.index]),
+               static_cast<int>(height_[cue.index]),
+               cue.x,cue.y,error))return false;
+    }
+    error.clear();return true;
+}
+
 bool Win32RetailFireworksMovieBank::close(std::string& error) {
 #if !defined(_WIN64)
     const auto close_bink=export_fn<Close>(dll_,"BinkClose");
@@ -280,6 +319,7 @@ bool Win32RetailFireworksMovieBank::close(std::string& error) {
     // Decoder handles must close BEFORE freeing their source memory.
     for(auto& bytes:bytes_)
         std::vector<std::uint8_t>{}.swap(bytes);
+    queued_show_blits_.clear();
     has_frame_.fill(false);
     final_frame_copied_.fill(false);
     width_.fill(0);
