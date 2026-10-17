@@ -2,6 +2,10 @@
 // Real DirectDraw7 upload adapter for the native (DLL-free) Bink video frames.
 #if defined(_WIN32)
 #include "btb/bink32_yuva_frame.hpp"
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
 #include <ddraw.h>
 #include <string>
 namespace btb::full_game {
