@@ -194,6 +194,11 @@ NativeSessionFrame NativeGameSession::tick(
         fail(frame,PhysicalPresentationStage::SubmitDraw,error);
         return frame;
     }
+    if(frame.prepared.game.effects.request_original_frame_print &&
+       !device_.print_current_frame(error)) {
+        fail(frame,PhysicalPresentationStage::Print,error);
+        return frame;
+    }
     if(defer_present) {
         pending_present_=true;
         frame.ready_for_present=true;
