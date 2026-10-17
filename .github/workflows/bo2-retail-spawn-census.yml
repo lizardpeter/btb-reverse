@@ -1,0 +1,106 @@
+name: BO2 Original Spawn Census - Public Runner
+
+on:
+  push:
+    branches:
+      - ci/bo2-retail-spawn-census-20261017
+    paths:
+      - .github/workflows/bo2-retail-spawn-census.yml
+      - tools/bo2_spawn_census.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  retail-map-spawns:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - name: Checkout public audit scripts
+        uses: actions/checkout@v4
+
+      - name: Install published OAT T6 unpacker
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/oat
+          curl --fail --location --retry 4 --retry-delay 3 \
+            'https://github.com/Laupetin/OpenAssetTools/releases/download/v0.33.0/oat-linux.tar.gz' \
+            -o /tmp/oat.tar.gz
+          tar -xzf /tmp/oat.tar.gz -C /tmp/oat
+          find /tmp/oat -maxdepth 4 -type f | head -n 35
+          UNLINKER="$(find /tmp/oat -type f \( -name Unlinker -o -name OAT.Unlinker \) | head -n 1)"
+          test -n "$UNLINKER"
+          chmod +x "$UNLINKER"
+          echo "UNLINKER=$UNLINKER" >> "$GITHUB_ENV"
+          "$UNLINKER" --version
+
+      - name: Download original retail BO2 FastFiles from owner-provided R2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/bo2/zone/all /tmp/bo2/report
+          for name in common_mp common_patch_mp patch_mp code_post_gfx_mp common_zm code_post_gfx_zm mp_nuketown_2020 mp_drone zm_nuked; do
+            echo "Downloading $name.ff"
+            curl --fail --location --retry 4 --retry-delay 2 \
+              "https://r2.houseofkublai.com/bo2/zone/all/$name.ff" \
+              -o "/tmp/bo2/zone/all/$name.ff"
+            test "$(stat -c %s "/tmp/bo2/zone/all/$name.ff")" -gt 1000
+            sha256sum "/tmp/bo2/zone/all/$name.ff" | tee -a /tmp/bo2/report/retail-fastfile-sha256.txt
+          done
+
+      - name: Extract and audit each retail world's MapEnts
+        shell: bash
+        run: |
+          set -uo pipefail
+          : > /tmp/bo2/report/results.tsv
+          failed=0
+          for map in mp_nuketown_2020 mp_drone zm_nuked; do
+            echo "::group::Audit $map"
+            mkdir -p "/tmp/bo2/report/$map"
+            "$UNLINKER" --no-color --skip-obj \
+              --include-assets mapents,addonmapents \
+              --search-path "/tmp/bo2/zone/all" \
+              --output-folder "/tmp/bo2/report/$map/export" \
+              "/tmp/bo2/zone/all/$map.ff" \
+              >"/tmp/bo2/report/$map/unlink.log" 2>&1
+            extraction_rc=$?
+            echo "$extraction_rc" > "/tmp/bo2/report/$map/extraction.exit"
+            tail -n 35 "/tmp/bo2/report/$map/unlink.log"
+            python3 tools/bo2_spawn_census.py "$map" \
+              "/tmp/bo2/report/$map/export" \
+              "/tmp/bo2/report/$map/spawns.json" \
+              >"/tmp/bo2/report/$map/census.log" 2>&1
+            census_rc=$?
+            echo "$census_rc" > "/tmp/bo2/report/$map/census.exit"
+            cat "/tmp/bo2/report/$map/census.log"
+            printf '%s\t%s\t%s\n' "$map" "$extraction_rc" "$census_rc" \
+              | tee -a /tmp/bo2/report/results.tsv
+            if (( extraction_rc != 0 || census_rc != 0 )); then failed=1; fi
+            echo "::endgroup::"
+          done
+          echo "$failed" > /tmp/bo2/report/failed.exit
+          exit 0
+
+      - name: Upload verified counts, positions and decoder logs (no retail binaries)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bo2-retail-player-spawn-census
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            /tmp/bo2/report/retail-fastfile-sha256.txt
+            /tmp/bo2/report/results.tsv
+            /tmp/bo2/report/failed.exit
+            /tmp/bo2/report/*/spawns.json
+            /tmp/bo2/report/*/census.log
+            /tmp/bo2/report/*/extraction.exit
+            /tmp/bo2/report/*/census.exit
+            /tmp/bo2/report/*/unlink.log
+
+      - name: Fail if any map was not audited
+        shell: bash
+        run: |
+          test "$(cat /tmp/bo2/report/failed.exit)" = "0"
