@@ -29,8 +29,8 @@ jobs:
             'https://github.com/Laupetin/OpenAssetTools/releases/download/v0.33.0/oat-linux.tar.gz' \
             -o /tmp/oat.tar.gz
           tar -xzf /tmp/oat.tar.gz -C /tmp/oat
-          find /tmp/oat -maxdepth 4 -type f | head -n 35
-          UNLINKER="$(find /tmp/oat -type f \( -name Unlinker -o -name OAT.Unlinker \) | head -n 1)"
+          find /tmp/oat -maxdepth 3 -type f -iname '*unlinker*' -print
+          UNLINKER="$(find /tmp/oat -type f \( -name Unlinker -o -name OAT.Unlinker \) -print -quit)"
           test -n "$UNLINKER"
           chmod +x "$UNLINKER"
           echo "UNLINKER=$UNLINKER" >> "$GITHUB_ENV"
