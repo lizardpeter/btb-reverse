@@ -1376,6 +1376,17 @@ foreach(test_target IN ITEMS btb_profile_name_entry_tests
     endif()
 endforeach()
 
+add_executable(btb_fireworks_movie_bank_catalog_tests
+    tests/fireworks_movie_bank_catalog_test.cpp)
+btb_require_cpp26(btb_fireworks_movie_bank_catalog_tests PRIVATE)
+if(MSVC)
+    target_compile_options(btb_fireworks_movie_bank_catalog_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(btb_fireworks_movie_bank_catalog_tests PRIVATE -UNDEBUG)
+endif()
+add_test(NAME fireworks_movie_bank_catalog
+    COMMAND btb_fireworks_movie_bank_catalog_tests)
+
 add_executable(btb_full_game_spud_skate_native_tests
     tests/full_game_spud_skate_native_test.cpp)
 target_link_libraries(btb_full_game_spud_skate_native_tests PRIVATE
@@ -1402,6 +1413,7 @@ if(WIN32)
         src/win32_original_bink_exports.cpp
         src/win32_retail_bink_provider.cpp
         src/win32_retail_spud_skate_movies.cpp
+        src/win32_retail_fireworks_movie_bank.cpp
         src/win32_original_game_device.cpp
         src/win32_original_platform_link.cpp
         src/win32_recompiled_host.cpp
