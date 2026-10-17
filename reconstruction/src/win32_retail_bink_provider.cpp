@@ -35,6 +35,22 @@ Fn require_export(Win32OriginalBinkExports& dll,
     return reinterpret_cast<Fn>(dll.find(name));
 }
 #endif
+// An HBINK positioned at Frames is not proof that frame Frames has
+// already been copied to DirectDraw. In a normal BinkNextFrame sequence
+// the decoder reaches Frames *before* BinkDoFrame decodes that image.
+// Only loop after the terminal image was physically decoded once.
+[[nodiscard]] constexpr bool walkthrough_terminal_frame_was_copied(
+    std::uint32_t current,std::uint32_t frames,
+    std::uint32_t last_decoded,bool has_frame) noexcept {
+    return frames>0 && current==frames &&
+           has_frame && last_decoded==frames;
+}
+static_assert(!walkthrough_terminal_frame_was_copied(2,3,2,true));
+static_assert(!walkthrough_terminal_frame_was_copied(3,3,2,true));
+static_assert(!walkthrough_terminal_frame_was_copied(3,3,3,false));
+static_assert(walkthrough_terminal_frame_was_copied(3,3,3,true));
+static_assert(!walkthrough_terminal_frame_was_copied(0,0,0,true));
+static_assert(walkthrough_terminal_frame_was_copied(1,1,1,true));
 }
 
 Win32RetailBinkProvider::~Win32RetailBinkProvider() {
@@ -323,7 +339,9 @@ bool Win32RetailBinkProvider::decode_walkthrough_frame(
     auto& header=*static_cast<OriginalBink32Header*>(walkthrough_);
     // 0x428120 loops at the observed final Bink frame, using
     // original BinkGoto(handle,1,0), NOT a synthetic time reset.
-    if(header.frame_num>=header.frames && walkthrough_has_frame_) {
+    if(walkthrough_terminal_frame_was_copied(
+           header.frame_num,header.frames,
+           walkthrough_last_decoded_,walkthrough_has_frame_)) {
         goto_frame(walkthrough_,1,0);
         walkthrough_has_frame_=false;
     }
