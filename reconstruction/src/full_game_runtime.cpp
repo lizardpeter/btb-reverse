@@ -565,6 +565,16 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
             return result;
         }
         initialized_activity_ = activity->id;
+        // Retail InitializeFireworksActivity (0x00411CE0) sets slot 63
+        // in the *selected* player's 400-byte progress record at init,
+        // not after a show, certificate, or teardown. This is the sole
+        // source Fireworks write; slot 64 has no game-code writer.
+        // Never grant it if the activity initializer returned failure.
+        if(activity->id == ActivityId::Fireworks) {
+            auto& profile=globals_.player_progress[
+                static_cast<std::size_t>(*globals_.active_profile)];
+            progress::mark_firework_finale_started(profile);
+        }
         globals_.dispatcher.current_state =
             static_cast<std::int32_t>(activity->run);
         result.state_changed = true;

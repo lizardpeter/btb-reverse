@@ -9,6 +9,28 @@ using namespace btb::full_game;
 using btb::game_flow::State;
 
 namespace {
+struct ScriptedFireworks final : ActivityDriver {
+    int starts{};
+    bool fail_initialize{};
+    [[nodiscard]] bool initialize(int, std::string& error) override {
+        ++starts;
+        if(fail_initialize) {
+            error="original Fireworks graph/movies are unavailable";
+            return false;
+        }
+        error.clear();
+        return true;
+    }
+    [[nodiscard]] ActivityFrameOutput advance(
+        const ActivityFrameInput&) override {
+        return {};
+    }
+    [[nodiscard]] bool unload(std::string& error) override {
+        error.clear();
+        return true;
+    }
+};
+
 struct ScriptedDino final : ActivityDriver {
     int starts{};
     int frames{};
@@ -136,6 +158,47 @@ int main() {
     assert(game.globals().dispatcher.generic_screen_mode == 2);
     assert(game.globals().dispatcher.current_state ==
            static_cast<int>(State::ActivitySelectSetup));
+
+    // Original InitializeFireworksActivity writes slot 63 BEFORE the
+    // authored show and certificate. This applies to the active profile
+    // only and never creates a nonexistent slot-64 completion flag.
+    GameRoot finale;
+    assert(finale.select_profile(3));
+    auto fireworks=std::make_unique<ScriptedFireworks>();
+    auto* live_fireworks=fireworks.get();
+    finale.install(ActivityId::Fireworks,std::move(fireworks));
+    finale.set_outer_state(State::FireworksInit);
+    const auto started=finale.advance({});
+    assert(started.kind==FrameKind::ActivityInitialized);
+    assert(live_fireworks->starts==1);
+    assert(finale.globals().player_progress[3].get(
+        btb::progress::Slot::FireworkFinaleStarted)==1);
+    assert(finale.globals().player_progress[3].get(
+        btb::progress::Slot::ReservedUnused)==0);
+    for(int p=0;p<5;++p)
+        if(p!=3)
+            assert(finale.globals().player_progress[p].get(
+                btb::progress::Slot::FireworkFinaleStarted)==0);
+    const auto show=finale.advance({});
+    assert(show.kind==FrameKind::ActivityUpdated);
+    assert(show.effects.progress_writes.empty());
+    finale.set_outer_state(State::FireworksInit);
+    assert(finale.advance({}).kind==FrameKind::ActivityInitialized);
+    assert(live_fireworks->starts==1); // same session, no double init
+
+    GameRoot failed_finale;
+    assert(failed_finale.select_profile(4));
+    auto broken_fireworks=std::make_unique<ScriptedFireworks>();
+    broken_fireworks->fail_initialize=true;
+    failed_finale.install(ActivityId::Fireworks,
+                          std::move(broken_fireworks));
+    failed_finale.set_outer_state(State::FireworksInit);
+    const auto unavailable=failed_finale.advance({});
+    assert(unavailable.kind==FrameKind::ActivityFailed);
+    assert(failed_finale.globals().player_progress[4].get(
+        btb::progress::Slot::FireworkFinaleStarted)==0);
+    assert(failed_finale.globals().player_progress[4].get(
+        btb::progress::Slot::ReservedUnused)==0);
 
     // Host WM_DESTROY now unloads the active real minigame BEFORE saving
     // global player-progress files. This must work on an activity that is
