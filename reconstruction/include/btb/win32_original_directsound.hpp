@@ -41,6 +41,12 @@ public:
         std::string& error);
     [[nodiscard]] bool apply(
         const ResolvedSoundEffect& effect,std::string& error);
+    // Read-only access to game-owned DirectSound8 for native Bink PCM
+    // voice creation; the voice explicitly AddRefs it. Never transfer
+    // ownership or reinitialize another sound device just for movies.
+    [[nodiscard]] IDirectSound8* device_for_native_bink_pcm() const noexcept {
+        return sound_;
+    }
     void shutdown() noexcept;
 
 private:
