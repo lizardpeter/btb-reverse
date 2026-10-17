@@ -4,19 +4,25 @@
 // production retail-DLL fallback must handle those until native audio ships.
 #if defined(_WIN32)
 #include "btb/bink32_native_movie_player.hpp"
+#include "btb/win32_native_bink_pcm_voice.hpp"
 #include "btb/win32_original_game_device.hpp"
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <string>
 
 namespace btb::full_game {
 class Win32NativeSilentBinkProvider final : public OriginalBinkProvider {
 public:
-    explicit Win32NativeSilentBinkProvider(Win32OriginalDirectDraw& renderer)
-        : renderer_(renderer) {}
+    Win32NativeSilentBinkProvider(
+        Win32OriginalDirectDraw& renderer,
+        Win32OriginalDirectSound& audio,
+        bool experimental_audio=false)
+        :renderer_(renderer),audio_(audio),
+         experimental_audio_(experimental_audio) {}
     ~Win32NativeSilentBinkProvider() override;
-    void reset_global() noexcept { global_.reset(); }
+    void reset_global() noexcept;
     [[nodiscard]] bool open_global(
         const std::filesystem::path& movie,std::string& error) override;
     [[nodiscard]] bool service(
@@ -31,6 +37,11 @@ public:
 private:
     void release_walkthrough() noexcept;
     Win32OriginalDirectDraw& renderer_;
+    Win32OriginalDirectSound& audio_;
+    bool experimental_audio_{};
+    std::unique_ptr<Win32NativeBinkPcmVoice> voice_{};
+    bool voice_started_{};
+    std::uint32_t voice_rate_{};
     std::optional<bink32_recovered::BinkNativeSilentMovie> global_;
     std::optional<bink32_recovered::BinkNativeSilentMovie> walkthrough_;
     IDirectDrawSurface7* walkthrough_surface_{};
