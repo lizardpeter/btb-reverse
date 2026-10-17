@@ -216,6 +216,9 @@ struct ActivityFrameOutput {
     // Fireworks' original pre-show Bink is already in the common DirectDraw
     // video surface. Do not erase that frame with an empty activity draw list.
     bool retain_original_global_movie_pixels{};
+    // A real post-render, pre-present Win32 print-dialog request. The game
+    // must not pretend a paper print or spooler job happened in this model.
+    bool request_original_frame_print{};
 };
 
 // Native service bridge for the actual retail 0x0042E110 five-sign selector.
