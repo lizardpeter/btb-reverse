@@ -1,7 +1,14 @@
 #include "btb/win32_native_silent_bink_provider.hpp"
 #if defined(_WIN32)
 #include "btb/win32_native_bink_surface.hpp"
+#include "btb/bink32_audio_movie.hpp"
+#include "btb/bink32_container.hpp"
 #include <cstdint>
+#include <fstream>
+#include <memory>
+#include <optional>
+#include <string>
+#include <vector>
 #include <filesystem>
 #include <utility>
 #include <windows.h>
@@ -20,19 +27,68 @@ constexpr int kGlobalW=640,kGlobalH=480;
 
 Win32NativeSilentBinkProvider::~Win32NativeSilentBinkProvider() {
     release_walkthrough();
+    reset_global();
+}
+void Win32NativeSilentBinkProvider::reset_global() noexcept {
+    global_.reset();
+    voice_.reset();
+    voice_started_=false;
+    voice_rate_=0;
+    voice_end_wall_us_=voice_end_sample_us_=0;
 }
 
 bool Win32NativeSilentBinkProvider::open_global(
     const std::filesystem::path& movie,std::string& error) {
-    global_.reset();
+    reset_global();
+    // Safe/default behavior: use this reconstructed renderer ONLY for
+    // movies with no Bink compressed audio track.
     auto opened=bink32_recovered::BinkNativeSilentMovie::open_file(
         movie,error);
+    if(!opened && experimental_audio_) {
+        // Explicit developer opt-in. Decode the original retail media
+        // READ ONLY and fully in memory, never to an extracted file/cache.
+        std::ifstream input(movie,std::ios::binary|std::ios::ate);
+        const auto bytes_count=input?input.tellg():std::streampos(-1);
+        if(bytes_count<=0 || bytes_count>100'000'000) {
+            error="experimental original Bink movie not readable/bounded";
+            return false;
+        }
+        std::vector<std::uint8_t> bytes(
+            static_cast<std::size_t>(bytes_count));
+        input.seekg(0);
+        if(!input.read(reinterpret_cast<char*>(bytes.data()),
+                       static_cast<std::streamsize>(bytes.size()))) {
+            error="cannot read experimental original Bink movie";
+            return false;
+        }
+        const auto index=bink32_recovered::parse_container_index(bytes);
+        // Audio track selection/mixing/translation must be explicitly
+        // recovered. Do not quietly drop any source audio tracks.
+        if(!index || index->tracks.size()!=1) {
+            error="experimental native A/V requires exactly one source track";
+            return false;
+        }
+        const auto audio=bink32_recovered::decode_bink1_movie_audio(
+            bytes,0,error);
+        if(!audio)return false;
+        auto candidate=bink32_recovered::BinkNativeSilentMovie::open_bytes(
+            std::move(bytes),error,true);
+        if(!candidate)return false;
+        auto sound=std::make_unique<Win32NativeBinkPcmVoice>(
+            audio_.device_for_native_bink_pcm());
+        if(!sound->load(*audio,error))return false;
+        voice_rate_=audio->sample_rate;
+        voice_=std::move(sound);
+        opened=std::move(candidate);
+    }
     if(!opened)return false;
     if(opened->width()!=kGlobalW||opened->height()!=kGlobalH) {
+        reset_global();
         error="native Bink global movie must match original 640x480 backbuffer";
         return false;
     }
     if(!renderer_.bink_render_target()) {
+        reset_global();
         error="native Bink global DirectDraw7 target is unavailable";
         return false;
     }
@@ -45,18 +101,50 @@ bool Win32NativeSilentBinkProvider::service(
     bool& global_finished,std::string& error) {
     global_finished=false;
     if(!global_) {error.clear();return true;}
-    // The *actual* decoded frame enters the real original DD7
-    // backbuffer; neither an image placeholder nor a guessed movie timer.
+    auto timestamp=clock_us();
+    bool audio_finished=true;
+    if(voice_) {
+        // DirectSound's actual playback cursor, not an invented timer,
+        // serves as the master clock for a native A/V movie.
+        if(!voice_started_) {
+            if(!voice_->start(error))return false;
+            voice_started_=true;
+        }
+        auto position=voice_->observe(error);
+        if(!position)return false;
+        audio_finished=position->complete;
+        const auto samples=position->decoded_sample_frame;
+        const std::uint64_t audio_pts=
+            (samples/voice_rate_)*1'000'000ULL+
+            ((samples%voice_rate_)*1'000'000ULL)/voice_rate_;
+        if(audio_finished) {
+            if(!voice_end_wall_us_) {
+                voice_end_wall_us_=timestamp;
+                voice_end_sample_us_=audio_pts;
+            }
+            timestamp=voice_end_sample_us_+
+                      (timestamp-voice_end_wall_us_);
+        } else {
+            timestamp=audio_pts;
+        }
+    }
+    bool video_finished=false;
     const bool ok=global_->service(
-        clock_us(),
+        timestamp,
         [this](const bink32_recovered::BinkNativeYuVaFrame& frame,
                std::string& out_error) {
             return copy_native_bink_frame_to_directdraw(
                 renderer_.bink_render_target(),frame,out_error);
         },
-        global_finished,error);
+        video_finished,error);
     if(!ok)return false;
-    if(global_finished)global_.reset();
+    // Do not close the audio buffer simply because the last video frame
+    // was presented: the real sound may still be completing.
+    if(video_finished && audio_finished) {
+        reset_global();
+        global_finished=true;
+    }
+    error.clear();
     return true;
 }
 
