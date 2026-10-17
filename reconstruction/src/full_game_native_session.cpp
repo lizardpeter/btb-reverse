@@ -42,6 +42,10 @@ NativeSessionFrame NativeGameSession::tick(
 
     input.managed_sound_playing = physical.any_managed_voice_playing;
     input.original_global_movie_finished = physical.global_movie_finished;
+    input.fireworks_crowd_end_sound_playing=
+        sound::is_sound_id_playing(
+            effects_.audio().manager(),349,
+            physical.managed.playing);
     // Explicit non-retail --skip-bink routing. Retail 0x41 plays the
     // scene-set clip after a newly created profile and then enters 0x04.
     // Do NOT skip 0x40 by guessing its destination: that shared movie uses
