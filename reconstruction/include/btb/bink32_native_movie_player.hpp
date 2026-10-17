@@ -20,9 +20,11 @@ public:
 
     // Original assets are read-only; impose a ceiling before allocating.
     [[nodiscard]] static std::optional<BinkNativeSilentMovie> open_file(
-        const std::filesystem::path& file,std::string& error);
+        const std::filesystem::path& file,std::string& error,
+        bool experimental_audio_tracks=false);
     [[nodiscard]] static std::optional<BinkNativeSilentMovie> open_bytes(
-        std::vector<std::uint8_t> original_bik,std::string& error);
+        std::vector<std::uint8_t> original_bik,std::string& error,
+        bool experimental_audio_tracks=false);
 
     // now_us is a monotonic HOST timestamp. The first service establishes
     // origin at frame one. Cap catch-up decoding so an enormous pause cannot
