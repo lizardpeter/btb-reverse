@@ -43,7 +43,7 @@ int main(int argc,char** argv) {
         return 1;
     }
     const auto* f=stream->current_frame();
-    if(!f || !f->height || f->width>SIZE_MAX/4/f->height) return 1;
+    if(!f || !f->height || f->width>std::numeric_limits<std::size_t>::max()/4/f->height) return 1;
     std::vector<std::uint8_t> packed(f->width*f->height*4,0);
     const BinkPackedSurface target{packed,f->width*4,f->width,f->height,4,
                                    0x00ff0000,0x0000ff00,0x000000ff};
