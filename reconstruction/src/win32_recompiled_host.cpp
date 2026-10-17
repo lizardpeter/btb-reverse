@@ -11,6 +11,7 @@
 #include "btb/full_game_spud_skate.hpp"
 #include "btb/win32_retail_spud_skate_movies.hpp"
 #include "btb/win32_retail_fireworks_movie_bank.hpp"
+#include "btb/fireworks_show_native.hpp"
 #include "btb/full_game_herding_event_simulation.hpp"
 #include "btb/herding_native_pickles_motion.hpp"
 #include "btb/retail_crt_random.hpp"
@@ -275,7 +276,25 @@ struct Host {
             [this]() {
                 std::string ignored;
                 (void)fireworks_bank->close(ignored);
-            }));
+            },
+            [this](const fireworks::Sequence& authored,
+                   fireworks::RetailShowRuntime& runtime,
+                   fireworks::ShowFrameInput frame,
+                   fireworks::ShowFrameOutput& out,
+                   std::string& error)->bool {
+                fireworks_bank->begin_show_frame();
+                return fireworks::advance_native_fireworks_show(
+                    authored,runtime,frame,
+                    [this](std::size_t index,int x,int y,
+                           bool& finished,std::string& error) {
+                        return fireworks_bank->decode_and_queue(
+                            index,x,y,finished,error);
+                    },
+                    [this](std::size_t index,std::string& error) {
+                        return fireworks_bank->restart(index,error);
+                    },out,error);
+            },
+            &original_game_random));
         game.install(ActivityId::BobsBand,std::make_unique<BobsBandDriver>(
             root/"Data"/"SubGameOpen",profile_dir));
         game.install(ActivityId::ParkDesigner,
@@ -299,7 +318,10 @@ struct Host {
         device=std::make_unique<Win32OriginalGameDevice>(
             graphics,audio,movies,
             [this](std::string& error)->bool {
-                return !skate_movies || skate_movies->blit_selected(error);
+                if(skate_movies &&
+                   !skate_movies->blit_selected(error))return false;
+                return !fireworks_bank ||
+                    fireworks_bank->blit_queued_show(error);
             });
         session=std::make_unique<NativeGameSession>(
             game,*device,OriginalAssetResolver{root},
