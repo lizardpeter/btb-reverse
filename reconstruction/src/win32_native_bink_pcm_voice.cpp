@@ -77,17 +77,23 @@ bool Win32NativeBinkPcmVoice::load(
     desc.lpwfxFormat=&format;
     HRESULT hr=device_->CreateSoundBuffer(&desc,&buffer_,nullptr);
     if(FAILED(hr)||!buffer_) {
-        buffer_=nullptr;
         error=ds_error("DirectSound Bink PCM16 CreateSoundBuffer",hr);
+        close();
         return false;
     }
     LPVOID first=nullptr,second=nullptr;
     DWORD first_size=0,second_size=0;
     hr=buffer_->Lock(0,desc.dwBufferBytes,&first,&first_size,
                      &second,&second_size,0);
-    if(FAILED(hr)||std::size_t(first_size)+second_size!=data.size() ||
-       (first_size&&!first)||(second_size&&!second)) {
+    if(FAILED(hr)) {
         error=ds_error("DirectSound Bink PCM16 Lock",hr);
+        close();
+        return false;
+    }
+    if(std::size_t(first_size)+second_size!=data.size() ||
+       (first_size&&!first)||(second_size&&!second)) {
+        (void)buffer_->Unlock(first,first_size,second,second_size);
+        error="DirectSound returned invalid native PCM lock spans";
         close();
         return false;
     }
@@ -118,6 +124,7 @@ bool Win32NativeBinkPcmVoice::start(std::string& error) {
         return false;
     }
     started_=true;
+    ever_played_=false;
     error.clear();
     return true;
 }
