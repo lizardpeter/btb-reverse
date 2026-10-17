@@ -27,13 +27,16 @@ public:
     // may supply a frame-source fixture without bypassing this boundary.
     using OpenPreShowMovie = std::function<bool(
         const std::filesystem::path&,std::string&)>;
+    using CancelPreShowMovie = std::function<void()>;
 
     FireworksDriver(std::filesystem::path original_data_dir,
                     std::filesystem::path save_dir,
-                    OpenPreShowMovie open_pre_show_movie = {})
+                    OpenPreShowMovie open_pre_show_movie = {},
+                    CancelPreShowMovie cancel_pre_show_movie = {})
         : original_data_dir_(std::move(original_data_dir)),
           save_dir_(std::move(save_dir)),
-          open_pre_show_movie_(std::move(open_pre_show_movie)) {}
+          open_pre_show_movie_(std::move(open_pre_show_movie)),
+          cancel_pre_show_movie_(std::move(cancel_pre_show_movie)) {}
 
     [[nodiscard]] bool initialize(
         int player_index, std::string& error) override;
@@ -65,6 +68,8 @@ private:
     int player_index_{-1};
     bool awaiting_delete_confirmation_{};
     OpenPreShowMovie open_pre_show_movie_{};
+    CancelPreShowMovie cancel_pre_show_movie_{};
+    bool pre_show_movie_open_{};
 };
 
 } // namespace btb::full_game
