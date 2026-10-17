@@ -97,7 +97,7 @@ private:
     retail::OriginalRetailRandom* original_random_{};
     fireworks::RetailShowRuntime show_runtime_{};
     std::int32_t show_started_centiseconds_{};
-    bool crowd_end_sound_started_{};
+
 };
 
 } // namespace btb::full_game
