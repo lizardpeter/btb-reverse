@@ -31,6 +31,11 @@ int main() {
     const std::array<std::uint8_t,8> packet{
         0x00,0x08,0x00,0x00,0x9a,0xbc,0xde,0xff};
     AudioPacket a{0,packet};
+    const std::span<const std::uint8_t> empty{};
+    const auto empty_packet=inspect_bink_audio_packet(
+        AudioPacket{0,empty},(*fmt)[0]);
+    CHECK(empty_packet && empty_packet->decoded_bytes==0 &&
+          empty_packet->compressed_transform.empty());
     const auto block=inspect_bink_audio_packet(a,(*fmt)[0]);
     CHECK(block && block->decoded_bytes==2048 &&
           block->compressed_transform.size()==4);
