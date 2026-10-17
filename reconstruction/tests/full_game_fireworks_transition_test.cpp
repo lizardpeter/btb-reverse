@@ -37,6 +37,7 @@ int main() {
     write_source_geometry(original);
     const auto save=root/"BTB-Saves";
     int opens=0;
+    int closes=0;
     fs::path observed_movie;
     fg::FireworksDriver activity(original,save,
         [&](const fs::path& movie,std::string& error) {
@@ -44,7 +45,8 @@ int main() {
             observed_movie=movie;
             error.clear();
             return true;
-        });
+        },
+        [&]() {++closes;});
     std::string error;
     assert(activity.initialize(2,error));
     assert(activity.editor().internal_state==fw::InternalState::Editor);
@@ -105,8 +107,27 @@ int main() {
     assert(!missing_bank.save_and_unload);
     assert(missing_bank.progress_writes.empty());
     assert(activity.unload(error));
+    assert(closes==0); // already BinkClosed by real decoder EOS
     assert(fs::is_regular_file(save/"firedata3.txt"));
     assert(fs::file_size(save/"firedata3.txt")==72);
+
+    // Mid-movie exit must cancel the original handle, rather than leak
+    // its frame service into the next activity or menus.
+    fg::FireworksDriver cancelled(original,save,
+        [&](const fs::path&,std::string& e) {
+            e.clear();return true;
+        },
+        [&]() {++closes;});
+    assert(cancelled.initialize(1,error));
+    assert(!cancelled.advance({
+        .pointer_x=320,.pointer_y=440,.click_pulse=true}).fatal_error);
+    assert(!cancelled.advance({.managed_sound_playing=true}).fatal_error);
+    assert(cancelled.editor().internal_state==
+           fw::InternalState::PreShowMoviePlayback);
+    assert(cancelled.unload(error));
+    assert(closes==1);
+    assert(cancelled.unload(error)); // safe idempotent teardown
+    assert(closes==1);
 
     // Missing Bink provider cannot silently complete or advance state 14.
     fg::FireworksDriver absent(original,save);
