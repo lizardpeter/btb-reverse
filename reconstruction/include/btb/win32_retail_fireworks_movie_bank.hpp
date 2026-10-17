@@ -42,8 +42,12 @@ public:
     struct ShowBlit {
         std::size_t index{};
         int x{},y{};
+        // A stream may be referenced by multiple active effect records in
+        // one source frame. Freeze earlier DD7 pixels before the next decode
+        // overwrites the only per-index offscreen source surface.
+        IDirectDrawSurface7* frozen_pixels{};
     };
-    void begin_show_frame() noexcept {queued_show_blits_.clear();}
+    void begin_show_frame() noexcept;
     [[nodiscard]] bool decode_and_queue(
         std::size_t index,int x,int y,bool& finished,
         std::string& error);
@@ -55,6 +59,9 @@ public:
     }
 
 private:
+    void release_queued_show() noexcept;
+    [[nodiscard]] bool freeze_prior_uses(
+        std::size_t index,std::string& error);
     [[nodiscard]] bool load_original_bink_dll(std::string& error);
     [[nodiscard]] bool reject_and_close(
         std::string reason,std::string& error);
