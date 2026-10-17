@@ -153,7 +153,16 @@ int main() {
     assert(play.kind == FrameKind::ActivityUpdated);
     assert(live->editor().internal_state ==
            btb::fireworks::InternalState::PreShowMovieSetup);
-    const auto unsupported = root.advance({});
+    // State 14 waits until the original managed Play voice has started.
+    const auto waiting = root.advance({});
+    assert(waiting.kind == FrameKind::ActivityUpdated);
+    assert(live->editor().internal_state ==
+           btb::fireworks::InternalState::PreShowMovieSetup);
+    // Once the real audio manager is playing, the missing decoder must
+    // fail closed rather than fabricating a pre-show movie or certificate.
+    auto sound_active = ActivityFrameInput{};
+    sound_active.managed_sound_playing = true;
+    const auto unsupported = root.advance(sound_active);
     assert(unsupported.kind == FrameKind::ActivityFailed);
     assert(unsupported.error.find("Bink") != std::string::npos);
     assert(!unsupported.effects.save_and_unload);
