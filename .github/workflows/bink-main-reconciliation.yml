@@ -1,0 +1,83 @@
+name: bink-main-reconciliation-smoke
+
+# Check the diverged Bink branch against current main in disposable runners.
+# Do not update main, push merged code, or overwrite other game changes.
+on:
+  push:
+    branches:
+      - re/bink32-native-surface-bridge-20261017
+  workflow_dispatch:
+
+concurrency:
+  group: bink-main-reconciliation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  main-merge-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Dry-run merge with current main, do not commit or push
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          git -c user.name="CI Probe" -c user.email="ci-probe@users.noreply.github.com" \
+              merge --no-commit --no-ff origin/main
+          git status --short
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Regenerate source-only architecture registries
+        run: |
+          python tools/build_reconstruction_index.py
+          python tools/build_remaining_architecture.py
+      - name: Install C++26 toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-14
+      - name: Configure combined native Bink/game source
+        env:
+          CXX: g++-14
+        run: cmake -S reconstruction -B build/bink-main-probe
+      - name: Compile native codec, audio and game smoke
+        run: |
+          cmake --build build/bink-main-probe --parallel --target \
+            btb_bink32_audio_spectrum_tests \
+            btb_bink32_audio_overlap_tests \
+            btb_bink32_yuva_frame_tests \
+            btb_bink32_surface_convert_tests \
+            btb_game
+      - name: Exercise decoder, presentation and audio tests
+        run: |
+          ctest --test-dir build/bink-main-probe --output-on-failure \
+            -R "^(bink32_audio_spectrum_dct_rdft|bink32_audio_overlap_history|bink32_original_sjpi_yuva_frame|bink32_native_surface_convert)$"
+
+  main-merge-win32:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Dry-run merge with current main, do not commit or push
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          git -c user.name="CI Probe" -c user.email="ci-probe@users.noreply.github.com" \
+              merge --no-commit --no-ff origin/main
+          git status --short
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Regenerate source-only architecture registries
+        shell: pwsh
+        run: |
+          python tools/build_reconstruction_index.py
+          python tools/build_remaining_architecture.py
+      - name: Configure Windows x86 combined game
+        run: cmake -S reconstruction -B build/bink-main-win32 -G "Visual Studio 18 2026" -A Win32
+      - name: Compile Windows x86 game, native codec and original-DLL fallback
+        run: cmake --build build/bink-main-win32 --config Release --target btb_game btb_original_win32_platform_link_tests btb_bink32_audio_spectrum_tests btb_bink32_audio_overlap_tests
+      - name: Execute audio regression and real provider link smoke
+        run: ctest --test-dir build/bink-main-win32 -C Release --output-on-failure -R "^(bink32_audio_spectrum_dct_rdft|bink32_audio_overlap_history|original_win32_platform_link)$"

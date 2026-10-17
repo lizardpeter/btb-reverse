@@ -1,6 +1,7 @@
 #include "btb/win32_recompiled_host.hpp"
 #if defined(_WIN32)
 #include "btb/win32_original_game_device.hpp"
+#include "btb/win32_hybrid_bink_provider.hpp"
 #include "btb/full_game_front_end.hpp"
 #include "btb/full_game_golf.hpp"
 #include "btb/full_game_fireworks.hpp"
@@ -33,36 +34,22 @@ namespace btb::full_game {
 namespace {
 namespace fs=std::filesystem;
 
-// No original movie handle is opened. Nonmovie activity frames can run,
-// but a Bink request is a hard failure. Never signal a movie as "finished"
-// without decoding its actual frames.
-class MissingOriginalBinkDecoder final : public OriginalBinkProvider {
-public:
-    bool service(bool& finished,std::string& error) override {
-        finished=false;error.clear();return true; // no movie is active
-    }
-    bool open_global(const fs::path&,std::string& error) override {
-        error="original 32-bit Bink movie decoder is not connected";return false;
-    }
-    bool open_walkthrough(const fs::path&,const fs::path&,
-                          std::string& error) override {
-        error="original Bink walkthrough decoder is not connected";return false;
-    }
-    bool close_walkthrough(std::string& error) override {
-        error="no original Bink walkthrough decoder was opened";return false;
-    }
-    bool render_walkthrough_overlay(std::string& error) override {
-        // All attempted walkthrough opens fail above, so no overlay exists.
-        error.clear();return true;
-    }
-};
+// Developer-only native Bink audio preview. Default remains the validated
+// retail 2002 Bink DLL for audio-bearing movies until real-asset parity.
+[[nodiscard]] bool opt_in_native_bink_audio() noexcept {
+    wchar_t value[2]{};
+    return GetEnvironmentVariableW(
+        L"BTB_EXPERIMENTAL_NATIVE_BINK_AUDIO",value,2)==1 &&
+        value[0]==L'1';
+}
 
 struct Host {
     HWND window{};
     fs::path root{};
     Win32OriginalDirectDraw graphics{};
     Win32OriginalDirectSound audio{};
-    MissingOriginalBinkDecoder movies{};
+    Win32HybridBinkProvider movies{
+        graphics,audio,root,opt_in_native_bink_audio()};
     std::unique_ptr<Win32OriginalGameDevice> device{};
     GameRoot game{};
     std::unique_ptr<NativeGameSession> session{};

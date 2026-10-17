@@ -958,6 +958,15 @@ add_library(btb_bink32_recovered STATIC
     src/bink32_simple_picture.cpp
     src/bink32_yuva_frame.cpp
     src/bink32_native_video_stream.cpp
+    src/bink32_surface_convert.cpp
+    src/bink32_native_movie_player.cpp
+    src/bink32_audio_packets.cpp
+    src/bink32_audio_spectrum.cpp
+    src/bink32_audio_overlap.cpp
+    src/bink32_audio_inverse.cpp
+    src/bink32_audio_stream.cpp
+    src/bink32_audio_pcm.cpp
+    src/bink32_audio_movie.cpp
     src/bink32_residue.cpp
     src/bink32_dct_coefficients.cpp
     src/bink32_dct_pixels.cpp
@@ -1324,6 +1333,11 @@ if(WIN32)
         src/win32_native_bitmap_registry.cpp
         src/win32_original_directsound.cpp
         src/win32_original_bink_exports.cpp
+        src/win32_native_bink_surface.cpp
+        src/win32_native_silent_bink_provider.cpp
+        src/win32_retail_bink_provider.cpp
+        src/win32_hybrid_bink_provider.cpp
+        src/win32_native_bink_pcm_voice.cpp
         src/win32_original_game_device.cpp
         src/win32_original_platform_link.cpp
         src/win32_recompiled_host.cpp
@@ -1823,6 +1837,77 @@ add_test(NAME bink32_original_sjpi_yuva_frame COMMAND btb_bink32_yuva_frame_test
 add_executable(btb_bink32_retail_video_audit tools/bink32_retail_video_audit.cpp)
 target_link_libraries(btb_bink32_retail_video_audit PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_retail_video_audit PRIVATE)
+
+# DLL-free native movie frame -> packed RGB/DirectDraw presentation bridge.
+# Exercise odd chroma, alpha, row pitch and invalid-surface atomic rejection.
+add_executable(btb_bink32_surface_convert_tests tests/bink32_surface_convert_test.cpp)
+target_link_libraries(btb_bink32_surface_convert_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_surface_convert_tests PRIVATE)
+add_test(NAME bink32_native_surface_convert COMMAND btb_bink32_surface_convert_tests)
+
+# Native audio stream metadata + first compressed block envelope, no PCM
+# claims. Explicitly protects buffer sizing prior to future DCT/RDFT decoding.
+add_executable(btb_bink32_audio_packets_tests tests/bink32_audio_packets_test.cpp)
+target_link_libraries(btb_bink32_audio_packets_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_packets_tests PRIVATE)
+add_test(NAME bink32_audio_packet_preflight COMMAND btb_bink32_audio_packets_tests)
+
+# Real Bink1 compressed audio -> spectral coefficients (not PCM yet).
+add_executable(btb_bink32_audio_spectrum_tests tests/bink32_audio_spectrum_test.cpp)
+target_link_libraries(btb_bink32_audio_spectrum_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_spectrum_tests PRIVATE)
+add_test(NAME bink32_audio_spectrum_dct_rdft COMMAND btb_bink32_audio_spectrum_tests)
+
+# Post-inverse-transform Bink1 1/16 overlap history, not yet PCM output.
+add_executable(btb_bink32_audio_overlap_tests tests/bink32_audio_overlap_test.cpp)
+target_link_libraries(btb_bink32_audio_overlap_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_overlap_tests PRIVATE)
+add_test(NAME bink32_audio_overlap_history COMMAND btb_bink32_audio_overlap_tests)
+
+# Fast dependency-free candidate native inverse transforms, verified
+# analytically before any comparison to retail decoded PCM.
+add_executable(btb_bink32_audio_inverse_tests tests/bink32_audio_inverse_test.cpp)
+target_link_libraries(btb_bink32_audio_inverse_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_inverse_tests PRIVATE)
+add_test(NAME bink32_audio_inverse_dct_rdft COMMAND btb_bink32_audio_inverse_tests)
+
+# Experimental complete packet -> spectral -> inverse FFT -> overlap,
+# including >1 transform per audio frame; never wired to live DirectSound.
+add_executable(btb_bink32_audio_stream_tests tests/bink32_audio_stream_test.cpp)
+target_link_libraries(btb_bink32_audio_stream_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_stream_tests PRIVATE)
+add_test(NAME bink32_audio_stream_multiblock COMMAND btb_bink32_audio_stream_tests)
+
+# Bounded signed PCM16 output contract, not yet selected by runtime.
+add_executable(btb_bink32_audio_pcm_tests tests/bink32_audio_pcm_test.cpp)
+target_link_libraries(btb_bink32_audio_pcm_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_pcm_tests PRIVATE)
+add_test(NAME bink32_audio_pcm16_format COMMAND btb_bink32_audio_pcm_tests)
+
+# Original BIK -> in-memory PCM and sample-accurate per-video-frame
+# timestamps, deliberately not connected to the game sound runtime yet.
+add_executable(btb_bink32_audio_movie_tests tests/bink32_audio_movie_test.cpp)
+target_link_libraries(btb_bink32_audio_movie_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_movie_tests PRIVATE)
+add_test(NAME bink32_audio_movie_timing COMMAND btb_bink32_audio_movie_tests)
+
+# Audio-master timebase resilience to DirectSound cursor jitter and EOS.
+add_executable(btb_bink32_audio_master_clock_tests tests/bink32_audio_master_clock_test.cpp)
+target_link_libraries(btb_bink32_audio_master_clock_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_audio_master_clock_tests PRIVATE)
+add_test(NAME bink32_audio_master_clock COMMAND btb_bink32_audio_master_clock_tests)
+
+# Read-only retail BIK audio packet audit. Optionally exports experimental
+# interleaved F32 for external differential testing, never native playback.
+add_executable(btb_bink32_native_audio_audit tools/bink32_native_audio_audit.cpp)
+target_link_libraries(btb_bink32_native_audio_audit PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_native_audio_audit PRIVATE)
+
+# Dump a decoded retail BIK frame as a P6 image for visual review without
+# either binkw32.dll or FFmpeg at runtime. Original assets stay user-owned.
+add_executable(btb_bink32_native_frame_dump tools/bink32_native_frame_dump.cpp)
+target_link_libraries(btb_bink32_native_frame_dump PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_bink32_native_frame_dump PRIVATE)
 
 # Original Bink1 sparse signed residue bitplane reader.
 add_executable(btb_bink32_residue_tests tests/bink32_residue_test.cpp)

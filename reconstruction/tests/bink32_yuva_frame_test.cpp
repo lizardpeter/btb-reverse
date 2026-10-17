@@ -1,5 +1,7 @@
 #include "btb/bink32_yuva_frame.hpp"
 #include "btb/bink32_native_video_stream.hpp"
+#include "btb/bink32_native_movie_player.hpp"
+#include "btb/bink32_surface_convert.hpp"
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -375,6 +377,107 @@ int main(int argc,char**argv) {
         CHECK(broken->current_frame()->planes==decoded->planes);
         CHECK(!broken->seek(2));
         CHECK(broken->frame_number()==1);
+        // Production-intent portable playback lifecycle for the native
+        // display bridge. Test REAL decoded SJPi pixels, not a fake clock.
+        std::string playback_error;
+        auto playback=BinkNativeSilentMovie::open_bytes(bytes,playback_error);
+        CHECK(playback && playback_error.empty());
+        CHECK(playback->frame_count()==2 && playback->width()==w &&
+              playback->height()==h);
+        CHECK(!playback->current_frame());
+        // End-to-end native path: indexed source BIK -> entropy decode
+        // -> Y/U/V/A -> packed DirectDraw-format pixels, without the DLL.
+        std::vector<std::uint8_t> target_pixels(w*h*4,0x5a);
+        BinkPackedSurface target{target_pixels,w*4,w,h,4,
+                                 0x00ff0000,0x0000ff00,0x000000ff};
+        std::uint32_t uploads=0;
+        BinkNativeSilentMovie::Presenter present=[&](
+            const BinkNativeYuVaFrame& f,std::string& out_error) {
+            CHECK(f.planes==decoded->planes);
+            CHECK(blit_bink_yuva_to_surface(f,target)==
+                  BinkSurfaceResult::ok);
+            // Bink alpha composites over existing destination RGB and
+            // leaves the X byte alone on every packed 32-bit pixel.
+            CHECK(target_pixels[0]!=0x5a && target_pixels[3]==0x5a);
+            ++uploads;
+            out_error.clear();
+            return true;
+        };
+        bool finished=false;
+        CHECK(playback->service(1'000'000,present,finished,playback_error));
+        CHECK(!finished && playback->frame_number()==1 && uploads==1);
+        CHECK(playback->has_presented_frame() && playback->current_frame());
+        CHECK(playback->service(1'030'000,present,finished,playback_error));
+        CHECK(!finished && uploads==1);
+        CHECK(playback->service(1'033'366,present,finished,playback_error));
+        CHECK(!finished && playback->frame_number()==2 && uploads==2);
+        CHECK(playback->service(1'066'700,present,finished,playback_error));
+        CHECK(!finished);
+        CHECK(playback->service(1'066'733,present,finished,playback_error));
+        CHECK(finished && uploads==2);
+        CHECK(playback->service(1'066'734,present,finished,playback_error));
+        CHECK(finished && uploads==2);
+        playback->rewind();
+        CHECK(!playback->has_presented_frame());
+        CHECK(playback->service(5'000'000,present,finished,playback_error));
+        CHECK(!finished && playback->frame_number()==1 && uploads==3);
+        CHECK(!playback->service(4'999'999,present,finished,playback_error));
+        CHECK(!playback_error.empty() && !finished);
+        // Surface failures retry exactly the same decoded frame without
+        // advancing to dependent interframes or declaring success.
+        playback->rewind();
+        std::uint32_t upload_attempts=0;
+        BinkNativeSilentMovie::Presenter reject_once=[&](
+            const BinkNativeYuVaFrame&,std::string& out_error) {
+            if(++upload_attempts==1) {
+                out_error="emulated DD7 lock failure";
+                return false;
+            }
+            out_error.clear();
+            return true;
+        };
+        CHECK(!playback->service(9'000'000,reject_once,finished,playback_error));
+        CHECK(!finished && playback->frame_number()==1 &&
+              !playback->has_presented_frame() && upload_attempts==1);
+        CHECK(playback->service(9'000'010,reject_once,finished,playback_error));
+        CHECK(!finished && playback->frame_number()==1 &&
+              playback->has_presented_frame() && upload_attempts==2);
+        CHECK(playback->service(10'000'000,reject_once,finished,playback_error));
+        CHECK(!finished && playback->frame_number()==2 &&
+              upload_attempts==3);
+        CHECK(playback->service(10'000'001,reject_once,finished,playback_error));
+        CHECK(finished);
+        // A huge catch-up tick must not complete before terminal pixels
+        // were passed to the actual presenter.
+        playback->rewind();
+        CHECK(playback->service(12'000'000,present,finished,playback_error));
+        CHECK(!finished);
+        CHECK(playback->service(20'000'000,present,finished,playback_error));
+        CHECK(!finished && playback->frame_number()==2);
+        CHECK(playback->service(20'000'001,present,finished,playback_error));
+        CHECK(finished);
+        // Even an all-zero audio payload track is *not* authorization
+        // to silently drop potentially audible later frames.
+        auto with_track=bytes;
+        with_track.insert(with_track.begin()+44,12,0);
+        auto write_u32=[&](std::size_t at,std::uint32_t value) {
+            for(unsigned i=0;i<4;++i)
+                with_track[at+i]=static_cast<std::uint8_t>(value>>(8*i));
+        };
+        write_u32(40,1); // one 12-byte audio track metadata record
+        for(std::size_t at=56;at<=64;at+=4) {
+            const std::uint32_t old=
+                std::uint32_t(with_track[at]) |
+                (std::uint32_t(with_track[at+1])<<8) |
+                (std::uint32_t(with_track[at+2])<<16) |
+                (std::uint32_t(with_track[at+3])<<24);
+            write_u32(at,old+12);
+        }
+        write_u32(4,static_cast<std::uint32_t>(with_track.size()-8));
+        CHECK(parse_container_index(with_track));
+        CHECK(!BinkNativeSilentMovie::open_bytes(
+            with_track,playback_error));
+        CHECK(playback_error.find("audio")!=std::string::npos);
     }
     // Optional unmodified retail movie probe. No movie/DLL is
     // included in the public repository, and a decoder refusal

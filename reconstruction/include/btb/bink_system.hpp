@@ -224,6 +224,31 @@ struct GlobalFrameStep {
     return step;
 }
 
+// NativeGameSession observes playback before GameRoot dispatch and only
+// presents pixels after dispatch. Completing a movie on the same tick as
+// decoding its final frame erases it before DirectDraw::Present.
+struct GlobalHostFrameDecision {
+    bool decode{};
+    bool advance{};
+    bool terminal_frame_copied{};
+    bool report_complete{};
+};
+[[nodiscard]] constexpr GlobalHostFrameDecision global_host_frame_decision(
+    std::uint32_t frame,std::uint32_t frames,
+    bool terminal_frame_was_copied) noexcept {
+    if(terminal_frame_was_copied)
+        return {false,false,true,true};
+    if(frames==0 || frame==0 || frame>frames)
+        return {};
+    return {true,frame<frames,frame==frames,false};
+}
+static_assert(global_host_frame_decision(1,2,false).advance);
+static_assert(global_host_frame_decision(2,2,false).decode);
+static_assert(global_host_frame_decision(2,2,false).terminal_frame_copied);
+static_assert(!global_host_frame_decision(2,2,false).report_complete);
+static_assert(global_host_frame_decision(2,2,true).report_complete);
+static_assert(!global_host_frame_decision(0,2,false).decode);
+
 inline constexpr std::int32_t kMinimumBinkVolume = 37;
 inline constexpr double kBinkVolumeScaleA = 31000.0;
 inline constexpr double kBinkVolumeScaleB = 0.01;

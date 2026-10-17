@@ -50,6 +50,16 @@ public:
     [[nodiscard]] HRESULT clear_retail_backbuffer(DWORD color) noexcept;
     void shutdown() noexcept;
 
+    [[nodiscard]] IDirectDrawSurface7* bink_render_target() const noexcept {
+        return backbuffer_;
+    }
+    [[nodiscard]] bool create_bink_offscreen_surface(
+        int width,int height,IDirectDrawSurface7*& output,
+        std::string& error);
+    [[nodiscard]] bool blit_bink_offscreen_surface(
+        IDirectDrawSurface7* source,int width,int height,
+        int x,int y,std::string& error);
+
     [[nodiscard]] bool initialized() const noexcept {
         return draw_ != nullptr && primary_ != nullptr &&
                backbuffer_ != nullptr;

@@ -53,6 +53,12 @@ jobs:
           path: build/reconstruction/btb_bink32_retail_video_audit
           if-no-files-found: error
           retention-days: 7
+      - name: Build native Bink1 audio differential audit
+        run: cmake --build build/reconstruction --parallel --target btb_bink32_native_audio_audit
+      - name: Compare native Bink1 audio to FFmpeg using synthetic movie packets
+        run: |
+          if ! command -v ffmpeg; then sudo apt-get update && sudo apt-get install -y ffmpeg; fi
+          python tools/bink32_synthetic_audio_differential.py --native build/reconstruction/btb_bink32_native_audio_audit
       - name: Build reconstruction
         run: cmake --build build/reconstruction --parallel
       - name: Test reconstruction
