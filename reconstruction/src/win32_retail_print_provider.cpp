@@ -90,18 +90,35 @@ struct CapturedFrame {
                 std::uint32_t value=0;
                 for(unsigned b=0;b<bytes_per_pixel;++b)
                     value|=static_cast<std::uint32_t>(pixel[b])<<(b*8);
-                std::uint8_t red=0,green=0,blue=0;
-                if(indexed) {
-                    const auto& entry=palette[value&0xff];
-                    red=entry.peRed;green=entry.peGreen;blue=entry.peBlue;
+                if(rgb && bpp==16) {
+                    // Exact source PE32 0x00409460 export:
+                    // the retail 16-bit DD7 bitmap writes G,R,B bytes
+                    // (not B,G,R) using shift-only mask extraction, not
+                    // normalized 0..255 channel scaling. These three
+                    // bytes were then read as BMP color bytes by
+                    // LoadImageA in ExportAndPrintGameImage. Recreate
+                    // the same visible printed pixels in our memory DIB.
+                    const auto retail=printing::export_pixel_bytes(
+                        static_cast<std::uint16_t>(value),
+                        format.dwRBitMask,format.dwGBitMask,
+                        format.dwBBitMask);
+                    out[4*x]=retail.byte0;
+                    out[4*x+1]=retail.byte1;
+                    out[4*x+2]=retail.byte2;
                 } else {
-                    red=channel(value,format.dwRBitMask);
-                    green=channel(value,format.dwGBitMask);
-                    blue=channel(value,format.dwBBitMask);
+                    std::uint8_t red=0,green=0,blue=0;
+                    if(indexed) {
+                        const auto& entry=palette[value&0xff];
+                        red=entry.peRed;green=entry.peGreen;blue=entry.peBlue;
+                    } else {
+                        red=channel(value,format.dwRBitMask);
+                        green=channel(value,format.dwGBitMask);
+                        blue=channel(value,format.dwBBitMask);
+                    }
+                    out[4*x]=blue;
+                    out[4*x+1]=green;
+                    out[4*x+2]=red;
                 }
-                out[4*x]=blue;
-                out[4*x+1]=green;
-                out[4*x+2]=red;
                 out[4*x+3]=0;
             }
         }
