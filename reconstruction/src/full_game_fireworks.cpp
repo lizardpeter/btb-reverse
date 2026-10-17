@@ -311,6 +311,14 @@ ActivityFrameOutput FireworksDriver::advance(
             output.audio.push_back({AudioOperation::StopManagedSounds});
         if(decisions.enter_certificate)
             editor_.internal_state=InternalState::Certificate;
+        // The original authored-show background is NOT the editor's
+        // Bk_01e.bmp. Its verified registered DD7 surface is 0x0050AB10.
+        // Render this opaque 640x480 retail bitmap before the separately
+        // queued 23-Bink effect/crowd overlays.
+        output.draws.push_back({
+            "Data\\SubGameFirework\\graph\\BK_01v.bmp",
+            0,0,std::nullopt,false
+        });
         // Render_ordered clears the normal DD7 backbuffer; the native
         // game device then blits exactly the queued decoded effect movies
         // in original crowd/active/topmiddle source order.
