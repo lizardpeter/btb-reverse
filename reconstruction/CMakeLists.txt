@@ -1294,6 +1294,36 @@ btb_require_cpp26(btb_full_game_herding_firstpass_native_tests PRIVATE)
 add_test(NAME full_game_herding_firstpass_native
     COMMAND btb_full_game_herding_firstpass_native_tests)
 
+# Run the recovered Herding branch regressions in CI, including Release
+# configurations where plain assert would otherwise erase their execution.
+foreach(test_name
+    full_game_herding_event_simulation_source
+    full_game_herding_source
+    full_game_herding_presentation_source
+    herding_source_animal_chatter_source
+    herding_source_follower_approach_source
+    herding_source_heading_source
+    herding_source_home_arrival_source
+    herding_source_partial_dispatcher_source
+    herding_source_roam_braking_source
+    herding_source_roaming_loop_source
+    herding_source_roaming_recovery_source
+    herding_source_scruffty_patrol_source
+    herding_source_steering_source
+    herding_source_temporary_target_source
+    herding_source_tracked_targets_source
+)
+    add_executable(btb_${test_name}_tests tests/${test_name}_test.cpp)
+    target_link_libraries(btb_${test_name}_tests PRIVATE btb_recompiled_core)
+    btb_require_cpp26(btb_${test_name}_tests PRIVATE)
+    if(MSVC)
+        target_compile_options(btb_${test_name}_tests PRIVATE /UNDEBUG)
+    else()
+        target_compile_options(btb_${test_name}_tests PRIVATE -UNDEBUG)
+    endif()
+    add_test(NAME ${test_name} COMMAND btb_${test_name}_tests)
+endforeach()
+
 add_executable(btb_full_game_squirrel_native_tests
     tests/full_game_squirrel_native_test.cpp)
 target_link_libraries(btb_full_game_squirrel_native_tests PRIVATE
