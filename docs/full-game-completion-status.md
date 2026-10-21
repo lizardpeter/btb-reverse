@@ -46,3 +46,22 @@ These changes do not complete the full game. Floating trigonometry remains a
 source-equation reconstruction rather than proven bit-exact x87 execution.
 Sound status is observed at the frame boundary; same-frame sound arbitration
 against multiple animal requests still needs differential verification.
+
+### Branch-specific original execution check
+
+`tools/herding_near_escape_differential.py --exe <retail-exe> --native
+<btb_herding_near_escape_audit>` executes original 00416A30 with Unicorn,
+using the SHA256-verified executable, controlled group-two geometry and measured
+sound-status fixtures. The matching C++ probe is an optional CMake target.
+All **864 cases passed** across three species, eight relative positions,
+three speeds, two animation/countdown states, three RNG seeds and two sound
+status masks. Integer position, facing, animation, movement flag, final RNG
+state and sound ID/priority/class are checked; float coordinates and speed use
+an absolute tolerance of 0.0001. This validates the near-animal branch within
+those controlled dependencies, not the pre-dispatch polygon recovery or the
+full original activity.
+
+The 17 focused native/source/session tests also passed in a local GCC 13
+C++23 compatibility build; project C++26 requirements are unchanged. The
+C++26 Linux CI suite passed for commit a95d973. Windows CI/playthrough status
+must be checked separately.

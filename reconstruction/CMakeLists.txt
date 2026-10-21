@@ -2111,3 +2111,10 @@ add_executable(btb_bink32_dct_pixels_tests tests/bink32_dct_pixels_test.cpp)
 target_link_libraries(btb_bink32_dct_pixels_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_bink32_dct_pixels_tests PRIVATE)
 add_test(NAME bink32_original_dct_pixels COMMAND btb_bink32_dct_pixels_tests)
+
+# Independent original x86 comparison is opt-in because the retail EXE is
+# user-provided. See tools/herding_near_escape_differential.py.
+add_executable(btb_herding_near_escape_audit EXCLUDE_FROM_ALL
+    tests/herding_near_escape_audit.cpp)
+target_include_directories(btb_herding_near_escape_audit PRIVATE include)
+btb_require_cpp26(btb_herding_near_escape_audit PRIVATE)
