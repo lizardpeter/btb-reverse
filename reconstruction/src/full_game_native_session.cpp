@@ -46,6 +46,9 @@ NativeSessionFrame NativeGameSession::tick(
         sound::is_sound_id_playing(
             effects_.audio().manager(),349,
             physical.managed.playing);
+    for(std::size_t i=0;i<input.herding_animal_sound_playing.size();++i)
+        input.herding_animal_sound_playing[i]=sound::is_sound_id_playing(
+            effects_.audio().manager(),817+static_cast<int>(i),physical.managed.playing);
     // Explicit non-retail --skip-bink routing. Retail 0x41 plays the
     // scene-set clip after a newly created profile and then enters 0x04.
     // Do NOT skip 0x40 by guessing its destination: that shared movie uses

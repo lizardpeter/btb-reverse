@@ -57,6 +57,114 @@ int main() {
         f<<"-1 -1\n";
         f<<"777 999\n-1 -1\n";
     }
+    // Native near-Pickles reaction and next-frame movement-flag reset.
+    // Position the sheep with its SOURCE signed anchor exactly 40 pixels
+    // to the right of Pickles' foot probe; incorrect positive half-width
+    // handling would classify it as far away instead.
+    {
+        std::ifstream file(root/"Data"/"SubGame1"/"herd.txt");
+        const auto data=btb::herding::parse_data(file);
+        fg::NativePicklesMotionSource native;
+        std::vector<btb::herding::RetailEntityRecord32> entities;
+        std::string error;
+        assert(native.initialize(data,0,entities,error));
+        auto& hero=entities.front();
+        hero.x=500;hero.y=400;hero.x_float=500;hero.y_float=400;
+        auto& sheep=entities[1];
+        assert(sheep.type==1);
+        sheep.x=540+(sheep.source_right-sheep.source_left)/2;
+        sheep.y=hero.y+hero.source_bottom-hero.source_top-20-
+            (sheep.source_bottom-sheep.source_top)/2;
+        sheep.x_float=static_cast<float>(sheep.x);
+        sheep.y_float=static_cast<float>(sheep.y);
+        sheep.movement_speed=1.f;
+        sheep.movement_active=1; // stale escape/following flag
+        sheep.animation_frame_countdown=10;
+        fg::HerdingObservedFrame out;
+        fg::ActivityFrameInput input;
+        input.herding_animal_sound_playing.fill(true);
+        assert(native.advance(data,input,{},entities,out,error));
+        const auto proof=std::find_if(out.near_escape_evidence.begin(),
+            out.near_escape_evidence.end(),[](const auto& p){return p.entity_index==1;});
+        assert(proof!=out.near_escape_evidence.end());
+        assert(proof->before.movement_active==0);
+        assert(out.motion_records[1].x_float>sheep.x_float+1.f);
+        assert(out.motion_records[1].movement_active==1);
+        assert(out.motion_records[1].animation_frame_countdown==100);
+        assert(out.motion_records[1].movement_speed==0.6f);
+        // Exactly 80 units bypasses fleeing; last frame's flag must
+        // not suppress the independent default free-roam update.
+        entities=out.motion_records;
+        auto& far=entities[1];
+        far.x=580+(far.source_right-far.source_left)/2;
+        far.x_float=static_cast<float>(far.x);far.direction=2;
+        assert(native.advance(data,input,{},entities,out,error));
+        assert(out.motion_records[1].x_float>far.x_float);
+        assert(out.motion_records[1].movement_active==0);
+        assert(std::none_of(out.near_escape_evidence.begin(),out.near_escape_evidence.end(),
+            [](const auto& p){return p.entity_index==1;}));
+        assert(native.unload(error));
+    }
+    // Exercise the real event verifier and managed-audio output, rather
+    // than accepting an isolated helper result as successful gameplay.
+    {
+        struct NearFixture final:fg::OriginalHerdingMotionSource {
+            fg::NativePicklesMotionSource native;
+            bool corrupt{};
+            bool begin_frame(std::string& error) override{return native.begin_frame(error);}
+            void commit_frame() noexcept override{native.commit_frame();}
+            void rollback_frame() noexcept override{native.rollback_frame();}
+            bool initialize(const btb::herding::Data& data,int difficulty,
+                std::vector<btb::herding::RetailEntityRecord32>& entities,
+                std::string& error) override {
+                if(!native.initialize(data,difficulty,entities,error))return false;
+                auto& hero=entities.front();
+                hero.x=500;hero.y=400;hero.x_float=500;hero.y_float=400;
+                auto& sheep=entities[1];
+                sheep.x=540+(sheep.source_right-sheep.source_left)/2;
+                sheep.y=hero.y+hero.source_bottom-hero.source_top-20-
+                    (sheep.source_bottom-sheep.source_top)/2;
+                sheep.x_float=static_cast<float>(sheep.x);
+                sheep.y_float=static_cast<float>(sheep.y);
+                sheep.movement_active=1;
+                return true;
+            }
+            bool advance(const btb::herding::Data& data,const fg::ActivityFrameInput& input,
+                const btb::herding::PicklesKeyboardMotion& motion,
+                const std::vector<btb::herding::RetailEntityRecord32>& entities,
+                fg::HerdingObservedFrame& out,std::string& error) override {
+                if(!native.advance(data,input,motion,entities,out,error))return false;
+                if(corrupt)out.motion_records[1].x_float+=10.f;
+                return true;
+            }
+            bool unload(std::string& error) override{return native.unload(error);}
+        };
+        std::ifstream file(root/"Data"/"SubGame1"/"herd.txt");
+        const auto data=btb::herding::parse_data(file);
+        auto motion=std::make_unique<NearFixture>();
+        auto* source=motion.get();
+        fg::HerdingEventSimulation simulation(std::move(motion));
+        std::string error;
+        assert(simulation.initialize(data,0,error));
+        fg::HerdingScene scene;
+        int undelivered=-1;
+        std::vector<fg::Audio> audio;
+        assert(simulation.advance({}, {},scene,undelivered,audio,error));
+        assert(undelivered==9);
+        assert(std::any_of(audio.begin(),audio.end(),[](const auto& a) {
+            return a.sound_id>=817&&a.sound_id<=819&&a.priority==10&&
+                a.arbitration_class==0;
+        }));
+        const auto x=scene.entities[1].x_float;
+        const auto audio_count=audio.size();
+        source->corrupt=true;
+        assert(!simulation.advance({}, {},scene,undelivered,audio,error));
+        assert(scene.entities[1].x_float==x&&audio.size()==audio_count);
+        source->corrupt=false;
+        assert(simulation.advance({}, {},scene,undelivered,audio,error));
+        assert(scene.entities[1].x_float>x);
+        assert(simulation.unload(error));
+    }
     // The same original CRT generator is owned by the Windows host
     // and reused across frames. A rejected NativeGameSession update
     // must NOT consume RNG or permanently mutate Scruffty/food state.

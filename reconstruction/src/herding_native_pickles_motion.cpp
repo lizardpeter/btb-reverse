@@ -163,7 +163,7 @@ bool NativePicklesMotionSource::initialize(
 
 bool NativePicklesMotionSource::advance(
     const herding::Data& data,
-    const ActivityFrameInput&,
+    const ActivityFrameInput& input,
     const herding::PicklesKeyboardMotion& motion,
     const std::vector<herding::RetailEntityRecord32>& source,
     HerdingObservedFrame& observed,std::string& error) {
@@ -175,6 +175,10 @@ bool NativePicklesMotionSource::advance(
     observed={};
     observed.require_native_event_proofs=true;
     observed.motion_records=source;
+    // 00418ED9..00418EF0 clears +0x48 for the whole entity table on
+    // EVERY update. Keeping a previous follower/escape flag prevents
+    // the following frame's 004190D3 default movement from running.
+    for(auto& entity:observed.motion_records)entity.movement_active=0;
 
     // UpdateHerdingActivity 0x418F23..0x41908D moves Scruffty once
     // per actual game frame, including frames where Pickles is idle.
@@ -515,6 +519,29 @@ bool NativePicklesMotionSource::advance(
                     continue;
             }
             if(following)continue;
+
+            if(const auto escape=herding::original_herding_near_escape_step(before,hero)) {
+                auto& rng=shared_random_?*shared_random_:standalone_random_;
+                const auto rng_before=rng.state();
+                const int species_group=before.type-1;
+                const auto sound=herding::original_herding_animal_chatter(rng,
+                    species_group,{input.herding_animal_sound_playing[species_group*3],
+                        input.herding_animal_sound_playing[species_group*3+1],
+                        input.herding_animal_sound_playing[species_group*3+2]});
+                if(!sound){error="invalid original near-animal sound group";return false;}
+                observed.motion_records[i]=escape->animal;
+                observed.near_escape_evidence.push_back({i,before,rng_before,
+                    rng.state(),sound->requested_sound_id});
+                if(sound->requested_sound_id) {
+                    HerdingObservedEvent chatter{};
+                    chatter.kind=HerdingObservedKind::NearEscapeChatter;
+                    chatter.entity_index=i;
+                    chatter.retail_trigger_confirmed=true;
+                    chatter.source_verified_sound_id=*sound->requested_sound_id;
+                    observed.events.push_back(std::move(chatter));
+                }
+                continue;
+            }
 
             const auto step=herding::original_far_untracked_animal_roam_step(
                 before,hero,nav);
