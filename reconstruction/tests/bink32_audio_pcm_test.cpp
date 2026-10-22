@@ -16,6 +16,8 @@ int main(){
     layout.source_channels=2;
     layout.transform_channels=2;
     layout.transform=BinkAudioTransform::dct;
+    layout.frame_length=16;
+    layout.overlap_length=0;
     Bink1DecodedAudioFrame source{};
     source.samples={
         {0.0f,0.5f,-1.0f,2.0f,
@@ -34,6 +36,16 @@ int main(){
     CHECK(bytes.size()==24);
     const std::array<std::uint8_t,8> start{0,0,255,127,0,64,0,192};
     for(std::size_t i=0;i<start.size();++i)CHECK(bytes[i]==start[i]);
+    // A terminal packet may declare fewer bytes than its complete final
+    // transform block. The caller must explicitly establish terminality;
+    // ordinary intermediate packets retain exact byte-count validation.
+    source.declared_pcm_bytes=20;
+    CHECK(!encode_bink1_pcm16(source,layout));
+    const auto partial=encode_bink1_pcm16(source,layout,true);
+    CHECK(partial&&partial->interleaved_samples==expected);
+    source.declared_pcm_bytes=21; // not a whole interleaved stereo frame
+    CHECK(!encode_bink1_pcm16(source,layout,true));
+    source.declared_pcm_bytes=24;
     // Packed RDFT stereo is a SINGLE transform with interleaved source
     // samples, not two independently decoded channels.
     layout.transform=BinkAudioTransform::rdft;
