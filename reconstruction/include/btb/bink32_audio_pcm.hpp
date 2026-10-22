@@ -21,14 +21,18 @@ struct Bink1Pcm16Block {
     }
 };
 
-// Reject truncated PCM, mismatched byte count, nonfinite float values,
-// incorrect RDFT stereo alignment and invalid layouts before output.
-// Zero-length compressed packets yield a legitimate empty buffer.
+// Reject malformed PCM envelopes, nonfinite samples, incorrect RDFT
+// stereo alignment and invalid layouts before output. The optional terminal
+// flag admits one final transform block whose source byte declaration is
+// shorter than the full decoded block; the transform samples are retained,
+// matching the reference decoder's fixed-block output. It must only be set
+// for the last non-empty audio packet in a movie.
 // Round-to-nearest-even and saturate to [-32768,32767] deterministically,
 // regardless of caller's floating-point rounding mode.
 [[nodiscard]] std::optional<Bink1Pcm16Block>
 encode_bink1_pcm16(const Bink1DecodedAudioFrame& decoded,
-                   const Bink1AudioLayout& layout);
+                   const Bink1AudioLayout& layout,
+                   bool allow_partial_terminal_block=false);
 
 // Produce raw little-endian WAVE_FORMAT_PCM sample bytes, never wav headers.
 [[nodiscard]] std::vector<std::uint8_t>
