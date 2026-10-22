@@ -114,3 +114,104 @@ bool Win32NativeSpudSkateMovies::observe(
  result.quality_stream_reached_end=streams_[selected_]->at_end();
  has_image_=true;error.clear();return true;
 }
+bool Win32NativeSpudSkateMovies::select_quality(
+ spud_skate::StuntQuality quality,std::string& error){
+ const int id=static_cast<int>(quality);
+ if(!active_||end_movie_||id<0||id>=4){
+  error="invalid native Spud Skate quality selection";return false;
+ }
+ selected_=static_cast<std::size_t>(id);error.clear();return true;
+}
+bool Win32NativeSpudSkateMovies::resynchronize_all(
+ int frame,std::string& error){
+ if(!active_||end_movie_||frame<1||frame>660){
+  error="native Spud Skate exact-frame seek is invalid";return false;
+ }
+ // To decode the requested frame once on the next observe(), retain
+ // exactly its predecessor as the interframe reference. Frame 1 rewinds.
+ for(std::size_t i=0;i<4;++i){
+  if(frame==1)streams_[i]->rewind();
+  else if(!streams_[i]->seek(static_cast<std::uint32_t>(frame-1))){
+   error="native Spud Skate seek could not reconstruct reference history";
+   return false;
+  }
+ }
+ clock_started_=false;has_image_=false;
+ error.clear();return true;
+}
+bool Win32NativeSpudSkateMovies::begin_end_movie(std::string& error){
+ if(!active_||end_movie_||!streams_[4]){
+  error="native Spud Skate end movie is not available";return false;
+ }
+ end_movie_=true;end_decoded_=has_image_=clock_started_=false;
+ error.clear();return true;
+}
+bool Win32NativeSpudSkateMovies::blit_selected(std::string& error){
+ if(!active_||!has_image_){error.clear();return true;}
+ const std::size_t i=end_movie_?4:selected_;
+ return draw_.blit_bink_offscreen_surface(
+  surfaces_[i],600,380,spud_skate::kMovieScreenX,
+  spud_skate::kMovieScreenY,error);
+}
+bool Win32NativeSpudSkateMovies::close(std::string& error){
+ for(auto& surface:surfaces_){
+  if(surface)surface->Release();
+  surface=nullptr;
+ }
+ for(auto& stream:streams_)stream.reset();
+ active_=end_movie_=end_decoded_=has_image_=clock_started_=false;
+ selected_=0;error.clear();return true;
+}
+SpudSkateMovieSource* Win32HybridSpudSkateMovies::source() noexcept {
+ if(!active_)return nullptr;
+ return using_native_?static_cast<SpudSkateMovieSource*>(&native_)
+                     :static_cast<SpudSkateMovieSource*>(&retail_);
+}
+bool Win32HybridSpudSkateMovies::open(
+ const std::array<std::filesystem::path,5>& files,std::string& error){
+ if(active_){error="Spud Skate movie backend already open";return false;}
+ std::string native_error;
+ if(enabled_&&native_.open(files,native_error)){
+  using_native_=active_=true;error.clear();return true;
+ }
+ std::string ignored;(void)native_.close(ignored);
+ if(retail_.open(files,error)){
+  using_native_=false;active_=true;return true;
+ }
+ if(enabled_&&!native_error.empty())
+  error="native: "+native_error+"; retail: "+error;
+ return false;
+}
+bool Win32HybridSpudSkateMovies::observe(
+ SpudSkateMovieFrame& frame,std::string& error){
+ auto* s=source();
+ if(!s){error="Spud Skate movie backend was not opened";return false;}
+ return s->observe(frame,error);
+}
+bool Win32HybridSpudSkateMovies::select_quality(
+ spud_skate::StuntQuality q,std::string& error){
+ auto* s=source();return s?s->select_quality(q,error):
+  (error="Spud Skate movie backend was not opened",false);
+}
+bool Win32HybridSpudSkateMovies::resynchronize_all(
+ int frame,std::string& error){
+ auto* s=source();return s?s->resynchronize_all(frame,error):
+  (error="Spud Skate movie backend was not opened",false);
+}
+bool Win32HybridSpudSkateMovies::begin_end_movie(std::string& error){
+ auto* s=source();return s?s->begin_end_movie(error):
+  (error="Spud Skate movie backend was not opened",false);
+}
+bool Win32HybridSpudSkateMovies::blit_selected(std::string& error){
+ if(!active_){error.clear();return true;}
+ return using_native_?native_.blit_selected(error):retail_.blit_selected(error);
+}
+bool Win32HybridSpudSkateMovies::close(std::string& error){
+ std::string n,r;
+ const bool a=native_.close(n),b=retail_.close(r);
+ active_=using_native_=false;
+ if(!a||!b){error="native: "+n+"; retail: "+r;return false;}
+ error.clear();return true;
+}
+} // namespace btb::full_game
+#endif
