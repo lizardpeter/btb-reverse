@@ -11,6 +11,12 @@ on:
       - "reconstruction/src/bink32_audio_stream.cpp"
       - "reconstruction/tools/bink32_native_audio_audit.cpp"
       - "reconstruction/tools/bink32_native_frame_dump.cpp"
+      - "reconstruction/tools/bink32_retail_video_audit.cpp"
+      - "reconstruction/src/bink32_ac_block_pixels.cpp"
+      - "reconstruction/src/bink32_block_modes.cpp"
+      - "reconstruction/src/bink32_video_planes.cpp"
+      - "reconstruction/src/bink32_yuva_frame.cpp"
+      - "reconstruction/src/bink32_native_video_stream.cpp"
       - "reconstruction/CMakeLists.txt"
   workflow_dispatch:
 
