@@ -122,6 +122,43 @@ bool GameRoot::delete_profile(int index) {
 
 void GameRoot::set_outer_state(game_flow::State state) noexcept {
     globals_.dispatcher.current_state = static_cast<std::int32_t>(state);
+    if (state == game_flow::State::StartupMoviesThenProfileSetup) {
+        startup_video_index_ = 0;
+        startup_video_opened_ = false;
+        profile_intro_music_pending_ = false;
+    }
+}
+
+bool GameRoot::configure_startup_video_sequence(
+    std::span<const OriginalVideoSequenceEntry> entries,
+    std::string& error) {
+    if (entries.empty() || entries.size() > kRetailVideoSequenceCapacity) {
+        error = "videoseq.txt must contain between one and ten original movies";
+        return false;
+    }
+    for (const auto& entry : entries) {
+        if (entry.path.empty() || entry.path.size() >= 0x104U) {
+            error = "videoseq.txt contains an invalid original movie path";
+            return false;
+        }
+    }
+    startup_video_sequence_.assign(entries.begin(), entries.end());
+    startup_video_index_ = 0;
+    startup_video_opened_ = false;
+    profile_intro_music_pending_ = false;
+    error.clear();
+    return true;
+}
+
+void GameRoot::skip_startup_video_sequence() noexcept {
+    if (globals_.dispatcher.current_state !=
+        static_cast<int>(game_flow::State::StartupMoviesThenProfileSetup)) {
+        return;
+    }
+    startup_video_index_ = startup_video_sequence_.size();
+    startup_video_opened_ = false;
+    profile_intro_music_pending_ = true;
+    set_outer_state(game_flow::State::PlayerProfileAndNameEntry);
 }
 
 bool GameRoot::unload_current(std::string& error) {
@@ -286,6 +323,41 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
     }
 
     const auto& state = *dispatch.dispatch;
+    if (state.state == game_flow::State::StartupMoviesThenProfileSetup) {
+        if (startup_video_sequence_.empty()) {
+            result.kind = FrameKind::FrontEndFailed;
+            result.error = "original loaddata/videoseq.txt was not configured";
+            return result;
+        }
+        if (startup_video_index_ >= startup_video_sequence_.size()) {
+            result.kind = FrameKind::FrontEndFailed;
+            result.error = "original startup movie sequence index is invalid";
+            return result;
+        }
+        if (!startup_video_opened_) {
+            result.original_startup_sequence_movie_path =
+                startup_video_sequence_[startup_video_index_].path;
+            startup_video_opened_ = true;
+        } else if (effective_input.original_global_movie_finished) {
+            ++startup_video_index_;
+            startup_video_opened_ = false;
+            if (startup_video_index_ >= startup_video_sequence_.size()) {
+                // Retail case 0 loads name signs and starts entername.wav
+                // immediately after UpdateStartupVideoSequence completes.
+                set_outer_state(game_flow::State::PlayerProfileAndNameEntry);
+                result.effects.audio.push_back({
+                    AudioOperation::StartBackingTrack,
+                    "Data/music/entername.wav"
+                });
+                result.state_changed = true;
+            }
+        }
+        // Global Bink owns the display surface for every startup sequence
+        // frame. Never clear it with an empty profile/UI draw list.
+        result.effects.retain_original_global_movie_pixels = true;
+        result.kind = FrameKind::FrontEndUpdated;
+        return result;
+    }
     if (state.state == game_flow::State::SceneSetMovieTransition) {
         // Original 0x0042A708 calls UpdateSceneSetMovie (0x0042A240).
         // Its first frame opens the authentic Data/movies/sceneset.bik.
@@ -309,6 +381,14 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
         result.effects.retain_original_global_movie_pixels=true;
         result.kind=FrameKind::FrontEndUpdated;
         return result;
+    }
+    if (state.state == game_flow::State::PlayerProfileAndNameEntry &&
+        profile_intro_music_pending_) {
+        result.effects.audio.push_back({
+            AudioOperation::StartBackingTrack,
+            "Data/music/entername.wav"
+        });
+        profile_intro_music_pending_ = false;
     }
     if (state.state == game_flow::State::PlayerProfileAndNameEntry && name_entry_) {
         return advance_profile_name_entry(effective_input,std::move(result));

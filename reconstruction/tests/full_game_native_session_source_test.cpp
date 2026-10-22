@@ -606,6 +606,83 @@ int main() {
         assert(blocked.failure->stage==PhysicalPresentationStage::MovieResolve);
         assert(!blocked.submitted);
     }
+    // Retail state 0 runs each original videoseq.txt Bink in order, keeps
+    // the decoded surface visible while waiting for EOS, and starts the
+    // original enter-name backing WAV only after the final clip completes.
+    {
+        touch(directory,"Data/movies/thqlogo.bik");
+        touch(directory,"Data/movies/bbclogo.bik");
+        touch(directory,"Data/music/entername.wav");
+        std::istringstream sequence_text(
+            "Data/movies/thqlogo.bik 0\n"
+            "Data/movies/bbclogo.bik 1\n");
+        OriginalVideoSequenceCatalog sequence;
+        std::string error;
+        assert(sequence.read(sequence_text,error));
+
+        GameRoot game;
+        assert(game.configure_startup_video_sequence(
+            sequence.entries(),error));
+        game.set_outer_state(State::StartupMoviesThenProfileSetup);
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture()
+        };
+        auto first=session.tick({},false,false);
+        assert(first.submitted && !first.failure);
+        assert(first.global_movie_opened);
+        assert(first.prepared.game.original_startup_sequence_movie_path);
+        assert(device.global_open==1);
+        assert(device.last_movie.find("thqlogo.bik")!=std::string::npos);
+        assert(game.globals().dispatcher.current_state==
+               static_cast<int>(State::StartupMoviesThenProfileSetup));
+        const int draws_before=device.draw_count;
+
+        device.sample.global_movie_finished=false;
+        auto waiting=session.tick({.click_pulse=true},true,false);
+        assert(waiting.submitted && !waiting.failure);
+        assert(!waiting.global_movie_opened);
+        assert(device.global_open==1);
+        assert(device.draw_count==draws_before);
+        assert(game.globals().dispatcher.current_state==
+               static_cast<int>(State::StartupMoviesThenProfileSetup));
+
+        device.sample.global_movie_finished=true;
+        auto first_done=session.tick({},false,false);
+        assert(first_done.submitted && !first_done.failure);
+        assert(!first_done.global_movie_opened);
+        assert(device.global_open==1);
+        assert(game.globals().dispatcher.current_state==
+               static_cast<int>(State::StartupMoviesThenProfileSetup));
+
+        device.sample.global_movie_finished=false;
+        auto second=session.tick({},false,false);
+        assert(second.submitted && !second.failure);
+        assert(second.global_movie_opened);
+        assert(device.global_open==2);
+        assert(device.last_movie.find("bbclogo.bik")!=std::string::npos);
+        assert(device.draw_count==draws_before);
+
+        device.sample.global_movie_finished=true;
+        const int sounds_before=device.sound_count;
+        auto final_movie_done=session.tick({},false,false);
+        assert(final_movie_done.submitted && !final_movie_done.failure);
+        assert(!final_movie_done.global_movie_opened);
+        assert(device.global_open==2);
+        assert(device.sound_count==sounds_before+1);
+        assert(game.globals().dispatcher.current_state==
+               static_cast<int>(State::PlayerProfileAndNameEntry));
+        assert(final_movie_done.prepared.game.state_changed);
+        assert(final_movie_done.prepared.game.effects.retain_original_global_movie_pixels);
+        assert(final_movie_done.prepared.game.effects.audio.size()==1);
+        assert(final_movie_done.prepared.game.effects.audio[0].operation==
+               AudioOperation::StartBackingTrack);
+        assert(final_movie_done.prepared.game.effects.audio[0].source_asset==
+               "Data/music/entername.wav");
+        assert(device.draw_count==draws_before);
+    }
+
     // After 0x0042DCC0 accepts a name, retail enters the dedicated 0x41
     // scene-set movie and then Activity Select. The optional non-retail
     // video-free session may skip this particular source-known transition.

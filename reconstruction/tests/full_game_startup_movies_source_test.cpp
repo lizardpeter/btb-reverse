@@ -52,4 +52,33 @@ Data\movies\designstartup.bik
     assert(!error.empty());
     assert(*movies.movie(7) ==
            "Data\\movies\\designstartup.bik");
+
+    std::istringstream sequence_source(
+        "Data\\movies\\thqlogo.bik 0\n"
+        "Data\\movies\\bbclogo.bik 1\n"
+        "Data\\movies\\intro.bik 0\n");
+    OriginalVideoSequenceCatalog sequence;
+    assert(sequence.read(sequence_source,error));
+    assert(sequence.loaded());
+    assert(sequence.entries().size()==3);
+    assert(sequence.entries()[0].path=="Data\\movies\\thqlogo.bik");
+    assert(sequence.entries()[0].input_mode==0);
+    assert(sequence.entries()[1].input_mode==1);
+    assert(sequence.entries()[2].path=="Data\\movies\\intro.bik");
+
+    std::istringstream missing_mode("Data\\movies\\intro.bik");
+    assert(!sequence.read(missing_mode,error));
+    assert(!error.empty());
+    assert(sequence.entries().size()==3); // failed parse is transactional
+
+    std::ostringstream too_many;
+    for(std::size_t i=0;i<kRetailVideoSequenceCapacity+1;++i)
+        too_many << "Data\\movies\\clip" << i << ".bik 0\n";
+    std::istringstream oversized(too_many.str());
+    assert(!sequence.read(oversized,error));
+    assert(!error.empty());
+
+    std::istringstream empty("");
+    assert(!sequence.read(empty,error));
+    assert(!error.empty());
 }

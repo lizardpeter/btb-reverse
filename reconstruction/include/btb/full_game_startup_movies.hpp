@@ -4,9 +4,12 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <istream>
 #include <optional>
+#include <span>
 #include <string>
+#include <vector>
 
 namespace btb::full_game {
 
@@ -27,6 +30,26 @@ retail_pregame_global_intro_index(
     default: return std::nullopt;
     }
 }
+
+inline constexpr std::size_t kRetailVideoSequenceCapacity = 10;
+
+struct OriginalVideoSequenceEntry {
+    std::string path{};
+    std::int32_t input_mode{};
+};
+
+class OriginalVideoSequenceCatalog {
+public:
+    // LoadVideoSequence uses fscanf("%s %d") into ten fixed 0x104-byte
+    // path slots. Preserve that record shape while rejecting host overflows.
+    [[nodiscard]] bool read(std::istream& in, std::string& error);
+    [[nodiscard]] std::span<const OriginalVideoSequenceEntry>
+        entries() const noexcept { return entries_; }
+    [[nodiscard]] bool loaded() const noexcept { return initialized_; }
+private:
+    std::vector<OriginalVideoSequenceEntry> entries_{};
+    bool initialized_{};
+};
 
 class OriginalStartupMovieCatalog {
 public:

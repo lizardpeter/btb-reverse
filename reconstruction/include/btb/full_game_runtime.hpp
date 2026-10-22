@@ -18,6 +18,7 @@
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -223,8 +224,9 @@ struct ActivityFrameOutput {
     // Runtime provider failures must not silently submit a partially
     // reconstructed activity frame as if the original game succeeded.
     std::optional<std::string> fatal_error{};
-    // Fireworks' original pre-show Bink is already in the common DirectDraw
-    // video surface. Do not erase that frame with an empty activity draw list.
+    // Original global Bink (startup sequence, scene-set, pregame intro or
+    // Fireworks pre-show) owns the common DirectDraw surface. Do not erase it
+    // with an empty activity draw list.
     bool retain_original_global_movie_pixels{};
     // A real post-render, pre-present Win32 print-dialog request. The game
     // must not pretend a paper print or spooler job happened in this model.
@@ -318,6 +320,7 @@ struct GameFrame {
     std::optional<int> original_global_intro_movie_index{};
     // Retail 0x0042A240 opens sceneset.bik by path, outside startupmovie.txt.
     std::optional<std::string> original_scene_set_movie_path{};
+    std::optional<std::string> original_startup_sequence_movie_path{};
     std::optional<ReplayPreparationPlan> replay_preparation{};
     std::string error{};
     bool clear_input_pulse{};
@@ -345,6 +348,11 @@ public:
         game_flow::State setup_state,
         std::unique_ptr<FrontEndDriver> driver);
     [[nodiscard]] bool select_profile(int index) noexcept;
+    [[nodiscard]] bool configure_startup_video_sequence(
+        std::span<const OriginalVideoSequenceEntry> entries,
+        std::string& error);
+    // Non-retail --skip-bink mode: skip the intro sequence, not profile setup.
+    void skip_startup_video_sequence() noexcept;
     [[nodiscard]] bool load_profile_files(
         const std::filesystem::path& directory,
         std::string& error);
@@ -398,6 +406,10 @@ private:
     int name_entry_blink_{};
     // Open only once on state 0x41, then wait for real native Bink EOS.
     bool scene_set_movie_opened_{};
+    std::vector<OriginalVideoSequenceEntry> startup_video_sequence_{};
+    std::size_t startup_video_index_{};
+    bool startup_video_opened_{};
+    bool profile_intro_music_pending_{};
 };
 
 } // namespace btb::full_game

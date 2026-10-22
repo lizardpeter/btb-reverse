@@ -133,6 +133,16 @@ struct Host {
         }
         return starts.read(startup,error)&&walk.read(walkthrough,error);
     }
+    [[nodiscard]] static bool parse_video_sequence(
+        const fs::path& loaddata,OriginalVideoSequenceCatalog& sequence,
+        std::string& error) {
+        std::ifstream source(loaddata/"videoseq.txt");
+        if(!source) {
+            error="original loaddata/videoseq.txt missing";
+            return false;
+        }
+        return sequence.read(source,error);
+    }
     [[nodiscard]] bool start(std::string& out_error) {
         std::error_code ec;
         if(!fs::is_directory(root,ec)||ec) {
@@ -159,6 +169,11 @@ struct Host {
         OriginalStartupMovieCatalog startups;
         OriginalWalkthroughCatalog walkthroughs;
         if(!parse_movies(loaddata,startups,walkthroughs,out_error))
+            return false;
+        OriginalVideoSequenceCatalog video_sequence;
+        if(!parse_video_sequence(loaddata,video_sequence,out_error) ||
+           !game.configure_startup_video_sequence(
+               video_sequence.entries(),out_error))
             return false;
 
         // Original address 0042A2C0 state 04: screen 1 is the activity
@@ -337,9 +352,9 @@ struct Host {
             std::make_unique<ParkDesignerDriver>(
                 root/"Data"/"SubGameDYP",profile_dir));
 
-        // Start at the original Activity Select rather than inventing an
-        // incomplete five-sign profile-entry workflow. Profile 0 is
-        // explicitly provisional in this opt-in development host.
+        // An explicitly selected profile is a diagnostic shortcut. Normal
+        // launches use retail state 0: the real videoseq.txt movies, followed
+        // by enter-name music and the five original profile signs.
         if(selected_profile>=0) {
             if(!game.select_profile(selected_profile)) {
                 out_error="requested original profile slot outside 1..5";
@@ -347,9 +362,7 @@ struct Host {
             }
             game.set_outer_state(game_flow::State::ActivitySelectSetup);
         } else {
-            // Real source-backed five-sign profile screen, with original
-            // bitmap/font tables and the existing C++26 name-entry caller.
-            game.set_outer_state(game_flow::State::PlayerProfileAndNameEntry);
+            game.set_outer_state(game_flow::State::StartupMoviesThenProfileSetup);
         }
         device=std::make_unique<Win32OriginalGameDevice>(
             graphics,audio,movies,

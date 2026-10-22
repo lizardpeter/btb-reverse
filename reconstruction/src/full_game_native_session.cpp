@@ -61,6 +61,12 @@ NativeSessionFrame NativeGameSession::tick(
     // source GameRoot has not modeled. Keep 0x40 fail-closed.
     if (skip_video_ &&
         root_.globals().dispatcher.current_state ==
+            static_cast<int>(game_flow::State::StartupMoviesThenProfileSetup)) {
+        root_.skip_startup_video_sequence();
+        input.click_pulse=false;
+    }
+    if (skip_video_ &&
+        root_.globals().dispatcher.current_state ==
             static_cast<int>(game_flow::State::SceneSetMovieTransition)) {
         root_.set_outer_state(game_flow::State::ActivitySelectSetup);
         root_.globals().dispatcher.generic_screen_mode=0;
@@ -151,6 +157,21 @@ NativeSessionFrame NativeGameSession::tick(
             return frame;
         }
         frame.global_movie_opened = true;
+    }
+
+    // State 0x00 consumes the ordered original videoseq.txt records.
+    // The decoder's physical end-of-stream observation advances the index.
+    if (!skip_video_ && game.original_startup_sequence_movie_path) {
+        auto movie=resolve_movie(*game.original_startup_sequence_movie_path);
+        if (!movie) {
+            fail(frame,PhysicalPresentationStage::MovieResolve,error);
+            return frame;
+        }
+        if (!device_.open_global_movie(*movie,error)) {
+            fail(frame,PhysicalPresentationStage::MovieOpen,error);
+            return frame;
+        }
+        frame.global_movie_opened=true;
     }
 
     // State 0x41 uses the dedicated UpdateSceneSetMovie source path, not
