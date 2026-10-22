@@ -57,7 +57,7 @@ int main() {
     while(GetTickCount64()<deadline) {
         const auto head=voice.observe(error);
         if(!head) {
-            std::cerr<<"FAIL: native PCM voice observe: "<<error<<"\\n";
+            std::cerr<<"FAIL: native PCM voice observe: "<<error<<"\n";
             return 1;
         }
         saw_playing=saw_playing||head->playing;
@@ -68,13 +68,13 @@ int main() {
             break;
         }
         if(!saw_playing && GetTickCount64()-started_at>250) {
-            std::cout<<"SKIP: headless DirectSound backend exposes no playing state\\n";
+            std::cout<<"SKIP: headless DirectSound backend exposes no playing state\n";
             return 0;
         }
         Sleep(5);
     }
     if(!saw_playing) {
-        std::cout<<"SKIP: DirectSound playback state unavailable on this host\\n";
+        std::cout<<"SKIP: DirectSound playback state unavailable on this host\n";
         return 0;
     }
     if(!saw_progress) {
