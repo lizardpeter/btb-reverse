@@ -24,7 +24,7 @@ bool copy_native_bink_frame_to_directdraw(
     // DirectDraw lPitch is signed. Never reinterpret negative pitch as a
     // huge unsigned buffer, or write beyond an independently sized surface.
     if(info.lpSurface && info.lPitch>0 &&
-       info.dwWidth==frame.width && info.dwHeight==frame.height &&
+       info.dwWidth>=frame.width && info.dwHeight>=frame.height &&
        (info.ddpfPixelFormat.dwRGBBitCount==16 ||
         info.ddpfPixelFormat.dwRGBBitCount==32) &&
        (info.ddpfPixelFormat.dwFlags&DDPF_RGB)) {
@@ -32,6 +32,10 @@ bool copy_native_bink_frame_to_directdraw(
         const auto bpp=static_cast<std::uint8_t>(
             info.ddpfPixelFormat.dwRGBBitCount/8);
         if(frame.height>0 && row_pitch<=std::numeric_limits<std::size_t>::max()/frame.height) {
+            // Fireworks allocates the original per-index surface envelope,
+            // which can exceed the compressed frame's visible dimensions.
+            // Only the visible top-left image is decoded; do not write
+            // outside it or reinterpret the larger surface as source pixels.
             const auto total=row_pitch*frame.height;
             btb::bink32_recovered::BinkPackedSurface target{
                 {static_cast<std::uint8_t*>(info.lpSurface),total},
