@@ -1,6 +1,6 @@
 # Opt-in reconstructed Bink1 playback on current main
 
-The original 2002 x86 Bink DLL remains the default for the real modern game host; no ordinary player-visible behavior is replaced. This adapter reuses the already-merged portable native Bink1 decoder with real DirectDraw7 upload and DirectSound8 audio. It is for Windows dev/recovery verification while original retail audio parity remains pending.
+The original 2002 x86 Bink DLL remains the default for the real modern game host; no ordinary player-visible behavior is replaced. This adapter reuses the portable native Bink1 decoder with real DirectDraw7 upload and DirectSound8 audio. Independent FFmpeg PCM16 comparisons passed on 22 original audio tracks (maximum one-LSB difference), and 38 available original movies matched FFmpeg video planes byte-for-byte across 11,266 frames. Original-DLL PCM parity and a real DirectSound device/synchronization test remain outstanding.
 
 In PowerShell set the optional switches before launching the current game:
 
