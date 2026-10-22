@@ -46,7 +46,7 @@ std::vector<std::uint8_t> encoded_pcm(const Bink1AudioLayout& layout) {
 }
 std::vector<std::uint8_t> synthetic_movie(
     std::span<const std::uint8_t> compressed,bool bad_frame=false,
-    bool partial_final=false) {
+    bool partial_final=false,bool partial_first=false) {
     constexpr unsigned frame_count=3,header=44,track_bytes=12;
     constexpr unsigned index_size=4*(frame_count+1);
     std::vector<std::uint8_t> out(header+track_bytes+index_size,0);
@@ -69,7 +69,7 @@ std::vector<std::uint8_t> synthetic_movie(
         } else {
             std::vector<std::uint8_t> payload(
                 compressed.begin(),compressed.end());
-            if(partial_final && f==2) {
+            if((partial_final && f==2)||(partial_first && f==0)) {
                 const auto declared=std::uint32_t(payload[0])|
                     (std::uint32_t(payload[1])<<8)|
                     (std::uint32_t(payload[2])<<16)|
@@ -128,6 +128,11 @@ int main() {
     CHECK(partial_movie&&partial_movie->sample_frames()==960);
     CHECK(partial_movie->audio_frame_boundaries[1]==480);
     CHECK(partial_movie->audio_frame_boundaries[3]==960);
+    // A similar short declaration before the final non-empty packet is
+    // rejected; terminal allowance must not hide a corrupt middle packet.
+    const auto partial_middle=synthetic_movie(block,false,false,true);
+    CHECK(!decode_bink1_movie_audio(partial_middle,0,error));
+    CHECK(error.find("frame 1")!=std::string::npos);
     CHECK(!decode_bink1_movie_audio(bytes,1,error));
     CHECK(!error.empty());
     const auto corrupt=synthetic_movie(block,true);
