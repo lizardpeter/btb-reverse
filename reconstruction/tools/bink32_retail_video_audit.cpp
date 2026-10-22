@@ -286,6 +286,6 @@ int main(int argc,char**argv) {
     } else {
         std::cout<<"; reference comparison not requested";
     }
-    std::cout<<"\\n";
+    std::cout<<"\n";
     return mismatched_frames ? 3:0;
 }
