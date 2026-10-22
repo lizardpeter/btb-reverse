@@ -91,3 +91,123 @@ bool Win32NativeFireworksMovieBank::restart(
  final_copied_[i]=has_frame_[i]=clock_started_[i]=false;
  error.clear();return true;
 }
+void Win32NativeFireworksMovieBank::release_cues() noexcept {
+ for(auto& cue:cues_){
+  if(cue.frozen)cue.frozen->Release();
+  cue.frozen=nullptr;
+ }
+ cues_.clear();
+}
+void Win32NativeFireworksMovieBank::begin_show_frame() noexcept {
+ release_cues();
+}
+bool Win32NativeFireworksMovieBank::freeze_earlier(
+ std::size_t i,std::string& error){
+ if(i>=surfaces_.size()||!surfaces_[i]){
+  error="native Fireworks DD7 surface is missing";return false;
+ }
+ for(auto& cue:cues_){
+  if(cue.index!=i||cue.frozen)continue;
+  IDirectDrawSurface7* snapshot=nullptr;
+  if(!draw_.create_bink_offscreen_surface(
+       static_cast<int>(width_[i]),static_cast<int>(height_[i]),
+       snapshot,error))return false;
+  RECT rect{0,0,static_cast<LONG>(width_[i]),
+                  static_cast<LONG>(height_[i])};
+  const auto hr=snapshot->BltFast(0,0,surfaces_[i],
+                                  &rect,DDBLTFAST_WAIT);
+  if(FAILED(hr)){
+   snapshot->Release();
+   error="native Fireworks DD7 duplicate overlay snapshot failed";
+   return false;
+  }
+  cue.frozen=snapshot;
+ }
+ error.clear();return true;
+}
+bool Win32NativeFireworksMovieBank::decode_and_queue(
+ std::size_t i,int x,int y,bool& finished,std::string& error){
+ // The authored source show may use one clip multiple times per tick.
+ // Freeze earlier pixels before overwriting its only source surface.
+ if(!freeze_earlier(i,error))return false;
+ if(!decode_frame(i,finished,error))return false;
+ if(has_frame_[i])cues_.push_back({i,x,y,nullptr});
+ error.clear();return true;
+}
+bool Win32NativeFireworksMovieBank::blit_queued_show(
+ std::string& error){
+ if(!ready_&&!cues_.empty()){
+  error="native Fireworks show queued after bank closed";return false;
+ }
+ for(const auto& cue:cues_){
+  if(cue.index>=surfaces_.size()||!surfaces_[cue.index]){
+   error="native Fireworks overlay source missing";return false;
+  }
+  if(!draw_.blit_bink_offscreen_surface(
+       cue.frozen?cue.frozen:surfaces_[cue.index],
+       static_cast<int>(width_[cue.index]),
+       static_cast<int>(height_[cue.index]),
+       cue.x,cue.y,error))return false;
+ }
+ error.clear();return true;
+}
+bool Win32NativeFireworksMovieBank::close(std::string& error){
+ release_cues();
+ for(auto& surface:surfaces_){
+  if(surface)surface->Release();
+  surface=nullptr;
+ }
+ for(auto& stream:streams_)stream.reset();
+ width_.fill(0);height_.fill(0);has_frame_.fill(false);
+ final_copied_.fill(false);clock_started_.fill(false);
+ ready_=false;error.clear();return true;
+}
+bool Win32HybridFireworksMovieBank::open(
+ const std::filesystem::path& folder,std::string& error){
+ if(active_){error="Fireworks Bink bank already open";return false;}
+ std::string native_error;
+ if(enabled_&&native_.open(folder,native_error)){
+  using_native_=active_=true;error.clear();return true;
+ }
+ std::string ignored;(void)native_.close(ignored);
+ if(retail_.open(folder,error)){
+  active_=true;using_native_=false;return true;
+ }
+ if(enabled_&&!native_error.empty())
+  error="native: "+native_error+"; retail: "+error;
+ return false;
+}
+bool Win32HybridFireworksMovieBank::restart(
+ std::size_t i,std::string& error){
+ if(!active_){error="Fireworks Bink bank not open";return false;}
+ return using_native_?native_.restart(i,error):retail_.restart(i,error);
+}
+bool Win32HybridFireworksMovieBank::close(std::string& error){
+ std::string n,r;
+ const bool a=native_.close(n),b=retail_.close(r);
+ active_=using_native_=false;
+ if(!a||!b){error="native: "+n+"; retail: "+r;return false;}
+ error.clear();return true;
+}
+void Win32HybridFireworksMovieBank::begin_show_frame() noexcept {
+ if(!active_)return;
+ if(using_native_)native_.begin_show_frame();
+ else retail_.begin_show_frame();
+}
+bool Win32HybridFireworksMovieBank::decode_and_queue(
+ std::size_t i,int x,int y,bool& finished,std::string& error){
+ if(!active_){error="Fireworks Bink bank not open";return false;}
+ return using_native_?native_.decode_and_queue(i,x,y,finished,error):
+                      retail_.decode_and_queue(i,x,y,finished,error);
+}
+bool Win32HybridFireworksMovieBank::blit_queued_show(
+ std::string& error){
+ if(!active_){error.clear();return true;}
+ return using_native_?native_.blit_queued_show(error):
+                      retail_.blit_queued_show(error);
+}
+bool Win32HybridFireworksMovieBank::ready() const noexcept {
+ return active_&&(using_native_?native_.ready():retail_.ready());
+}
+} // namespace btb::full_game
+#endif
