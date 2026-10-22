@@ -133,6 +133,60 @@ int main() {
         assert(drawn(frame.effects,
             "Data/ui/blue name boxed font.bmp"));
     }
+    // Exercise the complete five-sign -> name popup -> accept -> saved
+    // playerinfo/playerN round trip for *every* slot. Prior regressions
+    // stopped after typing a character and never accepted a new profile.
+    for(int player=0;player<5;++player) {
+        const auto save_dir=root/("create_player_"+std::to_string(player+1));
+        GameRoot game;
+        std::string error;
+        assert(game.load_profile_files(save_dir,error));
+        game.install_profile_screen(adapter(root));
+        game.set_outer_state(State::PlayerProfileAndNameEntry);
+        const auto& hit=btb::profiles::kProfileHitRects[
+            static_cast<std::size_t>(player)];
+        const int x=(hit.left+hit.right)/2;
+        const int y=(hit.top+hit.bottom)/2;
+        auto frame=game.advance({.pointer_x=x,.pointer_y=y,
+                                  .click_pulse=true});
+        assert(frame.kind==FrameKind::FrontEndUpdated);
+        assert(!game.globals().active_profile);
+        frame=game.advance({});
+        assert(frame.kind==FrameKind::FrontEndInitialized);
+        frame=game.advance({});
+        assert(drawn(frame.effects,"Data/ui/enter name.bmp"));
+        ActivityFrameInput typed{};
+        typed.keyboard_state[0x1e]=0x80; // original physical DIK_A
+        typed.translated_character='A'+player;
+        frame=game.advance(typed);
+        assert(frame.kind==FrameKind::FrontEndUpdated);
+        frame=game.advance({}); // release the physical keyboard scan
+        frame=game.advance({.pointer_x=315,.pointer_y=333,
+                            .click_pulse=true}); // original Start rect
+        assert(frame.kind==FrameKind::FrontEndUpdated);
+        assert(!game.globals().active_profile);
+        // Original accept voice completes before source state 0x41.
+        frame=game.advance({});
+        assert(frame.profile_saved);
+        assert(frame.state_changed);
+        assert(game.globals().active_profile==player);
+        assert(game.globals().dispatcher.current_state==
+               static_cast<int>(State::SceneSetMovieTransition));
+        assert(game.globals().player_progress[
+            static_cast<std::size_t>(player)].values[0]==1);
+        GameRoot reopened;
+        assert(reopened.load_profile_files(save_dir,error));
+        const auto& restored=reopened.globals().profile_metadata[
+            static_cast<std::size_t>(player)];
+        assert(restored.name_length==1);
+        assert(restored.name_glyph_codes[0]=='A'+player-0x21);
+        assert(reopened.globals().player_progress[
+            static_cast<std::size_t>(player)].values[0]==1);
+        for(int other=0;other<5;++other)
+            if(other!=player)
+                assert(reopened.globals().profile_metadata[
+                    static_cast<std::size_t>(other)].name_length==0);
+    }
     {
         // Confirmed delete must be durable even if the user quits without
         // finishing another activity; original per-player data is truncated.
