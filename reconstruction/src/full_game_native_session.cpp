@@ -41,6 +41,14 @@ NativeSessionFrame NativeGameSession::tick(
     }
 
     input.managed_sound_playing = physical.any_managed_voice_playing;
+    // Profile selection uses IsSoundIdPlaying on particular IDs, not the
+    // aggregate any-playing test. This keeps unrelated hover/narration
+    // voices from preventing a new player from being selected.
+    for(std::size_t i=0;i<kProfileGateSoundIds.size();++i) {
+        input.profile_sound_playing[i]=sound::is_sound_id_playing(
+            effects_.audio().manager(),kProfileGateSoundIds[i],
+            physical.managed.playing);
+    }
     input.original_global_movie_finished = physical.global_movie_finished;
     input.fireworks_crowd_end_sound_playing=
         sound::is_sound_id_playing(
