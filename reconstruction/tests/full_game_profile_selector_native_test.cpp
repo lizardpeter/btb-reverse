@@ -133,6 +133,22 @@ int main() {
         assert(drawn(frame.effects,
             "Data/ui/blue name boxed font.bmp"));
     }
+    {
+        // Real user scenario: the empty profile sign is clicked while its
+        // unrelated 0x135 hover narration is still playing. The source gate
+        // checks 0x12f/0x130/0x131 specifically and MUST open name entry.
+        GameRoot game;
+        game.install_profile_screen(adapter(root));
+        game.set_outer_state(State::PlayerProfileAndNameEntry);
+        auto frame=game.advance({.pointer_x=80,.pointer_y=175,
+                                 .click_pulse=true,
+                                 .managed_sound_playing=true});
+        assert(frame.kind==FrameKind::FrontEndUpdated);
+        frame=game.advance({.managed_sound_playing=true});
+        assert(frame.kind==FrameKind::FrontEndInitialized);
+        frame=game.advance({});
+        assert(drawn(frame.effects,"Data/ui/enter name.bmp"));
+    }
     // Exercise the complete five-sign -> name popup -> accept -> saved
     // playerinfo/playerN round trip for *every* slot. Prior regressions
     // stopped after typing a character and never accepted a new profile.
