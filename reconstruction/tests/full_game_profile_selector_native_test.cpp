@@ -63,6 +63,29 @@ std::unique_ptr<NativeProfileScreenAdapter> adapter(
 int main() {
     const auto root=setup_assets();
     {
+        // Original profile action gates are per-sound ID. Playing an
+        // unrelated hover/voice sample must not make every gate busy.
+        auto screen=adapter(root);
+        ActivityFrameOutput output;
+        std::string error;
+        ActivityFrameInput input{};
+        input.managed_sound_playing=true;
+        assert(screen->begin_frame(input,output,error));
+        assert(screen->any_managed_playing());
+        for(const int id:kProfileGateSoundIds)
+            assert(!screen->sound_playing(id));
+        assert(screen->end_frame(error));
+
+        input.profile_sound_playing={false,true,false,false,true};
+        assert(screen->begin_frame(input,output,error));
+        assert(!screen->sound_playing(0x12f));
+        assert(screen->sound_playing(0x130));
+        assert(!screen->sound_playing(0x131));
+        assert(!screen->sound_playing(0x136));
+        assert(screen->sound_playing(0x137));
+        assert(screen->end_frame(error));
+    }
+    {
         GameRoot game;
         game.globals().profile_metadata[2].name_length=1;
         game.globals().profile_metadata[2].badge_index=0;
