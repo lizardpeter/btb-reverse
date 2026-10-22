@@ -9,7 +9,7 @@
 #include "btb/full_game_squirrel.hpp"
 #include "btb/full_game_herding.hpp"
 #include "btb/full_game_spud_skate.hpp"
-#include "btb/win32_retail_spud_skate_movies.hpp"
+#include "btb/win32_native_spud_skate_movies.hpp"
 #include "btb/win32_retail_fireworks_movie_bank.hpp"
 #include "btb/fireworks_show_native.hpp"
 #include "btb/full_game_herding_event_simulation.hpp"
@@ -85,7 +85,7 @@ struct Host {
     Win32HybridBinkProvider movies;
     // Borrowed pointer; the actual decoder is owned by SpudSkateDriver.
     // GameDevice only asks it to blit the currently decoded surface.
-    Win32RetailSpudSkateMovies* skate_movies{};
+    Win32HybridSpudSkateMovies* skate_movies{};
     std::unique_ptr<Win32RetailFireworksMovieBank> fireworks_bank{};
     FireworksDriver* fireworks_driver{};
     // Native Herding consumes the original 0x42FFC4 MSVC rand stream.
@@ -255,7 +255,8 @@ struct Host {
         // actual decoded DD7 buffers (not fabricated frame numbers).
         // x64 fails explicitly until a compatible native decoder.
         auto skate_backend=
-            std::make_unique<Win32RetailSpudSkateMovies>(graphics,root);
+            std::make_unique<Win32HybridSpudSkateMovies>(graphics,root,
+                 native_bink_opt_in(L"BTB_EXPERIMENTAL_NATIVE_BINK_SKATE"));
         skate_movies=skate_backend.get();
         game.install(ActivityId::SpudSkate,
             std::make_unique<SpudSkateDriver>(
