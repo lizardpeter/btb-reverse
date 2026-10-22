@@ -316,6 +316,8 @@ struct GameFrame {
     std::optional<int> original_walkthrough_index{};
     std::optional<std::size_t> original_pregame_backdrop_slot{};
     std::optional<int> original_global_intro_movie_index{};
+    // Retail 0x0042A240 opens sceneset.bik by path, outside startupmovie.txt.
+    std::optional<std::string> original_scene_set_movie_path{};
     std::optional<ReplayPreparationPlan> replay_preparation{};
     std::string error{};
     bool clear_input_pulse{};
@@ -394,6 +396,8 @@ private:
     std::array<Rect,6> name_entry_badges_{};
     int name_entry_phase_{};
     int name_entry_blink_{};
+    // Open only once on state 0x41, then wait for real native Bink EOS.
+    bool scene_set_movie_opened_{};
 };
 
 } // namespace btb::full_game

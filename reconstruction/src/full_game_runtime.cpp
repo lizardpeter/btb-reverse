@@ -286,6 +286,30 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
     }
 
     const auto& state = *dispatch.dispatch;
+    if (state.state == game_flow::State::SceneSetMovieTransition) {
+        // Original 0x0042A708 calls UpdateSceneSetMovie (0x0042A240).
+        // Its first frame opens the authentic Data/movies/sceneset.bik.
+        // Subsequent frames remain in state 0x41 until the real decoder
+        // reports completion; then the outer state advances to 0x04.
+        if (!globals_.active_profile) {
+            result.kind=FrameKind::InactiveProfile;
+            result.error="scene-setting movie requires an active profile";
+            return result;
+        }
+        if (!scene_set_movie_opened_) {
+            result.original_scene_set_movie_path="Data/movies/sceneset.bik";
+            scene_set_movie_opened_=true;
+        } else if (effective_input.original_global_movie_finished) {
+            scene_set_movie_opened_=false;
+            set_outer_state(game_flow::State::ActivitySelectSetup);
+            result.state_changed=true;
+        }
+        // The Bink player owns the DD7 backbuffer until the next real
+        // activity-select frame. Drawing an empty frame erases its pixels.
+        result.effects.retain_original_global_movie_pixels=true;
+        result.kind=FrameKind::FrontEndUpdated;
+        return result;
+    }
     if (state.state == game_flow::State::PlayerProfileAndNameEntry && name_entry_) {
         return advance_profile_name_entry(effective_input,std::move(result));
     }

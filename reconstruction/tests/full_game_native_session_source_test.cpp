@@ -628,8 +628,11 @@ int main() {
         assert(!reached.global_movie_opened);
     }
     {
-        // Strict default still requires a real original 0x41 movie adapter;
-        // it is not allowed to masquerade as an ordinary frontend screen.
+        // Real 0x41: open sceneset.bik exactly once, preserve its decoded
+        // DD7 pixels until physical Bink EOS, then reach Activity Select.
+        // A fake Device only simulates native EOS; the production path
+        // still calls the installed decoder and never fabricates it.
+        touch(directory,"Data/movies/sceneset.bik");
         GameRoot game;
         assert(game.select_profile(2));
         game.install_activity_select(std::make_unique<Instruction>());
@@ -639,9 +642,54 @@ int main() {
             startup_fixture(),walkthrough_fixture()
         };
         game.set_outer_state(State::SceneSetMovieTransition);
-        const auto blocked=session.tick({},false,false);
-        assert(blocked.failure);
-        assert(blocked.failure->stage==PhysicalPresentationStage::GameAdvance);
+        const int prior_draws=device.draw_count;
+        const auto opened=session.tick({},false,false);
+        assert(!opened.failure && opened.submitted);
+        assert(opened.global_movie_opened);
+        assert(device.global_open==1);
+        assert(device.last_movie.find("sceneset.bik")!=std::string::npos);
+        assert(device.draw_count==prior_draws);
+        for(int i=0;i<3;++i) {
+            device.sample.global_movie_finished=false;
+            const auto waiting=session.tick({.click_pulse=i==1},i==1,false);
+            assert(!waiting.failure && waiting.submitted);
+            assert(!waiting.global_movie_opened);
+            assert(!waiting.prepared.game.state_changed);
+            assert(game.globals().dispatcher.current_state==
+                   static_cast<int>(State::SceneSetMovieTransition));
+            assert(device.global_open==1);
+            assert(device.draw_count==prior_draws);
+        }
+        device.sample.global_movie_finished=true;
+        const auto completed=session.tick({},false,false);
+        assert(!completed.failure && completed.submitted);
+        assert(completed.prepared.game.state_changed);
+        assert(device.global_open==1);
+        assert(device.draw_count==prior_draws);
+        assert(game.globals().dispatcher.current_state==
+               static_cast<int>(State::ActivitySelectSetup));
+        device.sample.global_movie_finished=false;
+        const auto selected=session.tick({},false,false);
+        assert(!selected.failure && selected.submitted);
+        assert(selected.prepared.game.kind==FrameKind::FrontEndInitialized);
+        assert(game.globals().dispatcher.current_state==
+               static_cast<int>(State::ActivitySelectUpdate));
+        assert(device.draw_count==prior_draws+1);
+    }
+    {
+        // Missing sceneset.bik is not silently skipped in retail mode.
+        fs::remove(directory/"Data/movies/sceneset.bik");
+        GameRoot game;
+        assert(game.select_profile(2));
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture()
+        };
+        game.set_outer_state(State::SceneSetMovieTransition);
+        const auto missing=session.tick({},false,false);
+        assert(missing.failure);
+        assert(missing.failure->stage==PhysicalPresentationStage::MovieResolve);
         assert(device.global_open==0);
     }
     {

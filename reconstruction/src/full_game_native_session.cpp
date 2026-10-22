@@ -153,6 +153,22 @@ NativeSessionFrame NativeGameSession::tick(
         frame.global_movie_opened = true;
     }
 
+    // State 0x41 uses the dedicated UpdateSceneSetMovie source path, not
+    // a startupmovie.txt index. Open the genuine Bink once and let its
+    // physical end-of-stream observation drive the next state.
+    if (!skip_video_ && game.original_scene_set_movie_path) {
+        auto movie=resolve_movie(*game.original_scene_set_movie_path);
+        if (!movie) {
+            fail(frame,PhysicalPresentationStage::MovieResolve,error);
+            return frame;
+        }
+        if (!device_.open_global_movie(*movie,error)) {
+            fail(frame,PhysicalPresentationStage::MovieOpen,error);
+            return frame;
+        }
+        frame.global_movie_opened=true;
+    }
+
     // The retail instruction walkthrough is torn down when leaving its
     // pregame state for Back or Start. Difficulty/Help actions remain.
     if (walkthrough_open_ &&
