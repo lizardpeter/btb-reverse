@@ -24,7 +24,7 @@ bool copy_native_bink_frame_to_directdraw(
     // DirectDraw lPitch is signed. Never reinterpret negative pitch as a
     // huge unsigned buffer, or write beyond an independently sized surface.
     if(info.lpSurface && info.lPitch>0 &&
-       info.dwWidth==frame.width && info.dwHeight==frame.height &&
+       info.dwWidth>=frame.width && info.dwHeight>=frame.height &&
        (info.ddpfPixelFormat.dwRGBBitCount==16 ||
         info.ddpfPixelFormat.dwRGBBitCount==32) &&
        (info.ddpfPixelFormat.dwFlags&DDPF_RGB)) {

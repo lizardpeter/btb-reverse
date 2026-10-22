@@ -10,7 +10,7 @@
 #include "btb/full_game_herding.hpp"
 #include "btb/full_game_spud_skate.hpp"
 #include "btb/win32_native_spud_skate_movies.hpp"
-#include "btb/win32_retail_fireworks_movie_bank.hpp"
+#include "btb/win32_native_fireworks_movie_bank.hpp"
 #include "btb/fireworks_show_native.hpp"
 #include "btb/full_game_herding_event_simulation.hpp"
 #include "btb/herding_native_pickles_motion.hpp"
@@ -86,7 +86,7 @@ struct Host {
     // Borrowed pointer; the actual decoder is owned by SpudSkateDriver.
     // GameDevice only asks it to blit the currently decoded surface.
     Win32HybridSpudSkateMovies* skate_movies{};
-    std::unique_ptr<Win32RetailFireworksMovieBank> fireworks_bank{};
+    std::unique_ptr<Win32HybridFireworksMovieBank> fireworks_bank{};
     FireworksDriver* fireworks_driver{};
     // Native Herding consumes the original 0x42FFC4 MSVC rand stream.
     // This state is owned by the host, not independently reseeded by
@@ -277,8 +277,9 @@ struct Host {
                     std::make_unique<NativePicklesMotionSource>(
                         original_game_random)),0,
                 &original_game_random));
-        fireworks_bank=std::make_unique<Win32RetailFireworksMovieBank>(
-            graphics,root);
+        fireworks_bank=std::make_unique<Win32HybridFireworksMovieBank>(
+            graphics,root,
+            native_bink_opt_in(L"BTB_EXPERIMENTAL_NATIVE_BINK_FIREWORKS"));
         auto fireworks_activity=std::make_unique<FireworksDriver>(
             root/"Data"/"SubGameFirework",profile_dir,
             [this](const fs::path& movie,std::string& error) {
