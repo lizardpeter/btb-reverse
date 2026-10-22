@@ -1,8 +1,8 @@
 #pragma once
 // Portable C++26 native Bink1 movie stream. This is the video/frame
 // and packet lifecycle needed by the game provider, with no original
-// RAD DLL or external FFmpeg process. Audio packet data is available
-// to a future native audio decoder; it is NOT decoded by this class.
+// RAD DLL or external FFmpeg process. Audio packets are exposed to the
+// separate native Bink1 audio decoder; this class decodes video only.
 #include "btb/bink32_container.hpp"
 #include "btb/bink32_packet_decode.hpp"
 #include "btb/bink32_yuva_frame.hpp"

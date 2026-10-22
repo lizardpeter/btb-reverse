@@ -1,7 +1,8 @@
 #pragma once
-// Experimental, DLL-free Bink1 compressed audio *sample reconstruction*.
-// Not enabled in the runtime audio path: integer PCM quantization, sample
-// timestamps, retail audio differential testing and DirectSound are missing.
+// Experimental, DLL-free Bink1 compressed audio reconstruction.
+// Float decoding and PCM16 serialization match FFmpeg on the available
+// original SJPi audio corpus within one PCM16 LSB. Runtime audio remains
+// opt-in until original-DLL PCM and real DirectSound/video-sync parity pass.
 #include "btb/bink32_audio_overlap.hpp"
 #include "btb/bink32_audio_inverse.hpp"
 #include <cstddef>
@@ -12,8 +13,9 @@
 namespace btb::bink32_recovered {
 struct Bink1DecodedAudioFrame {
     // DCT: planar source channels, RDFT: one interleaved sample stream.
-    // These are post inverse-transform & overlap float samples, not yet
-    // certified bit-exact PCM, nor guaranteed output-scale parity.
+    // These are post inverse-transform & overlap float samples. The tested
+    // SJPi corpus matches FFmpeg closely; this does not certify original-DLL
+    // integer rounding or playback timing.
     std::vector<std::vector<float>> samples{};
     // Raw source prefix from the compressed Bink packet. It is bounded and
     // useful for structural checks, but is not an independent sample count.
