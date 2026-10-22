@@ -63,6 +63,24 @@ decode_bink1_movie_audio(std::span<const std::uint8_t> original_bik,
         error="unreasonably large original video frame count";
         return std::nullopt;
     }
+    // Locate the last non-empty packet before decoding. Only that packet
+    // may declare a partial final transform block; a short declaration in
+    // the middle of a movie is malformed and must not be silently accepted.
+    std::uint32_t last_audio_frame=0;
+    for(std::uint32_t frame=1;frame<=index->header.frame_count;++frame) {
+        const auto packet=split_encoded_frame(*index,original_bik,frame);
+        if(!packet || track_index>=packet->audio.size()) {
+            error="invalid source audio packet at video frame "+
+                  std::to_string(frame);
+            return std::nullopt;
+        }
+        if(!packet->audio[track_index].compressed.empty())
+            last_audio_frame=frame;
+    }
+    if(!last_audio_frame) {
+        error="selected original Bink track contains no audio packets";
+        return std::nullopt;
+    }
     Bink1MoviePcm16 result{
         selected.sample_rate,selected.channels,selected.track_id};
     result.audio_frame_boundaries.reserve(
@@ -81,7 +99,8 @@ decode_bink1_movie_audio(std::span<const std::uint8_t> original_bik,
                   std::to_string(frame);
             return std::nullopt;
         }
-        const auto pcm=encode_bink1_pcm16(*decoded,decoder->layout());
+        const auto pcm=encode_bink1_pcm16(
+            *decoded,decoder->layout(),frame==last_audio_frame);
         if(!pcm || pcm->channels!=result.channels ||
            pcm->sample_rate!=result.sample_rate) {
             error="native Bink1 PCM16 envelope mismatch at video frame "+
