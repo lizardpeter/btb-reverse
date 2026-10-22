@@ -47,6 +47,12 @@ jobs:
         run: |
           if ! command -v ffmpeg >/dev/null; then sudo apt-get update && sudo apt-get install -y ffmpeg; fi
           python tools/bink32_synthetic_audio_differential.py --native build/reconstruction/btb_bink32_native_audio_audit
+      - name: Publish portable native Bink audio audit for real-retail-file validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: btb-bink32-native-audio-audit-linux
+          path: build/reconstruction/btb_bink32_native_audio_audit
+          if-no-files-found: error
       - name: Test reconstruction
         run: ctest --test-dir build/reconstruction --output-on-failure
 
