@@ -189,8 +189,8 @@ struct Host {
 
         // All ten original pregame states have independently recovered
         // bitmap names, walkthrough indexes, and back/start action maps.
-        // The separate source-backed Bink service currently rejects movie
-        // requests, but game logic is no longer blocked by missing UI drivers.
+        // The global movie service is a hybrid native/retail provider; a
+        // missing compatible decoder remains a visible runtime failure.
         for(const auto& entry:kRetailPregamePairs){
             const auto index=static_cast<std::size_t>(entry.screen);
             auto driver=make_original_pregame_screen_driver(

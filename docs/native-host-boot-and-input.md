@@ -35,16 +35,22 @@ and x64 builds compile this source and its test.
 
 ## **Not** a finished full-game implementation
 
-The native runtime currently has registered source activity drivers for
-Golf, Fireworks, Bob's Band and Park Designer. Six activities, including
-Dinosaur in this native pipeline, still lack complete registered runtime
-adapters. The existing Herding driver requires a missing real motion/
-collision provider. The original Bink service lacks a working decoder;
-gameplay/menu transitions requesting a movie terminate with an explicit
-error rather than silently skipping it. Original profile-selection screens
-and some runtime GUI/backend paths are also unfinished.
+The host now runs the original \`videoseq.txt\` startup movie table,
+then the source-backed five-sign profile selector and name/badge editor.
+Accepted profiles are saved in the original text format, followed by the
+source-confirmed \`sceneset.bik\` transition to Activity Select. The startup
+and scene-set movies use the real global Bink provider and wait for its
+end-of-stream observation; \`--skip-bink\` is an explicit non-retail diagnostic
+shortcut. Decoder availability remains architecture/configuration-dependent,
+and a missing decoder fails visibly.
+
+The native host has registered activity drivers for all ten activities, but
+several still have incomplete retail behavior or missing platform providers.
+In particular, Park Designer still needs the original 0x0040E440 editor/render
+service, Herding needs the continuous motion/collision provider, and the full
+set of gameplay, sound, movie, and return-to-menu paths still needs an
+interactive acceptance run.
 
 **615/615 compiled source models is not 615/615 live x86 ABI linkage or
-verified behavioral equivalence.** This work fixes the primary executable
-selection and real native input routing; it does not certify missing game
-systems as working.
+verified behavioral equivalence.** Source tests and successful builds do not
+certify missing game systems as working.

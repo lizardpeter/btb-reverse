@@ -67,14 +67,21 @@ Machine-readable run evidence is in
 
 ## Remaining completion work
 
-The native development host still uses its provisional profile 0 startup.
-The complete five-sign selector, initial profile resource service, source
-keyboard translation/physical observations and the full 0x41 scene movie
-handoff need integration before replacing that startup. The name-entry
-caller is exercised through the coordinator but is not advertised as an
-end-to-end native profile menu.
+The native host now starts in the original state 0 startup sequence, reads the
+retail \`videoseq.txt\` path/mode records, waits for physical Bink end-of-stream
+between clips, starts \`Data/music/entername.wav\`, and then enters the native
+five-sign profile selector. After accepting a new name, it saves the original
+\`playerinfo.txt\` and \`playerN.txt\` format, plays \`sceneset.bik\`, and advances
+to Activity Select only when that clip completes. \`--skip-bink\` skips the
+startup sequence as an explicit development mode while retaining profile
+creation.
 
-Bink presentation, the central Park Designer editor, full Herding motion,
-remaining activity initialization/callers and original x86 differential
-validation remain substantial work. Compilation and synthetic source
-fixtures do not establish retail-equivalent gameplay.
+These source paths have regression coverage for parsing, movie order,
+end-of-stream gating, movie-surface retention, enter-name music, all five
+profile slots, and save/reload. They have not yet been certified in a complete
+interactive retail-asset playthrough on a user's Windows device.
+
+Bink presentation/audio parity, the central Park Designer editor, full
+Herding motion, remaining activity initialization/callers and original x86
+differential validation remain substantial work. Passing CI and synthetic
+source fixtures do not establish retail-equivalent gameplay.

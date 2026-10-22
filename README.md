@@ -104,11 +104,13 @@ five machine channels, the five-by-24 composition wall, ten note types,
 three conductors, editor transitions, playback, and all fifty pitch-bank
 sample mappings. This module is now **source-integrated with the common 68-state game
 coordinator** (including original conductor selection and binary sequence
-saving), but the new full-game code has **not been compiled or exercised**
-against the retail engine. The experimental native executable still hosts
-only a partial Dinosaur activity. Golf also has a source-integrated round
-driver, and the original seven chooser/replay pairs now route their
-binary-verified negative menu actions in the shared coordinator.
+saving). The native host also has source-backed profile creation, five-slot
+profile persistence, original \`videoseq.txt\` startup sequencing, and the
+\`sceneset.bik\` transition wired through the global movie provider. These are
+compiled/tested integration milestones, not a claim of retail-equivalent
+gameplay. Golf has a source-integrated round driver, and the original seven
+chooser/replay pairs route their binary-verified negative menu actions in the
+shared coordinator.
 
 See [full-game integration](docs/full-game-integration.md) and
 [retail menu action evidence](docs/full-game-menu-actions.md).

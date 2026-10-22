@@ -41,15 +41,15 @@ btb_game now has two distinct Windows host paths:
 
     .\btb_game.exe --native-original "C:\path\to\Bob Builds a Park"
 
-The directory must contain original loaddata/NumUiHotArea.txt, uiHotArea.txt, uiHotAreaReplace.txt, uiBitmapName.txt, startupmovie.txt and binkwalk.txt, the original managed-sound binklist.txt and the Data/ bitmap/WAV resources. No game files or replacement images are embedded. The development host initially uses original profile slot 1 until the native five-sign profile selector is reconstructed.
+The directory must contain original loaddata/NumUiHotArea.txt, uiHotArea.txt, uiHotAreaReplace.txt, uiBitmapName.txt, startupmovie.txt and binkwalk.txt, the original managed-sound binklist.txt and the Data/ bitmap/WAV resources. No game files or replacement images are embedded. The native original-source host normally runs the original \`videoseq.txt\` startup movie sequence and the five-sign profile/name-entry flow. \`--profile-slot 1..5\` is an explicit diagnostic shortcut to Activity Select; \`--skip-bink\` skips startup movies but still enters profile selection.
 
 The host installs source-backed Activity Select, seven chooser/replay screens and ten original pregame screens using their distinct bitmap table offsets. It installs native Golf, Fireworks, Bob's Band and Park Designer drivers, then supplies real mouse and managed-sound observations to the recovered outer-state machine.
 
 **Unfinished native dependencies are explicit failure conditions, not retail parity:**
 
-- The 32-bit binkw32.dll export loader is present, but exact frame decoding/blitting is not connected. The host rejects movie requests rather than playing fictitious movies.
-- Park Designer requires its unreconstructed 0x0040E440 editor/render service. Herding requires the original continuous motion/collision provider.
-- Other minigame initializers and the original profile-entry/sign workflow remain incomplete.
+- Global movie playback is routed through the hybrid native/retail Bink provider. Decoder availability is architecture- and configuration-dependent; missing movie support fails visibly rather than inventing frames. \`--skip-bink\` is a non-retail diagnostic mode.
+- Park Designer still needs its original 0x0040E440 editor/render service; Herding still needs the original continuous motion/collision provider.
+- The five-sign profile selector, name/badge entry, and five-slot save/reload path are source-integrated and covered by tests, but the complete graphical retail playthrough has not been certified.
 - No original executable differential or ABI-equivalence verification is claimed. Source-written is not equivalent to compiled/linked/retail-verified.
 
 All production src/*.cpp files are now checked for build-target attachment. CI compiles Linux, Windows x64 and Windows x86, runs executable gameplay integration tests and verifies native DirectDraw/DirectSound/Bink-provider linkage.
