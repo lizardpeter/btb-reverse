@@ -67,6 +67,7 @@ public:
     PhysicalFrameObservation sample{};
     int observe_count{};
     int global_open{};
+    int global_close{};
     int walk_open{};
     int walk_close{};
     int sound_count{};
@@ -90,6 +91,9 @@ public:
         ++global_open;
         last_movie=movie.generic_string();
         error.clear(); return true;
+    }
+    bool close_global_movie(std::string& error) override {
+        ++global_close;error.clear();return true;
     }
     bool open_walkthrough_movie(
         const fs::path& movie,const fs::path& help,
@@ -614,8 +618,8 @@ int main() {
         touch(directory,"Data/movies/bbclogo.bik");
         touch(directory,"Data/music/entername.wav");
         std::istringstream sequence_text(
-            "Data/movies/thqlogo.bik 0\n"
-            "Data/movies/bbclogo.bik 1\n");
+            "Data/movies/thqlogo.bik 1\n"
+            "Data/movies/bbclogo.bik 0\n");
         OriginalVideoSequenceCatalog sequence;
         std::string error;
         assert(sequence.read(sequence_text,error));
@@ -728,13 +732,14 @@ int main() {
         assert(device.draw_count==prior_draws);
         for(int i=0;i<3;++i) {
             device.sample.global_movie_finished=false;
-            const auto waiting=session.tick({.click_pulse=i==1},i==1,false);
+            const auto waiting=session.tick({},false,false);
             assert(!waiting.failure && waiting.submitted);
             assert(!waiting.global_movie_opened);
             assert(!waiting.prepared.game.state_changed);
             assert(game.globals().dispatcher.current_state==
                    static_cast<int>(State::SceneSetMovieTransition));
             assert(device.global_open==1);
+            assert(device.global_close==0);
             assert(device.draw_count==prior_draws);
         }
         device.sample.global_movie_finished=true;
@@ -752,6 +757,68 @@ int main() {
         assert(game.globals().dispatcher.current_state==
                static_cast<int>(State::ActivitySelectUpdate));
         assert(device.draw_count==prior_draws+1);
+    }
+    {
+        // Mode 0 permits an input skip of the final intro clip. The real
+        // global movie is explicitly closed before the profile screen begins.
+        touch(directory,"Data/movies/introbig1.bik");
+        touch(directory,"Data/music/entername.wav");
+        std::istringstream sequence_text("Data/movies/introbig1.bik 0\n");
+        OriginalVideoSequenceCatalog sequence;
+        std::string error;
+        assert(sequence.read(sequence_text,error));
+        GameRoot game;
+        assert(game.configure_startup_video_sequence(sequence.entries(),error));
+        game.set_outer_state(State::StartupMoviesThenProfileSetup);
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture()
+        };
+        const auto opened=session.tick({},false,false);
+        assert(opened.submitted && !opened.failure && opened.global_movie_opened);
+        device.sample.global_movie_finished=false;
+        const int sounds_before=device.sound_count;
+        const auto skipped=session.tick({.click_pulse=true},true,false);
+        assert(skipped.submitted && !skipped.failure);
+        assert(skipped.prepared.game.close_original_global_movie);
+        assert(device.global_close==1);
+        assert(game.globals().dispatcher.current_state==
+               static_cast<int>(State::PlayerProfileAndNameEntry));
+        assert(device.sound_count==sounds_before+1);
+        assert(skipped.prepared.game.effects.audio.size()==1);
+        assert(skipped.prepared.game.effects.audio[0].source_asset==
+               "Data/music/entername.wav");
+    }
+    {
+        // State 0x41 also accepts the original click-to-skip pulse and closes
+        // the Bink player before Activity Select starts drawing next frame.
+        touch(directory,"Data/movies/sceneset.bik");
+        GameRoot game;
+        assert(game.select_profile(2));
+        game.install_activity_select(std::make_unique<Instruction>());
+        Device device;
+        NativeGameSession session{
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture()
+        };
+        game.set_outer_state(State::SceneSetMovieTransition);
+        const auto opened=session.tick({},false,false);
+        assert(opened.submitted && opened.global_movie_opened);
+        device.sample.global_movie_finished=false;
+        const auto skipped=session.tick({.click_pulse=true},true,false);
+        assert(skipped.submitted && !skipped.failure);
+        assert(skipped.prepared.game.close_original_global_movie);
+        assert(device.global_close==1);
+        assert(game.globals().dispatcher.current_state==
+               static_cast<int>(State::ActivitySelectSetup));
+        assert(device.draw_count==0);
+        const auto selected=session.tick({},false,false);
+        assert(selected.submitted && !selected.failure);
+        assert(selected.prepared.game.kind==FrameKind::FrontEndInitialized);
+        assert(game.globals().dispatcher.current_state==
+               static_cast<int>(State::ActivitySelectUpdate));
+        assert(device.draw_count==1);
     }
     {
         // Missing sceneset.bik is not silently skipped in retail mode.

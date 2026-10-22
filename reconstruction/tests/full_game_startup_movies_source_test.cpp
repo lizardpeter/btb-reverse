@@ -54,22 +54,30 @@ Data\movies\designstartup.bik
            "Data\\movies\\designstartup.bik");
 
     std::istringstream sequence_source(
-        "Data\\movies\\thqlogo.bik 0\n"
-        "Data\\movies\\bbclogo.bik 1\n"
-        "Data\\movies\\intro.bik 0\n");
+        "Data\\movies\\THQ.bik 1\n"
+        "Data\\movies\\BBC.bik 1\n"
+        "Data\\movies\\hitsting.bik 1\n"
+        "Data\\movies\\hotsting.bik 1\n"
+        "Data\\movies\\introbig1.bik 0\n");
     OriginalVideoSequenceCatalog sequence;
     assert(sequence.read(sequence_source,error));
     assert(sequence.loaded());
-    assert(sequence.entries().size()==3);
-    assert(sequence.entries()[0].path=="Data\\movies\\thqlogo.bik");
-    assert(sequence.entries()[0].input_mode==0);
+    assert(sequence.entries().size()==5);
+    assert(sequence.entries()[0].path=="Data\\movies\\THQ.bik");
+    assert(sequence.entries()[0].input_mode==1);
+    assert(sequence.entries()[1].path=="Data\\movies\\BBC.bik");
     assert(sequence.entries()[1].input_mode==1);
-    assert(sequence.entries()[2].path=="Data\\movies\\intro.bik");
+    assert(sequence.entries()[2].path=="Data\\movies\\hitsting.bik");
+    assert(sequence.entries()[2].input_mode==1);
+    assert(sequence.entries()[3].path=="Data\\movies\\hotsting.bik");
+    assert(sequence.entries()[3].input_mode==1);
+    assert(sequence.entries()[4].path=="Data\\movies\\introbig1.bik");
+    assert(sequence.entries()[4].input_mode==0);
 
-    std::istringstream missing_mode("Data\\movies\\intro.bik");
+    std::istringstream missing_mode("Data\\movies\\introbig1.bik");
     assert(!sequence.read(missing_mode,error));
     assert(!error.empty());
-    assert(sequence.entries().size()==3); // failed parse is transactional
+    assert(sequence.entries().size()==5); // failed parse is transactional
 
     std::ostringstream too_many;
     for(std::size_t i=0;i<kRetailVideoSequenceCapacity+1;++i)

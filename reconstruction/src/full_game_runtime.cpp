@@ -334,11 +334,21 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
             result.error = "original startup movie sequence index is invalid";
             return result;
         }
+        const auto& current_movie =
+            startup_video_sequence_[startup_video_index_];
+        const bool movie_skip_requested =
+            effective_input.original_global_movie_skip_pulse ||
+            effective_input.click_pulse;
         if (!startup_video_opened_) {
             result.original_startup_sequence_movie_path =
-                startup_video_sequence_[startup_video_index_].path;
+                current_movie.path;
             startup_video_opened_ = true;
-        } else if (effective_input.original_global_movie_finished) {
+        } else if (effective_input.original_global_movie_finished ||
+                   (movie_skip_requested && current_movie.input_mode != 1)) {
+            if (!effective_input.original_global_movie_finished &&
+                movie_skip_requested && current_movie.input_mode != 1) {
+                result.close_original_global_movie = true;
+            }
             ++startup_video_index_;
             startup_video_opened_ = false;
             if (startup_video_index_ >= startup_video_sequence_.size()) {
@@ -371,7 +381,11 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
         if (!scene_set_movie_opened_) {
             result.original_scene_set_movie_path="Data/movies/sceneset.bik";
             scene_set_movie_opened_=true;
-        } else if (effective_input.original_global_movie_finished) {
+        } else if (effective_input.original_global_movie_finished ||
+                   effective_input.original_global_movie_skip_pulse ||
+                   effective_input.click_pulse) {
+            if (!effective_input.original_global_movie_finished)
+                result.close_original_global_movie=true;
             scene_set_movie_opened_=false;
             set_outer_state(game_flow::State::ActivitySelectSetup);
             result.state_changed=true;

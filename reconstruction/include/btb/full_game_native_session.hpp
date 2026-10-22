@@ -46,6 +46,7 @@ public:
     [[nodiscard]] virtual bool open_global_movie(
         const std::filesystem::path& original_movie,
         std::string& error) = 0;
+    [[nodiscard]] virtual bool close_global_movie(std::string& error) = 0;
     [[nodiscard]] virtual bool open_walkthrough_movie(
         const std::filesystem::path& original_movie,
         const std::filesystem::path& original_help_wav,

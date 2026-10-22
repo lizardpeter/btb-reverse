@@ -50,6 +50,9 @@ NativeSessionFrame NativeGameSession::tick(
             physical.managed.playing);
     }
     input.original_global_movie_finished = physical.global_movie_finished;
+    input.original_global_movie_skip_pulse =
+        input.original_global_movie_skip_pulse || input.click_pulse ||
+        primary_input_pulse || secondary_input_pulse;
     input.fireworks_crowd_end_sound_playing=
         sound::is_sound_id_playing(
             effects_.audio().manager(),349,
@@ -107,6 +110,13 @@ NativeSessionFrame NativeGameSession::tick(
         }
         return resolved.absolute_path;
     };
+
+    if (game.close_original_global_movie) {
+        if (!device_.close_global_movie(error)) {
+            fail(frame,PhysicalPresentationStage::MovieClose,error);
+            return frame;
+        }
+    }
 
     if (!skip_video_ && game.original_walkthrough_index) {
         const auto* entry=walkthroughs_.entry(

@@ -8,6 +8,11 @@ void Win32HybridBinkProvider::cancel_global_movie() noexcept {
     retail_.cancel_global_movie();
     global_=Backend::none;
 }
+bool Win32HybridBinkProvider::close_global(std::string& error) {
+    cancel_global_movie();
+    error.clear();
+    return true;
+}
 bool Win32HybridBinkProvider::open_global(
     const std::filesystem::path& movie,std::string& error) {
     // The old movie's handles are released BEFORE choosing the backend

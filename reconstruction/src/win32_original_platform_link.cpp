@@ -19,6 +19,10 @@ public:
     bool open_global(const std::filesystem::path&,std::string& err) override {
         err="original compatible Bink decoder not initialized";return false;
     }
+    bool close_global(std::string& err) override {
+        err.clear();
+        return true;
+    }
     bool open_walkthrough(const std::filesystem::path&,
         const std::filesystem::path&,std::string& err) override {
         err="original compatible Bink decoder not initialized";return false;

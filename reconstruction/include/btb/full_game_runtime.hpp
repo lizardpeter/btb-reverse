@@ -201,6 +201,9 @@ struct ActivityFrameInput {
     // Physical Bink EOS from the native Win32 decoder, observed before
     // this game's state handler. Never synthesize it from wall time.
     bool original_global_movie_finished{};
+    // Original UpdateGlobalBinkMovie checks three separate input pulses when
+    // the current sequence/scene-set mode allows a user to dismiss the clip.
+    bool original_global_movie_skip_pulse{};
     // Source IsSoundIdPlaying(349) from the exact managed-slot map AND
     // actual DirectSound GetStatus; not inferred from any-playing.
     bool fireworks_crowd_end_sound_playing{};
@@ -321,6 +324,7 @@ struct GameFrame {
     // Retail 0x0042A240 opens sceneset.bik by path, outside startupmovie.txt.
     std::optional<std::string> original_scene_set_movie_path{};
     std::optional<std::string> original_startup_sequence_movie_path{};
+    bool close_original_global_movie{};
     std::optional<ReplayPreparationPlan> replay_preparation{};
     std::string error{};
     bool clear_input_pulse{};

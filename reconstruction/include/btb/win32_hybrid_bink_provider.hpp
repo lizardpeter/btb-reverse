@@ -21,6 +21,7 @@ public:
           retail_(renderer,std::move(root)),
           native_enabled_(experimental_video||experimental_audio) {}
     void cancel_global_movie() noexcept;
+    [[nodiscard]] bool close_global(std::string& error) override;
     [[nodiscard]] bool open_global(
         const std::filesystem::path& movie,
         std::string& error) override;
