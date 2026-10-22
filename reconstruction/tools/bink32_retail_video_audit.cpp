@@ -276,11 +276,16 @@ int main(int argc,char**argv) {
         return 1;
     }
     std::cout<<"SUMMARY decoded="<<decoded_count
-             <<"/"<<count<<" frames, "
-             <<mismatched_frames<<" reference-mismatched frames";
-    if(reference.is_open())for(std::size_t p=0;p<4;++p)
-        std::cout<<" "<<kPlaneNames[p]<<"_mismatches="
-                 <<mismatch_totals[p];
+             <<"/"<<count<<" frames";
+    if(reference.is_open()) {
+        std::cout<<", "<<mismatched_frames
+                 <<" reference-mismatched frames";
+        for(std::size_t p=0;p<4;++p)
+            std::cout<<" "<<kPlaneNames[p]<<"_mismatches="
+                     <<mismatch_totals[p];
+    } else {
+        std::cout<<"; reference comparison not requested";
+    }
     std::cout<<"\n";
     return mismatched_frames ? 3:0;
 }
