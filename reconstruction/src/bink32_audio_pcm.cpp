@@ -25,7 +25,8 @@ namespace {
 
 std::optional<Bink1Pcm16Block> encode_bink1_pcm16(
     const Bink1DecodedAudioFrame& decoded,
-    const Bink1AudioLayout& layout) {
+    const Bink1AudioLayout& layout,
+    bool allow_partial_terminal_block) {
     if(!layout.source_sample_rate || layout.source_channels<1 ||
        layout.source_channels>2 ||
        layout.transform_channels<1 ||
@@ -46,7 +47,29 @@ std::optional<Bink1Pcm16Block> encode_bink1_pcm16(
     const std::size_t total=count*transforms;
     if(total>kMaxValues || total>std::numeric_limits<std::uint32_t>::max()/2)
         return std::nullopt;
-    if(decoded.declared_pcm_bytes!=total*2)return std::nullopt;
+    const auto actual_bytes=total*2;
+    if(decoded.declared_pcm_bytes!=actual_bytes) {
+        // Retail movies may end on a partial declared audio block. The
+        // transform decoder still emits the complete final block (as does
+        // the independent reference decoder), so only permit this mismatch
+        // when the caller has established that this is the final non-empty
+        // packet. Never accept an over-declaration or a partial sample frame.
+        if(!allow_partial_terminal_block ||
+           decoded.declared_pcm_bytes==0 ||
+           decoded.declared_pcm_bytes>actual_bytes)
+            return std::nullopt;
+        const auto source_frame_bytes=channels*2;
+        if(decoded.declared_pcm_bytes%source_frame_bytes!=0 ||
+           layout.frame_length<=layout.overlap_length)
+            return std::nullopt;
+        const auto block_samples=layout.frame_length-layout.overlap_length;
+        if(block_samples>std::numeric_limits<std::size_t>::max()/
+                         transforms/2)
+            return std::nullopt;
+        const auto block_bytes=block_samples*transforms*2;
+        if(actual_bytes-decoded.declared_pcm_bytes>=block_bytes)
+            return std::nullopt;
+    }
     for(const auto& part:decoded.samples)
         if(part.size()!=count ||
            !std::all_of(part.begin(),part.end(),
