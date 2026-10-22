@@ -45,7 +45,8 @@ std::vector<std::uint8_t> encoded_pcm(const Bink1AudioLayout& layout) {
     return bytes;
 }
 std::vector<std::uint8_t> synthetic_movie(
-    std::span<const std::uint8_t> compressed,bool bad_frame=false) {
+    std::span<const std::uint8_t> compressed,bool bad_frame=false,
+    bool partial_final=false) {
     constexpr unsigned frame_count=3,header=44,track_bytes=12;
     constexpr unsigned index_size=4*(frame_count+1);
     std::vector<std::uint8_t> out(header+track_bytes+index_size,0);
@@ -66,16 +67,26 @@ std::vector<std::uint8_t> synthetic_movie(
         if(f==1) {
             out.insert(out.end(),8,0); // no audio, 4 video bytes
         } else {
-            const auto size=static_cast<std::uint32_t>(compressed.size());
+            std::vector<std::uint8_t> payload(
+                compressed.begin(),compressed.end());
+            if(partial_final && f==2) {
+                const auto declared=std::uint32_t(payload[0])|
+                    (std::uint32_t(payload[1])<<8)|
+                    (std::uint32_t(payload[2])<<16)|
+                    (std::uint32_t(payload[3])<<24);
+                CHECK(declared>16);
+                put32(payload,0,declared-16);
+            }
+            const auto size=static_cast<std::uint32_t>(payload.size());
             const auto payload_begin=out.size();
             out.resize(out.size()+4);
             put32(out,payload_begin,size);
-            out.insert(out.end(),compressed.begin(),compressed.end());
+            out.insert(out.end(),payload.begin(),payload.end());
             if(bad_frame && f==2) {
                 // Truncated stream on the final frame must fail atomically.
                 out.resize(out.size()-8);
                 put32(out,payload_begin,
-                      static_cast<std::uint32_t>(compressed.size()-8));
+                      static_cast<std::uint32_t>(payload.size()-8));
             }
             out.insert(out.end(),4,0);
         }
@@ -110,6 +121,13 @@ int main() {
     CHECK(movie->timestamp_us(2)==movie->timestamp_us(1));
     CHECK(movie->duration_us()==movie->timestamp_us(3));
     CHECK(!movie->timestamp_us(4));
+    // The final audio-bearing frame may declare a short tail even though
+    // the decoder's final transform still emits its complete sample block.
+    const auto partial_bytes=synthetic_movie(block,false,true);
+    const auto partial_movie=decode_bink1_movie_audio(partial_bytes,0,error);
+    CHECK(partial_movie&&partial_movie->sample_frames()==960);
+    CHECK(partial_movie->audio_frame_boundaries[1]==480);
+    CHECK(partial_movie->audio_frame_boundaries[3]==960);
     CHECK(!decode_bink1_movie_audio(bytes,1,error));
     CHECK(!error.empty());
     const auto corrupt=synthetic_movie(block,true);
