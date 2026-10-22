@@ -1,5 +1,6 @@
 #pragma once
-// Source-derived Bink1 audio track/packet preflight. No PCM decoder yet.
+// Source-derived Bink1 audio track/packet preflight. Transform decoding and
+// PCM16 serialization live in the audio_stream/audio_pcm/audio_movie modules.
 // The old container stores each audio track as three 32-bit words:
 // maximum decoded bytes, [flags:16|sample-rate:16], stream identifier.
 // Each frame carries length-prefixed compressed audio track payloads.
