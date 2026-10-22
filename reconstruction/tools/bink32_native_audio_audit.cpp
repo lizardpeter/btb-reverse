@@ -103,14 +103,14 @@ int main(int argc,char** argv) {
     for(std::uint32_t frame=1;frame<=index->header.frame_count;++frame) {
         const auto packet=split_encoded_frame(*index,bytes,frame);
         if(!packet || chosen>=packet->audio.size()) {
-            std::fprintf(stderr,"Corrupt source audio envelope at frame %u.\\n",frame);
+            std::fprintf(stderr,"Corrupt source audio envelope at frame %u.\n",frame);
             return 1;
         }
         if(!packet->audio[chosen].compressed.empty())
             last_audio_frame=frame;
     }
     if(!last_audio_frame) {
-        std::fputs("Selected track has no non-empty audio packets.\\n",stderr);
+        std::fputs("Selected track has no non-empty audio packets.\n",stderr);
         return 1;
     }
     auto decoder=Bink1AudioStreamDecoder::open(spec);
