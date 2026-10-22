@@ -2,9 +2,9 @@
 """Run native SJPi decode coverage on original BIKs without modifying them.
 
 This is a coverage check only. A successful run means every requested frame
-was accepted by the native decoder; it does NOT claim pixel identity against
-the original DLL. SJPi video payloads are not a valid FFmpeg reference merely
-by replacing their four-byte signature.
+was accepted by the native decoder; it does NOT itself perform pixel parity.
+Use bink32_real_video_differential.py for the independent FFmpeg comparison;
+that tool uses a temporary SJPi-to-BIKi signature normalization.
 """
 from __future__ import annotations
 
