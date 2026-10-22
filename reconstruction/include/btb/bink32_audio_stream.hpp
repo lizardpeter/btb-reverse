@@ -15,6 +15,8 @@ struct Bink1DecodedAudioFrame {
     // These are post inverse-transform & overlap float samples, not yet
     // certified bit-exact PCM, nor guaranteed output-scale parity.
     std::vector<std::vector<float>> samples{};
+    // Raw source prefix from the compressed Bink packet. It is bounded and
+    // useful for structural checks, but is not an independent sample count.
     std::uint32_t declared_pcm_bytes{};
     std::size_t block_count{};
 };

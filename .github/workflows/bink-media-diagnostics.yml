@@ -6,6 +6,12 @@ on:
   push:
     paths:
       - ".github/workflows/bink-media-diagnostics.yml"
+      - "reconstruction/src/bink32_audio_pcm.cpp"
+      - "reconstruction/src/bink32_audio_movie.cpp"
+      - "reconstruction/src/bink32_audio_stream.cpp"
+      - "reconstruction/tools/bink32_native_audio_audit.cpp"
+      - "reconstruction/tools/bink32_native_frame_dump.cpp"
+      - "reconstruction/CMakeLists.txt"
   workflow_dispatch:
 
 permissions:

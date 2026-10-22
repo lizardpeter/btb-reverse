@@ -21,8 +21,9 @@ struct Bink1Pcm16Block {
     }
 };
 
-// Reject truncated PCM, mismatched byte count, nonfinite float values,
-// incorrect RDFT stereo alignment and invalid layouts before output.
+// Reject invalid declared-byte prefixes, nonfinite float values, incorrect
+// RDFT stereo alignment and invalid layouts before output. The source prefix
+// is not guaranteed to equal this frame's transform-output byte count.
 // Zero-length compressed packets yield a legitimate empty buffer.
 // Round-to-nearest-even and saturate to [-32768,32767] deterministically,
 // regardless of caller's floating-point rounding mode.

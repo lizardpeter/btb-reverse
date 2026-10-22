@@ -46,7 +46,17 @@ std::optional<Bink1Pcm16Block> encode_bink1_pcm16(
     const std::size_t total=count*transforms;
     if(total>kMaxValues || total>std::numeric_limits<std::uint32_t>::max()/2)
         return std::nullopt;
-    if(decoded.declared_pcm_bytes!=total*2)return std::nullopt;
+    // The Bink packet's decoded-byte prefix is a source-side budget/hint,
+    // not an independently decoded sample count. Real SJPi retail movies
+    // can validly disagree with transform output on individual frames while
+    // their complete PCM stream matches the reference decoder. Keep strict
+    // bounds and empty/nonempty consistency, but do not equate the prefix
+    // with total*2.
+    constexpr std::size_t kMaxDeclaredBytes=kMaxValues*2;
+    if(decoded.declared_pcm_bytes>kMaxDeclaredBytes ||
+       (decoded.declared_pcm_bytes&1U)!=0 ||
+       ((decoded.declared_pcm_bytes==0)!=(total==0)))
+        return std::nullopt;
     for(const auto& part:decoded.samples)
         if(part.size()!=count ||
            !std::all_of(part.begin(),part.end(),

@@ -51,7 +51,11 @@ int main(){
     CHECK(!encode_bink1_pcm16(source,layout));
     source.samples={{0.1f,-0.1f}};
     source.declared_pcm_bytes=3;
-    CHECK(!encode_bink1_pcm16(source,layout));
+    CHECK(!encode_bink1_pcm16(source,layout)); // PCM16 byte hint must be even
+    source.declared_pcm_bytes=6;
+    CHECK(encode_bink1_pcm16(source,layout)); // even prefix need not equal output size
+    source.declared_pcm_bytes=0;
+    CHECK(!encode_bink1_pcm16(source,layout)); // nonempty output cannot declare empty
     source.declared_pcm_bytes=4;
     CHECK(encode_bink1_pcm16(source,layout));
     source.samples[0][1]=std::numeric_limits<float>::infinity();
