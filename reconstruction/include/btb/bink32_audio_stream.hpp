@@ -13,8 +13,9 @@
 namespace btb::bink32_recovered {
 struct Bink1DecodedAudioFrame {
     // DCT: planar source channels, RDFT: one interleaved sample stream.
-    // These are post inverse-transform & overlap float samples, not yet
-    // certified bit-exact PCM, nor guaranteed output-scale parity.
+    // These are post inverse-transform & overlap float samples. The tested
+    // SJPi corpus matches FFmpeg closely; this does not certify original-DLL
+    // integer rounding or playback timing.
     std::vector<std::vector<float>> samples{};
     // Raw source prefix from the compressed Bink packet. It is bounded and
     // useful for structural checks, but is not an independent sample count.
