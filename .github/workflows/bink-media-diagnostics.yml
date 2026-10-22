@@ -1,0 +1,48 @@
+name: bink-media-diagnostics
+
+# A manual/one-path diagnostic workflow for validating the portable decoder
+# against locally held original media. It never uploads or downloads game assets.
+on:
+  push:
+    paths:
+      - ".github/workflows/bink-media-diagnostics.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bink-media-diagnostics-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-native-bink-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Regenerate reconstruction registries
+        run: |
+          python tools/build_reconstruction_index.py
+          python tools/build_remaining_architecture.py
+      - name: Install C++26 compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-14
+      - name: Configure reconstruction
+        env:
+          CXX: g++-14
+        run: cmake -S reconstruction -B build/reconstruction
+      - name: Build portable original-format Bink diagnostic tools
+        run: cmake --build build/reconstruction --parallel --target btb_bink32_native_frame_dump btb_bink32_native_audio_audit
+      - name: Upload tools for local retail-media validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: btb-native-bink-linux-tools
+          path: |
+            build/reconstruction/btb_bink32_native_frame_dump
+            build/reconstruction/btb_bink32_native_audio_audit
+          if-no-files-found: error
+          retention-days: 3
