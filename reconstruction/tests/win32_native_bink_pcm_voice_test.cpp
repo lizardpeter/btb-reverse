@@ -61,7 +61,7 @@ int main() {
             return 1;
         }
         saw_playing=saw_playing||head->playing;
-        saw_progress=saw_progress||head->decoded_sample_frame>last_frame;
+        saw_progress=saw_progress||(head->playing && head->decoded_sample_frame>0 && head->decoded_sample_frame<frames);
         last_frame=head->decoded_sample_frame;
         if(head->complete) {
             saw_complete=true;
