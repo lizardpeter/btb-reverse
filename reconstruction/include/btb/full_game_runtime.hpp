@@ -169,11 +169,21 @@ struct ProgressMutation {
     std::int32_t value{1};
 };
 
+// Source 0x0042E110 gates selection using five *specific* managed voice IDs.
+// Never replace an IsSoundIdPlaying(id) query with "any voice playing":
+// hover narration (0x135) must not block a click on an empty profile sign.
+inline constexpr std::array<int,5> kProfileGateSoundIds{{
+    0x12f,0x130,0x131,0x136,0x137
+}};
+
 struct ActivityFrameInput {
     int pointer_x{};
     int pointer_y{};
     bool click_pulse{};
     bool managed_sound_playing{};
+    // Actual 80-slot DirectSound observations resolved through the original
+    // sound-ID reverse map, in kProfileGateSoundIds order.
+    std::array<bool,kProfileGateSoundIds.size()> profile_sound_playing{};
     bool backing_track_playing{true};
     bool confirmation_resolved{};
     bool confirmation_yes{};
