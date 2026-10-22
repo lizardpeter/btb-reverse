@@ -120,10 +120,17 @@ void NativeProfileScreenAdapter::enable_input() {}
 bool NativeProfileScreenAdapter::any_managed_playing() {
     return input_.managed_sound_playing;
 }
-bool NativeProfileScreenAdapter::sound_playing(int) {
-    // ActivityFrameInput currently conveys aggregate playback only. Treat
-    // any managed voice as busy rather than inventing a per-ID sound state.
-    return input_.managed_sound_playing;
+bool NativeProfileScreenAdapter::sound_playing(int id) {
+    // These five source IDs are measured against the original reverse
+    // ID-to-slot map and observed DirectSound status on every native frame.
+    // In particular, 0x135 empty-slot hover narration must NOT masquerade
+    // as the 0x12f/0x130/0x131 click blockers.
+    for(std::size_t i=0;i<kProfileGateSoundIds.size();++i)
+        if(kProfileGateSoundIds[i]==id)
+            return input_.profile_sound_playing[i];
+    frame_error_="original profile queried unobserved sound ID "+
+                 std::to_string(id);
+    return false;
 }
 unsigned NativeProfileScreenAdapter::next_random() {
     return static_cast<unsigned>(input_.random_value);
