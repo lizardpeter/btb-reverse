@@ -47,12 +47,18 @@ namespace btb::full_game {
 namespace {
 namespace fs=std::filesystem;
 
-// Native movie audio/video require separate explicit developer opt-ins.
-// Normal retail playback remains unchanged, including Fireworks cancellation.
-[[nodiscard]] bool native_bink_opt_in(const wchar_t* key) noexcept {
+// Native video-only playback defaults on after full-frame pixel parity
+// was verified against FFmpeg for all available SJPi movies. Audio remains
+// opt-in until a real DirectSound/video-sync test passes; Fireworks remains
+// opt-in because its 23 original show clips are not in the connected archive.
+// Set a corresponding environment variable to "0" to force retail fallback,
+// or "1" to explicitly enable a still-experimental path.
+[[nodiscard]] bool native_bink_enabled(
+    const wchar_t* key,bool default_enabled=false) noexcept {
     wchar_t value[3]{};
-    return GetEnvironmentVariableW(key,value,3)==1 &&
-           value[0]==L'1';
+    const DWORD length=GetEnvironmentVariableW(key,value,3);
+    if(length==0)return default_enabled;
+    return length==1 && value[0]==L'1';
 }
 
 
@@ -109,8 +115,8 @@ struct Host {
     explicit Host(fs::path original_root,bool skip,int profile)
         :root(std::move(original_root)),
          movies(graphics,audio,root,
-                native_bink_opt_in(L"BTB_EXPERIMENTAL_NATIVE_BINK_AUDIO"),
-                native_bink_opt_in(L"BTB_EXPERIMENTAL_NATIVE_BINK_VIDEO")),
+                native_bink_enabled(L"BTB_EXPERIMENTAL_NATIVE_BINK_AUDIO"),
+                native_bink_enabled(L"BTB_EXPERIMENTAL_NATIVE_BINK_VIDEO",true)),
          skip_video(skip),selected_profile(profile) {}
 
     [[nodiscard]] static bool parse_bitmap_names(
@@ -271,7 +277,7 @@ struct Host {
         // x64 fails explicitly until a compatible native decoder.
         auto skate_backend=
             std::make_unique<Win32HybridSpudSkateMovies>(graphics,root,
-                 native_bink_opt_in(L"BTB_EXPERIMENTAL_NATIVE_BINK_SKATE"));
+                 native_bink_enabled(L"BTB_EXPERIMENTAL_NATIVE_BINK_SKATE",true));
         skate_movies=skate_backend.get();
         game.install(ActivityId::SpudSkate,
             std::make_unique<SpudSkateDriver>(
@@ -294,7 +300,7 @@ struct Host {
                 &original_game_random));
         fireworks_bank=std::make_unique<Win32HybridFireworksMovieBank>(
             graphics,root,
-            native_bink_opt_in(L"BTB_EXPERIMENTAL_NATIVE_BINK_FIREWORKS"));
+            native_bink_enabled(L"BTB_EXPERIMENTAL_NATIVE_BINK_FIREWORKS"));
         auto fireworks_activity=std::make_unique<FireworksDriver>(
             root/"Data"/"SubGameFirework",profile_dir,
             [this](const fs::path& movie,std::string& error) {
