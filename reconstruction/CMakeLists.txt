@@ -1496,6 +1496,7 @@ if(WIN32)
         src/win32_native_silent_bink_provider.cpp
         src/win32_hybrid_bink_provider.cpp
         src/win32_retail_spud_skate_movies.cpp
+        src/win32_native_spud_skate_movies.cpp
         src/win32_retail_fireworks_movie_bank.cpp
         src/win32_retail_print_provider.cpp
         src/win32_original_game_device.cpp
