@@ -24,6 +24,7 @@ public:
          experimental_audio_(experimental_audio) {}
     ~Win32NativeSilentBinkProvider() override;
     void reset_global() noexcept;
+    [[nodiscard]] bool close_global(std::string& error) override;
     [[nodiscard]] bool open_global(
         const std::filesystem::path& movie,std::string& error) override;
     [[nodiscard]] bool service(

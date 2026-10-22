@@ -35,6 +35,11 @@ public:
                                std::string& error) override;
     [[nodiscard]] bool open_global(
         const std::filesystem::path& movie,std::string& error) override;
+    [[nodiscard]] bool close_global(std::string& error) override {
+        close_global();
+        error.clear();
+        return true;
+    }
     [[nodiscard]] bool open_walkthrough(
         const std::filesystem::path& movie,
         const std::filesystem::path& help_wav,

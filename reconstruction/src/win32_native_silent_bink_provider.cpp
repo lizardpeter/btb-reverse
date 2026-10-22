@@ -36,6 +36,12 @@ void Win32NativeSilentBinkProvider::reset_global() noexcept {
     audio_clock_.reset();
 }
 
+bool Win32NativeSilentBinkProvider::close_global(std::string& error) {
+    reset_global();
+    error.clear();
+    return true;
+}
+
 bool Win32NativeSilentBinkProvider::open_global(
     const std::filesystem::path& movie,std::string& error) {
     reset_global();
