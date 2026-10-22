@@ -11,4 +11,4 @@ Setting the AUDIO flag implies attempting native video as well, only for support
 
 All assets remain read-only, compressed samples and decoded video are kept in memory (no extracted game media files). The experimental full-movie PCM buffer is bounded to 64 MiB and uses the game-owned DirectSound8 device, with audio cursor pacing and monotonic EOS handling.
 
-The original game still relies on its independent specialized Bink players for Spud Skate and Fireworks; this change does not replace them. Native PCM playback is not retail-certified, and Windows automated build/link tests cannot substitute for a real device test.
+The generic native A/V provider and specialized Spud Skate/Fireworks banks now have native, opt-in backends. All five available Spud Skate movies matched FFmpeg pixel-for-pixel. The 23 original Fireworks show clips are not in the connected asset archive, so their source-file playback remains unverified. Native PCM playback is not retail-certified, and Windows automated build/link tests cannot substitute for a real device test.
