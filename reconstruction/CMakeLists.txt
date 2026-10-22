@@ -1521,6 +1521,16 @@ if(WIN32)
     btb_require_cpp26(btb_original_win32_platform_link_tests PRIVATE)
     add_test(NAME original_win32_platform_link
         COMMAND btb_original_win32_platform_link_tests)
+
+    # Runtime smoke test for the native Bink PCM voice. Uses a silent buffer,
+    # so it exercises the actual DirectSound8 cursor without making sound.
+    add_executable(btb_win32_native_bink_pcm_voice_tests
+        tests/win32_native_bink_pcm_voice_test.cpp)
+    target_link_libraries(btb_win32_native_bink_pcm_voice_tests
+        PRIVATE btb_original_win32_platform)
+    btb_require_cpp26(btb_win32_native_bink_pcm_voice_tests PRIVATE)
+    add_test(NAME win32_native_bink_pcm_voice
+        COMMAND btb_win32_native_bink_pcm_voice_tests)
 endif()
 
 # Fail configuration if any production .cpp is silently left out of the
