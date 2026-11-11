@@ -135,6 +135,10 @@ jobs:
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_shared_ui8$"
       - name: Validate nine native CRT procedures Win64 Release
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_crt9$"
+      - name: Build recovered Pets Corner gameplay regressions
+        run: cmake --build build/reconstruction-win --config Release --target btb_full_game_herding_firstpass_native_tests btb_full_game_herding_event_simulation_source_tests btb_full_game_herding_source_tests btb_full_game_herding_presentation_source_tests btb_herding_source_animal_chatter_source_tests btb_herding_source_follower_approach_source_tests btb_herding_source_heading_source_tests btb_herding_source_home_arrival_source_tests btb_herding_source_partial_dispatcher_source_tests btb_herding_source_roam_braking_source_tests btb_herding_source_roaming_loop_source_tests btb_herding_source_roaming_recovery_source_tests btb_herding_source_scruffty_patrol_source_tests btb_herding_source_steering_source_tests btb_herding_source_temporary_target_source_tests btb_herding_source_tracked_targets_source_tests --parallel
+      - name: Exercise recovered Pets Corner gameplay in Windows Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^(full_game_herding_|herding_source_)"
       - name: Upload source-only preview EXE
         uses: actions/upload-artifact@v4
         with:
@@ -226,6 +230,10 @@ jobs:
         run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_shared_ui8$"
       - name: Validate nine native CRT procedures Win32 Release
         run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_crt9$"
+      - name: Build recovered Pets Corner gameplay regressions
+        run: cmake --build build/reconstruction-x86 --config Release --target btb_full_game_herding_firstpass_native_tests btb_full_game_herding_event_simulation_source_tests btb_full_game_herding_source_tests btb_full_game_herding_presentation_source_tests btb_herding_source_animal_chatter_source_tests btb_herding_source_follower_approach_source_tests btb_herding_source_heading_source_tests btb_herding_source_home_arrival_source_tests btb_herding_source_partial_dispatcher_source_tests btb_herding_source_roam_braking_source_tests btb_herding_source_roaming_loop_source_tests btb_herding_source_roaming_recovery_source_tests btb_herding_source_scruffty_patrol_source_tests btb_herding_source_steering_source_tests btb_herding_source_temporary_target_source_tests btb_herding_source_tracked_targets_source_tests --parallel
+      - name: Exercise recovered Pets Corner gameplay in Windows Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^(full_game_herding_|herding_source_)"
       - name: Upload actual x86 compiled game image
         uses: actions/upload-artifact@v4
         with:

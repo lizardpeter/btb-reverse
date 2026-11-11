@@ -16,6 +16,8 @@
 #include "btb/herding_source_home_motion.hpp"
 #include "btb/herding_source_delivered_animation.hpp"
 #include "btb/herding_source_ordinary_following.hpp"
+#include "btb/herding_source_near_escape.hpp"
+#include "btb/herding_source_animal_chatter.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -36,7 +38,8 @@ enum class HerdingObservedKind {
     ScrufftyCollision,
     TrackedTargetArrived,
     EnterHomeRoute,
-    ReachHomeWaypoint
+    ReachHomeWaypoint,
+    NearEscapeChatter
 };
 
 struct HerdingCollisionEvidence {
@@ -174,11 +177,18 @@ struct HerdingScrufftyPatrolEvidence {
     herding::RetailScrufftyPatrolState state_after{};
 };
 
+struct HerdingNearEscapeEvidence {
+    std::size_t entity_index{};
+    herding::RetailEntityRecord32 before{};
+    std::uint32_t rng_before{},rng_after{};
+    std::optional<int> sound_id{};
+};
 struct HerdingObservedFrame {
     // The production source supplies actual before/after evidence for
     // every state-changing contact. Forbid accepting bare asserted
     // events; deterministic scripted-source tests may opt out.
     bool require_native_event_proofs{};
+    std::vector<HerdingNearEscapeEvidence> near_escape_evidence{};
     std::optional<HerdingPicklesBoundaryEvidence> pickles_boundary_evidence{};
     // Optional, branch-specific probes for native 0x416C45/0x416DCE
     // steering. These are not manufactured for unrelated AI branches.

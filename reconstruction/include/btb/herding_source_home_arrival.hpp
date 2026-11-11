@@ -3,6 +3,7 @@
 #include "btb/herding_runtime.hpp"
 
 #include <cstdint>
+#include <limits>
 #include <optional>
 
 namespace btb::herding {

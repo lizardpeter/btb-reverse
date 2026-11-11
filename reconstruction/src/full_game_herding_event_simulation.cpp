@@ -31,6 +31,10 @@ bool apply_confirmed_event(
     }
     herding::HerdingBehaviorEvent step{};
     switch (event.kind) {
+    case HerdingObservedKind::NearEscapeChatter:
+        sounds.push_back({AudioOperation::ManagedSoundId,{},
+            event.source_verified_sound_id,10,0});
+        return true;
     case HerdingObservedKind::PickUpFood: {
         const auto player=std::find_if(
             staged.entities().begin(),staged.entities().end(),
@@ -848,6 +852,52 @@ bool HerdingEventSimulation::advance(
             return false;
         }
     }
+    std::vector<Audio> sounds{};
+    std::vector<bool> escaped(candidate.entities().size(),false);
+    for(const auto& probe:observed.near_escape_evidence) {
+        if(probe.entity_index==0||probe.entity_index>=candidate.entities().size()||
+           escaped[probe.entity_index]) {
+            error="invalid or duplicate original near-animal evidence";return false;
+        }
+        escaped[probe.entity_index]=true;
+        const auto& original=candidate.entities()[probe.entity_index];
+        // The host clears movement_active before dispatch, and a timer of
+        // one expires before reaching this branch; no other prior state may change.
+        auto before=original;before.movement_active=0;
+        if(before.temporary_target_timer==1)before.temporary_target_timer=0;
+        if(before.entity_id!=probe.before.entity_id||before.type!=probe.before.type||
+           before.behavior_state!=probe.before.behavior_state||
+           before.temporary_target_timer!=probe.before.temporary_target_timer||
+           before.x!=probe.before.x||before.y!=probe.before.y||
+           before.x_float!=probe.before.x_float||before.y_float!=probe.before.y_float||
+           before.movement_speed!=probe.before.movement_speed||
+           before.animation_frame!=probe.before.animation_frame||
+           before.animation_frame_countdown!=probe.before.animation_frame_countdown||
+           candidate.followers().contains(static_cast<int>(probe.entity_index))) {
+            error="near-animal source contradicts original non-follower state";return false;
+        }
+        const auto expected=herding::original_herding_near_escape_step(
+            before,observed.motion_records.front());
+        const auto& actual=observed.motion_records[probe.entity_index];
+        if(!expected||actual.x!=expected->animal.x||actual.y!=expected->animal.y||
+           actual.x_float!=expected->animal.x_float||actual.y_float!=expected->animal.y_float||
+           actual.direction!=expected->animal.direction||actual.movement_active!=1||
+           actual.movement_speed!=expected->animal.movement_speed||
+           actual.animation_frame!=expected->animal.animation_frame||
+           actual.animation_frame_countdown!=expected->animal.animation_frame_countdown) {
+            error="near-animal flee movement differs from original source";return false;
+        }
+        retail::OriginalRetailRandom replay(probe.rng_before);
+        const int species=before.type-1;
+        const auto sound=herding::original_herding_animal_chatter(replay,species,
+            {input.herding_animal_sound_playing[species*3],
+             input.herding_animal_sound_playing[species*3+1],
+             input.herding_animal_sound_playing[species*3+2]});
+        if(!sound||replay.state()!=probe.rng_after||sound->requested_sound_id!=probe.sound_id) {
+            error="near-animal chatter differs from original RNG/status branch";return false;
+        }
+
+    }
     for (std::size_t i=0;i<observed.motion_records.size();++i) {
         if (!candidate.apply_source_motion(i,observed.motion_records[i])) {
             error="Herding movement source attempted to replace entity "
@@ -855,10 +905,19 @@ bool HerdingEventSimulation::advance(
             return false;
         }
     }
-    std::vector<Audio> sounds{};
     std::vector<bool> arrived_at_tracked_point_this_update(
         candidate.entities().size(),false);
     for (const auto& event : observed.events) {
+        if(event.kind==HerdingObservedKind::NearEscapeChatter) {
+            const auto proof=std::find_if(observed.near_escape_evidence.begin(),
+                observed.near_escape_evidence.end(),[&](const auto& p) {
+                    return p.entity_index==event.entity_index&&p.sound_id&&
+                        *p.sound_id==event.source_verified_sound_id;
+                });
+            if(proof==observed.near_escape_evidence.end()) {
+                error="animal chatter has no verified near-escape source branch";return false;
+            }
+        }
         if(observed.require_native_event_proofs) {
             // A caller-supplied confirmed=true assertion is NOT proof
             // that an animal physically reached the original contact.
