@@ -193,16 +193,20 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
                 const auto& piece=runtime_->pieces()[*chosen];
                 pickup_offset_={piece.current.x-cursor.x,
                                 piece.current.y-cursor.y};
-                animations_.queue_pickup(input.random_value&1,
-                                         (input.random_value>>1)&1);
+                // 0040A333 and 0040A348 each consume one CRT rand().
+                const int mode=shared_random_?shared_random_->next_rand()&1:input.random_value&1;
+                const int actor=shared_random_?shared_random_->next_rand()&1:(input.random_value>>1)&1;
+                animations_.queue_pickup(mode,actor);
             }
         } else if(runtime_->mode()==dino::InteractionMode::Carrying &&
                   input.click_pulse) {
             const auto index=dino::level_index(species_,difficulty_);
             const auto dropped=runtime_->try_drop(
                 cursor,dino::Runtime::snap_tolerance(index));
-            const auto roll=static_cast<int>(
-                static_cast<std::uint32_t>(input.random_value)%6U);
+            // 0040A188 / 0040A20E: one feedback selection per attempted drop.
+            const bool reacted=dropped==dino::DropResult::Accepted||dropped==dino::DropResult::Rejected;
+            const auto roll=shared_random_&&reacted?shared_random_->next_rand()%6:
+                static_cast<int>(static_cast<std::uint32_t>(input.random_value)%6U);
             if(dropped==dino::DropResult::Accepted) {
                 out.audio.push_back({AudioOperation::StopManagedSounds});
                 out.audio.push_back({AudioOperation::ManagedSoundId,{},
@@ -211,8 +215,11 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
             } else if(dropped==dino::DropResult::Rejected) {
                 out.audio.push_back({AudioOperation::ManagedSoundId,{},
                     dino::wrong_drop_sound_id(roll),50,1});
-                (void)animations_.queue_wrong_drop(roll,
-                    (input.random_value>>1)&1);
+                // 0040A26A is conditional on the selected actor being idle.
+                const auto character=roll<3?dino::Character::Ellis:dino::Character::Bob;
+                const bool idle=animations_.channel(character).mode()==dino::CharacterAnimationMode::Idle;
+                const int reaction=shared_random_&&idle?shared_random_->next_rand()&1:(input.random_value>>1)&1;
+                (void)animations_.queue_wrong_drop(roll,reaction);
             }
         }
     }

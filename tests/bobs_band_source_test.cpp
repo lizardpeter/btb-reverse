@@ -116,6 +116,20 @@ int main() {
     }
     assert(conductor.frame == 0); // frame 20, 2-in-3 short-idle branch
 
+    {
+        btb::retail::OriginalRetailRandom rng(1),expected(1);
+        Activity shared(md,Conductor::Wendy,3,&rng);
+        for(int i=0;i<119;++i)(void)shared.advance({});
+        assert(rng.state()==expected.state());
+        (void)expected.next_rand();
+        (void)shared.advance({});
+        assert(rng.state()==expected.state());
+        const int delete_voice=kVoiceBase[1]+9+expected.next_rand()%2;
+        const auto deletion=shared.advance({.mouse_x=500,.mouse_y=440,.click_pulse=true});
+        assert(!deletion.audio.empty());
+        assert(deletion.audio.back().managed_sound_id==delete_voice);
+        assert(rng.state()==expected.state());
+    }
     Activity app(md, Conductor::Wendy, 3);
     assert(app.active_sequence_filename() == "musicwendy4.txt");
 

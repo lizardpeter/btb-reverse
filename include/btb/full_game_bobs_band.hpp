@@ -24,10 +24,11 @@ public:
     BobsBandDriver(
         std::filesystem::path original_data_dir,
         std::filesystem::path save_dir,
-        bobs_band::Conductor conductor = bobs_band::Conductor::Bob)
+        bobs_band::Conductor conductor = bobs_band::Conductor::Bob,
+        retail::OriginalRetailRandom* shared_random=nullptr)
         : original_data_dir_(std::move(original_data_dir)),
           save_dir_(std::move(save_dir)),
-          conductor_(conductor) {}
+          conductor_(conductor),shared_random_(shared_random) {}
 
     void configure_menu_state(const RetailMenuState& menu) noexcept override {
         if (menu.subgame_selection_origin ==
@@ -60,6 +61,7 @@ private:
     bobs_band::Conductor conductor_{bobs_band::Conductor::Bob};
     std::unique_ptr<bobs_band::Activity> activity_{};
     int player_index_{-1};
+    retail::OriginalRetailRandom* shared_random_{};
 };
 
 } // namespace btb::full_game

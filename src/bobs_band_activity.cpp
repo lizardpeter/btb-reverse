@@ -5,10 +5,11 @@
 
 namespace btb::bobs_band {
 
-Activity::Activity(MachineData data, Conductor conductor, int player_index)
+Activity::Activity(MachineData data, Conductor conductor, int player_index,
+                   retail::OriginalRetailRandom* shared_random)
     : data_(std::move(data)),
       conductor_(conductor),
-      player_index_(std::clamp(player_index, 0, 4)) {
+      player_index_(std::clamp(player_index, 0, 4)),shared_random_(shared_random) {
     if (static_cast<int>(conductor_) < 0 ||
         static_cast<int>(conductor_) >= kConductorCount) {
         conductor_ = Conductor::Bob;
@@ -64,6 +65,8 @@ void Activity::emit_edit_result(
     EditResult change, BandFrame& frame, int random_value) {
 
     const int voice = kVoiceBase[static_cast<std::size_t>(conductor_)];
+    // Retail 0041FA72 / 0041FB1F consume rand only for these voice variants.
+    const auto variant=[&]{return shared_random_?shared_random_->next_rand()%2:random_value%2;};
     switch (change.event) {
     case EditEvent::PaletteSelected:
         if (change.preview_sound) {
@@ -92,7 +95,7 @@ void Activity::emit_edit_result(
         frame.audio.push_back({
             AudioRequest::Kind::PlayManagedVoice,
             {},
-            voice+3+(random_value%2),50,1
+            voice+3+variant(),50,1
         });
         break;
     case EditEvent::ClearConfirmation:
@@ -103,7 +106,7 @@ void Activity::emit_edit_result(
         frame.audio.push_back({
             AudioRequest::Kind::PlayManagedVoice,
             {},
-            voice+9+(random_value%2),50,1
+            voice+9+variant(),50,1
         });
         break;
     case EditEvent::None:
@@ -187,7 +190,10 @@ BandFrame Activity::advance(FrameInput input) {
     if (editor_.state() == InternalState::Playback) {
         conductor_frame = playback_.animation_frame();
     } else {
-        static_cast<void>(editor_conductor_.advance(input.random_value));
+        // 0041F2F9: only the transition into frame 20 consumes rand()%3.
+        const bool chooses_idle_variant=editor_conductor_.tick>=5&&editor_conductor_.frame==19;
+        const int roll=shared_random_&&chooses_idle_variant?shared_random_->next_rand():input.random_value;
+        static_cast<void>(editor_conductor_.advance(roll));
         conductor_frame = editor_conductor_.frame;
     }
 

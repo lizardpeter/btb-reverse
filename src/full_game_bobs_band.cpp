@@ -26,7 +26,7 @@ bool BobsBandDriver::initialize(int player_index, std::string& error) {
     try {
         auto data = bobs_band::parse_machine_data(in);
         auto next = std::make_unique<bobs_band::Activity>(
-            std::move(data), conductor_, player_index);
+            std::move(data), conductor_, player_index,shared_random_);
 
         // Retail initializer clears the entire 5x24 grid before trying to
         // load the conductor/player binary file. Absence is normal on the

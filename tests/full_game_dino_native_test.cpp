@@ -159,6 +159,33 @@ int main() {
         assert(!actual->initialized());
     }
     {
+        // Seed 1 chooses actor Ellis on pickup. The selected feedback actor
+        // determines whether the original rejected-drop animation consumes a fourth draw.
+        btb::retail::OriginalRetailRandom rng(1),expected(1);
+        DinoDriver driver(root,&rng);
+        std::string error;
+        assert(driver.initialize(0,error));
+        (void)driver.advance({});
+        assert(rng.state()==expected.state());
+        const int pickup_mode=expected.next_rand()&1;
+        const int pickup_actor=expected.next_rand()&1;
+        (void)pickup_mode;
+        (void)driver.advance({.pointer_x=15,.pointer_y=15,.click_pulse=true});
+        assert(driver.runtime()->selected_piece()==0);
+        assert(rng.state()==expected.state());
+        const int wrong_roll=expected.next_rand()%6;
+        // queue_pickup selects Bob for zero, Ellis for one.
+        if((wrong_roll<3?1:0)!=pickup_actor)(void)expected.next_rand();
+        const auto wrong=driver.advance({.pointer_x=200,.pointer_y=200,.click_pulse=true});
+        assert(rng.state()==expected.state());
+        assert(wrong.audio.back().sound_id==btb::dino::wrong_drop_sound_id(wrong_roll));
+        const int correct_roll=expected.next_rand()%6;
+        const auto correct=driver.advance({.pointer_x=100,.pointer_y=100,.click_pulse=true});
+        assert(rng.state()==expected.state());
+        assert(correct.audio.back().sound_id==btb::dino::correct_drop_sound_id(correct_roll));
+        assert(driver.unload(error));
+    }
+    {
         DinoDriver driver(root);
         RetailMenuState menu{};
         menu.selected_subgame=1;

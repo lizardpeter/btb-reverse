@@ -3,6 +3,7 @@
 #include "btb/dino_presentation.hpp"
 #include "btb/full_game_runtime.hpp"
 #include "btb/original_asset_resolver.hpp"
+#include "btb/retail_crt_random.hpp"
 
 #include <filesystem>
 #include <memory>
@@ -16,8 +17,9 @@ namespace btb::full_game {
 // and managed-sound commands into the shared GameRoot/DirectDraw pipeline.
 class DinoDriver final : public ActivityDriver {
 public:
-    explicit DinoDriver(std::filesystem::path retail_root)
-        : assets_(std::move(retail_root)) {}
+    explicit DinoDriver(std::filesystem::path retail_root,
+                        retail::OriginalRetailRandom* shared_random=nullptr)
+        : assets_(std::move(retail_root)),shared_random_(shared_random) {}
 
     void configure_menu_state(const RetailMenuState& menu) noexcept override;
     [[nodiscard]] bool initialize(int player_index,std::string& error) override;
@@ -41,6 +43,7 @@ public:
 
 private:
     OriginalAssetResolver assets_;
+    retail::OriginalRetailRandom* shared_random_{};
     std::unique_ptr<dino::Runtime> runtime_{};
     dino::CharacterAnimations animations_{};
     dino::PrintButtonState print_state_{};

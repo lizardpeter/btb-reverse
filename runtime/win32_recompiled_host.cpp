@@ -277,7 +277,7 @@ struct Host {
         auto* original_profile_font=native_profiles.get();
         game.install_profile_screen(std::move(native_profiles));
 
-        game.install(ActivityId::Dinosaur,std::make_unique<DinoDriver>(root));
+        game.install(ActivityId::Dinosaur,std::make_unique<DinoDriver>(root,&original_game_random));
         game.install(ActivityId::Golf,std::make_unique<GolfDriver>(
             root/"Data"/"SubGameGolf",0,&original_game_random));
         game.install(ActivityId::Maze,std::make_unique<MazeDriver>(root,0,&original_game_random));
@@ -366,7 +366,7 @@ struct Host {
         fireworks_driver=fireworks_activity.get();
         game.install(ActivityId::Fireworks,std::move(fireworks_activity));
         game.install(ActivityId::BobsBand,std::make_unique<BobsBandDriver>(
-            root/"Data"/"SubGameOpen",profile_dir));
+            root/"Data"/"SubGameOpen",profile_dir,bobs_band::Conductor::Bob,&original_game_random));
         game.install(ActivityId::ParkDesigner,
             std::make_unique<ParkDesignerDriver>(
                 root/"Data"/"SubGameDYP",profile_dir,
