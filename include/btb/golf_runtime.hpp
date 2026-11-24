@@ -192,6 +192,19 @@ struct GolfFeedbackResult {
     const std::array<AnimatedCourseObject,3>& targets,
     std::uint32_t random_value) noexcept;
 
+// 00414C7A..00414DB1: idle 0..19, then one randomly selected
+// celebration bank per hit; -2 prevents a second reaction until aim
+// acceptance resets the latch.
+struct SpectatorAnimation {
+    int frame{};
+    int countdown{5};
+    int reaction{-1};
+    [[nodiscard]] bool needs_random(bool target_hit) const noexcept {
+        return target_hit && countdown<=1 && frame==19 && reaction==-1;
+    }
+    void advance(std::size_t index,bool target_hit,int random_bit) noexcept;
+};
+
 struct NextAttemptReset {
     Vec2f ball_position{};
     std::int32_t power{};

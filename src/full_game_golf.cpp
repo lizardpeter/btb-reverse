@@ -36,9 +36,8 @@ bool GolfDriver::initialize(int player_index, std::string& error) {
         player_index_ = player_index;
         queued_input_.reset();
         swing_animation_ticks_=0;
-        feedback_voice_started_=false;
         intro_stage_=0;
-        spectator_frames_={}; spectator_countdowns_={5,7};
+        spectators_={{{0,5,-1},{0,7,-1}}};
         flag_idle_frame_=flag_idle_ticks_=0;
         target_hit_frames_={}; target_hit_ticks_={};
         error.clear();
@@ -109,16 +108,12 @@ ActivityFrameOutput GolfDriver::compose_frame(
         Rect{col*w,row*h,(col+1)*w,(row+1)*h},true
     });
     // 00414D6D: only the first two parsed spectators are blitted.
-    // Idle banks are 20 frames each, countdowns initially 5 and 7.
-    // Hit-reaction RNG banks remain an explicit fidelity follow-up.
+    // Their idle and selected celebration frames are updated before
+    // gameplay, using the host's original process-wide random stream.
     for(std::size_t i=0;i<2;++i) {
         const auto& spectator=course.spectators[i];
-        if(--spectator_countdowns_[i]<=0) {
-            spectator_countdowns_[i]=5;
-            spectator_frames_[i]=(spectator_frames_[i]+1)%
-                std::max(1,std::min(20,spectator.frame_count));
-        }
-        const int left=spectator_frames_[i]*spectator.frame_size.x;
+        const int left=std::clamp(spectators_[i].frame,0,
+            std::max(0,spectator.frame_count-1))*spectator.frame_size.x;
         out.draws.push_back({spectator.sprite_path,spectator.position.x,
             spectator.position.y,Rect{left+(i==0?1:0),0,
                 left+spectator.frame_size.x,spectator.frame_size.y},true});
@@ -159,8 +154,6 @@ ActivityFrameOutput GolfDriver::compose_frame(
                 Rect{0,0,width,53},true
             });
     }
-    // The two spectators' randomized hit-reaction banks still require
-    // exact shared-RNG scheduling. All ordinary frames use retail assets.
     return out;
 }
 
@@ -201,21 +194,34 @@ ActivityFrameOutput GolfDriver::advance(
             // eight. Native completion is triggered on the 72nd tick.
             action.swing_animation_finished=swing_animation_ticks_+1>=72;
             break;
-        case golf::RoundState::ScoreAndFeedback:
-            // First scoring frame queues original managed voice;
-            // subsequent frames read the REAL DirectSound busy observation.
-            action.feedback_audio_finished=
-                feedback_voice_started_ && !input.managed_sound_playing;
-            break;
         default:break;
         }
     }
     const auto prior=round_->state();
-    action.random_value =
-        static_cast<std::uint32_t>(input.random_value);
+    // DrawGolfActivity precedes UpdateGolfGameplayState in 004158FE.
+    // Consume only the two exact reaction-variant calls, before scoring.
+    const bool target_hit=round_->matched_target()>=0;
+    for(std::size_t i=0;i<spectators_.size();++i) {
+        const int bit=spectators_[i].needs_random(target_hit)&&shared_random_
+            ?shared_random_->next_rand()&1:input.random_value&1;
+        spectators_[i].advance(i,target_hit,bit);
+    }
+    action.random_value=static_cast<std::uint32_t>(input.random_value);
+    if(shared_random_ && prior==golf::RoundState::ScoreAndFeedback) {
+        const auto policy=golf::score_and_select_feedback(round_->matched_target(),
+            round_->score(),round_->attempts_remaining(),round_->aim(),
+            round_->ball().position,round_->data().course_objects,0);
+        // The low final score branch is the only one without rand().
+        if(policy.kind!=golf::GolfFeedbackKind::FinalScoreLow)
+            action.random_value=static_cast<std::uint32_t>(shared_random_->next_rand());
+    }
+    if(round_->attempts_remaining()==0)
+        action.feedback_audio_finished=!input.managed_sound_playing;
     queued_input_.reset();
 
     const auto frame = round_->advance(action);
+    if(prior==golf::RoundState::Aim && frame.state==golf::RoundState::PowerMeter)
+        for(auto& spectator:spectators_)spectator.reaction=-1;
     if(prior==golf::RoundState::LaunchSetup &&
        frame.state==golf::RoundState::SwingAnimationDelay)
         swing_animation_ticks_=0;
@@ -227,13 +233,9 @@ ActivityFrameOutput GolfDriver::advance(
         swing_animation_ticks_=std::min(135,swing_animation_ticks_+1);
     else if(prior==golf::RoundState::ResolveLanding)
         swing_animation_ticks_=0;
-    if(prior==golf::RoundState::ScoreAndFeedback &&
-       frame.state!=golf::RoundState::ScoreAndFeedback)
-        feedback_voice_started_=false;
     out = compose_frame(frame);
 
     if (frame.managed_voice) {
-        feedback_voice_started_=true;
         out.audio.push_back({
             AudioOperation::ManagedSoundId, {},
             *frame.managed_voice, 50, 1
@@ -266,7 +268,6 @@ bool GolfDriver::unload(std::string& error) {
     round_.reset();
     queued_input_.reset();
     swing_animation_ticks_=0;
-    feedback_voice_started_=false;
     intro_stage_=0;
     player_index_ = -1;
     error.clear();

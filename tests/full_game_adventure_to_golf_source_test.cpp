@@ -252,13 +252,16 @@ data\subgamegolf\wendy.bmp
         assert(golf_handle->round()->state()==btb::golf::RoundState::ScoreAndFeedback);
         frame=root.advance({}); // source feedback voice queued
         assert(frame.effects.audio.size()==1);
-        for(int i=0;i<2;++i) {
-            frame=root.advance({.managed_sound_playing=true});
-            assert(golf_handle->round()->state()==btb::golf::RoundState::ScoreAndFeedback);
-        }
-        frame=root.advance({.managed_sound_playing=false});
         assert(golf_handle->round()->state()==btb::golf::RoundState::ResetNextAttempt);
-        frame=root.advance({});
+        frame=root.advance({.managed_sound_playing=true});
+        if(shot==4) {
+            assert(golf_handle->round()->attempts_remaining()==0);
+            for(int i=0;i<2;++i) {
+                frame=root.advance({.managed_sound_playing=true});
+                assert(golf_handle->round() && !frame.effects.save_and_unload);
+            }
+            frame=root.advance({.managed_sound_playing=false});
+        }
         if(shot<4) {
             assert(frame.kind==FrameKind::ActivityUpdated);
             assert(golf_handle->round());

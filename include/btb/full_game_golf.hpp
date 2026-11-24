@@ -2,6 +2,7 @@
 
 #include "btb/full_game_runtime.hpp"
 #include "btb/golf_activity.hpp"
+#include "btb/retail_crt_random.hpp"
 
 #include <filesystem>
 #include <memory>
@@ -17,9 +18,10 @@ namespace btb::full_game {
 // that sends aim, shoot, swing-finished, and voice-finished commands.
 class GolfDriver final : public ActivityDriver {
 public:
-    GolfDriver(std::filesystem::path golf_data_dir, int difficulty)
+    GolfDriver(std::filesystem::path golf_data_dir, int difficulty,
+               retail::OriginalRetailRandom* shared_random=nullptr)
         : golf_data_dir_(std::move(golf_data_dir)),
-          difficulty_(difficulty) {}
+          difficulty_(difficulty),shared_random_(shared_random) {}
 
     void configure_menu_state(const RetailMenuState& menu) noexcept override {
         // Native pregame 0x35 and replay 0x3F both write original
@@ -59,10 +61,9 @@ private:
     // 0x00415080 state 99 advances 9 inner ticks and 8 outer frames;
     // source sound manager owns state-5 voice completion.
     int swing_animation_ticks_{};
-    bool feedback_voice_started_{};
     int intro_stage_{};
-    std::array<int,2> spectator_frames_{};
-    std::array<int,2> spectator_countdowns_{{5,7}};
+    retail::OriginalRetailRandom* shared_random_{};
+    std::array<golf::SpectatorAnimation,2> spectators_{{{0,5,-1},{0,7,-1}}};
     int flag_idle_frame_{}, flag_idle_ticks_{};
     std::array<int,3> target_hit_frames_{}, target_hit_ticks_{};
 };

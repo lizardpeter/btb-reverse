@@ -59,6 +59,8 @@ public:
         return attempts_remaining_;
     }
     [[nodiscard]] int score() const noexcept { return score_; }
+    [[nodiscard]] int aim() const noexcept { return aim_; }
+    [[nodiscard]] int matched_target() const noexcept { return target_index_; }
     [[nodiscard]] bool finished() const noexcept { return finished_; }
 
 private:
@@ -75,7 +77,6 @@ private:
     int attempts_remaining_{kRetailInitialAttempts};
     int score_{};
     int target_index_{-1};
-    bool feedback_has_started_{};
     bool finished_{};
 };
 

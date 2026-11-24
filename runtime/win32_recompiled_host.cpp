@@ -279,7 +279,7 @@ struct Host {
 
         game.install(ActivityId::Dinosaur,std::make_unique<DinoDriver>(root));
         game.install(ActivityId::Golf,std::make_unique<GolfDriver>(
-            root/"Data"/"SubGameGolf",0));
+            root/"Data"/"SubGameGolf",0,&original_game_random));
         game.install(ActivityId::Maze,std::make_unique<MazeDriver>(root,0,&original_game_random));
         game.install(ActivityId::SpudMaze,
             std::make_unique<SpudMazeDriver>(root,0,&original_game_random));

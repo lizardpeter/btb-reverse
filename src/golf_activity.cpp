@@ -29,6 +29,16 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
     if (finished_) {
         return out;
     }
+    // 00415830: only once all five attempts are used does the outer
+    // controller wait for actual managed sound playback to stop.
+    if(attempts_remaining_==0) {
+        if(input.feedback_audio_finished) {
+            finished_=true;
+            out.finished=true;
+            out.progress_golf_completion=true;
+        }
+        return out;
+    }
 
     switch (state_) {
     case RoundState::Aim:
@@ -36,6 +46,7 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
                          input.aim_delta);
         if (input.accept_aim) {
             state_ = RoundState::PowerMeter;
+            target_index_=-1;
         }
         break;
 
@@ -88,25 +99,21 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
         target_index_ = landed.target_index;
         ball_.position = landed.ball_position;
         state_ = RoundState::ScoreAndFeedback;
-        feedback_has_started_ = false;
         break;
     }
 
-    case RoundState::ScoreAndFeedback:
-        if (!feedback_has_started_) {
-            const auto result = score_and_select_feedback(
-                target_index_,score_,attempts_remaining_,aim_,
-                ball_.position,data_.course_objects,input.random_value);
-            score_ = result.score_after;
-            out.managed_voice = result.sound_id;
-            out.feedback_started = true;
-            feedback_has_started_ = true;
-        } else if (input.feedback_audio_finished) {
-            // Outer 0x00415830 waits for the result voice before allowing
-            // the next attempt or Play Again path. The host must confirm.
-            state_ = RoundState::ResetNextAttempt;
-        }
+    case RoundState::ScoreAndFeedback: {
+        const auto result = score_and_select_feedback(
+            target_index_,score_,attempts_remaining_,aim_,
+            ball_.position,data_.course_objects,input.random_value);
+        score_=result.score_after;
+        out.managed_voice=result.sound_id;
+        out.feedback_started=true;
+        // 004157C8 increments the inner state immediately after queuing
+        // the voice. Other attempts must not block on this narration.
+        state_=RoundState::ResetNextAttempt;
         break;
+    }
 
     case RoundState::ResetNextAttempt: {
         const auto next = reset_next_attempt(
@@ -116,15 +123,9 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
         power_ = next.power;
         attempts_remaining_ = next.attempts_remaining;
         direction_ = next.power_direction;
-        target_index_ = -1;
-        feedback_has_started_ = false;
+        // The target and celebration survive into aiming; accepting
+        // the next shot clears them (0041509D).
         state_ = next.state;
-
-        if (attempts_remaining_ <= 0) {
-            finished_ = true;
-            out.finished = true;
-            out.progress_golf_completion = true;
-        }
         break;
     }
     } // switch (state_): all original gameplay phases

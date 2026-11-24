@@ -111,6 +111,28 @@ void advance_ball(BallMotion& ball) noexcept {
     advance_ball_bounce(ball);
 }
 
+void SpectatorAnimation::advance(std::size_t index,bool target_hit,int random_bit) noexcept {
+    if(--countdown>0)return;
+    countdown=5;
+    ++frame;
+    if(!target_hit) {
+        if(frame>=20)frame=0;
+        return;
+    }
+    constexpr int starts[2][2]={{21,21},{45,60}};
+    constexpr int ends[2][2]={{45,41},{90,88}};
+    if(index>=2) {frame=0;return;}
+    if(frame==20) {
+        if(reaction==-1) {
+            reaction=random_bit&1;
+            frame=starts[index][reaction];
+        } else frame=0;
+    }
+    if(reaction>=0 && frame>=ends[index][reaction]) {
+        frame=0;reaction=-2;
+    }
+}
+
 float distance(Vec2f a, Vec2f b) noexcept {
     const auto dx = a.x - b.x;
     const auto dy = a.y - b.y;

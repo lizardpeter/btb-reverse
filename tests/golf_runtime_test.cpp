@@ -70,6 +70,20 @@ int main() {
     for(int tick=0;tick<500;++tick)advance_ball_bounce(bounce);
     assert(bounce.height==0 && bounce.bounce_remaining==0);
 
+    SpectatorAnimation spectator{19,1,-1};
+    assert(spectator.needs_random(true));
+    spectator.advance(0,true,1);
+    assert(spectator.frame==21 && spectator.reaction==1);
+    for(int i=0;i<100;++i)spectator.advance(0,true,0);
+    assert(spectator.frame==0 && spectator.reaction==-2);
+    for(int i=0;i<100;++i)spectator.advance(0,true,0);
+    assert(spectator.frame==0 && !spectator.needs_random(true));
+    SpectatorAnimation spud{19,1,-1};
+    spud.advance(1,true,1);
+    assert(spud.frame==60 && spud.reaction==1);
+    for(int i=0;i<140;++i)spud.advance(1,true,0);
+    assert(spud.frame==0 && spud.reaction==-2);
+
     AnimatedCourseObject flag;
     flag.position = {330, 178};
     flag.hot_area_position = {99, 160};

@@ -117,12 +117,9 @@ int main() {
     assert(frame.managed_voice);
     assert(frame.feedback_started);
     assert(!frame.finished);
-    frame = round.advance({});
-    assert(!frame.managed_voice);
-    assert(frame.state == RoundState::ScoreAndFeedback);
-    frame = round.advance({.feedback_audio_finished=true});
     assert(frame.state == RoundState::ResetNextAttempt);
     frame = round.advance({});
+    assert(!frame.managed_voice);
     assert(frame.attempts_remaining == 4);
     assert(frame.state == RoundState::Aim);
     assert(frame.ball.position.x == 187.0f);
@@ -146,9 +143,12 @@ int main() {
             // Zero-score final attempt goes through exact final grade ID135.
             assert(feedback.managed_voice == 135);
         }
-        round.advance({.feedback_audio_finished=true});
+        assert(round.state()==RoundState::ResetNextAttempt);
         frame = round.advance({});
     }
+    assert(!round.finished() && frame.attempts_remaining==0);
+    assert(!round.advance({}).progress_golf_completion);
+    frame=round.advance({.feedback_audio_finished=true});
     assert(round.finished());
     assert(frame.finished);
     assert(frame.progress_golf_completion);

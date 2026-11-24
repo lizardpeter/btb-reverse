@@ -160,11 +160,14 @@ data\subgamegolf\wendy.bmp
         assert(step.effects.audio[0].operation ==
                AudioOperation::ManagedSoundId);
 
-        handle->queue_control({.feedback_audio_finished=true});
-        step = game.advance({});
         assert(handle->round()->state() ==
                btb::golf::RoundState::ResetNextAttempt);
-        step = game.advance({});
+        step = game.advance({.managed_sound_playing=true});
+        if(shot==4) {
+            assert(handle->round()->attempts_remaining()==0);
+            assert(!step.effects.save_and_unload);
+            step=game.advance({.managed_sound_playing=false});
+        }
         if (shot < 4) {
             assert(step.effects.progress_writes.empty());
             assert(handle->round());
@@ -265,15 +268,18 @@ data\subgamegolf\wendy.bmp
         step=native.advance({}); // managed voice submitted
         assert(!step.effects.audio.empty());
         assert(step.effects.audio[0].operation==AudioOperation::ManagedSoundId);
-        for(int tick=0;tick<3;++tick) {
-            step=native.advance({.managed_sound_playing=true});
-            assert(live->round()->state()==btb::golf::RoundState::ScoreAndFeedback);
-        }
-        step=native.advance({.managed_sound_playing=false});
         assert(live->round()->state()==btb::golf::RoundState::ResetNextAttempt);
-        step=native.advance({});
-        if(shot<4)
+        step=native.advance({.managed_sound_playing=true});
+        if(shot<4) {
             assert(live->round()->state()==btb::golf::RoundState::Aim);
+        } else {
+            assert(live->round()->attempts_remaining()==0);
+            for(int tick=0;tick<3;++tick) {
+                step=native.advance({.managed_sound_playing=true});
+                assert(live->round() && !step.effects.save_and_unload);
+            }
+            step=native.advance({.managed_sound_playing=false});
+        }
     }
     assert(step.kind==FrameKind::ActivityUpdated);
     assert(step.effects.progress_writes.size()==1);
