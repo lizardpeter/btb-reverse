@@ -149,7 +149,7 @@ int main() {
     assert(f.kind==FrameKind::ActivityUpdated&&!live->initialized());
     assert(f.effects.save_and_unload&&f.state_changed);
     assert(f.effects.next_outer_state==
-        static_cast<int>(btb::game_flow::State::SharedMovieTransition));
+        static_cast<int>(btb::game_flow::State::ActivitySelectSetup));
     assert(f.effects.shared_completion_code==7);
     assert(game.globals().player_progress[0].get(
         btb::progress::Slot::ParkDesigner)==1);

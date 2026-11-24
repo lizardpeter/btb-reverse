@@ -135,8 +135,8 @@ ActivityFrameOutput ParkDesignerDriver::advance(const ActivityFrameInput& input)
         }
         output.audio.push_back({AudioOperation::StopBackingTrack});
         output.save_and_unload=true;
-        output.next_outer_state=static_cast<int>(frame.mark_park_progress?
-            game_flow::State::SharedMovieTransition:game_flow::State::ActivitySelectSetup);
+        // 00410D10 returns to state 4; its own handler consumes code 7.
+        output.next_outer_state=static_cast<int>(game_flow::State::ActivitySelectSetup);
     }
     return output;
 }

@@ -31,6 +31,22 @@ struct ScriptedFireworks final : ActivityDriver {
     }
 };
 
+struct LeaveProbe final : ActivityDriver {
+    int updates{},unloads{};
+    bool allow_back{true},completed{};
+    bool initialize(int,std::string& error) override {error.clear();return true;}
+    ActivityFrameOutput advance(const ActivityFrameInput& input) override {
+        ++updates;
+        assert(!input.click_pulse || !allow_back);
+        ActivityFrameOutput out;
+        out.draws.push_back({"fixture.bmp",0,0});
+        return out;
+    }
+    bool unload(std::string& error) override {++unloads;error.clear();return true;}
+    bool shared_back_available() const noexcept override {return allow_back;}
+    bool shared_back_starts_replay() const noexcept override {return completed;}
+};
+
 struct BadgeActivity final : ActivityDriver {
     btb::progress::Slot slot;
     explicit BadgeActivity(btb::progress::Slot earned):slot(earned){}
@@ -159,6 +175,7 @@ int main() {
 
     // Movie mode 13 restores saved state and clears shared input on the
     // same dispatcher invocation, before handing control to it.
+    game.globals().shared_completion_code=-1;
     game.globals().input_pulse = true;
     game.globals().dispatcher.current_state =
         static_cast<int>(State::DinoInit);
@@ -256,6 +273,68 @@ int main() {
             assert(root->globals().player_progress[1].get(pair.award)==1);
             assert(root->globals().shared_completion_code==(paired?pair.code:-1));
         }
+    }
+
+    // Every immediate-unload source handler is exercised with physical
+    // Back/No and Back/Yes pulses, including an outstanding badge movie.
+    struct LeaveCase{ActivityId id;State init;State destination;};
+    for(const auto& c:std::array<LeaveCase,9>{{
+        {ActivityId::Herding,State::HerdingInit,State::ActivitySelectSetup},
+        {ActivityId::Dinosaur,State::DinoInit,State::DinoChooserSetup},
+        {ActivityId::SpudSkate,State::SpudSkateInit,State::SpudChooserSetup},
+        {ActivityId::Maze,State::MazeInit,State::AdventureChooserSetup},
+        {ActivityId::Fireworks,State::FireworksInit,State::ActivitySelectSetup},
+        {ActivityId::Squirrel,State::SquirrelInit,State::ActivitySelectSetup},
+        {ActivityId::BobsBand,State::BobsBandInit,State::MusicChooserSetup},
+        {ActivityId::Golf,State::GolfInit,State::AdventureChooserSetup},
+        {ActivityId::SpudMaze,State::SpudMazeInit,State::SpudChooserSetup}
+    }})for(bool movie:{false,true}){
+        auto root=std::make_unique<GameRoot>();
+        assert(root->select_profile(0));
+        auto provider=std::make_unique<LeaveProbe>();auto* live=provider.get();
+        root->install(c.id,std::move(provider));root->set_outer_state(c.init);
+        auto step=[&](int x,int y,bool down=false,bool up=false){
+            ActivityFrameInput input{};input.pointer_position_valid=true;
+            input.pointer_x=x;input.pointer_y=y;input.click_pulse=down;
+            input.pointer_release_pulse=up;input.pointer_button_held=down;
+            return root->advance(input);
+        };
+        assert(step(0,0).kind==FrameKind::ActivityInitialized);
+        live->allow_back=false;
+        assert(!step(590,440,true).effects.open_leave_activity_confirmation);
+        live->allow_back=true;
+        assert(!step(572,440).effects.open_leave_activity_confirmation);
+        assert(step(590,440,true).effects.open_leave_activity_confirmation);
+        auto before=live->updates;
+        assert(step(370,280,true).kind==FrameKind::Intercept);
+        assert(step(370,280,false,true).kind==FrameKind::Intercept);
+        assert(live->updates==before&&live->unloads==0);
+        assert(!root->globals().dispatcher.leave_activity_active);
+        assert(step(590,440,true).effects.open_leave_activity_confirmation);
+        if(movie)root->globals().shared_completion_code=3;
+        step(250,280,true);step(250,280,false,true);
+        auto exited=step(0,0);
+        assert(exited.kind==FrameKind::ActivityUpdated&&exited.effects.save_and_unload);
+        assert(exited.effects.progress_writes.empty());
+        assert(live->unloads==1&&live->updates==before+1);
+        assert(root->globals().shared_movie_return_state==static_cast<int>(c.destination));
+        const auto expected=movie&&c.id!=ActivityId::Fireworks?State::SharedMovieTransition:c.destination;
+        assert(root->globals().dispatcher.current_state==static_cast<int>(expected));
+        if(movie&&c.id==ActivityId::Fireworks){
+            assert(step(0,0).kind==FrameKind::FrontEndUpdated);
+            assert(root->globals().dispatcher.current_state==static_cast<int>(State::SharedMovieTransition));
+        }
+    }
+    // Completed Dinosaur uses Play Again without interrupting its badge.
+    {
+        auto root=std::make_unique<GameRoot>();assert(root->select_profile(0));
+        auto provider=std::make_unique<LeaveProbe>();auto* live=provider.get();live->completed=true;
+        root->install(ActivityId::Dinosaur,std::move(provider));root->set_outer_state(State::DinoInit);
+        assert(root->advance({}).kind==FrameKind::ActivityInitialized);
+        auto exit=root->advance({.pointer_x=590,.pointer_y=440,.click_pulse=true,.pointer_position_valid=true});
+        assert(exit.effects.save_and_unload&&live->unloads==1);
+        assert(exit.effects.next_outer_state==static_cast<int>(State::PlayAgainYesNoSetup));
+        assert(!root->globals().dispatcher.leave_activity_active&&root->globals().shared_movie_return_state==0x10);
     }
 
     game.globals().dispatcher.current_state = 0x44;

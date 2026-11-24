@@ -118,6 +118,9 @@ int main(){
     frame();frame();auto completed=frame();
     assert(completed.effects.save_and_unload&&completed.effects.shared_completion_code==7);
     assert(!live->initialized());
+    assert(game->globals().dispatcher.current_state==static_cast<int>(btb::game_flow::State::ActivitySelectSetup));
+    assert(frame().kind==FrameKind::FrontEndUpdated);
+    assert(game->globals().dispatcher.current_state==static_cast<int>(btb::game_flow::State::SharedMovieTransition));
     assert(fs::file_size(root/"modal-saves"/"dypdata1.txt")==p::kRetailSaveBytes);
     fs::remove_all(root);
 }
