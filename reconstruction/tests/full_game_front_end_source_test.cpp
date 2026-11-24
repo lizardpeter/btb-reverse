@@ -92,6 +92,38 @@ int main() {
         append_generic_ui_art(art,records,runtime,0,false,delay,false);
         assert(art.size()==1&&art[0].source_asset=="Data/ui/actanims/dinob.bmp");
     }
+    {
+        // Real down/drag/up semantics: do not accept release on a
+        // different tile or a release with no captured press.
+        std::optional<std::size_t> captured;
+        ActivityFrameInput input{};input.menu_release_input=true;
+        input.click_pulse=true;input.pointer_button_held=true;
+        auto step=resolve_menu_pointer(captured,0,0,input);
+        assert(step.depressed&&!step.activate&&captured==0);
+        input.click_pulse=false;
+        step=resolve_menu_pointer(captured,1,1,input);
+        assert(!step.hover&&!step.depressed&&!step.activate);
+        input.pointer_button_held=false;input.pointer_release_pulse=true;
+        step=resolve_menu_pointer(captured,1,1,input);
+        assert(!step.activate&&!captured);
+        step=resolve_menu_pointer(captured,1,1,input);
+        assert(!step.activate);
+        input.click_pulse=true; // fast tap in one sampled frame
+        step=resolve_menu_pointer(captured,1,0,input);
+        assert(!step.activate);
+        step=resolve_menu_pointer(captured,1,1,input);
+        assert(step.activate&&!captured);
+        std::vector<btb::front_end::ReplacementRecord> rows(2);
+        rows[0].target_state_or_action=-2;rows[0].hover_bitmap_base="easy";
+        rows[1].target_state_or_action=-3;rows[1].hover_bitmap_base="medium";
+        rows[1].secondary_x=340;rows[1].secondary_y=317;
+        rows[0].hover_frame_count=rows[1].hover_frame_count=1;
+        std::vector<btb::front_end::ReplacementRuntimeState> runtime(2);
+        std::vector<Draw> draws;
+        append_generic_ui_difficulty_art(draws,rows,runtime,1);
+        assert(draws.size()==1&&draws[0].source_asset=="medium.bmp");
+        assert(draws[0].x==340&&draws[0].y==317);
+    }
     auto catalog = fixture_catalog();
     std::string err;
     assert(catalog.validate(err));

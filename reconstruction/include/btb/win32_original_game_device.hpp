@@ -70,6 +70,9 @@ public:
     [[nodiscard]] bool draw_ordered(
         const std::vector<ResolvedDraw>& draws,
         std::string& error) override;
+    [[nodiscard]] bool capture_replay_underlay(std::string& error) override;
+    [[nodiscard]] bool draw_replay_ordered(
+        const std::vector<ResolvedDraw>& draws,std::string& error) override;
     [[nodiscard]] bool print_current_frame(std::string& error) override;
     [[nodiscard]] bool present(std::string& error) override;
 

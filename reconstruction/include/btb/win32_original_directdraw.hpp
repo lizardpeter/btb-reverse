@@ -43,6 +43,9 @@ public:
     [[nodiscard]] bool render_ordered(
         const std::vector<ResolvedDraw>& draw_stream,
         std::string& error);
+    [[nodiscard]] bool capture_replay_underlay(std::string& error);
+    [[nodiscard]] bool render_replay_ordered(
+        const std::vector<ResolvedDraw>& draw_stream,std::string& error);
     [[nodiscard]] bool present(std::string& error);
     // Direct original 00402440 cooperative test and loss recovery.
     [[nodiscard]] HRESULT cooperative_status() const noexcept;
@@ -84,6 +87,9 @@ private:
         OriginalSurface& out,std::string& error);
     [[nodiscard]] bool blit(
         const ResolvedDraw& draw,std::string& error);
+    [[nodiscard]] bool render_ordered_with_underlay(
+        const std::vector<ResolvedDraw>& stream,std::string& error,
+        bool replay);
     [[nodiscard]] bool restore_lost_surfaces(std::string& error);
     void release_cached_bitmaps() noexcept;
 
@@ -98,6 +104,8 @@ private:
     std::unique_ptr<original_win32::NativeBitmapRegistry> registry_{
         std::make_unique<original_win32::NativeBitmapRegistry>()};
     std::vector<ResolvedDraw> previous_frame_{};
+    IDirectDrawSurface7* replay_underlay_{};
+    bool previous_frame_replay_{};
     bool surface_lost_during_draw_{};
 };
 

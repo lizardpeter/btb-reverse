@@ -42,10 +42,16 @@ struct NativeHostInput {
  bool pointer_held{};
  bool click_pulse{};
  bool release_pulse{};
+ std::optional<std::pair<int,int>> press_position{};
  int typed_character{-1};
  std::uint32_t initial_tick{};
  bool clock_started{};
- void press_mouse() noexcept {pointer_held=true;click_pulse=true;}
+ void press_mouse() noexcept {
+  if(!pointer_held){pointer_held=true;click_pulse=true;press_position.reset();}
+ }
+ void press_mouse(int x,int y) noexcept {
+  if(!pointer_held){press_mouse();press_position=std::pair{x,y};}
+ }
  void release_mouse() noexcept {if(pointer_held)release_pulse=true;pointer_held=false;}
  void key_down(unsigned key,bool repeated,unsigned scan=0) noexcept {
   if(key>=keys.size())return;
@@ -71,7 +77,7 @@ struct NativeHostInput {
  }
  void lose_focus() noexcept {
   keys.fill(0);scan_keys.fill(0);held_scan_by_vk.fill(0);
-  pointer_held=false;click_pulse=false;release_pulse=false;typed_character=-1;
+  pointer_held=false;click_pulse=false;release_pulse=false;press_position.reset();typed_character=-1;
  }
  [[nodiscard]] ActivityFrameInput sample(
     int x,int y,std::uint32_t monotonic_ms) noexcept {
@@ -81,6 +87,8 @@ struct NativeHostInput {
   out.keyboard_state=scan_keys;
   out.pointer_button_held=pointer_held;
   out.pointer_release_pulse=release_pulse;release_pulse=false;
+  out.menu_release_input=true;
+  out.menu_press_position=press_position;press_position.reset();
   out.directional_input_bits=static_cast<std::uint8_t>(
       (keys[0x25]?0x01:0) | (keys[0x27]?0x02:0) |
       (keys[0x26]?0x04:0) | (keys[0x28]?0x08:0));

@@ -440,10 +440,14 @@ struct Host {
             input.pointer_position_valid=true;
             const auto click=consume_native_click(h.native_input.click_pulse);
             input.click_pulse=click.activity_click;
+            const auto entry_state=h.game.globals().dispatcher.current_state;
             const auto frame=h.session->tick(
                 input,click.primary_input_click,false,true);
             if(frame.failure){
-                h.error=frame.failure->message;
+                h.error="Native game state "+std::to_string(entry_state)+
+                    ", presentation stage "+
+                    std::to_string(static_cast<int>(frame.failure->stage))+
+                    ":\n"+frame.failure->message;
                 return false;
             }
             return frame.ready_for_present;
@@ -543,7 +547,7 @@ LRESULT CALLBACK native_window_proc(
     case WM_MOUSEMOVE:
         host->set_pointer(lp);return 0;
     case WM_LBUTTONDOWN:
-        host->set_pointer(lp);host->native_input.press_mouse();return 0;
+        host->set_pointer(lp);host->native_input.press_mouse(host->pointer_x,host->pointer_y);return 0;
     case WM_LBUTTONUP:
         host->set_pointer(lp);host->native_input.release_mouse();return 0;
     case WM_KEYDOWN:

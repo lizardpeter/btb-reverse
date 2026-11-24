@@ -14,6 +14,24 @@ concurrency:
   group: win64-standalone-preview-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  source-diagnostic-bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate evidence registries for local diagnostic builds
+        run: |
+          python tools/build_reconstruction_index.py
+          python tools/build_remaining_architecture.py
+      - name: Archive reconstruction sources and test vectors only
+        run: tar -czf btb-reconstruction-diagnostic-source.tar.gz reconstruction analysis/reconstruction tools
+      - uses: actions/upload-artifact@v4
+        with:
+          name: btb-reconstruction-diagnostic-source
+          path: btb-reconstruction-diagnostic-source.tar.gz
+          if-no-files-found: error
   standalone-win64:
     runs-on: windows-latest
     steps:
