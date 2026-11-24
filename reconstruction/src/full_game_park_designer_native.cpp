@@ -59,7 +59,7 @@ void RetailParkDesignerNativeService::cancel_drag(p::SaveData& d) noexcept {
     selection_.reset();controls_.cursor_mode=0;
 }
 std::optional<std::pair<int,int>> RetailParkDesignerNativeService::take_queued_voice() noexcept {
-    return std::exchange(queued_,{});
+    return std::exchange(queued_,std::nullopt);
 }
 void RetailParkDesignerNativeService::voice(ActivityFrameOutput& out,const ActivityFrameInput& in,int id,int context) {
     if(id<0)return;

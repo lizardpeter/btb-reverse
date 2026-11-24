@@ -894,6 +894,7 @@ add_test(NAME park_designer_activity_loop
 add_library(btb_full_game_park_designer_source
     src/full_game_park_designer.cpp
     src/full_game_park_scene.cpp
+    src/full_game_park_scene.cpp
     src/full_game_park_designer_native.cpp)
 target_include_directories(btb_full_game_park_designer_source PUBLIC include)
 btb_require_cpp26(btb_full_game_park_designer_source PUBLIC)
@@ -903,6 +904,13 @@ add_executable(btb_full_game_park_designer_source_tests
     tests/full_game_park_designer_source_test.cpp)
 target_link_libraries(btb_full_game_park_designer_source_tests PRIVATE
     btb_full_game_park_designer_source)
+if(MSVC)
+    target_compile_options(btb_full_game_park_designer_source_tests PRIVATE /UNDEBUG)
+    target_compile_options(btb_park_designer_scene_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(btb_full_game_park_designer_source_tests PRIVATE -UNDEBUG)
+    target_compile_options(btb_park_designer_scene_tests PRIVATE -UNDEBUG)
+endif()
 add_test(NAME full_game_park_designer_source
     COMMAND btb_full_game_park_designer_source_tests)
 
@@ -1375,6 +1383,7 @@ foreach(test_name IN ITEMS
     full_game_generic_ui_source
     full_game_menu_actions_source
     full_game_park_scene_source
+    full_game_park_native_source
     park_designer_placement_source
     full_game_pregame_resources_source
     full_game_pregame_root_source
@@ -1400,7 +1409,7 @@ foreach(test_name IN ITEMS
     add_test(NAME ${test_name} COMMAND ${target_name})
     list(APPEND BTB_FULL_GAME_SOURCE_TARGETS ${target_name})
 endforeach()
-add_custom_target(btb_full_game_source_regressions DEPENDS ${BTB_FULL_GAME_SOURCE_TARGETS} btb_park_designer_retail_catalog_tests)
+add_custom_target(btb_full_game_source_regressions DEPENDS ${BTB_FULL_GAME_SOURCE_TARGETS} btb_park_designer_retail_catalog_tests btb_full_game_park_designer_source_tests btb_park_designer_scene_tests)
 
 add_executable(btb_full_game_squirrel_native_tests
     tests/full_game_squirrel_native_test.cpp)

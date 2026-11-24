@@ -16,7 +16,7 @@ struct FakeNativePark final : ParkDesignerNativeService {
     int draws{},editors{},music{},voices{};
     bool fail_draw{},fail_sound{};
     bool emit_confirm{};
-    bool render(const SaveData& data,const btb::park_designer::BoundAreas& bounds,
+    bool render(SaveData& data,const btb::park_designer::BoundAreas& bounds,
                 ActivityFrameOutput& output,std::string& error) override {
         ++draws;
         if(fail_draw){error="no original Park bitmap surface";return false;}
@@ -149,7 +149,8 @@ int main() {
     assert(f.kind==FrameKind::ActivityUpdated&&!live->initialized());
     assert(f.effects.save_and_unload&&f.state_changed);
     assert(f.effects.next_outer_state==
-        static_cast<int>(btb::game_flow::State::ActivitySelectSetup));
+        static_cast<int>(btb::game_flow::State::SharedMovieTransition));
+    assert(f.effects.shared_completion_code==7);
     assert(game.globals().player_progress[0].get(
         btb::progress::Slot::ParkDesigner)==1);
 
@@ -157,6 +158,7 @@ int main() {
     assert(fs::file_size(file)==btb::park_designer::kRetailSaveBytes);
     std::ifstream persisted(file,std::ios::binary);
     const auto saved=btb::park_designer::read_save(persisted);
+    persisted.close();
     assert(saved.objects[0].object_code==7);
 
     // Re-entering preserves the original binary state rather than a
