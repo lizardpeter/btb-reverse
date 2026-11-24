@@ -66,8 +66,9 @@ public:
         throw std::logic_error("Spud Maze spawn reset in Maze driver");
     }
     float npc_distance_to_player(const original_motion4::Npc& npc) override {
-        return std::hypot(npc.position.x-player_.x,
-                          npc.position.y-player_.y);
+        // 0041CCB0 truncates all four coordinates before distance.
+        return std::hypot(static_cast<float>(static_cast<int>(npc.position.x)-static_cast<int>(player_.x)),
+                          static_cast<float>(static_cast<int>(npc.position.y)-static_cast<int>(player_.y)));
     }
     void spud_repair_completed(original_motion4::I32,
                                original_motion4::I32) override {
@@ -403,6 +404,7 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
     }
     bool began_transition=false;
     std::optional<maze::ScreenTransitionFrame> slide;
+    ActivityFrameOutput rendered;
     try {
         if(transition_.phase!=0) {
             // 0041D4D0 suppresses player input while the slide advances.
@@ -453,8 +455,18 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
                 pickup_animation_wait_=0;
             }
         }
+        // 0041D4D0 draws BEFORE updating the NPC. Keep the displayed
+        // frame and the subsequent AI state separate, especially at pickup.
+        if(!began_transition) {
+            rendered=slide?draw_transition(*slide):draw();
+            const int visible_screen=slide&&!slide->completed
+                ?static_cast<int>(transition_.previous_screen):player_.screen;
+            if(static_cast<int>(npc_.phase)>1 && npc_.screen==visible_screen)
+                maze::advance_spud_sprite_animation(npc_.animation_frame,
+                    npc_.animation_countdown,npc_.carry_active!=0);
+        }
         // The original 0x0041D4D0 calls UpdateMazeSpudNPC after the
-        // player update every active frame, including frozen pickups.
+        // draw every active frame, including frozen pickups.
         // One shared package bank is authoritative for player and Spud.
         if(npc_.player_screen!=player_.screen){
             // 0041B140 reloads the offscreen timer on each portal.
@@ -480,9 +492,9 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
     // the pre-input ordered draw plan with the new physical coordinates.
     // The portal-capture frame retains its prior presentation; the
     // next dispatch starts 0041C710. No input is accepted during sliding.
-    auto updated=began_transition?std::move(out):slide?draw_transition(*slide):draw();
-    if(!began_transition)updated.audio=std::move(out.audio);
-    return updated;
+    if(began_transition)return out;
+    rendered.audio=std::move(out.audio);
+    return rendered;
 }
 
 bool MazeDriver::unload(std::string& error) {
