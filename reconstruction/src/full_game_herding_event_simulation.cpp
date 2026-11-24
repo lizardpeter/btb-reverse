@@ -27,7 +27,8 @@ bool apply_confirmed_event(
     bool independent_tracked_membership=false,
     const herding::RetailEntityRecord32* pre_patrol_dog=nullptr,
     const herding::RetailEntityRecord32* pre_outer_animal=nullptr,
-    bool verified_pre_move_arrival=false) {
+    bool verified_pre_move_arrival=false,
+    std::optional<herding::Vec2i> food_probe={}) {
 
     if (!event.retail_trigger_confirmed) {
         error="Herding source event has no original collision/trigger evidence";
@@ -47,7 +48,8 @@ bool apply_confirmed_event(
             return false;
         }
         step=staged.select_food(
-            event.food,player->x,player->y,event.random_mod_2,
+            event.food,food_probe?food_probe->x:player->x,
+            food_probe?food_probe->y:player->y,event.random_mod_2,
             event.follower_release_random);
         break;
     }
@@ -220,6 +222,7 @@ bool HerdingEventSimulation::initialize(
     // The original initializer resets 0x51076C to waypoint zero,
     // but does NOT reset 0x443B20, the process-global sprite latch.
     scruffty_patrol_state_.waypoint_index=0;
+    pickles_control_state_.last_camera={};
     state_=std::move(candidate);
     error.clear();
     return true;
@@ -304,10 +307,30 @@ bool HerdingEventSimulation::advance(
     auto staged_tracked=tracked_slots_;
     int staged_registration_counter=registration_counter_;
     bool food_applied=false;
+    auto staged_pickles_control=pickles_control_state_;
+    std::optional<herding::RetailPicklesControlProposal> control_plan;
     std::vector<std::optional<herding::Vec2i>> perception_anchors(candidate.entities().size());
     std::vector<std::optional<herding::Vec2i>> saved_positions(candidate.entities().size());
     std::vector<std::optional<herding::RetailEntityRecord32>> pre_outer_animals(candidate.entities().size());
     if(observed.source_ordered_food_and_tracking) {
+        if(input.pointer_position_valid) {
+            if(!observed.pickles_control_evidence || observed.pickles_boundary_evidence) {
+                error="native physical pointer frame lacks exclusive Pickles control evidence";return false;
+            }
+            const auto& proof=*observed.pickles_control_evidence;
+            control_plan=herding::original_pickles_control_proposal(candidate.entities().front(),
+                staged_pickles_control,{input.pointer_x,input.pointer_y},input.directional_input_bits,
+                candidate.entities(),data_.retail_transformed_group0());
+            if(!control_plan || proof.before!=staged_pickles_control ||
+               proof.food_probe!=control_plan->food_probe ||
+               proof.raw_x!=control_plan->raw_x || proof.raw_y!=control_plan->raw_y ||
+               proof.obstacle_x!=control_plan->obstacle_x || proof.obstacle_y!=control_plan->obstacle_y ||
+               proof.obstacle_contacts!=control_plan->obstacle_contacts) {
+                error="native Pickles control or obstacle pass differs from source";return false;
+            }
+        } else if(observed.pickles_control_evidence) {
+            error="native Pickles pointer evidence has no physical pointer sample";return false;
+        }
         if(!observed.require_native_event_proofs ||
            !candidate.apply_source_motion(0,observed.motion_records.front())) {
             error="native ordered-food dispatch requires verified hero motion";
@@ -315,13 +338,48 @@ bool HerdingEventSimulation::advance(
         }
         // Food selection is before the entire animal loop in 004182B0.
         // Validate it on the staged copy before comparing motion proofs.
+        std::optional<herding::FoodType> expected_pickup;
+        if(control_plan) {
+            for(const auto food:{herding::FoodType::DuckFood,herding::FoodType::RabbitFood,herding::FoodType::SheepFood}) {
+                if(food!=candidate.food().selected && candidate.food().bag_states[static_cast<std::size_t>(food)]!=2 &&
+                   herding::food_pickup_in_range(food,control_plan->food_probe.x,control_plan->food_probe.y)) {
+                    expected_pickup=food;break;
+                }
+            }
+        }
         for(const auto& event:observed.events) {
             if(event.kind!=HerdingObservedKind::PickUpFood)continue;
-            if(food_applied || !apply_confirmed_event(candidate,event,sounds,error)) {
+            if(control_plan && (!expected_pickup || *expected_pickup!=event.food)) {
+                error="native food event contradicts original pre-obstacle pickup probe";return false;
+            }
+            if(food_applied || !apply_confirmed_event(candidate,event,sounds,error,false,nullptr,nullptr,false,
+                  control_plan?std::optional<herding::Vec2i>{control_plan->food_probe}:std::nullopt)) {
                 if(error.empty())error="multiple native food changes in one frame";
                 return false;
             }
             food_applied=true;
+        }
+        if(control_plan) {
+            if(food_applied!=expected_pickup.has_value() ||
+               !herding::finish_original_pickles_control(*control_plan,candidate.food().selected)) {
+                error="native original Pickles food/animation dispatch incomplete";return false;
+            }
+            const auto& expected=control_plan->hero;
+            const auto& actual=observed.motion_records.front();
+            if(observed.pickles_control_evidence->after!=control_plan->state ||
+               actual.x!=expected.x || actual.y!=expected.y || actual.x_float!=expected.x_float ||
+               actual.y_float!=expected.y_float || actual.direction!=expected.direction ||
+               actual.previous_x!=expected.previous_x || actual.previous_y!=expected.previous_y ||
+               actual.movement_active!=expected.movement_active || actual.movement_speed!=expected.movement_speed ||
+               actual.movement_direction_mask!=expected.movement_direction_mask ||
+               actual.animation_frame!=expected.animation_frame || actual.animation_frame_countdown!=expected.animation_frame_countdown) {
+                error="native original Pickles final pose or control state differs";return false;
+            }
+            staged_pickles_control=control_plan->state;
+        } else {
+            const auto& hero=observed.motion_records.front();
+            const auto camera=herding::herding_camera_plan(hero.x,hero.y);
+            staged_pickles_control.last_camera={camera.camera_x,camera.camera_y};
         }
         // Reconstruct the pair scan from already-validated food-release
         // state. Only higher-index actors receive changed prestates;
@@ -1295,6 +1353,7 @@ bool HerdingEventSimulation::advance(
     tracked_slots_=staged_tracked;
     registration_counter_=staged_registration_counter;
     scruffty_patrol_state_=staged_scruffty_state;
+    pickles_control_state_=staged_pickles_control;
     provisional.accept();
     error.clear();
     return true;

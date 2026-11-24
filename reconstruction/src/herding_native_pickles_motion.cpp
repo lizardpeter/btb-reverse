@@ -95,7 +95,7 @@ bool NativePicklesMotionSource::begin_frame(std::string& error) {
     auto& rng=shared_random_?*shared_random_:standalone_random_;
     pending_frame_=FrameSnapshot{
         selected_food_,scruffty_patrol_state_,follower_indices_,
-        tracked_slots_,remaining_to_register_,rng.state()};
+        tracked_slots_,remaining_to_register_,rng.state(),pickles_control_state_};
     error.clear();
     return true;
 }
@@ -115,6 +115,7 @@ void NativePicklesMotionSource::rollback_frame() noexcept {
     follower_indices_=pending_frame_->followers;
     tracked_slots_=pending_frame_->tracked;
     remaining_to_register_=pending_frame_->registration_counter;
+    pickles_control_state_=pending_frame_->pickles_control;
     (shared_random_?*shared_random_:standalone_random_).seed(
         pending_frame_->original_rng_state);
     pending_frame_.reset();
@@ -152,6 +153,7 @@ bool NativePicklesMotionSource::initialize(
         // The original initializer resets its patrol waypoint, but not
         // the process-global frame movement latch 0x443B20.
         scruffty_patrol_state_.waypoint_index=0;
+        pickles_control_state_.last_camera={};
         error.clear();
         return true;
     } catch(const std::exception& e) {
@@ -207,7 +209,7 @@ bool NativePicklesMotionSource::advance(
     return true;
     };
 
-    const auto source_food_pickup=[&] {
+    const auto source_food_pickup=[&](herding::Vec2i food_probe) {
         // Source 0x004182B0 checks every original food hotspot using
         // the final integer Pickles position; it does not require
         // an invented click or screen-relative cursor hitbox.
@@ -216,11 +218,10 @@ bool NativePicklesMotionSource::advance(
             herding::FoodType::RabbitFood,
             herding::FoodType::SheepFood
         }};
-        const auto& pickles=observed.motion_records.front();
         for(const auto food:foods) {
             if(food==selected_food_ ||
                !herding::food_pickup_in_range(
-                   food,pickles.x,pickles.y))continue;
+                   food,food_probe.x,food_probe.y))continue;
             HerdingObservedEvent event{};
             event.kind=HerdingObservedKind::PickUpFood;
             event.food=food;
@@ -686,9 +687,34 @@ bool NativePicklesMotionSource::advance(
         }
         return true;
     };
+    const auto remember_camera=[&] {
+        const auto& hero=observed.motion_records.front();
+        const auto camera=herding::herding_camera_plan(hero.x,hero.y);
+        pickles_control_state_.last_camera={camera.camera_x,camera.camera_y};
+    };
+    if(input.pointer_position_valid) {
+        const auto state_before=pickles_control_state_;
+        auto plan=herding::original_pickles_control_proposal(source.front(),state_before,
+            {input.pointer_x,input.pointer_y},input.directional_input_bits,source,
+            data.retail_transformed_group0());
+        if(!plan) {error="original mouse/keyboard/obstacle movement invalid";return false;}
+        observed.motion_records.front()=plan->hero;
+        source_food_pickup(plan->food_probe);
+        if(!herding::finish_original_pickles_control(*plan,selected_food_)) {
+            error="original Pickles source animation invalid";return false;
+        }
+        observed.motion_records.front()=plan->hero;
+        pickles_control_state_=plan->state;
+        observed.pickles_control_evidence=HerdingPicklesControlEvidence{
+            state_before,plan->state,plan->food_probe,plan->raw_x,plan->raw_y,
+            plan->obstacle_x,plan->obstacle_y,plan->obstacle_contacts};
+        if(!source_far_animal_roam()||!source_scruffty_patrol())return false;
+        error.clear();return true;
+    }
     if(motion.movement_mask==0) {
-        source_food_pickup();
+        source_food_pickup({observed.motion_records.front().x,observed.motion_records.front().y});
         if(!animate_pickles()||!source_far_animal_roam()||!source_scruffty_patrol())return false;
+        remember_camera();
         error.clear();
         return true;
     }
@@ -729,8 +755,9 @@ bool NativePicklesMotionSource::advance(
 
     // Source-confirmed food pickup, animal attraction and Scruffty
     // patrol are active; follower steering/deliveries are not faked.
-    source_food_pickup();
+    source_food_pickup({player.x,player.y});
     if(!animate_pickles()||!source_far_animal_roam()||!source_scruffty_patrol())return false;
+    remember_camera();
     error.clear();
     return true;
 }

@@ -49,6 +49,7 @@ private:
         herding::RetailTrackedTargetSlots tracked{};
         int registration_counter{};
         std::uint32_t original_rng_state{};
+        herding::RetailPicklesControlState pickles_control{};
     };
     std::optional<FrameSnapshot> pending_frame_{};
     bool active_{};
@@ -59,5 +60,6 @@ private:
     herding::FollowerList follower_indices_{};
     herding::RetailTrackedTargetSlots tracked_slots_{};
     int remaining_to_register_{};
+    herding::RetailPicklesControlState pickles_control_state_{};
 };
 } // namespace btb::full_game

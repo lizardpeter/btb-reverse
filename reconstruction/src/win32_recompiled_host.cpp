@@ -418,6 +418,7 @@ struct Host {
             auto& h=*static_cast<Host*>(context);
             ActivityFrameInput input=h.native_input.sample(
                 h.pointer_x,h.pointer_y,timeGetTime());
+            input.pointer_position_valid=true;
             const auto click=consume_native_click(h.native_input.click_pulse);
             input.click_pulse=click.activity_click;
             const auto frame=h.session->tick(

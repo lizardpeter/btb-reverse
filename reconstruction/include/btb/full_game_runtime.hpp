@@ -212,6 +212,9 @@ struct ActivityFrameInput {
     bool fireworks_crowd_end_sound_playing{};
     // Physical managed-voice status of 0x331..0x339 at frame entry.
     std::array<bool,9> herding_animal_sound_playing{};
+    // A real logical 640x480 pointer sample, rather than the default
+    // zero coordinates of headless source fixtures.
+    bool pointer_position_valid{};
 };
 
 struct ActivityFrameOutput {

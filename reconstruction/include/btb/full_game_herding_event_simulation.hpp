@@ -19,6 +19,7 @@
 #include "btb/herding_source_ordinary_following.hpp"
 #include "btb/herding_source_near_retreat.hpp"
 #include "btb/herding_source_pair_separation.hpp"
+#include "btb/herding_source_pickles_controls.hpp"
 #include "btb/herding_source_animal_chatter.hpp"
 
 #include <cstddef>
@@ -79,6 +80,14 @@ struct HerdingPicklesBoundaryEvidence {
     std::int32_t previous_y{};
     std::int32_t active_directional_axes{};
     std::int32_t source_mouse_navigation_mode_443a9c{};
+};
+
+struct HerdingPicklesControlEvidence {
+    herding::RetailPicklesControlState before{};
+    herding::RetailPicklesControlState after{};
+    herding::Vec2i food_probe{};
+    float raw_x{},raw_y{},obstacle_x{},obstacle_y{};
+    std::size_t obstacle_contacts{};
 };
 
 struct HerdingSteeringEvidence {
@@ -226,6 +235,7 @@ struct HerdingObservedFrame {
     // do not claim this full frame-order contract.
     bool source_ordered_food_and_tracking{};
     std::optional<HerdingPicklesBoundaryEvidence> pickles_boundary_evidence{};
+    std::optional<HerdingPicklesControlEvidence> pickles_control_evidence{};
     // Optional, branch-specific probes for native 0x416C45/0x416DCE
     // steering. These are not manufactured for unrelated AI branches.
     std::vector<HerdingSteeringEvidence> steering_evidence{};
@@ -319,6 +329,7 @@ private:
     // Original global 0x443B20 lives in process .data. Unlike the
     // waypoint index it is not reset by InitializeHerdingActivity.
     herding::RetailScrufftyPatrolState scruffty_patrol_state_{};
+    herding::RetailPicklesControlState pickles_control_state_{};
 };
 
 } // namespace btb::full_game
