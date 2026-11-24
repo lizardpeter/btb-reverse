@@ -149,8 +149,11 @@ int main(int argc,char** argv) {
             return 1;
         }
         const auto data=serialize_bink1_pcm16_le(packed->interleaved_samples);
-        if(data.size()!=result->declared_pcm_bytes) {
-            std::fprintf(stderr,"PCM16 byte count mismatch in source frame %u\n",frame);
+        // The packet prefix is a budget/hint, not the transform sample
+        // count: real SJPi packets can legitimately disagree with it.
+        if(data.size()!=packed->interleaved_samples.size()*2 ||
+           data.size()%(2*decoder->layout().source_channels)!=0) {
+            std::fprintf(stderr,"PCM16 channel alignment mismatch in source frame %u\n",frame);
             return 1;
         }
         pcm_bytes+=data.size();
