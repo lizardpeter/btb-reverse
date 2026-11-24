@@ -16,6 +16,7 @@
 } while(false)
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -209,6 +210,11 @@ public:
 int main() {
     using namespace btb::full_game;
     using btb::game_flow::State;
+    // NativeGameSession owns the 1100-entry sound catalog and retail sound
+    // manager (tens of KiB each). MSVC can reserve distinct stack slots for
+    // all twenty scoped fixtures in this function, exceeding the default
+    // Windows executable stack. Allocate each session separately, keeping
+    // its original scope, destruction order, and every assertion intact.
     const auto directory=fs::temp_directory_path()/
         "btb_original_native_session_source";
     fs::remove_all(directory);
@@ -227,10 +233,11 @@ int main() {
         game.globals().menu.selected_subgame=1; // Adventure Golf
 
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::GolfPregameSetup);
 
         const auto initialized=session.tick({},false,false);
@@ -278,10 +285,11 @@ int main() {
         assert(game.install_pregame_front_end_pair(
             State::HerdingPregameSetup,std::make_unique<Instruction>()));
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::HerdingPregameSetup);
         const auto initial=session.tick({},false,false);
         assert(initial.submitted);
@@ -316,10 +324,11 @@ int main() {
             State::GolfPregameSetup,std::make_unique<Instruction>()));
         game.globals().menu.selected_subgame=1;
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::GolfPregameSetup);
         assert(session.tick({},false,false).submitted);
         // The first setup frame legitimately draws. Force failure only
@@ -343,10 +352,11 @@ int main() {
             State::GolfPregameSetup,std::make_unique<Instruction>()));
         game.globals().menu.selected_subgame=1;
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::GolfPregameSetup);
         assert(session.tick({},false,false).submitted);
         fs::remove(directory/"Data/ui/original.bmp");
@@ -369,10 +379,11 @@ int main() {
         auto* raw_movie=movie.get();
         game.install(ActivityId::Fireworks,std::move(movie));
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::FireworksInit);
         const auto setup=session.tick({},false,false,true);
         assert(!setup.failure && setup.ready_for_present);
@@ -410,10 +421,11 @@ int main() {
         game.install(ActivityId::Fireworks,
             std::make_unique<SourcePrintActivity>());
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::FireworksInit);
         const auto initialized=session.tick({},false,false,true);
         assert(initialized.ready_for_present && !initialized.failure);
@@ -441,10 +453,11 @@ int main() {
             std::make_unique<SourcePrintActivity>());
         Device device;
         device.fail_print=true;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::FireworksInit);
         const auto initialized=session.tick({},false,false,true);
         assert(initialized.ready_for_present);
@@ -470,10 +483,11 @@ int main() {
             State::GolfPregameSetup,std::make_unique<Instruction>()));
         game.globals().menu.selected_subgame=1;
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::GolfPregameSetup);
         const auto prepared=session.tick({},false,false,true);
         if(prepared.failure || prepared.submitted ||
@@ -504,10 +518,11 @@ int main() {
         game.globals().menu.selected_subgame=1;
         Device device;
         device.fail_present=true;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::GolfPregameSetup);
         const auto prepared=session.tick({},false,false,true);
         if(prepared.failure || !prepared.ready_for_present)return report_failure(66);
@@ -522,10 +537,11 @@ int main() {
             State::GolfPregameSetup,std::make_unique<Instruction>()));
         game.globals().menu.selected_subgame=1;
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::GolfPregameSetup);
         const auto prepared=session.tick({},false,false,true);
         if(prepared.failure || !prepared.ready_for_present)return report_failure(68);
@@ -547,10 +563,11 @@ int main() {
             State::GolfPregameSetup,std::make_unique<Instruction>()));
         game.globals().menu.selected_subgame=1;
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture(),true
-        };
+        );
+        auto& session=*session_storage;
         assert(session.skipping_video());
         game.set_outer_state(State::GolfPregameSetup);
         const auto setup=session.tick({},false,false);
@@ -574,10 +591,11 @@ int main() {
         assert(game.install_pregame_front_end_pair(
             State::SquirrelPregameSetup,std::make_unique<Instruction>()));
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture(),true
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::SquirrelPregameSetup);
         const auto setup=session.tick({},false,false);
         assert(setup.submitted && !setup.failure);
@@ -600,10 +618,11 @@ int main() {
             State::GolfPregameSetup,std::make_unique<Instruction>()));
         game.globals().menu.selected_subgame=1;
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::GolfPregameSetup);
         const auto blocked=session.tick({},false,false);
         assert(blocked.failure);
@@ -629,10 +648,11 @@ int main() {
             sequence.entries(),error));
         game.set_outer_state(State::StartupMoviesThenProfileSetup);
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         auto first=session.tick({},false,false);
         assert(first.submitted && !first.failure);
         assert(first.global_movie_opened);
@@ -695,10 +715,11 @@ int main() {
         assert(game.select_profile(2));
         game.install_activity_select(std::make_unique<Instruction>());
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture(),true
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(skipped_movie_state);
         const auto reached=session.tick({.click_pulse=true},true,false);
         assert(reached.submitted && !reached.failure);
@@ -718,10 +739,11 @@ int main() {
         assert(game.select_profile(2));
         game.install_activity_select(std::make_unique<Instruction>());
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::SceneSetMovieTransition);
         const int prior_draws=device.draw_count;
         const auto opened=session.tick({},false,false);
@@ -771,10 +793,11 @@ int main() {
         assert(game.configure_startup_video_sequence(sequence.entries(),error));
         game.set_outer_state(State::StartupMoviesThenProfileSetup);
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         const auto opened=session.tick({},false,false);
         assert(opened.submitted && !opened.failure && opened.global_movie_opened);
         device.sample.global_movie_finished=false;
@@ -798,10 +821,11 @@ int main() {
         assert(game.select_profile(2));
         game.install_activity_select(std::make_unique<Instruction>());
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::SceneSetMovieTransition);
         const auto opened=session.tick({},false,false);
         assert(opened.submitted && opened.global_movie_opened);
@@ -826,10 +850,11 @@ int main() {
         GameRoot game;
         assert(game.select_profile(2));
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture()
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::SceneSetMovieTransition);
         const auto missing=session.tick({},false,false);
         assert(missing.failure);
@@ -844,10 +869,11 @@ int main() {
         assert(game.select_profile(2));
         game.install_activity_select(std::make_unique<Instruction>());
         Device device;
-        NativeGameSession session{
+        auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
             startup_fixture(),walkthrough_fixture(),true
-        };
+        );
+        auto& session=*session_storage;
         game.set_outer_state(State::SharedMovieTransition);
         const auto blocked=session.tick({},false,false);
         assert(blocked.failure);
