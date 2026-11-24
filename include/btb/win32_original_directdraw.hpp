@@ -52,6 +52,9 @@ public:
     [[nodiscard]] HRESULT cooperative_status() const noexcept;
     [[nodiscard]] bool restore_for_frame(std::string& error);
     [[nodiscard]] HRESULT clear_retail_backbuffer(DWORD color) noexcept;
+    // Source bitmaps alone are released. Ordered frame paths and the
+    // captured replay underlay stay available for surface-loss recovery.
+    void release_activity_bitmaps() noexcept {release_cached_bitmaps();}
     void shutdown() noexcept;
 
     [[nodiscard]] bool initialized() const noexcept {

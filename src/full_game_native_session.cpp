@@ -337,6 +337,13 @@ NativeSessionFrame NativeGameSession::tick(
         fail(frame,PhysicalPresentationStage::Print,error);
         return frame;
     }
+    // The original activity unloaders release their bitmap groups.
+    // Do this only after the final composed image (and any replay
+    // snapshot/print) exists. A lost-surface retry can recreate source
+    // bitmaps from the saved draw stream; the underlay is independent.
+    if(frame.prepared.game.effects.save_and_unload ||
+       frame.prepared.game.kind==FrameKind::ActivityInitialized)
+        device_.release_activity_bitmaps();
     if(defer_present) {
         pending_present_=true;
         frame.ready_for_present=true;

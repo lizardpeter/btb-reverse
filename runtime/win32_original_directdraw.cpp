@@ -204,7 +204,11 @@ bool Win32OriginalDirectDraw::blit(
     if (src.left<0 || src.top<0 ||
         src.right>it->second.width || src.bottom>it->second.height ||
         src.right<=src.left || src.bottom<=src.top) {
-        error="retail sprite source rectangle extends beyond original BMP";
+        error="retail sprite source rectangle extends beyond original BMP: "+
+            requested.original.source_asset+" ["+std::to_string(src.left)+","+
+            std::to_string(src.top)+","+std::to_string(src.right)+","+
+            std::to_string(src.bottom)+"] bitmap "+
+            std::to_string(it->second.width)+"x"+std::to_string(it->second.height);
         return false;
     }
     const auto clipped=retail_clip_blt_to_rect(
@@ -242,7 +246,7 @@ bool Win32OriginalDirectDraw::blit(
         return false;
     }
     if (FAILED(hr)) {
-        error=hresult_description("retail sprite Blt",hr);
+        error=hresult_description("retail sprite Blt",hr)+": "+requested.original.source_asset;
         return false;
     }
     return true;
