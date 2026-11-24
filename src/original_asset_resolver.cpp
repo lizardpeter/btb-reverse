@@ -136,7 +136,8 @@ AssetResolution OriginalAssetResolver::resolve_below(
             // existing directories are errors rather than guessed results.
             if (ec == std::errc::no_such_file_or_directory) {
                 return {AssetResolutionStatus::Missing, {},
-                        "source asset directory does not exist"};
+                        "original source asset directory not found: " +
+                        (current / components[i]).string()};
             }
             return {AssetResolutionStatus::FileSystemError, {},
                     "cannot enumerate source asset directory: " +
@@ -148,7 +149,8 @@ AssetResolution OriginalAssetResolver::resolve_below(
         }
         if (matches == 0) {
             return {AssetResolutionStatus::Missing, {},
-                    "original source asset not found: " + components[i]};
+                    "original source asset not found: " +
+                    (current / components[i]).string()};
         }
         current = std::move(match);
     }
