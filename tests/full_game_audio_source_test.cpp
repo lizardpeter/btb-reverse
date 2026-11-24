@@ -110,6 +110,10 @@ int main() {
     }, {});
     assert(direct.operations.size() == 3);
     assert(direct.operations[0].kind == SoundEffectKind::StartBackingWav);
+    assert(direct.operations[0].backing_loop);
+    const auto one_shot=planner.plan({{.operation=AudioOperation::StartBackingTrack,
+        .source_asset="Data/SubGameOpen/bobmt.wav",.backing_loop=false}},{});
+    assert(one_shot.operations.size()==1 && !one_shot.operations[0].backing_loop);
     assert(direct.operations[1].kind == SoundEffectKind::PlayDirectSample);
     assert(direct.operations[2].kind == SoundEffectKind::StopBackingWav);
 

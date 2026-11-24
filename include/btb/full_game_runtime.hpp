@@ -169,6 +169,7 @@ struct Audio {
     int priority{};
     int arbitration_class{};
     bool input_interruptible{};
+    bool backing_loop{true}; // ambient music loops; Band performance does not
 };
 struct ProgressMutation {
     progress::Slot slot{};

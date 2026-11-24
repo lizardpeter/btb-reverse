@@ -289,6 +289,17 @@ bool Win32OriginalDirectSound::observe(
     return true;
 }
 
+bool Win32OriginalDirectSound::observe_backing(bool& playing,std::string& error) {
+    playing=false;
+    if(backing_) {
+        DWORD status=0;
+        const auto hr=backing_->GetStatus(&status);
+        if(FAILED(hr)) {error=hr_error("GetStatus original backing WAV",hr);return false;}
+        playing=(status&DSBSTATUS_PLAYING)!=0;
+    }
+    error.clear();return true;
+}
+
 bool Win32OriginalDirectSound::apply(
     const ResolvedSoundEffect& effect,std::string& error) {
 
@@ -363,7 +374,7 @@ bool Win32OriginalDirectSound::apply(
         if (!create_wave_buffer(effect.source->absolute_path,backing_,error)) {
             return false;
         }
-        return play_once(backing_,true,error);
+        return play_once(backing_,effect.original.backing_loop,error);
     }
     if (kind==SoundEffectKind::EnsureActivityLoopWav) {
         const auto& file=effect.source->absolute_path;

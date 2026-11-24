@@ -5,10 +5,11 @@
 
 namespace btb::bobs_band {
 
-Activity::Activity(MachineData data, Conductor conductor, int player_index)
+Activity::Activity(MachineData data, Conductor conductor, int player_index,
+                   retail::OriginalRetailRandom* shared_random)
     : data_(std::move(data)),
       conductor_(conductor),
-      player_index_(std::clamp(player_index, 0, 4)) {
+      player_index_(std::clamp(player_index, 0, 4)),shared_random_(shared_random) {
     if (static_cast<int>(conductor_) < 0 ||
         static_cast<int>(conductor_) >= kConductorCount) {
         conductor_ = Conductor::Bob;
@@ -135,10 +136,19 @@ BandFrame Activity::advance(FrameInput input) {
         clear_confirmation_outstanding_ = false;
     }
 
+    // 00420030 draws editor states before handling the click.
+    if(editor_.state()!=InternalState::Playback) {
+        const bool random_due=editor_conductor_.tick==5 && editor_conductor_.frame==19;
+        const int roll=random_due&&shared_random_?shared_random_->next_rand():input.random_value;
+        static_cast<void>(editor_conductor_.advance(roll));
+    }
     EditResult edited;
     if (input.click_pulse && !clear_confirmation_outstanding_) {
         edited = click(input.mouse_x, input.mouse_y);
-        emit_edit_result(edited, result, input.random_value);
+        const bool random_due=edited.event==EditEvent::StopPlayback ||
+                              edited.event==EditEvent::EnterDeleteMode;
+        emit_edit_result(edited,result,random_due&&shared_random_
+            ?shared_random_->next_rand():input.random_value);
     }
 
     // Native 0x4200C3 only retains delete mode outside the wall band when
@@ -156,6 +166,8 @@ BandFrame Activity::advance(FrameInput input) {
     if (started) {
         editor_.start_playback();
         playback_.begin(conductor_);
+        // Retail state 8 snapshots system time at backing track start.
+        playback_origin_centiseconds_=input.elapsed_centiseconds;
         result.progress = ProgressWrite{
             52 + static_cast<int>(conductor_), 1, 6
         };
@@ -170,7 +182,7 @@ BandFrame Activity::advance(FrameInput input) {
         } else {
             const auto notes =
                 playback_.advance(editor_.composition(),
-                                  input.elapsed_centiseconds);
+                                  std::max(0,input.elapsed_centiseconds-playback_origin_centiseconds_));
             for (const auto& sample : notes.started_samples) {
                 result.audio.push_back({
                     AudioRequest::Kind::PlayMachineSample,
@@ -187,7 +199,6 @@ BandFrame Activity::advance(FrameInput input) {
     if (editor_.state() == InternalState::Playback) {
         conductor_frame = playback_.animation_frame();
     } else {
-        static_cast<void>(editor_conductor_.advance(input.random_value));
         conductor_frame = editor_conductor_.frame;
     }
 

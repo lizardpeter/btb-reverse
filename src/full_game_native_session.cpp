@@ -41,6 +41,7 @@ NativeSessionFrame NativeGameSession::tick(
     }
 
     input.managed_sound_playing = physical.any_managed_voice_playing;
+    input.backing_track_playing=physical.backing_track_playing;
     // Profile selection uses IsSoundIdPlaying on particular IDs, not the
     // aggregate any-playing test. This keeps unrelated hover/narration
     // voices from preventing a new player from being selected.

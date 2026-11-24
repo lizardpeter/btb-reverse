@@ -39,6 +39,7 @@ public:
         ManagedSoundObservation& managed,
         bool& any_managed_voice_playing,
         std::string& error);
+    [[nodiscard]] bool observe_backing(bool& playing,std::string& error);
     [[nodiscard]] bool apply(
         const ResolvedSoundEffect& effect,std::string& error);
     // Borrowed device; native movie voice AddRefs before using it.

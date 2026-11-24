@@ -18,6 +18,7 @@ struct PhysicalFrameObservation {
     ManagedSoundObservation managed{};
     bool any_managed_voice_playing{};
     bool global_movie_finished{};
+    bool backing_track_playing{};
 };
 
 enum class PhysicalPresentationStage {

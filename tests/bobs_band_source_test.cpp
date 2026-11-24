@@ -153,6 +153,7 @@ int main() {
     assert(app.editor().play_pending());
 
     FrameInput voice_done{};
+    voice_done.elapsed_centiseconds=45000; // long menu visit before Play
     const auto start=app.advance(voice_done);
     assert(app.editor().state() == InternalState::Playback);
     assert(start.progress && start.progress->slot == 53);
@@ -161,6 +162,7 @@ int main() {
     assert(start.audio[0].filename == "Data\\SubGameOpen\\Wendymt.wav");
 
     FrameInput at_second_zero{};
+    at_second_zero.elapsed_centiseconds=45001;
     const auto sequence=app.advance(at_second_zero);
     assert(sequence.audio.size() == 1);
     assert(sequence.audio[0].filename ==
@@ -168,9 +170,23 @@ int main() {
     assert(app.playback().active());
 
     FrameInput same_second{};
-    same_second.elapsed_centiseconds=40;
+    same_second.elapsed_centiseconds=45040;
     const auto deduplicated=app.advance(same_second);
     assert(deduplicated.audio.empty());
+
+    FrameInput ended{};
+    ended.elapsed_centiseconds=47500;
+    ended.backing_track_playing=false;
+    const auto stopped=app.advance(ended);
+    assert(app.editor().state()==InternalState::EditIdle && !app.playback().active());
+    assert(stopped.audio.empty());
+
+    btb::retail::OriginalRetailRandom rng(1), reference(1);
+    Activity randomized(md,Conductor::Bob,0,&rng);
+    for(int i=0;i<119;++i)(void)randomized.advance({});
+    assert(rng.state()==reference.state());
+    (void)randomized.advance({}); (void)reference.next_rand();
+    assert(rng.state()==reference.state());
 
     app.leave_to_play_again();
     const auto leave=app.advance({});

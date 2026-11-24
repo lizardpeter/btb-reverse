@@ -3,6 +3,7 @@
 #include "btb/bobs_band.hpp"
 #include "btb/bobs_band_animation.hpp"
 #include "btb/bobs_band_data.hpp"
+#include "btb/retail_crt_random.hpp"
 
 #include <array>
 #include <cstdint>
@@ -63,7 +64,8 @@ class Activity {
 public:
     explicit Activity(MachineData data,
                       Conductor conductor = Conductor::Bob,
-                      int player_index = 0);
+                      int player_index = 0,
+                      retail::OriginalRetailRandom* shared_random=nullptr);
 
     [[nodiscard]] const Editor& editor() const noexcept { return editor_; }
     [[nodiscard]] Editor& editor() noexcept { return editor_; }
@@ -99,6 +101,8 @@ private:
     MachineAnimations machines_{};
     ConductorEditorAnimation editor_conductor_{};
     Playback playback_{};
+    int playback_origin_centiseconds_{};
+    retail::OriginalRetailRandom* shared_random_{};
     bool clear_confirmation_outstanding_{};
     bool emit_exit_once_{};
 };

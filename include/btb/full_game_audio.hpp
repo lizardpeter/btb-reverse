@@ -62,6 +62,7 @@ struct SoundEffect {
     int slot{-1};
     int sound_id{-1};
     std::string filename{};
+    bool backing_loop{true};
 };
 
 struct AudioFramePlan {

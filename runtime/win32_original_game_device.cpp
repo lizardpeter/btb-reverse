@@ -11,6 +11,7 @@ bool Win32OriginalGameDevice::observe(
             out.managed,out.any_managed_voice_playing,error)) {
         return false;
     }
+    if(!audio_.observe_backing(out.backing_track_playing,error))return false;
     // The real Bink provider services decode/timing before the restored
     // original 68-state game dispatch reads movie-completion status.
     return bink_.service(out.global_movie_finished,error);
