@@ -101,6 +101,10 @@ struct Host {
     int pointer_x{320},pointer_y{240};
     NativeHostInput native_input{};
     bool running{};
+    // WM_TIMER is re-entrant while MessageBoxA runs its modal message loop.
+    // Latch fatal presentation errors so queued timer messages cannot open
+    // an unbounded stack of identical modal dialogs.
+    bool fatal_dialog_shown{};
     bool skip_video{};
     int selected_profile{};
     original_win32::RetailWindowState retail_window{};
@@ -570,14 +574,20 @@ LRESULT CALLBACK native_window_proc(
     case WM_KILLFOCUS:
         host->native_input.lose_focus();return 0;
     case WM_TIMER:
-        if(wp==kNativeTimer&&!host->step()){
+        if(wp==kNativeTimer&&!host->fatal_dialog_shown&&!host->step()){
+            // Stop the 16 ms frame source BEFORE entering MessageBoxA.
+            // MessageBoxA pumps a nested Win32 message loop; without this
+            // latch, queued WM_TIMER messages recursively open more dialogs.
+            host->fatal_dialog_shown=true;
+            host->running=false;
+            KillTimer(hwnd,kNativeTimer);
             const auto message=host->error.empty()
               ? "Native game could not submit a complete source frame"
               : host->error;
             MessageBoxA(hwnd,message.c_str(),
               "Reconstructed game stopped at unsupported native dependency",
               MB_OK|MB_ICONERROR);
-            DestroyWindow(hwnd);
+            if(IsWindow(hwnd))DestroyWindow(hwnd);
         }
         return 0;
     case WM_PAINT:{
