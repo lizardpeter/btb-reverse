@@ -204,6 +204,32 @@ ParkPlacement commit_retail_bandstand(SaveData& d,I32 x,I32 y,I32 variant,
     return {PlacementStatus::Placed,slot,208+rng.next_rand()%2,1};
 }
 
+bool begin_retail_park_drag(SaveData& d,I32 slot) noexcept {
+    if(!valid_slot(slot,0,400))return false;
+    auto& o=d.objects[slot];
+    if(o.object_code==-1||o.enabled_or_active!=1)return false;
+    if(slot>=200&&slot<300&&o.bound_category==1){
+        d.state(State::BandstandPaletteMaxPage)=1;
+        clear_bandstand_objects(d,BandstandClearSelector::Category2Only);
+        auto& roof=d.state(State::SelectedObjectRecord);
+        if(valid_slot(roof,200,300))d.objects[roof].object_code=-1;
+        roof=-1;
+        for(auto key:kLinks)if(d.state(key)==slot){
+            d.state(key)=-1;--d.state(State::PondLinkedCount);
+        }
+    }
+    o.enabled_or_active=2;
+    return true;
+}
+void finish_retail_park_drag(SaveData& d,I32 slot) noexcept {
+    if(!valid_slot(slot,0,400))return;
+    auto& o=d.objects[slot];
+    // Original 0040E3E0 deliberately excludes a disconnected pillar
+    // in slots 201..299. It remains hidden when returned to the toolbar.
+    if(o.object_code!=-1&&(slot<201||slot>=300||o.bound_category!=1))
+        o.enabled_or_active=1;
+}
+
 ParkPlacement delete_retail_park_object(SaveData& d,I32 slot,retail::OriginalRetailRandom& rng) {
     if(!valid_slot(slot,0,400))return {};
     auto& o=d.objects[slot];

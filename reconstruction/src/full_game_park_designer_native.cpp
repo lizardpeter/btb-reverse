@@ -53,11 +53,9 @@ void RetailParkDesignerNativeService::begin_session() noexcept {
     backing_started_=false;back_hover_=false;
 }
 void RetailParkDesignerNativeService::cancel_drag(p::SaveData& d) noexcept {
-    if(selection_&&selection_->slot){
-        auto& o=d.objects[*selection_->slot];
-        if(o.object_code!=-1)o.enabled_or_active=1;
-    }
-    selection_.reset();controls_.cursor_mode=0;
+    if(selection_&&selection_->slot)p::finish_retail_park_drag(d,*selection_->slot);
+    selection_.reset();
+    controls_.cursor_mode=0;
 }
 std::optional<std::pair<int,int>> RetailParkDesignerNativeService::take_queued_voice() noexcept {
     return std::exchange(queued_,std::nullopt);
@@ -238,7 +236,8 @@ bool RetailParkDesignerNativeService::update_editor(p::SaveData& d,const p::Boun
                     d.state(S::ActiveEditorMode)=family;
                     d.state(p::kCurrentPageStateByEditorMode[family])=record.bound_category;
                     selection_=Selection{static_cast<p::EditorMode>(family),record.bound_category,record.bound_variant,pick->record_slot};
-                    controls_.cursor_mode=2;record.enabled_or_active=2;
+                    if(p::begin_retail_park_drag(d,pick->record_slot))controls_.cursor_mode=2;
+                    else selection_.reset();
                 }
             }
         }

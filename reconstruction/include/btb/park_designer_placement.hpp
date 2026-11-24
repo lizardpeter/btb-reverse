@@ -45,6 +45,11 @@ inline constexpr std::array<Vec2i,4> kRetailBandstandPillarAnchors{{
 [[nodiscard]] ParkPlacement commit_retail_bandstand(SaveData&,I32 x,I32 y,I32 variant,
     std::optional<I32> moving_slot,retail::OriginalRetailRandom&);
 
+// 0040E440 pickup and 0040E3E0 finish: pillar pickup removes its roof
+// and unlinks its old anchor before the carried object can be placed.
+[[nodiscard]] bool begin_retail_park_drag(SaveData&,I32 slot) noexcept;
+void finish_retail_park_drag(SaveData&,I32 slot) noexcept;
+
 // Deletion uses source mode 1 picking, which excludes auxiliary pond
 // layers (101..199); the selected primary and fountain have distinct
 // family cleanup effects. The operation returns the original voice.

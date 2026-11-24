@@ -47,6 +47,26 @@ int main(){
     assert(roof.status==p::PlacementStatus::Placed&&roof.slot==206); // source skips slot 205
     assert(d.state(S::NextBandstandRecord)==207&&d.objects[205].object_code==-1);
     assert(d.objects[206].sprite_width==127&&d.objects[206].sprite_height==81);
+    // Source pickup unlinks one pillar and removes the roof immediately.
+    assert(p::begin_retail_park_drag(d,201));
+    assert(d.objects[201].enabled_or_active==2&&d.objects[206].object_code==-1);
+    assert(d.state(S::PondLinkedCount)==3&&d.state(S::BandstandPaletteMaxPage)==1);
+    assert(d.state(S::PondLinkedRecord0)==-1&&d.state(S::SelectedObjectRecord)==-1);
+    d.state(S::BandstandPalettePage)=1;
+    const auto anchor=p::kRetailBandstandPillarAnchors[0];
+    auto moved=p::commit_retail_bandstand(d,200+anchor.x,200+anchor.y-64,0,201,rng);
+    assert(moved.status==p::PlacementStatus::Placed&&moved.slot==201);
+    assert(d.state(S::PondLinkedCount)==4&&d.state(S::PondLinkedRecord0)==201);
+    assert(d.objects[201].enabled_or_active==1);
+    assert(p::begin_retail_park_drag(d,202));
+    p::finish_retail_park_drag(d,202);
+    assert(d.objects[202].enabled_or_active==2&&d.state(S::PondLinkedCount)==3);
+    assert(d.state(S::PondLinkedRecord1)==-1);
+    // Reinsert the disconnected pillar before exercising delete.
+    d.state(S::BandstandPalettePage)=1;
+    const auto anchor1=p::kRetailBandstandPillarAnchors[1];
+    assert(p::commit_retail_bandstand(d,200+anchor1.x,200+anchor1.y-64,0,202,rng).status==p::PlacementStatus::Placed);
+    assert(d.state(S::PondLinkedCount)==4);
     assert(p::delete_retail_park_object(d,201,rng).status==p::PlacementStatus::Placed);
     assert(d.objects[206].object_code==-1&&d.state(S::PondLinkedCount)==3&&d.state(S::BandstandPaletteMaxPage)==1);
     assert(p::delete_retail_park_object(d,200,rng).voice==244);
