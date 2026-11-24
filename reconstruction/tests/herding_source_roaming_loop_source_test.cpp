@@ -31,12 +31,12 @@ int main() {
     const auto entity=original_test_entity();
     const auto anchor=h::original_herding_recovery_anchor(entity);
     // Retail starts from x+(left-right)/2, NOT x+width/2.
-    assert(anchor && *anchor==(h::Vec2i{458,451}));
+    assert(anchor && *anchor==(h::Vec2i{458,491}));
     auto odd=entity;
     odd.source_right=41;
     odd.source_bottom=43;
     assert(h::original_herding_recovery_anchor(odd) ==
-           (h::Vec2i{458,450})); // negative signed halves truncate
+           (h::Vec2i{458,492})); // signed halves truncate
 
     // A six-point exclusion-region fixture whose interior begins Y=477.
     // Source 0x417F7C tests group TWO, not group-zero navigation.
@@ -78,7 +78,7 @@ int main() {
     assert(status==h::OriginalRoamingLoopStatus::Accepted);
     assert(state.finished);
     assert(state.attempts==3 && state.consumed_random_calls==6);
-    assert(state.entity.x==479);
+    assert(state.entity.x==478);
     assert(state.entity.y==478);
     assert(state.entity.previous_x==478);
     assert(state.entity.previous_y==471);

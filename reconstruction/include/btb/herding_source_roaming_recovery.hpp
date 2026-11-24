@@ -16,8 +16,8 @@ namespace btb::herding {
 // integer X/Y FROM saved previous_x/previous_y before computing the
 // original negative-half-cell STEERING ANCHOR:
 // restored X + signed_trunc((source_left-source_right)/2),
-// restored Y + signed_trunc((source_top-source_bottom)/2).
-// This anchor is LEFT/ABOVE the entity top-left for positive sprite
+// restored Y + signed_trunc((source_bottom-source_top)/2).
+// This anchor is LEFT/BELOW the entity top-left for positive sprite
 // extents, NOT the usual visual sprite center. The calling same-frame
 // loop is reconstructed in herding_source_roaming_loop.hpp.
 //

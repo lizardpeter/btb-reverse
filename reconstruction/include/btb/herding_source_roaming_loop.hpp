@@ -15,7 +15,7 @@ namespace btb::herding {
 // Retail 0x417FCA..0x417FFC computes the SOURCE anchor from the
 // current integer sprite position and half its signed cell extents:
 // x + trunc((source_left - source_right)/2)
-// y + trunc((source_top  - source_bottom)/2).
+// y + trunc((source_bottom - source_top)/2).
 // This is NOT the ordinary (x+width/2,y+height/2) center.
 // The original CDQ/SUB/SAR sequence implements truncation toward zero
 // for the negative differences. Use wide signed intermediates here
@@ -29,7 +29,7 @@ original_herding_recovery_anchor(
         (static_cast<std::int64_t>(e.source_left)-e.source_right)/2;
     const std::int64_t shifted_y =
         static_cast<std::int64_t>(e.y) +
-        (static_cast<std::int64_t>(e.source_top)-e.source_bottom)/2;
+        (static_cast<std::int64_t>(e.source_bottom)-e.source_top)/2;
     if (shifted_x<std::numeric_limits<std::int32_t>::min() ||
         shifted_x>std::numeric_limits<std::int32_t>::max() ||
         shifted_y<std::numeric_limits<std::int32_t>::min() ||
@@ -68,7 +68,7 @@ struct OriginalRoamingLoop {
 // polygon. If inside (native PointInPolygon returns 0), exit.
 // Otherwise 0x4180FB jumps BACK to 0x417FB2: restore current
 // INTEGER X/Y from the SAVED previous_x/previous_y, derive the
-// signed negative-half-sprite anchor using those restored integers,
+// signed negative-half-width/positive-half-height anchor using those restored integers,
 // consume two NEW shared rand()%4 values, and apply 3-unit movement
 // to the ACCUMULATING FLOAT X/Y. Each candidate is tested against
 // group two until its integer position lies inside. The previous

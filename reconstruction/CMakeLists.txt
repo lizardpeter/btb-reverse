@@ -292,6 +292,39 @@ target_link_libraries(btb_herding_presentation_tests PRIVATE btb_herding)
 add_test(NAME herding_presentation COMMAND btb_herding_presentation_tests)
 
 
+# Compile and exercise all isolated Pets Corner source kernels, which
+# previously existed on disk without being registered in CTest.
+set(BTB_HERDING_PURE_TARGETS "")
+foreach(test_name IN ITEMS
+    herding_navigation_boundary_source
+    herding_retail_rect_contact_source
+    herding_source_animal_chatter_source
+    herding_source_follower_approach_source
+    herding_source_heading_source
+    herding_source_home_arrival_source
+    herding_source_partial_dispatcher_source
+    herding_source_roam_braking_source
+    herding_source_roaming_loop_source
+    herding_source_roaming_recovery_source
+    herding_source_scruffty_patrol_source
+    herding_source_steering_source
+    herding_source_temporary_target_source
+    herding_source_tracked_targets_source
+)
+    set(target_name btb_${test_name}_tests)
+    add_executable(${target_name} tests/${test_name}_test.cpp)
+    target_link_libraries(${target_name} PRIVATE btb_herding)
+    btb_require_cpp26(${target_name} PRIVATE)
+    if(MSVC)
+        target_compile_options(${target_name} PRIVATE /UNDEBUG)
+    else()
+        target_compile_options(${target_name} PRIVATE -UNDEBUG)
+    endif()
+    add_test(NAME ${test_name} COMMAND ${target_name})
+    list(APPEND BTB_HERDING_PURE_TARGETS ${target_name})
+endforeach()
+add_custom_target(btb_herding_pure_source_regressions DEPENDS ${BTB_HERDING_PURE_TARGETS})
+
 add_library(btb_park_designer
     src/park_designer_data.cpp
     src/park_designer_runtime.cpp
@@ -1293,6 +1326,27 @@ target_link_libraries(btb_full_game_herding_firstpass_native_tests PRIVATE
 btb_require_cpp26(btb_full_game_herding_firstpass_native_tests PRIVATE)
 add_test(NAME full_game_herding_firstpass_native
     COMMAND btb_full_game_herding_firstpass_native_tests)
+set(BTB_HERDING_INTEGRATED_TARGETS btb_full_game_herding_firstpass_native_tests)
+foreach(test_name IN ITEMS
+    full_game_herding_event_simulation_source
+    full_game_herding_presentation_source
+    full_game_herding_source
+    herding_behavior_bridge_source
+)
+    set(target_name btb_${test_name}_tests)
+    add_executable(${target_name} tests/${test_name}_test.cpp)
+    target_link_libraries(${target_name} PRIVATE btb_recompiled_core)
+    btb_require_cpp26(${target_name} PRIVATE)
+    if(MSVC)
+        target_compile_options(${target_name} PRIVATE /UNDEBUG)
+    else()
+        target_compile_options(${target_name} PRIVATE -UNDEBUG)
+    endif()
+    add_test(NAME ${test_name} COMMAND ${target_name})
+    list(APPEND BTB_HERDING_INTEGRATED_TARGETS ${target_name})
+endforeach()
+add_custom_target(btb_herding_source_regressions DEPENDS
+    ${BTB_HERDING_PURE_TARGETS} ${BTB_HERDING_INTEGRATED_TARGETS})
 
 add_executable(btb_full_game_squirrel_native_tests
     tests/full_game_squirrel_native_test.cpp)
