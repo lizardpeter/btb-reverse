@@ -66,7 +66,7 @@ struct LoopFrame {
 // Invoked synchronously at the SAME point as original DrawParkDesignerActivity
 // and UpdateParkDesignerEditorInteraction. A false result aborts the current
 // host frame with an explicit error, not a fabricated rendered/edited frame.
-using SceneDraw = std::function<bool(const SaveData&,std::string&)>;
+using SceneDraw = std::function<bool(SaveData&,std::string&)>;
 using EditorUpdate = std::function<bool(SaveData&,std::string&)>;
 
 // Pure outer state control flow of 00410D10. Source-level closures for draw

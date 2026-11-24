@@ -4,6 +4,7 @@
 // supplied by a native scene/editor service, never synthesized here.
 #include "btb/full_game_runtime.hpp"
 #include "btb/park_designer_activity_loop.hpp"
+#include "btb/retail_crt_random.hpp"
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -18,10 +19,14 @@ public:
     // A service must render genuine retail bitmap surfaces, via its own
     // original resource mapping, and populate source-neutral host Draws.
     virtual bool render(
-        const park_designer::SaveData&,
+        park_designer::SaveData&,
         const park_designer::BoundAreas&,
         ActivityFrameOutput&,std::string&) = 0;
-    // This callback is 0x0040E440; its full branch closure remains pending.
+    virtual void begin_session() noexcept {}
+    virtual void cancel_drag(park_designer::SaveData&) noexcept {}
+    virtual bool native_intro() const noexcept {return false;}
+    virtual std::optional<std::pair<int,int>> take_queued_voice() noexcept {return {};}
+    // Native translation of the recovered editor branches at 0x0040E440.
     virtual bool update_editor(
         park_designer::SaveData&,const park_designer::BoundAreas&,
         const ActivityFrameInput&,ActivityFrameOutput&,std::string&) = 0;
@@ -35,9 +40,10 @@ class ParkDesignerDriver final : public ActivityDriver {
 public:
     ParkDesignerDriver(std::filesystem::path original_data_dir,
         std::filesystem::path save_dir,
-        std::shared_ptr<ParkDesignerNativeService> service = {})
+        std::shared_ptr<ParkDesignerNativeService> service = {},
+        retail::OriginalRetailRandom* random = nullptr)
         : original_data_dir_(std::move(original_data_dir)),
-          save_dir_(std::move(save_dir)),service_(std::move(service)) {}
+          save_dir_(std::move(save_dir)),service_(std::move(service)),random_(random) {}
 
     [[nodiscard]] bool initialize(int player_index,std::string& error) override;
     [[nodiscard]] ActivityFrameOutput advance(const ActivityFrameInput& input) override;
@@ -63,6 +69,7 @@ private:
     std::filesystem::path original_data_dir_{};
     std::filesystem::path save_dir_{};
     std::shared_ptr<ParkDesignerNativeService> service_{};
+    retail::OriginalRetailRandom* random_{};
     std::optional<park_designer::BoundAreas> bounds_{};
     park_designer::LoopState state_{};
     int player_index_{-1};

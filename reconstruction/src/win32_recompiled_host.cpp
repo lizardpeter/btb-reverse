@@ -20,6 +20,7 @@
 #include "btb/full_game_fireworks.hpp"
 #include "btb/full_game_bobs_band.hpp"
 #include "btb/full_game_park_designer.hpp"
+#include "btb/full_game_park_designer_native.hpp"
 #include "btb/full_game_generic_ui.hpp"
 #include "btb/full_game_pregame_resources.hpp"
 #include "btb/full_game_startup_movies.hpp"
@@ -356,7 +357,9 @@ struct Host {
             root/"Data"/"SubGameOpen",profile_dir));
         game.install(ActivityId::ParkDesigner,
             std::make_unique<ParkDesignerDriver>(
-                root/"Data"/"SubGameDYP",profile_dir));
+                root/"Data"/"SubGameDYP",profile_dir,
+                std::make_shared<RetailParkDesignerNativeService>(original_game_random),
+                &original_game_random));
 
         // An explicitly selected profile is a diagnostic shortcut. Normal
         // launches use retail state 0: the real videoseq.txt movies, followed

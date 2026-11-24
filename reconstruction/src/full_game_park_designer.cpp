@@ -45,6 +45,15 @@ bool ParkDesignerDriver::initialize(int player_index,std::string& error) {
             // Fresh original activity: 00410D10 clears the 400 records,
             // selection globals and original page counters once.
             loaded.reset_all_pending=true;
+            loaded.save.state(park_designer::TrailingStateIndex::DecoratePaletteMaxPage)=3;
+            for(auto& object:loaded.save.objects){object.object_code=-1;object.bound_category=-1;}
+        }
+        if(service_) {
+            service_->begin_session();
+            if(service_->native_intro()) {
+                loaded.intro_music_pending=true;
+                loaded.intro_managed_voice_pending=!park_designer::has_any_placed_object(loaded.save);
+            }
         }
         state_=std::move(loaded);
         bounds_=std::move(parsed);
@@ -69,7 +78,7 @@ ActivityFrameOutput ParkDesignerDriver::advance(const ActivityFrameInput& input)
         return output;
     }
     if(input.confirmation_resolved&&awaiting_delete_all_confirmation_) {
-        if(input.confirmation_yes)state_.reset_all_pending=true;
+        if(input.confirmation_yes){service_->cancel_drag(state_.save);service_->begin_session();state_.reset_all_pending=true;}
         awaiting_delete_all_confirmation_=false;
     }
 
@@ -77,16 +86,23 @@ ActivityFrameOutput ParkDesignerDriver::advance(const ActivityFrameInput& input)
     park_designer::LoopInput loop_input{};
     loop_input.managed_sound_playing=input.managed_sound_playing;
     loop_input.random_value=static_cast<std::uint32_t>(input.random_value);
+    if(random_&&(state_.exit_requested||state_.shutdown_requested)&&state_.outro_stage==0)
+        loop_input.random_value=static_cast<std::uint32_t>(random_->next_rand());
     const auto frame=park_designer::advance_park_designer_loop(
         state_,loop_input,
-        [&](const park_designer::SaveData& save,std::string& err) {
+        [&](park_designer::SaveData& save,std::string& err) {
             return service_->render(save,*bounds_,output,err);
         },
         [&](park_designer::SaveData& save,std::string& err) {
             if(!service_->update_editor(save,*bounds_,input,output,err))
                 return false;
-            if(output.open_yes_no_confirmation)
+            if(output.open_yes_no_confirmation){
                 awaiting_delete_all_confirmation_=true;
+                state_.queued_voice=-1;
+            }
+            if(auto voice=service_->take_queued_voice();voice&&state_.queued_voice<0&&!output.open_yes_no_confirmation){
+                state_.queued_voice=voice->first;state_.queued_voice_context=voice->second;
+            }
             return true;
         });
     if(frame.error) {
@@ -110,17 +126,18 @@ ActivityFrameOutput ParkDesignerDriver::advance(const ActivityFrameInput& input)
     if(frame.completed) {
         if(frame.mark_park_progress) {
             output.progress_writes.push_back({progress::Slot::ParkDesigner,1});
+            output.shared_completion_code=7;
         }
         output.save_and_unload=true;
-        if(frame.return_to_activity_select)
-            output.next_outer_state=static_cast<int>(
-                game_flow::State::ActivitySelectSetup);
+        output.next_outer_state=static_cast<int>(frame.mark_park_progress?
+            game_flow::State::SharedMovieTransition:game_flow::State::ActivitySelectSetup);
     }
     return output;
 }
 
 bool ParkDesignerDriver::unload(std::string& error) {
     if(!initialized()){error.clear();return true;}
+    if(service_)service_->cancel_drag(state_.save);
     std::error_code ec;
     std::filesystem::create_directories(save_dir_,ec);
     if(ec){error="cannot create Park Designer profile directory: "+ec.message();return false;}

@@ -893,7 +893,8 @@ add_test(NAME park_designer_activity_loop
 
 add_library(btb_full_game_park_designer_source
     src/full_game_park_designer.cpp
-    src/full_game_park_scene.cpp)
+    src/full_game_park_scene.cpp
+    src/full_game_park_designer_native.cpp)
 target_include_directories(btb_full_game_park_designer_source PUBLIC include)
 btb_require_cpp26(btb_full_game_park_designer_source PUBLIC)
 target_link_libraries(btb_full_game_park_designer_source PUBLIC

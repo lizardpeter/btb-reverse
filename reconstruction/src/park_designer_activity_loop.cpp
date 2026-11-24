@@ -3,7 +3,7 @@
 namespace btb::park_designer {
 namespace {
 [[nodiscard]] bool call_draw(
-    LoopFrame& out,const LoopState& state,const SceneDraw& callback) {
+    LoopFrame& out,LoopState& state,const SceneDraw& callback) {
     if(!callback){out.error="original Park Designer DrawParkDesignerActivity provider unavailable";return false;}
     std::string error;
     if(!callback(state.save,error)) {
