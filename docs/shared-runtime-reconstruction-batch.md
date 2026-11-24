@@ -2,7 +2,7 @@
 
 Recovered from the SHA-256-pinned 311,296-byte main executable, using
 `analysis/ghidra_main_exe/functions/*.c` and existing exact 32-bit C++ layouts.
-The code in `reconstruction/include/btb/retail_shared_runtime.hpp` models
+The code in `include/btb/retail_shared_runtime.hpp` models
 retail observable state transitions or COM/Bink call ordering in C++26.
 
 ## Reconstructed routines

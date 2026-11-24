@@ -16,11 +16,11 @@ the checked-in Ghidra files and produces:
 
 | Output | Purpose |
 |---|---|
-| \`analysis/reconstruction/function_status.csv\` | Every original address, current review stage, module, exact pseudocode link, dependency counts, test and evidence paths |
-| \`analysis/reconstruction/work_queue.csv\` | Ranked tasks, dependency-first with stable address ties; priority is a heuristic, not completion evidence |
-| \`analysis/reconstruction/dependency_groups.json\` | Tarjan strongly connected components and external dependency groups; functions in cycles should be reconstructed as one group |
-| \`analysis/reconstruction/summary.json\` | Machine-verifiable coverage counts, subsystem sizes and unresolved status |
-| \`reconstruction/include/btb/original_function_registry.hpp\` | Compilable C++26, constexpr table of all 615 original addresses and names, binary-search lookup; **does not implement any original function** |
+| \`records/function_status.csv\` | Every original address, current review stage, module, exact pseudocode link, dependency counts, test and evidence paths |
+| \`records/work_queue.csv\` | Ranked tasks, dependency-first with stable address ties; priority is a heuristic, not completion evidence |
+| \`records/dependency_groups.json\` | Tarjan strongly connected components and external dependency groups; functions in cycles should be reconstructed as one group |
+| \`records/summary.json\` | Machine-verifiable coverage counts, subsystem sizes and unresolved status |
+| \`include/btb/original_function_registry.hpp\` | Compilable C++26, constexpr table of all 615 original addresses and names, binary-search lookup; **does not implement any original function** |
 
 The subsystem boundaries come from \`docs/module-map.md\` and are **approximate**.
 They provide scheduling hints, not proof that every address belongs to the
@@ -29,7 +29,7 @@ suggested activity or that unrelated code is independent.
 ## Reconstruction state: evidence only, never inferred
 
 Do **not** edit the generated outputs. Edit the sparse manual overlay
-\`analysis/reconstruction/reviewed_functions.csv\`, one row per **proven**
+\`records/reviewed_functions.csv\`, one row per **proven**
 reconstruction:
 
 \`\`\`csv

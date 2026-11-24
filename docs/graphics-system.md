@@ -147,7 +147,7 @@ The renderer is specifically **DirectDraw 7**, even though the executable otherw
 ## Source-level display-manager reconstruction
 
 The DirectDraw wrapper is now represented source-level in
-`reconstruction/include/btb/display_manager.hpp`.
+`include/btb/display_manager.hpp`.
 
 The exact initialization contracts are:
 

@@ -8,13 +8,13 @@ twelve `loaddata/uiHotAreaReplace.txt` screens.
 
 Source and evidence:
 
-- `reconstruction/include/btb/full_game_menu_actions.hpp` — constexpr
+- `include/btb/full_game_menu_actions.hpp` — constexpr
   control/choice policy, preserving the original negative action values.
-- `reconstruction/src/full_game_runtime.cpp` — consumes the selected
+- `src/full_game_runtime.cpp` — consumes the selected
   action **after** the generic UI's managed click voice has completed.
 - `ghidra/gameflow_menu_action_routes.csv` — per-branch executable
   handler address, destination state and modified global.
-- `reconstruction/tests/full_game_menu_actions_source_test.cpp` —
+- `tests/full_game_menu_actions_source_test.cpp` —
   source-only regression cases for all recovered branches (not executed).
 
 ## Original 68-state dispatcher branch tables

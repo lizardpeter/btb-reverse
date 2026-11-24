@@ -114,8 +114,8 @@ At `0x00414A30`, another helper converts an integer angle plus magnitude into X/
 
 The typed parser lives in:
 
-- `reconstruction/include/btb/golf_data.hpp`
-- `reconstruction/src/golf_data.cpp`
+- `include/btb/golf_data.hpp`
+- `src/golf_data.cpp`
 
 It preserves the shipped undocumented `(105,247)` pair and the fact that the executable's next scan fails on the comment section.
 

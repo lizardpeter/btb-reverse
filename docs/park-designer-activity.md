@@ -233,9 +233,9 @@ The mouse/object-local point is tested against the polygon after subtracting the
 
 Current buildable source:
 
-- `reconstruction/include/btb/park_designer_data.hpp`
-- `reconstruction/src/park_designer_data.cpp`
-- `reconstruction/tests/park_designer_data_test.cpp`
+- `include/btb/park_designer_data.hpp`
+- `src/park_designer_data.cpp`
+- `tests/park_designer_data_test.cpp`
 
 It currently covers:
 

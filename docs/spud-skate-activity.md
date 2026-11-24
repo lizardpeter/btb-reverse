@@ -247,8 +247,8 @@ When `UpdateSpudSkateActivity` sees phase 2 it:
 3. enters main game-flow state `0x3C` (Play Again Yes/No).
 
 The exact gameplay runtime is now represented in
-`reconstruction/include/btb/spud_skate_runtime.hpp` and
-`reconstruction/src/spud_skate_runtime.cpp`.
+`include/btb/spud_skate_runtime.hpp` and
+`src/spud_skate_runtime.cpp`.
 
 
 ## Exact synchronized rendering
@@ -291,8 +291,8 @@ The runtime/global map is machine-readable in
 
 The presentation layer is now represented directly in:
 
-- `reconstruction/include/btb/spud_skate_presentation.hpp`
-- `reconstruction/tests/spud_skate_presentation_test.cpp`
+- `include/btb/spud_skate_presentation.hpp`
+- `tests/spud_skate_presentation_test.cpp`
 
 The exact retail surface bindings are:
 
@@ -374,14 +374,14 @@ movie code at `0x00446F38` is non-`-1`, it overrides that route with
 
 Current source:
 
-- `reconstruction/include/btb/spud_skate_data.hpp`
-- `reconstruction/src/spud_skate_data.cpp`
-- `reconstruction/include/btb/spud_skate_runtime.hpp`
-- `reconstruction/src/spud_skate_runtime.cpp`
-- `reconstruction/include/btb/spud_skate_presentation.hpp`
-- `reconstruction/tests/spud_skate_data_test.cpp`
-- `reconstruction/tests/spud_skate_runtime_test.cpp`
-- `reconstruction/tests/spud_skate_presentation_test.cpp`
+- `include/btb/spud_skate_data.hpp`
+- `src/spud_skate_data.cpp`
+- `include/btb/spud_skate_runtime.hpp`
+- `src/spud_skate_runtime.cpp`
+- `include/btb/spud_skate_presentation.hpp`
+- `tests/spud_skate_data_test.cpp`
+- `tests/spud_skate_runtime_test.cpp`
+- `tests/spud_skate_presentation_test.cpp`
 
 It now implements:
 

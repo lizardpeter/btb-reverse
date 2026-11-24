@@ -218,7 +218,7 @@ frame-time baseline instead of busy-looping.
 
 ## Reconstruction
 
-`reconstruction/include/btb/application_state.hpp` now records the recovered
+`include/btb/application_state.hpp` now records the recovered
 retail values without imposing a modern application class:
 
 - `ShutdownPhase`
@@ -235,7 +235,7 @@ reconstruction preserves the original global-state design.
 ## Source-level active-frame control
 
 `0x00402440 RunActiveGameFrame` is now represented by
-`reconstruction/include/btb/application_runtime.hpp`.
+`include/btb/application_runtime.hpp`.
 
 The exact early-return ordering is preserved:
 
@@ -272,7 +272,7 @@ active-frame routine.
 ### DirectInput shared cursor runtime
 
 The common DirectInput/cursor portion is now represented in
-`reconstruction/include/btb/input_runtime.hpp`.
+`include/btb/input_runtime.hpp`.
 
 Initialization uses DirectInput version **0x0800**. The pointer device uses
 cooperative flags **5**; the keyboard uses **0x16**. After setup retail applies

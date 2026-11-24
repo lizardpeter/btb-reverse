@@ -7,16 +7,16 @@ and Windows preview packaging remain intentionally deferred.
 
 ## Source files
 
-- `reconstruction/include/btb/full_game_audio.hpp`
-- `reconstruction/src/full_game_audio.cpp`
-- `reconstruction/include/btb/original_asset_resolver.hpp`
-- `reconstruction/src/original_asset_resolver.cpp`
-- `reconstruction/include/btb/full_game_resources.hpp`
-- `reconstruction/src/full_game_resources.cpp`
-- `reconstruction/include/btb/full_game_effect_pipeline.hpp`
-- `reconstruction/src/full_game_effect_pipeline.cpp`
+- `include/btb/full_game_audio.hpp`
+- `src/full_game_audio.cpp`
+- `include/btb/original_asset_resolver.hpp`
+- `src/original_asset_resolver.cpp`
+- `include/btb/full_game_resources.hpp`
+- `src/full_game_resources.cpp`
+- `include/btb/full_game_effect_pipeline.hpp`
+- `src/full_game_effect_pipeline.cpp`
 
-Deferred source regression files are in `reconstruction/tests/` with
+Deferred source regression files are in `tests/` with
 `full_game_audio_source_test.cpp`,
 `original_asset_resolver_source_test.cpp`,
 `full_game_resources_source_test.cpp`, and

@@ -2,9 +2,9 @@
 
 Each function below is directly recoverable from its Ghidra pseudocode
 (\`analysis/ghidra_main_exe/functions/<address>.c\`). The implementation
-is in \`reconstruction/include/btb/retail_leaf_runtime.hpp\` unless it was
+is in \`include/btb/retail_leaf_runtime.hpp\` unless it was
 already implemented as a matching tested source model. Tests are in
-\`reconstruction/tests/retail_leaf_runtime_test.cpp\`.
+\`tests/retail_leaf_runtime_test.cpp\`.
 
 **Scope:** Host-neutral original state mutations, arithmetic, table indexing,
 printer record access, cursor animation steps and low-level Bink call routing.

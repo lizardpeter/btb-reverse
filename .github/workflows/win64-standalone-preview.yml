@@ -54,27 +54,14 @@ jobs:
         run: cmake -S . -B build/win64-standalone -G "Visual Studio 18 2026" -A x64 -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DBTB_BUILD_ENHANCED=ON
       - name: Build separate faithful and enhanced executables
         run: cmake --build build/win64-standalone --config Release --target btb_game btb_game_enhanced --parallel
-      - name: Run executable's native linked-core smoke
-        run: ctest --test-dir build/win64-standalone -C Release --output-on-failure -R '^(recompiled_game_executable_link|enhanced_baseline_smoke) --no-tests=error
-      - name: Verify PE architecture and runtime imports
+      - name: Run both native linked-core smoke tests
+        run: ctest --test-dir build/win64-standalone -C Release --output-on-failure -R '^(recompiled_game_executable_link|enhanced_baseline_smoke)$' --no-tests=error
+      - name: Verify both PE architectures and runtime imports
         run: |
           python -m pip install pefile==2024.8.26
           python tools/verify_win64_preview.py build/win64-standalone/Release/btb_game.exe --out build/win64-standalone/Release/build-verification.json --require-static-crt
           python tools/verify_win64_preview.py build/win64-standalone/Release/btb_game_enhanced.exe --out build/win64-standalone/Release/enhanced-build-verification.json --require-static-crt
       - name: Package verified faithful executable
-        uses: actions/upload-artifact@v4
-        with:
-          name: btb-game-win64-standalone-preview
-          path: |
-            build/win64-standalone/Release/btb_game.exe
-            build/win64-standalone/Release/build-verification.json
-          if-no-files-found: error
- --no-tests=error
-      - name: Verify PE architecture and runtime imports
-        run: |
-          python -m pip install pefile==2024.8.26
-          python tools/verify_win64_preview.py build/win64-standalone/Release/btb_game.exe --out build/win64-standalone/Release/build-verification.json --require-static-crt
-      - name: Package verified source-only executable
         uses: actions/upload-artifact@v4
         with:
           name: btb-game-win64-standalone-preview

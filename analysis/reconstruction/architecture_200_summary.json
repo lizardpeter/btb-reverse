@@ -2,7 +2,7 @@
   "architecture_mapped": 200,
   "confidence": "hypothesis_and_original_evidence_only",
   "direct_call_edges": 1150,
-  "existing_source_written": 191,
+  "existing_source_written": 0,
   "functions_with_ghidra_warnings": 77,
   "game_platform_mapped": 181,
   "globals_crossing_modules": 327,

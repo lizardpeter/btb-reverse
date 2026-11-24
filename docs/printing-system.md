@@ -237,8 +237,8 @@ This is a common sprite compositor used by Dino and many other activity modules.
 ## C++26 reconstruction status
 
 The shared printer is now represented in
-`reconstruction/include/btb/printing_system.hpp` and
-`reconstruction/src/printing_system.cpp`.
+`include/btb/printing_system.hpp` and
+`src/printing_system.cpp`.
 
 Covered source-level behavior includes:
 
