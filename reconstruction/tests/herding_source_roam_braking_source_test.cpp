@@ -24,16 +24,16 @@ int main() {
     assert(high->advanced_frame);
 
     const auto duck=h::original_herding_roam_brake_and_animate(
-        h::EntityType::Duck,0.0f,5,19);
+        h::EntityType::Duck,0.0f,6,19);
     assert(duck);
     assert(duck->speed==0.1f);
-    assert(duck->animation_frame==0);
+    assert(duck->animation_frame==3);
     assert(duck->animation_countdown==100);
 
     const auto rabbit=h::original_herding_roam_brake_and_animate(
-        h::EntityType::Rabbit,0.39f,6,-5);
+        h::EntityType::Rabbit,0.39f,5,-5);
     assert(rabbit);
-    assert(rabbit->animation_frame==3);
+    assert(rabbit->animation_frame==0);
     assert(rabbit->animation_countdown==100);
 
     const auto not_yet=h::original_herding_roam_brake_and_animate(

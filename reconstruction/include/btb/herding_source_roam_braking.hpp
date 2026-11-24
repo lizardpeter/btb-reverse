@@ -64,10 +64,10 @@ original_herding_roam_brake_and_animate(
             if (frame>=10) frame=6;
             break;
         case EntityType::Rabbit:
-            if (frame>=7) frame=3;
+            if (frame>=6) frame=0;
             break;
         case EntityType::Duck:
-            if (frame>=6) frame=0;
+            if (frame>=7) frame=3;
             break;
         default: break;
         }

@@ -243,7 +243,7 @@ int main() {
     static_assert(kRabbitGeometry.frames_per_direction == 10);
     static_assert(kDuckGeometry.frame_width == 53);
     static_assert(kDuckGeometry.frame_height == 50);
-    static_assert(kDuckGeometry.frames_per_direction == 6);
+    static_assert(kDuckGeometry.frames_per_direction == 12);
     static_assert(kScrufftyGeometry.frame_width == 86);
     static_assert(kScrufftyGeometry.frame_height == 87);
     static_assert(kScrufftyGeometry.frames_per_direction == 7);
@@ -261,7 +261,11 @@ int main() {
     constexpr auto duck =
         directional_source_rect(EntityType::Duck, 1, 5);
     static_assert(duck);
-    static_assert(*duck == RenderRect{583,0,636,50});
+    static_assert(*duck == RenderRect{901,0,954,50});
+
+    // The last delivered duck frame must remain inside the real 5088px sheet.
+    static_assert(directional_source_rect(EntityType::Duck,7,11) ==
+        RenderRect{5035,0,5088,50});
 
     constexpr auto scruffty =
         directional_source_rect(EntityType::Scruffty, 7, 3);

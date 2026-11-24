@@ -262,7 +262,7 @@ pickles_source_rect(
 
 inline constexpr SpriteSheetGeometry kSheepGeometry{98,103,10};
 inline constexpr SpriteSheetGeometry kRabbitGeometry{73,69,10};
-inline constexpr SpriteSheetGeometry kDuckGeometry{53,50,6};
+inline constexpr SpriteSheetGeometry kDuckGeometry{53,50,12};
 inline constexpr SpriteSheetGeometry kScrufftyGeometry{86,87,7};
 
 struct RenderAnimationStep {

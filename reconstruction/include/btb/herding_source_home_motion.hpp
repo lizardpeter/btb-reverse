@@ -67,9 +67,9 @@ original_herding_home_route_motion(
                 moved.animation_frame=9;
             if(second)moved.animation_frame_countdown=100;
         } else {
-            const int start=species==EntityType::Sheep?6:3;
-            const int last=species==EntityType::Sheep?9:6;
-            if(moved.animation_frame<start || moved.animation_frame>last)
+            const int start=species==EntityType::Sheep?6:0;
+            const int last=species==EntityType::Sheep?9:5;
+            if(moved.animation_frame>last)
                 moved.animation_frame=start;
             moved.animation_frame_countdown=100;
         }

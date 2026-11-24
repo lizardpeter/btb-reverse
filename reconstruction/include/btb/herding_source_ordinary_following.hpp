@@ -155,7 +155,7 @@ original_herding_ordinary_follower_step(
             speed*10.0);
         if(speed==0.0) {
             const int first=before.entity_type()==EntityType::Sheep?6:
-                before.entity_type()==EntityType::Rabbit?3:0;
+                before.entity_type()==EntityType::Rabbit?0:3;
             moved.animation_frame=before.entity_type()==EntityType::Sheep
                 ? first-1:first;
             moved.animation_frame_countdown=101;
@@ -168,9 +168,9 @@ original_herding_ordinary_follower_step(
         moved.animation_frame_countdown=100;
         ++moved.animation_frame;
         const int first=before.entity_type()==EntityType::Sheep?6:
-            before.entity_type()==EntityType::Rabbit?3:0;
+            before.entity_type()==EntityType::Rabbit?0:3;
         const int end=before.entity_type()==EntityType::Sheep?10:
-            before.entity_type()==EntityType::Rabbit?7:6;
+            before.entity_type()==EntityType::Rabbit?6:7;
         if(moved.animation_frame>=end)moved.animation_frame=first;
     }
     return RetailOrdinaryFollowerStep{
