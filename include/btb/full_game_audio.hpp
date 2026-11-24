@@ -62,6 +62,7 @@ struct SoundEffect {
     int slot{-1};
     int sound_id{-1};
     std::string filename{};
+    bool backing_loop{true};
 };
 
 struct AudioFramePlan {
@@ -79,6 +80,7 @@ struct ManagedSoundObservation {
     // Each native load is allowed to fail independently. The caller supplies
     // the status for a pending *new* buffer-group allocation (if attempted).
     bool next_managed_load_succeeds{true};
+    bool backing_track_playing{};
 };
 
 // Maps GameRoot's source-neutral Audio effects to the original 80-slot

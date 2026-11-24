@@ -104,12 +104,15 @@ int main() {
     assert(missing.missing_catalog_sound_ids[0] == 599);
 
     const auto direct = planner.plan({
-        {AudioOperation::StartBackingTrack, "Data/SubGameOpen/bobmt.wav"},
+        {.operation=AudioOperation::StartBackingTrack, .source_asset="Data/SubGameOpen/bobmt.wav", .backing_loop=false},
         {AudioOperation::PlaySampleFile, "Data/SubGameOpen/roley1_5.wav"},
         {AudioOperation::StopBackingTrack},
     }, {});
     assert(direct.operations.size() == 3);
     assert(direct.operations[0].kind == SoundEffectKind::StartBackingWav);
+    assert(!direct.operations[0].backing_loop);
+    const auto music=planner.plan({{AudioOperation::StartBackingTrack,"Data/music/golf.wav"}},{});
+    assert(music.operations.size()==1&&music.operations[0].backing_loop);
     assert(direct.operations[1].kind == SoundEffectKind::PlayDirectSample);
     assert(direct.operations[2].kind == SoundEffectKind::StopBackingWav);
 

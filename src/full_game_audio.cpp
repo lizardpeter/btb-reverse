@@ -157,7 +157,7 @@ AudioFramePlan AudioEffectPlanner::plan(
             }
             frame.operations.push_back({
                 SoundEffectKind::StartBackingWav, -1, -1,
-                request.source_asset
+                request.source_asset,request.backing_loop
             });
             break;
 

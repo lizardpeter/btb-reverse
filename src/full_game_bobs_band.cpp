@@ -60,6 +60,8 @@ Audio BobsBandDriver::convert_audio(
     switch (request.kind) {
     case bobs_band::AudioRequest::Kind::StartBacking:
         result.operation = AudioOperation::StartBackingTrack;
+        // Original 004201F8 pushes priority=0, flags=0 to 00404360.
+        result.backing_loop=false;
         break;
     case bobs_band::AudioRequest::Kind::PlayMachineSample:
         result.operation = AudioOperation::PlaySampleFile;

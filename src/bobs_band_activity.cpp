@@ -159,6 +159,8 @@ BandFrame Activity::advance(FrameInput input) {
     if (started) {
         editor_.start_playback();
         playback_.begin(conductor_);
+        // Original 0042019B..004201E5 samples its performance clock at Play.
+        performance_start_centiseconds_=std::max(0,input.elapsed_centiseconds);
         result.progress = ProgressWrite{
             52 + static_cast<int>(conductor_), 1, 6
         };
@@ -173,7 +175,7 @@ BandFrame Activity::advance(FrameInput input) {
         } else {
             const auto notes =
                 playback_.advance(editor_.composition(),
-                                  input.elapsed_centiseconds);
+                    std::max(0,input.elapsed_centiseconds)-performance_start_centiseconds_);
             for (const auto& sample : notes.started_samples) {
                 result.audio.push_back({
                     AudioRequest::Kind::PlayMachineSample,

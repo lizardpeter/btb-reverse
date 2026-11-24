@@ -169,6 +169,8 @@ struct Audio {
     int priority{};
     int arbitration_class{};
     bool input_interruptible{};
+    // Activity music ordinarily loops; the Band performance WAV plays once.
+    bool backing_loop{true};
 };
 struct ProgressMutation {
     progress::Slot slot{};

@@ -112,7 +112,7 @@ static machine animation rectangles
     static_cast<void>(game.advance(waiting));
     assert(installed->activity()->editor().play_pending());
 
-    const auto started = game.advance({});
+    const auto started = game.advance({.elapsed_centiseconds=3000});
     assert(started.effects.progress_writes.size() == 1);
     assert(game.globals().player_progress[0].get(
         btb::progress::Slot::BobsBandBob) == 1);
@@ -121,7 +121,8 @@ static machine animation rectangles
     assert(started.effects.audio[0].source_asset.find("bobmt.wav") !=
            std::string::npos);
 
-    const auto sec0 = game.advance({});
+    assert(!started.effects.audio[0].backing_loop);
+    const auto sec0 = game.advance({.elapsed_centiseconds=3001});
     assert(!sec0.effects.draws.empty());
     bool found_machine_note = false;
     for (const auto& audio : sec0.effects.audio) {
@@ -130,6 +131,10 @@ static machine animation rectangles
         }
     }
     assert(found_machine_note);
+    const auto finished=game.advance({.backing_track_playing=false,.elapsed_centiseconds=5400});
+    assert(!installed->activity()->playback().active());
+    assert(installed->activity()->editor().state()==btb::bobs_band::InternalState::EditIdle);
+    assert(finished.effects.audio.empty());
 
     // Exit drives BOTH original persistent file writes before switching
     // global game state to Play Again 0x3C.

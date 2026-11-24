@@ -101,6 +101,7 @@ private:
     MachineAnimations machines_{};
     ConductorEditorAnimation editor_conductor_{};
     Playback playback_{};
+    int performance_start_centiseconds_{};
     bool clear_confirmation_outstanding_{};
     bool emit_exit_once_{};
     retail::OriginalRetailRandom* shared_random_{};

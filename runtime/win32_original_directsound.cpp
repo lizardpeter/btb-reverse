@@ -270,6 +270,16 @@ bool Win32OriginalDirectSound::observe(
     reap_finished_samples();
     managed={};
     any_managed_voice_playing=false;
+    // Retail 0042028C polls the actual performance buffer for completion.
+    if(backing_) {
+        DWORD status=0;
+        const auto hr=backing_->GetStatus(&status);
+        if(FAILED(hr)) {
+            error=hr_error("GetStatus original backing track",hr);
+            return false;
+        }
+        managed.backing_track_playing=(status&DSBSTATUS_PLAYING)!=0;
+    }
     for (std::size_t i=0;i<slots_.size();++i) {
         auto* const buffer=slots_[i];
         if (!buffer) {
@@ -363,7 +373,7 @@ bool Win32OriginalDirectSound::apply(
         if (!create_wave_buffer(effect.source->absolute_path,backing_,error)) {
             return false;
         }
-        return play_once(backing_,true,error);
+        return play_once(backing_,effect.original.backing_loop,error);
     }
     if (kind==SoundEffectKind::EnsureActivityLoopWav) {
         const auto& file=effect.source->absolute_path;

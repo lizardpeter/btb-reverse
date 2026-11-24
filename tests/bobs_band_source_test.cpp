@@ -167,6 +167,7 @@ int main() {
     assert(app.editor().play_pending());
 
     FrameInput voice_done{};
+    voice_done.elapsed_centiseconds=6000;
     const auto start=app.advance(voice_done);
     assert(app.editor().state() == InternalState::Playback);
     assert(start.progress && start.progress->slot == 53);
@@ -175,6 +176,7 @@ int main() {
     assert(start.audio[0].filename == "Data\\SubGameOpen\\Wendymt.wav");
 
     FrameInput at_second_zero{};
+    at_second_zero.elapsed_centiseconds=6001;
     const auto sequence=app.advance(at_second_zero);
     assert(sequence.audio.size() == 1);
     assert(sequence.audio[0].filename ==
@@ -182,7 +184,7 @@ int main() {
     assert(app.playback().active());
 
     FrameInput same_second{};
-    same_second.elapsed_centiseconds=40;
+    same_second.elapsed_centiseconds=6040;
     const auto deduplicated=app.advance(same_second);
     assert(deduplicated.audio.empty());
 
