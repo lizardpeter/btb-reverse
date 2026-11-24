@@ -252,5 +252,58 @@ END
     assert(pickup.effects.progress_writes.empty());
     assert(pickup_game.globals().player_progress[1].get(
         btb::progress::Slot::Maze)==0);
+    // Entire easy-mode collection across all three screens, exercising
+    // live keyboard motion, paired portal landings, pickup animations and
+    // outcome/progress flow. Only this synthetic corridor fixture is used.
+    const char* corridor=R"(header
+west0 0 180 278 8 512 -1 -1 -1 1
+west1 1 80 278 2 0 -1 0 -1 -1
+NEXT_MiddleScreen
+mid0 0 40 278 2 128 -1 8 -1 -1
+mid8 8 247 278 10 0 -1 15 -1 0
+mid15 15 600 278 8 256 -1 -1 -1 8
+NEXT_EastScreen
+east0 0 40 278 2 512 -1 1 -1 -1
+east1 1 150 278 8 0 -1 -1 -1 0
+END
+80 267 1 80 267 1 80 267 1 80 267 1
+247 267 8 247 267 8 247 267 8 247 267 8
+150 267 1 150 267 1 150 267 1 150 267 1
+2.0
+1 1 2
+5 6 7
+240 180 120
+1500 1000 200
+6
+)";
+    std::ofstream(root/"loaddata"/"maze_nodes.txt")<<corridor;
+    auto complete=std::make_unique<fg::GameRoot>();
+    assert(complete->select_profile(0));
+    auto journey=std::make_unique<fg::MazeDriver>(root,0);
+    auto* live=journey.get();
+    complete->install(fg::ActivityId::Maze,std::move(journey));
+    complete->set_outer_state(State::MazeInit);
+    assert(complete->advance({}).kind==fg::FrameKind::ActivityInitialized);
+    int elapsed=0;
+    auto tick=[&](unsigned char keys=0) {
+        elapsed+=10;
+        auto f=complete->advance({.elapsed_centiseconds=elapsed,
+                                  .directional_input_bits=keys});
+        assert(!f.effects.fatal_error);
+        return f;
+    };
+    tick();tick();
+    for(int i=0;i<180;++i)tick();
+    assert(live->boxes().remaining==2&&!live->player()->frozen);
+    for(int i=0;i<300&&live->boxes().remaining==2;++i)tick(0x01);
+    assert(live->player()->screen==0&&live->boxes().remaining==1);
+    for(int i=0;i<100&&live->player()->frozen;++i)tick();
+    for(int i=0;i<500&&live->boxes().remaining>0;++i)tick(0x02);
+    assert(live->player()->screen==2&&live->boxes().remaining==0);
+    for(int i=0;i<5&&live->player();++i)tick();
+    assert(complete->globals().player_progress[0].get(
+        btb::progress::Slot::Maze)==1);
+    assert(complete->globals().dispatcher.current_state==
+           static_cast<int>(State::PlayAgainYesNoSetup));
     fs::remove_all(root);
 }

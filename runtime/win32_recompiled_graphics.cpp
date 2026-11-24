@@ -100,8 +100,13 @@ DWORD colorref_to_surface_pixel(
 HRESULT set_surface_transparency_color_key(
     IDirectDrawSurface7* surface,COLORREF color) noexcept {
     if (!surface) return DDERR_INVALIDPARAMS;
-    const DWORD native=colorref_to_surface_pixel(surface,color);
+    DWORD native=colorref_to_surface_pixel(surface,color);
     if (native==std::numeric_limits<DWORD>::max()) return E_FAIL;
+    DDPIXELFORMAT format{};format.dwSize=sizeof(format);
+    const HRESULT described=surface->GetPixelFormat(&format);
+    if(FAILED(described))return described;
+    if((format.dwFlags&DDPF_RGB)&&format.dwRGBBitCount==32)
+        native&=format.dwRBitMask|format.dwGBitMask|format.dwBBitMask;
     DDCOLORKEY key{native,native};
     return surface->SetColorKey(DDCKEY_SRCBLT,&key);
 }

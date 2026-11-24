@@ -39,7 +39,8 @@ struct LoadedBitmap {
 
 // 00415E50 BlitColorKeyedSurfaceClipped.
 // Applies original screen-space camera offsets and 640x480 cropping;
-// issues the actual DirectDraw keyed Blt operation (DDBLT_KEYSRC|WAIT).
+// Uses native keyed Blt in retail formats; same-format RGB32 desktop
+// surfaces use a locked RGB-only copy for deterministic color-key behavior.
 [[nodiscard]] HRESULT blit_color_keyed_surface_clipped(
     IDirectDrawSurface7* destination,IDirectDrawSurface7* source,
     int screen_x,int screen_y,const RECT* source_rectangle,

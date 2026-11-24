@@ -8,10 +8,22 @@
 #include "btb/win32_hybrid_bink_provider.hpp"
 #include "btb/win32_native_spud_skate_movies.hpp"
 #include "btb/win32_native_fireworks_movie_bank.hpp"
+#include "btb/rgb32_color_key.hpp"
+#include <array>
 #include <memory>
 #include <cstdio>
 
 int main() {
+    // Exact same RGB key with three different unused high bytes.
+    const std::array<std::uint32_t,6> pixels{
+        0x00ff00ff,0xffff00ff,0x80ff00ff,0x00fe00ff,0x00000000,0x00123456};
+    std::array<std::uint32_t,6> result{};
+    result.fill(0x00336699);
+    btb::graphics::copy_rgb32_keyed_row(pixels.data(),result.data(),
+        result.size(),0x00ffffff,0xffff00ff);
+    if(result!=std::array<std::uint32_t,6>{
+        0x00336699,0x00336699,0x00336699,0x00fe00ff,0,0x00123456})return 46;
+
 #if defined(_WIN32)
     // These checks must actually execute in Release/x86/x64, where NDEBUG
     // removes assert expressions and could otherwise yield false passes.

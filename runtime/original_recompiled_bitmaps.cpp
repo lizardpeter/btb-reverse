@@ -2,10 +2,49 @@
 #if defined(_WIN32)
 #include "btb/full_game_blt_clip.hpp"
 #include "btb/bitmap_registry.hpp"
+#include "btb/rgb32_color_key.hpp"
 
 #include <utility>
 
 namespace btb::original_win32 {
+
+namespace {
+// Compatibility binding for 32-bit desktop surfaces. GDI uploads and
+// SetPixel can differ in their unused high byte. Compare actual RGB
+// on the real locked DirectDraw surfaces, not an arbitrary alpha byte.
+HRESULT blit_rgb32_keyed(IDirectDrawSurface7* dst,IDirectDrawSurface7* src,
+    RECT& d,RECT& s) noexcept {
+    if(dst==src)return DDERR_INVALIDPARAMS;
+    DDCOLORKEY key{};
+    HRESULT hr=src->GetColorKey(DDCKEY_SRCBLT,&key);
+    if(FAILED(hr))return hr;
+    DDSURFACEDESC2 a{},b{};
+    a.dwSize=sizeof(a);b.dwSize=sizeof(b);
+    hr=src->Lock(&s,&a,DDLOCK_WAIT|DDLOCK_READONLY,nullptr);
+    if(FAILED(hr))return hr;
+    hr=dst->Lock(&d,&b,DDLOCK_WAIT,nullptr);
+    if(FAILED(hr)){src->Unlock(&s);return hr;}
+    const DWORD mask=a.ddpfPixelFormat.dwRBitMask|
+        a.ddpfPixelFormat.dwGBitMask|a.ddpfPixelFormat.dwBBitMask;
+    const auto width=static_cast<std::size_t>(s.right-s.left);
+    if(!a.lpSurface||!b.lpSurface||!mask||
+       a.ddpfPixelFormat.dwRGBBitCount!=32||
+       b.ddpfPixelFormat.dwRGBBitCount!=32) {
+        hr=DDERR_INVALIDPIXELFORMAT;
+    } else {
+        auto* from=static_cast<const unsigned char*>(a.lpSurface);
+        auto* to=static_cast<unsigned char*>(b.lpSurface);
+        for(LONG y=0;y<s.bottom-s.top;++y) {
+            btb::graphics::copy_rgb32_keyed_row(
+                from+y*static_cast<std::ptrdiff_t>(a.lPitch),
+                to+y*static_cast<std::ptrdiff_t>(b.lPitch),
+                width,mask,key.dwColorSpaceLowValue);
+        }
+    }
+    const HRESULT du=dst->Unlock(&d),su=src->Unlock(&s);
+    return FAILED(hr)?hr:FAILED(du)?du:su;
+}
+}
 
 HRESULT copy_bitmap_to_surface(
     IDirectDrawSurface7* destination,HBITMAP source) noexcept {
@@ -121,6 +160,22 @@ HRESULT blit_color_keyed_surface_clipped(
              clipped.destination.right,clipped.destination.bottom};
     RECT src{clipped.source.left,clipped.source.top,
              clipped.source.right,clipped.source.bottom};
+    DDSURFACEDESC2 source_desc{},dest_desc{};
+    source_desc.dwSize=sizeof(source_desc);
+    dest_desc.dwSize=sizeof(dest_desc);
+    auto hr=source->GetSurfaceDesc(&source_desc);
+    if(FAILED(hr))return hr;
+    hr=destination->GetSurfaceDesc(&dest_desc);
+    if(FAILED(hr))return hr;
+    const auto& a=source_desc.ddpfPixelFormat;
+    const auto& b=dest_desc.ddpfPixelFormat;
+    if((a.dwFlags&DDPF_RGB)&&(b.dwFlags&DDPF_RGB)&&
+       a.dwRGBBitCount==32&&b.dwRGBBitCount==32&&
+       a.dwRBitMask==b.dwRBitMask&&a.dwGBitMask==b.dwGBitMask&&
+       a.dwBBitMask==b.dwBBitMask&&
+       (a.dwRBitMask|a.dwGBitMask|a.dwBBitMask)!=0) {
+        return blit_rgb32_keyed(destination,source,dst,src);
+    }
     return destination->Blt(
         &dst,source,&src,DDBLT_KEYSRC|DDBLT_WAIT,nullptr);
 }

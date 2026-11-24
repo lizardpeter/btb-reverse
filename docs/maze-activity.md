@@ -434,3 +434,23 @@ writes, exact random draw order and original resource/audio manager calls;
 then direct frame-by-frame comparison against retail. Eight state branches
 are now mapped, but the Maze Spud NPC is not yet a complete stand-alone
 reimplementation.
+
+
+## Interactive defect follow-up
+
+The retail Easy-mode box allocation is one on the west screen, two on
+the middle screen and one on the east screen (0041A730); the fourth box
+is not expected to be on the same visible map. A full native driver
+regression attempts all four pickups across both portal directions
+using an isolated three-screen corridor fixture, then checks the actual
+progress write and Play Again route.
+
+Retail 0041A730 keys the player, package, HUD and timer surfaces with
+magenta. The Maze already emits keyed draw commands. The shared Windows
+bitmap compositor compares only actual RGB bits on same-format 32-bit
+desktop surfaces and writes opaque pixels to the real DirectDraw
+backbuffer. The original keyed DirectDraw call remains for other formats.
+This is a host compatibility correction, not a change to retail artwork
+or game logic. A pixel-level test covers different unused high bytes
+and exact-versus-near-magenta colors. Physical reproduction on the user's
+display still requires retesting.
