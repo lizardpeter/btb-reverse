@@ -65,7 +65,44 @@ int main(){
   p.graphs[0].nodes[0].node_type=0x100;
   p.graphs[2].nodes={node(0,300,100)};
   update_maze_player(p,io);
-  assert(p.transition==1&&p.screen==2&&p.x==300&&p.y==100);
+  assert(p.transition==1&&p.screen==2&&p.x==325&&p.y==100);
+ }
+ {
+  // Original 0041B140: East->Middle uses node 15, not node 0.
+  // 0043B488 stores double 25.0, inward from every receiving edge.
+  Host io;io.in={-1,0,false,false};
+  Player p{};p.screen=2;p.node=0;p.x=40;p.y=169;
+  p.graphs[2].nodes={node(0,40,169,15,0x200)};
+  p.graphs[1].nodes={node(0,40,171,15,0x80),
+                     node(15,603,171,15,0x100)};
+  update_maze_player(p,io);
+  assert(p.screen==1&&p.node==15&&p.x==578&&p.y==171);
+  assert(p.last_captured_node==-1&&p.transition==1);
+  p.screen=1;p.node=0;p.x=40;p.y=171;
+  p.graphs[0].nodes={node(0,587,177,15,0x200)};
+  update_maze_player(p,io);
+  assert(p.screen==0&&p.node==0&&p.x==562&&p.y==177);
+  p.screen=0;p.node=0;p.x=587;p.y=177;io.in={1,0,false,false};
+  update_maze_player(p,io);
+  assert(p.screen==1&&p.node==0&&p.x==65&&p.y==171);
+ }
+ {
+  // 00421360: rightward Spud portals 0/1 pair with 2/3;
+  // leftward 2/3 pair with 0/1. 0043B4B8 is double 15.0.
+  Host io;Player p{};
+  p.graphs[0].nodes={node(0,606,289,15,0x100),node(1,606,375,15,0x800)};
+  p.graphs[1].nodes={node(0,606,289,15,0x100),node(1,606,375,15,0x800),
+                    node(2,33,289,15,0x80),node(3,33,375,15,0x400)};
+  for(int lane=0;lane<2;++lane){
+   p.screen=0;p.node=lane;p.x=606;p.y=lane?375:289;
+   io.in={1,0,false,false};
+   update_spud_maze_bob(p,io);
+   assert(p.screen==1&&p.node==lane+2&&p.x==48&&p.y==(lane?375:289));
+   p.x=33;io.in={-1,0,false,false};
+   update_spud_maze_bob(p,io);
+   assert(p.screen==0&&p.node==lane&&p.x==591&&p.y==(lane?375:289));
+  }
+  assert(io.resets==4);
  }
  {
   Host io;Player p{};p.screen=0;p.node=0;p.x=0;p.y=0;
