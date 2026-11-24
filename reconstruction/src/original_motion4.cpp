@@ -43,30 +43,37 @@ void advance_direction(Player& p,IO& io,const Input& in,bool spud){
  if(scan.captured_node>=0){
   const auto& captured=get_node(graph,p.node);
   if((captured.node_type&0xf80)!=0){
+   // 0041B140/00421360: entering a neighboring screen preserves
+   // the actual paired portal, with the original inward displacement.
+   // Landing at dst.nodes.front() incorrectly teleports East->Middle
+   // to the west entrance and both Spud tracks to the same exit.
+   const I32 old_screen=p.screen;
+   I32 destination=old_screen,target_id=-1;
+   float inward=0.f;
    if(!spud){
     if(const auto dest=captured.portal_destination()){
-     p.screen=static_cast<I32>(*dest);
-     const auto& dst=p.graphs[static_cast<std::size_t>(p.screen)];
-     if(!dst.nodes.empty()){
-      p.node=dst.nodes.front().id;
-      p.x=static_cast<float>(dst.nodes.front().retail_position.x);
-      p.y=static_cast<float>(dst.nodes.front().retail_position.y);
-     }
+     destination=static_cast<I32>(*dest);
+     if(destination==0){target_id=0;inward=-25.f;}
+     else if(destination==2){target_id=0;inward=25.f;}
+     else if(old_screen==0){target_id=0;inward=25.f;}
+     else {target_id=15;inward=-25.f;}
     }
    }else{
-    const I32 old=p.screen;
-    if((captured.node_type&0x480)!=0)--p.screen;
-    else if((captured.node_type&0x900)!=0)++p.screen;
-    p.screen=std::clamp(p.screen,0,4);
-    if(p.screen!=old){
-     const auto& dst=p.graphs[static_cast<std::size_t>(p.screen)];
-     if(!dst.nodes.empty()){
-      p.node=dst.nodes.front().id;
-      p.x=static_cast<float>(dst.nodes.front().retail_position.x);
-      p.y=static_cast<float>(dst.nodes.front().retail_position.y);
-     }
+    if((captured.node_type&0x480)!=0){
+     destination=old_screen-1;target_id=captured.id-2;inward=-15.f;
+    }else if((captured.node_type&0x900)!=0){
+     destination=old_screen+1;target_id=captured.id+2;inward=15.f;
     }
    }
+   if(target_id<0)return;
+   if(destination<0||destination>=(spud?5:3))
+    throw std::out_of_range("original Maze portal destination");
+   const auto& paired=get_node(p.graphs[static_cast<std::size_t>(destination)],target_id);
+   p.screen=destination;
+   p.node=target_id;
+   p.x=static_cast<float>(paired.retail_position.x)+inward;
+   p.y=static_cast<float>(paired.retail_position.y);
+   p.last_captured_node=-1;
    p.transition=1;p.movement_mask=10;
    if(spud)io.spud_spawn_delay_reset();
   }

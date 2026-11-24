@@ -1349,6 +1349,11 @@ target_link_libraries(btb_full_game_herding_firstpass_native_tests PRIVATE
 btb_require_cpp26(btb_full_game_herding_firstpass_native_tests PRIVATE)
 add_test(NAME full_game_herding_firstpass_native
     COMMAND btb_full_game_herding_firstpass_native_tests)
+# Optional read-only installed-data playthrough, independent of hosted CI assets.
+add_executable(btb_retail_herding_playthrough EXCLUDE_FROM_ALL
+    tools/retail_herding_playthrough.cpp)
+target_link_libraries(btb_retail_herding_playthrough PRIVATE btb_recompiled_core)
+btb_require_cpp26(btb_retail_herding_playthrough PRIVATE)
 set(BTB_HERDING_INTEGRATED_TARGETS btb_full_game_herding_firstpass_native_tests)
 foreach(test_name IN ITEMS
     full_game_herding_event_simulation_source
