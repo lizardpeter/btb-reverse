@@ -40,7 +40,7 @@ jobs:
                   analysis/reconstruction/architecture_global_xrefs.json \
                   analysis/reconstruction/architecture_200_summary.json \
                   docs/architecture-200-functions.md \
-                  reconstruction/include/btb/original_architecture_map.hpp
+                  include/btb/original_architecture_map.hpp
           if git diff --cached --quiet; then echo "No mapping changes"; exit 0; fi
           git commit -m "Generate checked architecture evidence for 200 original functions"
           git pull --rebase origin main

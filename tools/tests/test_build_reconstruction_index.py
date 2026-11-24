@@ -38,7 +38,7 @@ class ReconstructionIndexTests(unittest.TestCase):
 
     def test_generated_registry_matches_ghidra(self):
         module.run(check=True)
-        summary = json.loads((ROOT / "analysis/reconstruction/summary.json").read_text())
+        summary = json.loads((ROOT / "records/summary.json").read_text())
         self.assertEqual(615, summary["ghidra_function_count"])
         self.assertEqual(1550, summary["direct_internal_edges"])
         self.assertEqual(296, summary["direct_external_edges"])
@@ -48,7 +48,7 @@ class ReconstructionIndexTests(unittest.TestCase):
         # Do not leave an old intermediate batch percentage on the
         # README after the reviewed/generated 615-address ledger advances.
         summary = json.loads(
-            (ROOT / "analysis/reconstruction/summary.json").read_text(
+            (ROOT / "records/summary.json").read_text(
                 encoding="utf-8"))
         counts = summary["stage_counts"]
         total = summary["ghidra_function_count"]
@@ -59,7 +59,7 @@ class ReconstructionIndexTests(unittest.TestCase):
         self.assertEqual(0, counts.get("unreviewed", 0))
         self.assertEqual(0, counts.get("under_analysis", 0))
         self.assertEqual(0, counts.get("source_written", 0))
-        with (ROOT / "analysis/reconstruction/reviewed_functions.csv").open(
+        with (ROOT / "records/reviewed_functions.csv").open(
                 newline="", encoding="utf-8") as handle:
             reviewed = list(csv.DictReader(handle))
         self.assertEqual(total, len(reviewed))
@@ -76,7 +76,7 @@ class ReconstructionIndexTests(unittest.TestCase):
         self.assertIn("runtime or binary equivalence", readme)
 
     def test_queue_does_not_claim_unsourced_implementations(self):
-        with (ROOT / "analysis/reconstruction/work_queue.csv").open(newline="", encoding="utf-8") as file:
+        with (ROOT / "records/work_queue.csv").open(newline="", encoding="utf-8") as file:
             rows = list(csv.DictReader(file))
         self.assertEqual(615, len(rows))
         self.assertEqual(list(range(1, 616)), sorted(int(r["rank"]) for r in rows))

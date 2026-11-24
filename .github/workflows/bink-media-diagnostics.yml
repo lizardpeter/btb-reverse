@@ -6,14 +6,16 @@ on:
   push:
     paths:
       - ".github/workflows/bink-media-diagnostics.yml"
-      - "reconstruction/src/bink32_audio_pcm.cpp"
-      - "reconstruction/src/bink32_audio_movie.cpp"
-      - "reconstruction/src/bink32_audio_stream.cpp"
-      - "reconstruction/tools/bink32_native_audio_audit.cpp"
-      - "reconstruction/tools/bink32_retail_video_audit.cpp"
+      - "src/bink32_audio_pcm.cpp"
+      - "src/bink32_audio_movie.cpp"
+      - "src/bink32_audio_stream.cpp"
+      - "tools/native/bink32_native_audio_audit.cpp"
+      - "tools/native/bink32_retail_video_audit.cpp"
       - "tools/audit_retail_bink.py"
       - "tools/test_audit_retail_bink.py"
-      - "reconstruction/tools/bink32_native_frame_dump.cpp"
+      - "tools/native/bink32_native_frame_dump.cpp"
+      - "CMakeLists.txt"
+      - "cmake/**"
       - "reconstruction/CMakeLists.txt"
   workflow_dispatch:
 
@@ -43,7 +45,7 @@ jobs:
       - name: Configure reconstruction
         env:
           CXX: g++-14
-        run: cmake -S reconstruction -B build/reconstruction
+        run: cmake -S . -B build/reconstruction
       - name: Build portable original-format Bink diagnostic tools
         run: cmake --build build/reconstruction --parallel --target btb_bink32_native_frame_dump btb_bink32_native_audio_audit btb_bink32_retail_video_audit
       - name: Upload tools for local retail-media validation

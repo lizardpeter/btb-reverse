@@ -9,7 +9,7 @@ on:
       - tools/tests/test_build_remaining_architecture.py
       - analysis/reconstruction/architecture_224_selection.csv
       - analysis/reconstruction/architecture_200_selection.csv
-      - analysis/reconstruction/reviewed_functions.csv
+      - records/reviewed_functions.csv
       - analysis/ghidra_main_exe/**
   workflow_dispatch:
 
@@ -51,7 +51,7 @@ jobs:
                   analysis/reconstruction/architecture_615_globals.json \
                   docs/architecture-final-224.md \
                   docs/architecture-615-functions.md \
-                  reconstruction/include/btb/original_architecture_615.hpp
+                  include/btb/original_architecture_615.hpp
           if git diff --cached --quiet; then echo "No architecture output changes"; exit 0; fi
           git commit -m "Generate final 224 and complete 615-function architecture evidence maps"
           git pull --rebase origin main

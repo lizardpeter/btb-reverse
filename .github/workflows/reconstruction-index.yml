@@ -7,9 +7,11 @@ on:
       - tools/build_reconstruction_index.py
       - tools/tests/test_build_reconstruction_index.py
       - analysis/ghidra_main_exe/**
-      - analysis/reconstruction/reviewed_functions.csv
+      - records/reviewed_functions.csv
+      - CMakeLists.txt
+      - cmake/**
       - reconstruction/CMakeLists.txt
-      - reconstruction/tests/original_function_registry_test.cpp
+      - tests/original_function_registry_test.cpp
   workflow_dispatch:
 
 permissions:
@@ -43,7 +45,7 @@ jobs:
       - name: Configure reconstructed source project
         env:
           CXX: g++-14
-        run: cmake -S reconstruction -B build/reconstruction
+        run: cmake -S . -B build/reconstruction
       - name: Compile 615-function constexpr registry
         run: cmake --build build/reconstruction --target btb_original_function_registry_tests --parallel 2
       - name: Run registry C++ tests
@@ -55,11 +57,11 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add analysis/reconstruction/function_status.csv \
-                  analysis/reconstruction/work_queue.csv \
-                  analysis/reconstruction/dependency_groups.json \
-                  analysis/reconstruction/summary.json \
-                  reconstruction/include/btb/original_function_registry.hpp
+          git add records/function_status.csv \
+                  records/work_queue.csv \
+                  records/dependency_groups.json \
+                  records/summary.json \
+                  include/btb/original_function_registry.hpp
           if git diff --cached --quiet; then echo "Generated inventory unchanged"; exit 0; fi
           git commit -m "Generate validated 615-function C++26 reconstruction registry"
           git pull --rebase origin main
