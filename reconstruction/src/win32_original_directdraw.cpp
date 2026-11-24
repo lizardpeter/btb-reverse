@@ -269,6 +269,14 @@ bool Win32OriginalDirectDraw::restore_lost_surfaces(
     return true;
 }
 
+bool Win32OriginalDirectDraw::render_additional(
+    const std::vector<ResolvedDraw>& stream,std::string& error) {
+    if(!initialized()){error="post-movie overlay requires live DirectDraw";return false;}
+    for(const auto& draw:stream)if(!blit(draw,error))return false;
+    previous_frame_.insert(previous_frame_.end(),stream.begin(),stream.end());
+    error.clear();return true;
+}
+
 bool Win32OriginalDirectDraw::capture_replay_underlay(std::string& error) {
     if(!initialized()) {error="replay capture requires live DirectDraw";return false;}
     // This is real source-frame storage (51C298), never generated

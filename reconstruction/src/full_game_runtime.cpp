@@ -250,7 +250,7 @@ void GameRoot::apply_effects(
 
 void GameRoot::consume_menu_action(
     game_flow::State update,
-    GameFrame& result) noexcept {
+    GameFrame& result) {
 
     if (!result.effects.negative_ui_action) {
         return;
@@ -266,6 +266,27 @@ void GameRoot::consume_menu_action(
         result.error = "the original Dino selector source-variant globals "
                        "0x51C344/348/34C are not supplied";
         return;
+    }
+    // 0042C08B retains the initialized Fireworks activity across the
+    // two replay screens. 0042CA34 chooses internal state 0 or 8,
+    // never a new activity initializer. No ends the retained activity.
+    if(routed.restart_fireworks_editor||routed.restart_fireworks_view) {
+        if(initialized_activity_!=ActivityId::Fireworks||
+           !drivers_[static_cast<std::size_t>(ActivityId::Fireworks)]->resume_fireworks_replay(
+               routed.restart_fireworks_view,result.effects,result.error)) {
+            if(result.error.empty())result.error="Fireworks replay lost its retained activity";
+            return;
+        }
+    }
+    if(update==game_flow::State::PlayAgainYesNoUpdate&&
+       routed.next_state==game_flow::State::SharedMovieTransition&&
+       initialized_activity_==ActivityId::Fireworks) {
+        if(!unload_current(result.error))return;
+        result.effects.save_and_unload=true;
+        if(!profile_directory_.empty()) {
+            if(!save_profile_files(profile_directory_,result.error))return;
+            result.profile_saved=true;
+        }
     }
     apply_retail_menu_action(globals_.menu, update, routed);
     // Native also sets the global 0x51C300 play-again latch to zero.
@@ -382,12 +403,14 @@ GameFrame GameRoot::advance(const ActivityFrameInput& sample) {
     // 004282C0 only enables help with a normal cursor and releases the
     // button before entering. Exclude the movie-backed Spud Skate scene
     // until the native device has a captured-surface overlay provider.
-    const bool can_help=help_configured_&&initialized_activity_&&
+    const auto help_activity=activity_for_state(static_cast<game_flow::State>(globals_.dispatcher.current_state));
+    const bool can_help=help_configured_&&initialized_activity_&&help_activity&&
+        help_activity->id==*initialized_activity_&&
         *initialized_activity_!=ActivityId::SpudSkate&&
         sample.pointer_position_valid&&help_exit_delay_==0&&
         !globals_.dispatcher.generic_yes_no_active&&!globals_.dispatcher.leave_activity_active&&
         !globals_.dispatcher.options_active&&!globals_.dispatcher.progress_screen_active&&
-        drivers_[static_cast<std::size_t>(*initialized_activity_)]->shared_back_available();
+        drivers_[static_cast<std::size_t>(*initialized_activity_)]->shared_help_available();
     const bool over=can_help&&sample.pointer_x>20&&sample.pointer_x<65&&
         sample.pointer_y>420&&sample.pointer_y<465;
     if(over){input.click_pulse=false;input.pointer_release_pulse=false;}
@@ -906,6 +929,10 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
         } else {
             consume_menu_action(state.state,result);
         }
+        if (!result.error.empty()) {
+            result.kind=FrameKind::FrontEndFailed;
+            return result;
+        }
         if (result.menu_action &&
             result.menu_action->requires_source_variant) {
             // No fabricated 0x51C344/348/34C dino variant values.
@@ -1046,13 +1073,20 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
     result.effects = drivers_[index]->advance(effective_input);
     if(!result.effects.fatal_error&&!result.effects.save_and_unload&&
        !result.effects.next_outer_state&&shared_back){
-        if(!result.effects.retain_original_global_movie_pixels)
+        if(!result.effects.retain_original_global_movie_pixels) {
+            const bool post_movie=std::any_of(result.effects.draws.begin(),
+                result.effects.draws.end(),[](const Draw& d){return d.after_activity_movie;});
             result.effects.draws.push_back({input.pointer_button_held?
-                "Data/ui/backreddep.bmp":"Data/ui/backred.bmp",574,418,{},true});
+                "Data/ui/backreddep.bmp":"Data/ui/backred.bmp",574,418,{},true,{},post_movie});
+        }
         if(!shared_back_hover_)
             result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},456,50,2});
         if(shared_back_click&&!result.effects.open_yes_no_confirmation){
-            if(activity->id==ActivityId::Dinosaur&&drivers_[index]->shared_back_starts_replay()){
+            if(activity->id==ActivityId::Fireworks&&drivers_[index]->shared_back_starts_replay()) {
+                result.effects.next_saved_state=static_cast<int>(game_flow::State::FireworksRun);
+                result.effects.next_replay_class=2;
+                result.effects.next_outer_state=static_cast<int>(game_flow::State::PlayAgainYesNoSetup);
+            }else if(activity->id==ActivityId::Dinosaur&&drivers_[index]->shared_back_starts_replay()){
                 // 0042B0B8 completed dinosaur bypasses leave confirmation.
                 result.effects.save_and_unload=true;
                 result.effects.next_saved_state=static_cast<int>(game_flow::State::DinoInit);
@@ -1080,7 +1114,7 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
     }
     result.kind = FrameKind::ActivityUpdated;
 
-    if (result.effects.save_and_unload &&
+    if ((result.effects.save_and_unload||activity->id==ActivityId::Fireworks) &&
         result.effects.next_outer_state ==
             static_cast<int>(game_flow::State::PlayAgainYesNoSetup)) {
         // Every native activity exiting via PreparePlayAgainTransition

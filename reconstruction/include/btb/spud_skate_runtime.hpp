@@ -10,17 +10,10 @@
 namespace btb::spud_skate {
 
 inline constexpr std::int32_t kRetailPlaybackPasses = 2;
-inline constexpr std::int32_t kRetailScoringOpportunities =
-    static_cast<std::int32_t>(kStuntCount) +
-    static_cast<std::int32_t>(kStuntCount - 1);
-
-// Retail scores all eight stunts on the first pass. The final stunt's normal
-// sound trigger is frame 665, beyond the 660 pass marker, so the first frame-
-// 660 branch scores it manually. On pass two, frame 660 enters end.bik before
-// that final-stunt score path, leaving 8 + 7 = 15 scoring opportunities.
-inline constexpr std::int32_t kRetailMaximumScore =
-    kRetailScoringOpportunities *
-    static_cast<std::int32_t>(StuntQuality::Good);
+// 0x00424690 does not suppress the ordinary 665 trigger after the
+// first special 660 award. The four original streams end at frame 679.
+inline constexpr std::int32_t kRetailScoringOpportunities = kScoringOpportunityCount;
+inline constexpr std::int32_t kRetailMaximumScore = kMaximumScore;
 
 // The physical original Bink decoder retains its final frame:
  // 0x00424690 checks FrameNum == Frames before dispatching the

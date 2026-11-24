@@ -77,8 +77,8 @@ int main() {
     assert(sound_id_for_random_slot(
         sounds, 0, StuntQuality::Good, 4) == 1019);
 
-    static_assert(kScoringOpportunityCount == 15);
-    static_assert(kMaximumScore == 45);
+    static_assert(kScoringOpportunityCount == 16);
+    static_assert(kMaximumScore == 48);
     static_assert(score_for_quality(StuntQuality::Bad) == 0);
     static_assert(score_for_quality(StuntQuality::Normal) == 1);
     static_assert(score_for_quality(StuntQuality::Okay) == 2);

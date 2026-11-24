@@ -150,6 +150,8 @@ struct Draw {
     // own smaller world viewport (Herding: [20,20]..[620,400]).
     // Absent means ordinary full-screen DirectDraw bounds only.
     std::optional<Rect> destination_clip{};
+    // Retail Fireworks draws its keyed show border AFTER all movie blits.
+    bool after_activity_movie{};
 };
 enum class AudioOperation {
     StartBackingTrack,
@@ -300,6 +302,10 @@ public:
     // 004084B0 only sets generic back/help bits for the normal cursor.
     virtual bool shared_back_available() const noexcept {return true;}
     virtual bool shared_back_starts_replay() const noexcept {return false;}
+    virtual bool shared_help_available() const noexcept {return shared_back_available();}
+    virtual bool resume_fireworks_replay(bool,ActivityFrameOutput&,std::string& error) {
+        error="active activity has no Fireworks replay service";return false;
+    }
     virtual bool static_help_region_allowed(int) const noexcept {return true;}
     virtual bool redraw_confirmation_background(ActivityFrameOutput&,std::string&) {return false;}
 };
@@ -424,7 +430,7 @@ private:
     std::vector<Draw> help_background_{};
     void consume_menu_action(
         game_flow::State update,
-        GameFrame& result) noexcept;
+        GameFrame& result);
     void consume_pregame_action(
         game_flow::State update,
         GameFrame& result) noexcept;

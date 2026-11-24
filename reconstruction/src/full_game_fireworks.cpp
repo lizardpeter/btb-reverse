@@ -321,6 +321,10 @@ ActivityFrameOutput FireworksDriver::advance(
             "Data\\SubGameFirework\\graph\\BK_01v.bmp",
             0,0,std::nullopt,false
         });
+        // 004115C0 loads this keyed full-screen border; 00413450 draws
+        // it after the crowd, authored movies and top-middle stream.
+        output.draws.push_back({"Data/SubGameFirework/minimised.bmp",0,0,
+            std::nullopt,true,std::nullopt,true});
         // Render_ordered clears the normal DD7 backbuffer; the native
         // game device then blits exactly the queued decoded effect movies
         // in original crowd/active/topmiddle source order.
@@ -440,6 +444,24 @@ ActivityFrameOutput FireworksDriver::advance(
                 if (editor_.internal_state == InternalState::DeleteSelected) {
                     (void)sequence_.remove(row, column);
                 } else {
+                    // 004126F0: the first twelve regions require Bob's
+                    // state-1 latch; the last six require Wendy's.
+                    // Clicking an occupied cell with the normal cursor
+                    // picks up that exact type instead of replacing it.
+                    const auto channel=fireworks::placement_actor_for_row(row);
+                    auto& actor=editor_.actor_states[fireworks::placement_actor_index(channel)];
+                    if(editor_.cursor.kind==fireworks::EditorCursorKind::Normal) {
+                        if(const auto existing=sequence_.remove(row,column)) {
+                            editor_.selected_type=*existing;
+                            editor_.cursor={fireworks::EditorCursorKind::FireworkType,*existing};
+                            actor=fireworks::PlacementActorState::PaletteLatched;
+                        }
+                        break;
+                    }
+                    const bool large=static_cast<int>(editor_.selected_type)<8;
+                    if(editor_.cursor.kind!=fireworks::EditorCursorKind::FireworkType||
+                       actor!=fireworks::PlacementActorState::PaletteLatched||
+                       large!=(row<2))break;
                     (void)fireworks::begin_placement_region_action(
                         sequence_, row, column);
                     const auto result = fireworks::complete_placement_release(
@@ -448,6 +470,10 @@ ActivityFrameOutput FireworksDriver::advance(
                     if (result.sound_id) append_sound(output, *result.sound_id);
                 }
             } else if (editor_.internal_state == InternalState::Editor) {
+                // Source hit-test does not admit a new palette selection
+                // while either actor is carrying or committing.
+                if(editor_.actor_states[0]!=fireworks::PlacementActorState::Idle||
+                   editor_.actor_states[1]!=fireworks::PlacementActorState::Idle)break;
                 const auto palette = fireworks::process_palette_action(
                     editor_, static_cast<fireworks::FireworkType>(i - 18),
                     static_cast<int>(nonnegative_roll(input.random_value) % 5));
@@ -464,6 +490,27 @@ ActivityFrameOutput FireworksDriver::advance(
         output.draws.push_back(*overlay);
     }
     return output;
+}
+
+bool FireworksDriver::resume_fireworks_replay(
+    bool view,ActivityFrameOutput& output,std::string& error) {
+    if(!initialized()||!shared_back_starts_replay()) {
+        error="Fireworks replay requires retained show or certificate state";
+        return false;
+    }
+    if(movie_bank_open_) {
+        if(!close_movie_bank_) {error="Fireworks replay bank close unavailable";return false;}
+        close_movie_bank_();movie_bank_open_=false;
+    }
+    // The authored 18-cell layout is retained. Retail state 43 writes
+    // 8 for Play or 0 for Edit; Play does not rerun the pre-show clip.
+    editor_=fireworks::EditorRuntimeState{};
+    editor_.internal_state=view?fireworks::InternalState::ShowSetup:fireworks::InternalState::Editor;
+    show_runtime_.reset();certificate_state_={};
+    awaiting_delete_confirmation_=false;
+    if(!view)output.audio.push_back({AudioOperation::StartBackingTrack,
+                                    "Data/music/grandopening.wav"});
+    error.clear();return true;
 }
 
 bool FireworksDriver::unload(std::string& error) {

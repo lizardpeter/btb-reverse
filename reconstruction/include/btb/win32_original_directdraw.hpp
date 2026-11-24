@@ -43,6 +43,7 @@ public:
     [[nodiscard]] bool render_ordered(
         const std::vector<ResolvedDraw>& draw_stream,
         std::string& error);
+    [[nodiscard]] bool render_additional(const std::vector<ResolvedDraw>&,std::string& error);
     [[nodiscard]] bool capture_replay_underlay(std::string& error);
     [[nodiscard]] bool render_replay_ordered(
         const std::vector<ResolvedDraw>& draw_stream,std::string& error);
