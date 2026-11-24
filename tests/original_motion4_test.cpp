@@ -149,26 +149,13 @@ int main(){
   assert(s.phase==btb::maze::SpudNpcPhase::SelectPackage&&s.spawn_wait==0);
   update_maze_spud_npc(s,io);
   assert(s.phase==btb::maze::SpudNpcPhase::TravelToPackage&&s.selected_package==0);
-  assert(s.animation_frame==0&&s.animation_countdown==0);
-  // A walking frame can advance across every column before pickup.
-  for(int i=0;i<61;++i)btb::maze::advance_spud_sprite_animation(
-      s.animation_frame,s.animation_countdown,false);
-  assert(s.animation_frame==0);
-  for(int i=0;i<60;++i)btb::maze::advance_spud_sprite_animation(
-      s.animation_frame,s.animation_countdown,false);
-  assert(s.animation_frame==6);
   assert(!io.sounds.empty()&&io.sounds.back()==0x58&&io.paths.back()==1);
   update_maze_spud_npc(s,io);
   assert(s.phase==btb::maze::SpudNpcPhase::ChooseReturnRoute);
   assert(s.packages[0][0].status==2&&io.sounds.back()==0x59);
-  assert(s.animation_frame==13); // never column 14 on the 14-column sheet
-  assert(!s.carry_active); // phase 4 owns the carrying latch
   assert(s.current_node==1); // route begins from reached package, not spawn
   update_maze_spud_npc(s,io);
   assert(s.phase==btb::maze::SpudNpcPhase::TravelCarryingPackage);
-  assert(s.carry_active&&s.animation_countdown==0);
-  btb::maze::advance_spud_sprite_animation(s.animation_frame,s.animation_countdown,true);
-  assert(s.animation_frame==7&&s.animation_countdown==10);
   s.player_screen=1;s.offscreen_wait=2;
   update_maze_spud_npc(s,io);
   assert(s.offscreen_wait==1&&s.phase==btb::maze::SpudNpcPhase::TravelCarryingPackage);

@@ -178,18 +178,6 @@ AudioFramePlan AudioEffectPlanner::plan(
             });
             break;
 
-        case AudioOperation::EnsureActivityLoop:
-            if (request.source_asset.empty()) {
-                ++frame.invalid_requests;
-                break;
-            }
-            frame.operations.push_back({
-                SoundEffectKind::EnsureActivityLoopWav,-1,-1,request.source_asset
-            });
-            break;
-        case AudioOperation::StopActivityLoop:
-            frame.operations.push_back({SoundEffectKind::StopActivityLoopWav});
-            break;
         case AudioOperation::StopManagedSounds:
             // Exact 0x00402C90: walk sound_id_by_slot[80], ask
             // IsSoundIdPlaying(sound_id) through the reverse ID->slot map,

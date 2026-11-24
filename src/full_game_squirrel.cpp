@@ -56,7 +56,6 @@ bool SquirrelDriver::initialize(int player,std::string& error) {
         level_=0;placed_count_=0;selected_choice_=-1;
         animating_=false;complete_=false;
         completion_stage_=0;
-        intro_stage_=0;
         player_=player;
         if(!generate_choices(error)) {
             data_.reset();
@@ -218,23 +217,6 @@ ActivityFrameOutput SquirrelDriver::draw() const {
 
 ActivityFrameOutput SquirrelDriver::advance(
     const ActivityFrameInput& input) {
-    auto out=advance_gameplay(input);
-    if(!data_ || out.fatal_error || complete_ || out.save_and_unload)return out;
-    // 004279F0: music index 9, followed by 643,632,644.
-    // The two later voices wait for the original managed bank to drain.
-    if(intro_stage_==0) {
-        out.audio.push_back({AudioOperation::StartBackingTrack,"Data/music/squirrelrun.wav"});
-        out.audio.push_back({AudioOperation::ManagedSoundId,{},643,50,1,true});
-        intro_stage_=1;
-    } else if(intro_stage_<3 && !input.managed_sound_playing && out.audio.empty()) {
-        out.audio.push_back({AudioOperation::ManagedSoundId,{},intro_stage_==1?632:644,50,1,true});
-        ++intro_stage_;
-    }
-    return out;
-}
-
-ActivityFrameOutput SquirrelDriver::advance_gameplay(
-    const ActivityFrameInput& input) {
     auto out=draw();
     if(!data_)return out;
     if(complete_) {
@@ -337,7 +319,6 @@ bool SquirrelDriver::unload(std::string& error) {
     level_=0;placed_count_=0;selected_choice_=-1;
     animating_=false;complete_=false;
     completion_stage_=0;
-    intro_stage_=0;
     error.clear();
     return true;
 }

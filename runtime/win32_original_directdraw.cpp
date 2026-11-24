@@ -150,7 +150,7 @@ bool Win32OriginalDirectDraw::load_bitmap(
 
     // Registration and keyed-flag changes occur after emplacement, so
     // 00403770 receives the stable address of the cached surface pointer.
-    out={loaded.surface,loaded.width,loaded.height};
+    out={loaded.surface,loaded.width,loaded.height,false};
     error.clear();
     return true;
 }
@@ -170,8 +170,9 @@ bool Win32OriginalDirectDraw::blit(
             return false;
         }
         it=images_.emplace(key,loaded).first;
-        // This is a real original 00403770 table registration, not the
-        // earlier uint32-only source-effects representation.
+        // 00403770 registers the surface address and source filename first.
+        // The original keyed flag is independent: opaque backgrounds must
+        // not become transparent merely because they were loaded first.
         const auto source_name=requested.source.absolute_path.string();
         if(!registry_->register_surface_reference(
                 &it->second.surface,source_name)){
@@ -180,10 +181,18 @@ bool Win32OriginalDirectDraw::blit(
             error="original 800-slot bitmap table cannot register source";
             return false;
         }
-        // 004036E0 keys the registered address, and 00403B70 does the
-        // native GDI/DirectDraw conversion and SetColorKey call.
-        (void)registry_->mark_registered_surface_color_keyed(
-            &it->second.surface);
+    }
+    if(requested.original.color_keyed&&!it->second.color_keyed) {
+        // 004036E0 marks only a genuinely keyed bitmap; 00403B70 performs
+        // the native GDI/DirectDraw conversion and SetColorKey call.
+        if(!registry_->mark_registered_surface_color_keyed(
+                &it->second.surface)) {
+            (void)registry_->unregister_surface_reference(&it->second.surface);
+            release_surface(it->second.surface);
+            images_.erase(it);
+            error="original keyed bitmap could not mark its registered slot";
+            return false;
+        }
         const auto keyed=original_win32::set_surface_transparency_color_key(
             it->second.surface,RGB(255,0,255));
         if(FAILED(keyed)){
@@ -194,6 +203,7 @@ bool Win32OriginalDirectDraw::blit(
             error=hresult_description("00403B70 native surface key",keyed);
             return false;
         }
+        it->second.color_keyed=true;
     }
 
     RECT src{0,0,it->second.width,it->second.height};

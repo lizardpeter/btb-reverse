@@ -56,15 +56,6 @@ int main() {
         assert(driver->level()==0);
         auto rendered=game.advance({});
         assert(rendered.kind==fg::FrameKind::ActivityUpdated);
-        assert(rendered.effects.audio.size()==2);
-        assert(rendered.effects.audio[0].source_asset=="Data/music/squirrelrun.wav");
-        assert(rendered.effects.audio[1].sound_id==643 && rendered.effects.audio[1].input_interruptible);
-        auto waiting=game.advance({.managed_sound_playing=true});
-        assert(waiting.effects.audio.empty());
-        auto intro2=game.advance({});
-        assert(intro2.effects.audio.size()==1 && intro2.effects.audio[0].sound_id==632);
-        auto intro3=game.advance({});
-        assert(intro3.effects.audio.size()==1 && intro3.effects.audio[0].sound_id==644);
         int connector_art=0,nut_piles=0,conveyor_art=0,squirrel_art=0;
         for(const auto& draw:rendered.effects.draws) {
             if(draw.source_asset=="Data\\SubGameSquirrel\\all.bmp" &&

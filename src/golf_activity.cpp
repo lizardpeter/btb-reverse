@@ -40,11 +40,17 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
         break;
 
     case RoundState::PowerMeter:
-        // 00415080 increments the power meter before reading the
-        // confirmation pulse, including the confirmation frame itself.
-        advance_power_meter(power_,direction_,
-            data_.power_bar_speed_by_difficulty[static_cast<std::size_t>(difficulty_)]);
-        if(input.accept_power)state_=RoundState::LaunchSetup;
+        // Aim and power confirmation are separate UI actions. A confirmed
+        // frame freezes the previously displayed power; all other frames
+        // advance using the difficulty-dependent native oscillation.
+        if (input.accept_power) {
+            state_ = RoundState::LaunchSetup;
+        } else {
+            advance_power_meter(
+                power_,direction_,
+                data_.power_bar_speed_by_difficulty[
+                    static_cast<std::size_t>(difficulty_)]);
+        }
         break;
 
     case RoundState::LaunchSetup: {
@@ -65,19 +71,9 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
         break;
 
     case RoundState::BallFlight:
-        // Retail normal-speed branch advances physics on alternate
-        // host frames (00415080 DAT_0050AF08 & 1). Animation continues
-        // independently on both frames.
-        if((flight_tick_++ & 1U)==0U)break;
         advance_ball(ball_);
-        // The source checks all target hot areas during flight as well
-        // as during landing; the ball must not pass through a hole.
-        if(ball_.stopped() || std::any_of(data_.course_objects.begin(),
-            data_.course_objects.end(),[&](const auto& target){
-                return ball_reaches_target(ball_.position,target);
-            })) {
-            ball_.speed=0;
-            state_=RoundState::ResolveLanding;
+        if (ball_.stopped()) {
+            state_ = RoundState::ResolveLanding;
         }
         break;
 

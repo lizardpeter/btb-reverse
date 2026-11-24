@@ -75,4 +75,46 @@ END
     assert((data.timer_by_difficulty == std::array<std::int32_t,3>{240,180,120}));
     assert((data.spud_spawn_frames_by_difficulty == std::array<std::int32_t,3>{1500,1000,200}));
     assert(data.spud_animation_delay == 6);
+    // All twelve retail package anchors must resolve through the actual
+    // three-screen portal topology from the original Middle/node-8 start.
+    Data routes;
+    const auto make_node=[](int id,int type,std::array<int,4> links) {
+        Node n;n.id=id;n.node_type=type;n.links=links;return n;
+    };
+    routes.screens[0].nodes={
+        make_node(0,kPortalToMiddle,{-1,-1,-1,2}),
+        make_node(2,0,{-1,0,-1,-1})
+    };
+    routes.screens[1].nodes={
+        make_node(0,kPortalToWest,{-1,8,-1,-1}),
+        make_node(8,0,{-1,9,-1,0}),
+        make_node(9,0,{-1,15,-1,8}),
+        make_node(15,kPortalToEast,{-1,-1,-1,9})
+    };
+    routes.screens[2].nodes={
+        make_node(0,kPortalToMiddle,{-1,14,-1,-1}),
+        make_node(14,0,{-1,-1,-1,0})
+    };
+    for(auto& box:routes.box_locations[0])box.node_id=2;
+    routes.box_locations[1][0].node_id=8;
+    routes.box_locations[1][1].node_id=9;
+    routes.box_locations[1][2].node_id=8;
+    routes.box_locations[1][3].node_id=9;
+    for(auto& box:routes.box_locations[2])box.node_id=14;
+    std::string route_error;
+    assert(validate_package_routes(routes,Screen::Middle,8,route_error));
+    assert(route_error.empty());
+
+    // A missing package node is rejected before the activity can launch.
+    routes.box_locations[2][3].node_id=99;
+    assert(!validate_package_routes(routes,Screen::Middle,8,route_error));
+    assert(route_error.find("references missing")!=std::string::npos);
+    routes.box_locations[2][3].node_id=14;
+
+    // A present but disconnected fourth package is also rejected.
+    routes.screens[2].nodes[0].links[1]=-1;
+    routes.screens[2].nodes[1].links[3]=-1;
+    assert(!validate_package_routes(routes,Screen::Middle,8,route_error));
+    assert(route_error.find("unreachable")!=std::string::npos);
+
 }

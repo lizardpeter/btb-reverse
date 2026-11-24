@@ -85,6 +85,7 @@ private:
         IDirectDrawSurface7* surface{};
         int width{};
         int height{};
+        bool color_keyed{};
     };
     [[nodiscard]] bool load_bitmap(
         const std::filesystem::path& file,

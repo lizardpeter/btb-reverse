@@ -60,7 +60,6 @@ private:
     // source sound manager owns state-5 voice completion.
     int swing_animation_ticks_{};
     bool feedback_voice_started_{};
-    int intro_stage_{};
 };
 
 } // namespace btb::full_game

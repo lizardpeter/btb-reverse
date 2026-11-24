@@ -482,3 +482,20 @@ independent buffer is playing without reloading it or replacing the
 background music or managed voices. Maze teardown, confirmed exit and
 activity replacement release the buffer. Physical DirectSound verification
 is still required. No original media changed.
+
+
+## Package-map integrity gate
+
+Before the live Maze driver starts, it now validates every package anchor
+against the parsed three-screen graph. Starting from the retail Middle/node-8
+state, it follows node links and reciprocal West/Middle and Middle/East
+portal pairs. Missing or duplicate node IDs, malformed links, unpaired
+portals, and any unreachable one of the twelve source package anchors fail
+initialization with a specific diagnostic rather than allowing a visually
+missing or permanently uncollectable package.
+
+This does not change retail random placement: Easy still allocates 1/2/1
+packages across West/Middle/East, Medium 3/3/2, and Hard 4/4/4. The player
+must visit the adjacent screen through the corresponding portal to collect
+the outer-screen package. Positive, missing-node, and disconnected-package
+cases are covered by the portable Maze data regression.

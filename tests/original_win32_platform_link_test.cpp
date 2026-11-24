@@ -24,16 +24,6 @@ int main() {
     if(result!=std::array<std::uint32_t,6>{
         0x00336699,0x00336699,0x00336699,0x00fe00ff,0,0x00123456})return 46;
 
-    static_assert(btb::graphics::retail_rgb565_key_mask(
-        0xff0000,0xff00,0xff)==0xf8fcf8);
-    const std::array<std::uint32_t,6> retail_pixels{
-        0x00ff00ff,0x00ff01ff,0xffff03ff,0x00ff04ff,0x00f700ff,0x00000000};
-    result.fill(0x00336699);
-    btb::graphics::copy_rgb32_keyed_row(retail_pixels.data(),result.data(),
-        result.size(),btb::graphics::retail_rgb565_key_mask(
-            0xff0000,0xff00,0xff),0x00ff00ff);
-    if(result!=std::array<std::uint32_t,6>{
-        0x00336699,0x00336699,0x00336699,0x00ff04ff,0x00f700ff,0})return 47;
 #if defined(_WIN32)
     // These checks must actually execute in Release/x86/x64, where NDEBUG
     // removes assert expressions and could otherwise yield false passes.

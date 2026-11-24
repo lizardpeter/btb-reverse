@@ -52,34 +52,5 @@ int main() {
     assert(frame.sound[2].source &&
            !frame.sound[2].source->found());
     assert(!frame.sound[3].source);
-    fs::create_directories(root/"Data"/"SubGameMaze");
-    std::ofstream(root/"Data"/"SubGameMaze"/"lofty engine.wav")<<"RIFF";
-    AudioFramePlan loop;
-    loop.operations={
-        {SoundEffectKind::EnsureActivityLoopWav,-1,-1,"Data/SubGameMaze/lofty engine.wav"},
-        {SoundEffectKind::StopActivityLoopWav}
-    };
-    const auto resolved=resolve_game_frame_assets(resolver,{},loop);
-    assert(resolved.ready_for_submission());
-    assert(resolved.sound[0].source&&resolved.sound[0].source->found());
-    assert(!resolved.sound[1].source);
-    fs::remove(root/"Data"/"SubGameMaze"/"lofty engine.wav");
-    assert(!resolve_game_frame_assets(resolver,{},loop).ready_for_submission());
-    // Repeated requests retain the same resolved source and draw order.
-    const std::vector<Draw> repeated{
-        {"Data/SubGameOpen/music_01.bmp",7,8},
-        {"Data/SubGameOpen/music_01.bmp",17,18}
-    };
-    const auto repeated_frame=resolve_game_frame_assets(resolver,repeated,{});
-    assert(repeated_frame.ready_for_submission());
-    assert(repeated_frame.draws.size()==2);
-    assert(repeated_frame.draws[0].source.absolute_path==
-           repeated_frame.draws[1].source.absolute_path);
-    assert(repeated_frame.draws[0].original.x==7);
-    assert(repeated_frame.draws[1].original.x==17);
-    fs::remove(root/"Data"/"SubGameOpen"/"music_01.bmp");
-    const auto deleted_frame=resolve_game_frame_assets(resolver,repeated,{});
-    assert(deleted_frame.unresolved_draws==2);
-    assert(!deleted_frame.ready_for_submission());
     fs::remove_all(root);
 }

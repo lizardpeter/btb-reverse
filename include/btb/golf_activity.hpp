@@ -68,8 +68,7 @@ private:
     int difficulty_{};
     RoundState state_{RoundState::Aim};
     BallMotion ball_{};
-    int aim_{60};
-    unsigned flight_tick_{};
+    int aim_{};
     int power_{};
     int direction_{1};
     int attempts_remaining_{kRetailInitialAttempts};

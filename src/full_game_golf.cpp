@@ -1,7 +1,5 @@
 #include "btb/full_game_golf.hpp"
 
-#include <algorithm>
-#include <cmath>
 #include <exception>
 #include <fstream>
 #include <utility>
@@ -37,7 +35,6 @@ bool GolfDriver::initialize(int player_index, std::string& error) {
         queued_input_.reset();
         swing_animation_ticks_=0;
         feedback_voice_started_=false;
-        intro_stage_=0;
         error.clear();
         return true;
     } catch (const std::exception& exception) {
@@ -62,31 +59,14 @@ ActivityFrameOutput GolfDriver::compose_frame(
     out.draws.push_back({
         "Data\\SubGameGolf\\golfbg.bmp",0,0,std::nullopt,false
     });
-    // The shipped 150x32 score sheet is ordered 1..9,0, not 0..9.
-    const auto digit=[&](int value,int x) {
-        const int column=(value+9)%10;
-        out.draws.push_back({"Data\\SubGameGolf\\golfnumbers.bmp",x,426,
-            Rect{column*15,0,(column+1)*15,32},true});
-    };
-    if(state.score>=10)digit(state.score/10,510);
-    digit(state.score%10,535);
     for(int i=0;i<state.attempts_remaining;++i)
         out.draws.push_back({
             "Data\\SubGameGolf\\toolbar ball.bmp",373+i*20,437,
-            std::nullopt,true
+            std::nullopt,false
         });
     if(state.attempts_remaining>0) {
         const int ball_x=static_cast<int>(state.ball.position.x);
         const int ball_y=static_cast<int>(state.ball.position.y);
-        if(state.state==golf::RoundState::Aim) {
-            // 00414A60 projects a 140-pixel aiming marker at aim minus 2.
-            constexpr double rad=3.14159265358979323846/180.0;
-            const double angle=(state.aim-2)*rad;
-            out.draws.push_back({"Data\\SubGameGolf\\marker.bmp",
-                static_cast<int>(state.ball.position.x+140*std::cos(angle)),
-                static_cast<int>(state.ball.position.y-140*std::sin(angle)),
-                std::nullopt,true});
-        }
         // Native DrawGolfActivity checks the current float ball location
         // before submitting the magenta-keyed shadow and stopped-ball
         // sprites. The original asset resolver keeps both physical BMPs.
@@ -125,17 +105,17 @@ ActivityFrameOutput GolfDriver::compose_frame(
             true
         });
     }
-    // 00414A60/00415080: 45 aim rows, 16 swing columns; the actual
-    // shipped 2128x7830 sheet uses 133x174 cells.
-    const int w=course.bob_frame_size_retail.x;
-    const int h=course.bob_frame_size_retail.y;
-    const int col=std::clamp(swing_animation_ticks_/9,0,
-        std::max(0,std::min(16,course.bob_frame_count)-1));
-    const int row=std::clamp(state.aim/2,0,
-        std::max(0,std::min(45,course.bob_rotation_count)-1));
+    // Bob's actual frame depends on retail aim/swing animation; this
+    // source neutral request displays only the current first source frame,
+    // while the native animation adapter is pending.
     out.draws.push_back({
-        course.bob_sprite_path,course.bob_position.x,course.bob_position.y,
-        Rect{col*w,row*h,(col+1)*w,(row+1)*h},true
+        course.bob_sprite_path,
+        course.bob_position.x,
+        course.bob_position.y,
+        Rect{0,0,
+            course.bob_frame_size_retail.x,
+            course.bob_frame_size_retail.y},
+        true
     });
 
     // 0x00414A60 submits the real powerbar at (0x53,0x1A0).
@@ -149,8 +129,8 @@ ActivityFrameOutput GolfDriver::compose_frame(
                 Rect{0,0,width,53},true
             });
     }
-    // Exact airborne bounce height, spectator reactions and target-specific
-    // animation banks remain separate from this recovered presentation.
+    // Score digits, flight trail and the original swing/actor source-frame
+    // indices remain separate from this recovered HUD/sprite subset.
     return out;
 }
 
@@ -189,7 +169,7 @@ ActivityFrameOutput GolfDriver::advance(
         case golf::RoundState::SwingAnimationDelay:
             // 0x0050ADE8 increments until nine, then 0x0050AD90 until
             // eight. Native completion is triggered on the 72nd tick.
-            action.swing_animation_finished=swing_animation_ticks_+1>=72;
+            action.swing_animation_finished=++swing_animation_ticks_>=72;
             break;
         case golf::RoundState::ScoreAndFeedback:
             // First scoring frame queues original managed voice;
@@ -209,14 +189,6 @@ ActivityFrameOutput GolfDriver::advance(
     if(prior==golf::RoundState::LaunchSetup &&
        frame.state==golf::RoundState::SwingAnimationDelay)
         swing_animation_ticks_=0;
-    else if(prior==golf::RoundState::SwingAnimationDelay) {
-        ++swing_animation_ticks_;
-        if(frame.state==golf::RoundState::BallFlight)
-            swing_animation_ticks_=std::max(72,swing_animation_ticks_);
-    } else if(prior==golf::RoundState::BallFlight)
-        swing_animation_ticks_=std::min(135,swing_animation_ticks_+1);
-    else if(prior==golf::RoundState::ResolveLanding)
-        swing_animation_ticks_=0;
     if(prior==golf::RoundState::ScoreAndFeedback &&
        frame.state!=golf::RoundState::ScoreAndFeedback)
         feedback_voice_started_=false;
@@ -230,16 +202,6 @@ ActivityFrameOutput GolfDriver::advance(
         });
     }
 
-    // 00415830 plays the activity music and initial 123 voice, then
-    // the interruptible 101 line after the managed sound bank drains.
-    if(intro_stage_==0) {
-        out.audio.push_back({AudioOperation::StartBackingTrack,"Data/music/golf.wav"});
-        out.audio.push_back({AudioOperation::ManagedSoundId,{},123,50,1,true});
-        intro_stage_=1;
-    } else if(intro_stage_==1 && !input.managed_sound_playing && !frame.managed_voice) {
-        out.audio.push_back({AudioOperation::ManagedSoundId,{},101,50,1,true});
-        intro_stage_=2;
-    }
     if (frame.progress_golf_completion) {
         out.progress_writes.push_back({progress::Slot::Golf,1});
         out.save_and_unload = true;
@@ -257,7 +219,6 @@ bool GolfDriver::unload(std::string& error) {
     queued_input_.reset();
     swing_animation_ticks_=0;
     feedback_voice_started_=false;
-    intro_stage_=0;
     player_index_ = -1;
     error.clear();
     return true;

@@ -98,4 +98,10 @@ struct Data {
 
 Data parse_data(const std::string& text);
 
+// Fail closed if any of the twelve retail package anchors is absent or
+// unreachable from the original Middle/node-8 starting state.
+[[nodiscard]] bool validate_package_routes(
+    const Data& data,Screen start_screen,std::int32_t start_node,
+    std::string& error);
+
 } // namespace btb::maze

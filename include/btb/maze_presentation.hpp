@@ -93,17 +93,17 @@ struct Recti {
 
 inline constexpr std::int32_t kActorFrameSize = 128;
 
-// 0041C110 maps direction 4 back to direction 3, not animation frame 4.
-// The animation frame is the horizontal coordinate; direction is vertical.
-[[nodiscard]] constexpr std::int32_t retail_actor_direction(
-    std::int32_t direction) noexcept {
-    return direction == 4 ? 3 : direction;
+// DrawMazeActivity maps source column 4 back to column 3 before forming the
+// 128x128 source rectangle. Other columns are retained verbatim.
+[[nodiscard]] constexpr std::int32_t retail_actor_column(
+    std::int32_t column) noexcept {
+    return column == 4 ? 3 : column;
 }
 
 [[nodiscard]] constexpr Recti actor_source_rect(
     std::int32_t column,
     std::int32_t row) noexcept {
-    row = retail_actor_direction(row);
+    column = retail_actor_column(column);
     return {
         column * kActorFrameSize,
         row * kActorFrameSize,

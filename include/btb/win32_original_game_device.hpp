@@ -72,7 +72,6 @@ public:
     [[nodiscard]] bool draw_replay_ordered(
         const std::vector<ResolvedDraw>& draws,std::string& error) override;
     [[nodiscard]] bool print_current_frame(std::string& error) override;
-    void release_activity_bitmaps() noexcept override {draw_.release_activity_bitmaps();}
     [[nodiscard]] bool present(std::string& error) override;
 
 private:

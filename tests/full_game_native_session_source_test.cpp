@@ -78,7 +78,6 @@ public:
     int print_count{};
     int replay_captures{};
     int replay_draws{};
-    int activity_bitmap_releases{};
     bool fail_print{};
     std::vector<std::string> operation_order{};
     bool fail_draw{};
@@ -147,9 +146,6 @@ public:
             return false;
         }
         error.clear();return true;
-    }
-    void release_activity_bitmaps() noexcept override {
-        ++activity_bitmap_releases;operation_order.push_back("release bitmaps");
     }
     bool present(std::string& error) override {
         ++present_count;
@@ -423,8 +419,7 @@ int main() {
         device.operation_order.clear();
         const auto exit=session.tick({.click_pulse=true},true,false);
         assert(exit.submitted&&exit.prepared.game.replay_preparation);
-        assert(device.operation_order==std::vector<std::string>({"draw","capture","release bitmaps","present"}));
-        assert(device.activity_bitmap_releases==2); // initializer and unload
+        assert(device.operation_order==std::vector<std::string>({"draw","capture","present"}));
         assert(device.replay_captures==1);
         assert(session.tick({},false,false).submitted); // setup draws underlay
         assert(device.replay_draws==1);
@@ -434,7 +429,6 @@ int main() {
         assert(game.globals().dispatcher.current_state==static_cast<int>(State::PlayAgainDifficultySetup));
         assert(session.tick({},false,false).submitted);
         assert(device.replay_draws==3&&device.replay_captures==1);
-        assert(device.activity_bitmap_releases==2); // no eviction on replay UI ticks
     }
 
     {

@@ -6,7 +6,6 @@
 #include "btb/maze_input.hpp"
 #include "btb/maze_box_layout.hpp"
 #include "btb/maze_package_pickup.hpp"
-#include "btb/maze_transition.hpp"
 #include "btb/original_motion4.hpp"
 
 #include <filesystem>
@@ -18,8 +17,8 @@ namespace btb::full_game {
 
 // Incremental native binding of retail Maze 0x0041A730 / 0x0041D4D0.
 // Original three-screen map, source input, package capture and progress,
-// actor sprite, countdown, live Spud NPC and screen transition are
-// source-backed. Physical retail parity still requires comparison.
+// actor sprite and countdown are source-backed. Spud NPC AI and moving
+// dropped-package generation remain unhosted; this is not retail parity.
 class MazeDriver final : public ActivityDriver {
 public:
     MazeDriver(std::filesystem::path install_root,int difficulty=0,
@@ -46,13 +45,6 @@ public:
 
 private:
     [[nodiscard]] ActivityFrameOutput draw() const;
-    [[nodiscard]] ActivityFrameOutput draw_transition(const maze::ScreenTransitionFrame&) const;
-    void append_boxes(ActivityFrameOutput&,int screen,int offset) const;
-    void append_hud(ActivityFrameOutput&) const;
-    void append_spud(ActivityFrameOutput&,int screen,int offset) const;
-    maze::ScreenTransitionState transition_{};
-    int drive_animation_frame_{};
-    int drive_animation_wait_{};
 
     std::filesystem::path install_root_{};
     int difficulty_{};

@@ -143,6 +143,12 @@ bool MazeDriver::initialize(int player_index,std::string& error) {
         std::string source{std::istreambuf_iterator<char>{file},
                            std::istreambuf_iterator<char>{}};
         auto parsed=std::make_unique<maze::Data>(maze::parse_data(source));
+        std::string route_error;
+        if(!maze::validate_package_routes(
+                *parsed,maze::Screen::Middle,8,route_error)) {
+            error="original Maze package graph is invalid: "+route_error;
+            return false;
+        }
         // 0x0041A730 starts on Middle screen, at graph node 8,
         // with the float bit patterns 0x43770000 and 0x43858000.
         const auto& middle=parsed->screens[1].nodes;

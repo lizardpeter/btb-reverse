@@ -35,8 +35,10 @@ int main() {
     const char* source=R"(header
 west0 0 587 188 8 512 -1 -1 -1 -1
 NEXT_MiddleScreen
-middle8 8 247 278 2 0 -1 9 -1 -1
-middle9 9 270 278 8 0 -1 -1 -1 8
+middle0 0 40 182 2 128 -1 8 -1 -1
+middle8 8 247 278 10 0 -1 9 -1 0
+middle9 9 270 278 10 0 -1 15 -1 8
+middle15 15 603 182 8 256 -1 -1 -1 9
 NEXT_EastScreen
 east0 0 40 180 2 512 -1 -1 -1 -1
 END
@@ -131,6 +133,10 @@ END
            "Data\\SubGameMaze\\box.bmp");
     assert(intro.effects.draws[3].source_asset==
            "Data\\SubGameMaze\\player.bmp");
+    assert(!intro.effects.draws[0].color_keyed);
+    assert(intro.effects.draws[1].color_keyed);
+    assert(intro.effects.draws[2].color_keyed);
+    assert(intro.effects.draws[3].color_keyed);
     assert(intro.effects.draws[3].x==182);
     assert(intro.effects.draws[3].y==203);
     assert(intro.effects.audio.size()==4);
