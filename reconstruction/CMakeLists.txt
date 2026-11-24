@@ -891,7 +891,8 @@ add_test(NAME park_designer_activity_loop
     COMMAND btb_park_designer_activity_loop_tests)
 
 add_library(btb_full_game_park_designer_source
-    src/full_game_park_designer.cpp)
+    src/full_game_park_designer.cpp
+    src/full_game_park_scene.cpp)
 target_include_directories(btb_full_game_park_designer_source PUBLIC include)
 btb_require_cpp26(btb_full_game_park_designer_source PUBLIC)
 target_link_libraries(btb_full_game_park_designer_source PUBLIC
@@ -1371,6 +1372,7 @@ foreach(test_name IN ITEMS
     full_game_front_end_source
     full_game_generic_ui_source
     full_game_menu_actions_source
+    full_game_park_scene_source
     full_game_pregame_resources_source
     full_game_pregame_root_source
     full_game_pregame_source
