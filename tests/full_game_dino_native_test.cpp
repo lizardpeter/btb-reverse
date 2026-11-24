@@ -64,7 +64,8 @@ int main() {
     retail_level(root,"Raptor","Easy");
     retail_level(root,"Tric","Hard");
     {
-        auto driver=std::make_unique<DinoDriver>(root);
+        btb::retail::OriginalRetailRandom rng(1),reference(1);
+        auto driver=std::make_unique<DinoDriver>(root,&rng);
         auto* actual=driver.get();
         GameRoot game;
         assert(game.select_profile(1));
@@ -88,6 +89,8 @@ int main() {
             .click_pulse=true,.random_value=2,.pointer_button_held=true});
         assert(frame.kind==FrameKind::ActivityUpdated);
         assert(actual->runtime()->selected_piece()==0);
+        (void)reference.next_rand();(void)reference.next_rand();
+        assert(rng.state()==reference.state());
         assert(draw_has(frame.effects,
             "Data/SubGameDino/Dino/Raptor/Easy/Piece0.bmp"));
         assert(draw_has(frame.effects,
@@ -115,6 +118,11 @@ int main() {
         assert(frame.kind==FrameKind::ActivityUpdated);
         assert(actual->runtime()->mode()==
                btb::dino::InteractionMode::Carrying);
+        const int wrong_roll=reference.next_rand()%6;
+        assert(wrong_roll>=3); // seeded pickup animated Ellis; Bob was idle
+        (void)reference.next_rand();
+        assert(rng.state()==reference.state());
+        assert(frame.effects.audio.back().sound_id==170+wrong_roll);
         frame=game.advance({.pointer_x=100,.pointer_y=100,
             .pointer_button_held=false});
         assert(actual->runtime()->mode()==
@@ -128,7 +136,14 @@ int main() {
         assert(actual->runtime()->mode()==
                btb::dino::InteractionMode::FinalizeAcceptedDrop);
         assert(!actual->runtime()->complete());
+        const int correct_roll=reference.next_rand()%6;
+        assert(frame.effects.audio.back().sound_id==164+correct_roll);
+        assert(rng.state()==reference.state());
 
+        frame=game.advance({.managed_sound_playing=true});
+        (void)reference.next_rand();
+        assert(rng.state()==reference.state());
+        assert(frame.effects.progress_writes.empty());
         frame=game.advance({});
         assert(frame.kind==FrameKind::ActivityUpdated);
         assert(actual->runtime()->complete());

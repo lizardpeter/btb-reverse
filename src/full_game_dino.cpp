@@ -182,10 +182,13 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
         startup_pending_=false;
     }
 
-    if(runtime_->mode()==dino::InteractionMode::FinalizeAcceptedDrop)
-        (void)runtime_->finalize_accepted_drop();
+    const bool finalizing=runtime_->mode()==dino::InteractionMode::FinalizeAcceptedDrop;
+    if(finalizing) {
+        if(runtime_->finalize_accepted_drop()&&shared_random_)
+            (void)shared_random_->next_rand(); // unused original draw in 00409E00 mode 2
+    }
 
-    if(!runtime_->complete()) {
+    if(!finalizing&&!runtime_->complete()) {
         if(runtime_->mode()==dino::InteractionMode::Idle &&
            input.click_pulse) {
             const auto chosen=runtime_->begin_drag(cursor);
@@ -193,8 +196,10 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
                 const auto& piece=runtime_->pieces()[*chosen];
                 pickup_offset_={piece.current.x-cursor.x,
                                 piece.current.y-cursor.y};
-                animations_.queue_pickup(input.random_value&1,
-                                         (input.random_value>>1)&1);
+                // 00409E00 makes two independent consecutive rand calls.
+                const int mode=shared_random_?shared_random_->next_rand()&1:input.random_value&1;
+                const int actor=shared_random_?shared_random_->next_rand()&1:(input.random_value>>1)&1;
+                animations_.queue_pickup(mode,actor);
             }
         } else if(runtime_->mode()==dino::InteractionMode::Carrying &&
                   input.click_pulse) {
@@ -202,7 +207,7 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
             const auto dropped=runtime_->try_drop(
                 cursor,dino::Runtime::snap_tolerance(index));
             const auto roll=static_cast<int>(
-                static_cast<std::uint32_t>(input.random_value)%6U);
+                static_cast<std::uint32_t>(shared_random_?shared_random_->next_rand():input.random_value)%6U);
             if(dropped==dino::DropResult::Accepted) {
                 out.audio.push_back({AudioOperation::StopManagedSounds});
                 out.audio.push_back({AudioOperation::ManagedSoundId,{},
@@ -211,8 +216,10 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
             } else if(dropped==dino::DropResult::Rejected) {
                 out.audio.push_back({AudioOperation::ManagedSoundId,{},
                     dino::wrong_drop_sound_id(roll),50,1});
-                (void)animations_.queue_wrong_drop(roll,
-                    (input.random_value>>1)&1);
+                const auto actor=roll<3?dino::Character::Ellis:dino::Character::Bob;
+                const bool idle=animations_.channel(actor).mode()==dino::CharacterAnimationMode::Idle;
+                const int variant=idle&&shared_random_?shared_random_->next_rand()&1:(input.random_value>>1)&1;
+                (void)animations_.queue_wrong_drop(roll,variant);
             }
         }
     }
