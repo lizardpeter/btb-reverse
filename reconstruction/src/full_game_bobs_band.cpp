@@ -182,7 +182,8 @@ ActivityFrameOutput BobsBandDriver::advance(
         out.save_and_unload = true;
         out.next_saved_state =
             static_cast<int>(game_flow::State::BobsBandInit);
-        out.next_replay_class = 1;
+        // 00420030 case 10 writes 0051C2FC=0 (direct replay).
+        out.next_replay_class = 0;
         out.next_outer_state = frame.new_outer_game_flow_state;
         out.next_ui_context = frame.play_again_context;
     }

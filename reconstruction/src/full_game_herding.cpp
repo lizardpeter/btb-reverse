@@ -145,10 +145,9 @@ ActivityFrameOutput HerdingDriver::advance(
         out.audio.push_back({AudioOperation::StopBackingTrack});
         out.next_saved_state =
             static_cast<int>(game_flow::State::HerdingInit);
-        // Herding has Easy/Medium/Hard like Golf. Native replay class
-        // still requires an executable write-site differential audit.
-        // Keep the destination and completion record exact while
-        // avoiding an unproven replay-class assignment.
+        // 004182B0 writes 00446F38=0 and 0051C2FC=1 after voice EOS.
+        out.shared_completion_code=0;
+        out.next_replay_class=1;
         out.next_outer_state =
             static_cast<int>(game_flow::State::PlayAgainYesNoSetup);
         out.save_and_unload=true;

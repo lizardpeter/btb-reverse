@@ -841,6 +841,28 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
             return result;
         }
     }
+    // Paired badge movie codes are conditional on the actual active
+    // player's other completed activity, not the current score alone.
+    // 00415830 (Golf), 0041D4D0 (Maze), 00423F40 (Spud Maze).
+    if(globals_.active_profile) {
+        const auto& progress_record=globals_.player_progress[
+            static_cast<std::size_t>(*globals_.active_profile)];
+        const auto earned=[&](progress::Slot slot) {
+            for(const auto& write:result.effects.progress_writes)
+                if(write.slot==slot && write.value==1)return true;
+            return false;
+        };
+        if(activity->id==ActivityId::Golf && earned(progress::Slot::Golf) &&
+           progress_record.get(progress::Slot::Maze)==1)
+            result.effects.shared_completion_code=3;
+        if(activity->id==ActivityId::Maze && earned(progress::Slot::Maze))
+            result.effects.shared_completion_code=
+                progress_record.get(progress::Slot::Golf)==1?3:-1;
+        if(activity->id==ActivityId::SpudMaze &&
+           earned(progress::Slot::SpudMaze) &&
+           progress_record.get(progress::Slot::SpudSkate)==1)
+            result.effects.shared_completion_code=2;
+    }
     if(result.effects.save_and_unload &&
        result.effects.next_outer_state==
            static_cast<int>(game_flow::State::PlayAgainYesNoSetup)) {

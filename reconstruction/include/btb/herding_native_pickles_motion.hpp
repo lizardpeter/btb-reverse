@@ -9,9 +9,9 @@ namespace btb::full_game {
 // A deliberately limited, source-verified native implementation of
 // Pickles movement and original Pets Corner population construction.
 // Scruffty runs its original patrol; unfollowed animals run their
-// covered original far-roam branch. This source confirms 80px food
-// attraction but does not invent the remaining follower pursuit,
-// Scruffty-animal contacts or delivery.
+// covered original far-roam branch, food attraction, ordinary and tracked
+// following, Scruffty contact and home routing. Uncovered animal branches
+// still require source recovery and differential testing.
 class NativePicklesMotionSource final : public OriginalHerdingMotionSource {
 public:
     NativePicklesMotionSource()=default;
@@ -45,7 +45,7 @@ private:
     struct FrameSnapshot {
         herding::FoodType selected_food{herding::FoodType::None};
         herding::RetailScrufftyPatrolState scruffty_patrol{};
-        std::vector<std::size_t> followers{};
+        herding::FollowerList followers{};
         herding::RetailTrackedTargetSlots tracked{};
         int registration_counter{};
         std::uint32_t original_rng_state{};
@@ -56,7 +56,7 @@ private:
     herding::RetailScrufftyPatrolState scruffty_patrol_state_{};
     // Retail's ordinary follower list uses first-vacant insertion,
     // and its food-change release loop consumes RNG in that order.
-    std::vector<std::size_t> follower_indices_{};
+    herding::FollowerList follower_indices_{};
     herding::RetailTrackedTargetSlots tracked_slots_{};
     int remaining_to_register_{};
 };

@@ -112,7 +112,7 @@ void NativePicklesMotionSource::rollback_frame() noexcept {
     // discards the candidate copy.
     selected_food_=pending_frame_->selected_food;
     scruffty_patrol_state_=pending_frame_->scruffty_patrol;
-    follower_indices_.swap(pending_frame_->followers);
+    follower_indices_=pending_frame_->followers;
     tracked_slots_=pending_frame_->tracked;
     remaining_to_register_=pending_frame_->registration_counter;
     (shared_random_?*shared_random_:standalone_random_).seed(
@@ -143,7 +143,7 @@ bool NativePicklesMotionSource::initialize(
             originals.push_back(convert_original_entity(item));
         active_=true;
         selected_food_=herding::FoodType::None;
-        follower_indices_.clear();
+        follower_indices_=herding::FollowerList{};
         tracked_slots_=herding::RetailTrackedTargetSlots{};
         // Original InitializeHerdingActivity 0x00419600 writes ZERO
         // to global 0x50B31C. It is an independent signed counter,
@@ -175,6 +175,10 @@ bool NativePicklesMotionSource::advance(
     observed={};
     observed.require_native_event_proofs=true;
     observed.motion_records=source;
+    // 004182B0 at the 00418ECE frame boundary clears +0x48 for
+    // EVERY entity before the animal/dog loop. It is a per-update
+    // movement latch, not persistent steering state.
+    for(auto& entity:observed.motion_records)entity.movement_active=0;
 
     // UpdateHerdingActivity 0x418F23..0x41908D moves Scruffty once
     // per actual game frame, including frames where Pickles is idle.
@@ -191,14 +195,14 @@ bool NativePicklesMotionSource::advance(
         }
         const auto before=scruffty_patrol_state_;
         const auto step=herding::original_scruffty_patrol_step(
-            source[i],herding::scruffty_patrol_path(data),before);
+            observed.motion_records[i],herding::scruffty_patrol_path(data),before);
         if(!step) {
             error="original 0x418F23 Scruffty patrol source invalid";
             return false;
         }
-        observed.motion_records[i]=step->animal;
         observed.scruffty_patrol_evidence=
-            HerdingScrufftyPatrolEvidence{i,source[i],before,step->state};
+            HerdingScrufftyPatrolEvidence{i,observed.motion_records[i],before,step->state};
+        observed.motion_records[i]=step->animal;
         scruffty_patrol_state_=step->state;
     }
 
@@ -227,12 +231,13 @@ bool NativePicklesMotionSource::advance(
             // per follower. The event bridge validates and commits
             // the exact 200-frame wander target/clear transition.
             event.follower_release_random.resize(source.size());
-            for(const auto index:follower_indices_) {
-                event.follower_release_random[index]={
+            for(const auto index:follower_indices_.slots()) {
+                if(index<0)continue;
+                event.follower_release_random[static_cast<std::size_t>(index)]={
                     retail_next_random()%400,retail_next_random()%400};
             }
             observed.events.push_back(std::move(event));
-            follower_indices_.clear();
+            follower_indices_=herding::FollowerList{};
             selected_food_=food;
             break;
         }
@@ -320,6 +325,9 @@ bool NativePicklesMotionSource::advance(
                 route.entity_index=i;
                 route.retail_trigger_confirmed=true;
                 observed.events.push_back(std::move(route));
+                // The original state-one route allocator removes the
+                // ordinary slot; retain holes for first-vacant insertion.
+                static_cast<void>(follower_indices_.remove(static_cast<int>(i)));
                 continue;
             }
             // Retail states 10..14 steer to each species' entrance;
@@ -391,21 +399,12 @@ bool NativePicklesMotionSource::advance(
                 continue;
             }
 
-            const auto existing=std::find(
-                follower_indices_.begin(),follower_indices_.end(),i);
-            bool following=existing!=follower_indices_.end();
+            bool following=follower_indices_.contains(static_cast<int>(i));
 
             if(following) {
-                herding::FollowerList ordinary{};
-                for(const auto slot:follower_indices_) {
-                    if(!ordinary.add(static_cast<int>(slot))) {
-                        error="original ordinary follower list invalid";
-                        return false;
-                    }
-                }
                 const auto admission=tracked_slots_.admit_from_follower(
                     static_cast<int>(i),*original_anchor,*original_point,
-                    ordinary,remaining_to_register_);
+                    follower_indices_,remaining_to_register_);
                 if(admission.status==
                     herding::RetailTrackedAdmissionStatus::Inserted) {
                     // The retail registration branch returns from
@@ -427,7 +426,7 @@ bool NativePicklesMotionSource::advance(
                 return false;
             }
             if(*contact) {
-                if(follower_indices_.size()>=20) {
+                if(!follower_indices_.add(static_cast<int>(i))) {
                     error="original ordinary follower table is full";
                     return false;
                 }
@@ -437,7 +436,6 @@ bool NativePicklesMotionSource::advance(
                 joined.retail_trigger_confirmed=true;
                 joined.random_mod_2=retail_next_random()%2;
                 observed.events.push_back(std::move(joined));
-                follower_indices_.push_back(i);
                 // Original joins and starts formation on the same
                 // frame, before the collision pass at 0x4179BF.
                 following=true;
@@ -500,18 +498,13 @@ bool NativePicklesMotionSource::advance(
                             0x266+(retail_next_random()%2);
                     }
                     observed.events.push_back(std::move(event));
-                    follower_indices_.erase(
-                        std::remove(follower_indices_.begin(),
-                            follower_indices_.end(),i),
-                        follower_indices_.end());
+                    static_cast<void>(follower_indices_.remove(static_cast<int>(i)));
                     // The event bridge writes the real 200-tick
                     // escape target after validating native corners;
                     // animal movement starts on the NEXT game tick.
                     break;
                 }
-                if(std::find(follower_indices_.begin(),
-                             follower_indices_.end(),i)==
-                   follower_indices_.end())
+                if(!follower_indices_.contains(static_cast<int>(i)))
                     continue;
             }
             if(following)continue;
@@ -608,7 +601,7 @@ bool NativePicklesMotionSource::unload(std::string& error) {
     rollback_frame();
     active_=false;
     selected_food_=herding::FoodType::None;
-    follower_indices_.clear();
+    follower_indices_=herding::FollowerList{};
     tracked_slots_=herding::RetailTrackedTargetSlots{};
     remaining_to_register_=0;
     error.clear();

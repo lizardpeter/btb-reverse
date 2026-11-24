@@ -31,6 +31,20 @@ struct ScriptedFireworks final : ActivityDriver {
     }
 };
 
+struct BadgeActivity final : ActivityDriver {
+    btb::progress::Slot slot;
+    explicit BadgeActivity(btb::progress::Slot earned):slot(earned){}
+    bool initialize(int,std::string& error) override {
+        error.clear();return true;
+    }
+    ActivityFrameOutput advance(const ActivityFrameInput&) override {
+        ActivityFrameOutput out;
+        out.progress_writes.push_back({slot,1});
+        return out;
+    }
+    bool unload(std::string& error) override {error.clear();return true;}
+};
+
 struct ScriptedDino final : ActivityDriver {
     int starts{};
     int frames{};
@@ -218,6 +232,31 @@ int main() {
     assert(live_source->unloads==1);
     closing.set_outer_state(State::DinoRun);
     assert(closing.advance({}).kind == FrameKind::ActivityFailed);
+
+    // Original paired completion movies are scoped to the active profile.
+    using Slot=btb::progress::Slot;
+    struct PairCase {ActivityId id; State init; Slot award,other; int code;};
+    for(const auto& pair:std::array<PairCase,3>{{
+        {ActivityId::Golf,State::GolfInit,Slot::Golf,Slot::Maze,3},
+        {ActivityId::Maze,State::MazeInit,Slot::Maze,Slot::Golf,3},
+        {ActivityId::SpudMaze,State::SpudMazeInit,Slot::SpudMaze,Slot::SpudSkate,2}
+    }}) {
+        for(bool paired:{false,true}) {
+            auto root=std::make_unique<GameRoot>();
+            assert(root->select_profile(1));
+            root->globals().player_progress[0].values[
+                static_cast<std::size_t>(pair.other)]=1;
+            if(paired)root->globals().player_progress[1].values[
+                static_cast<std::size_t>(pair.other)]=1;
+            root->install(pair.id,std::make_unique<BadgeActivity>(pair.award));
+            root->set_outer_state(pair.init);
+            assert(root->advance({}).kind==FrameKind::ActivityInitialized);
+            const auto result=root->advance({});
+            assert(result.kind==FrameKind::ActivityUpdated);
+            assert(root->globals().player_progress[1].get(pair.award)==1);
+            assert(root->globals().shared_completion_code==(paired?pair.code:-1));
+        }
+    }
 
     game.globals().dispatcher.current_state = 0x44;
     assert(game.advance({}).kind == FrameKind::InvalidState);

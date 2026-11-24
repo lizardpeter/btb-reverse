@@ -739,6 +739,17 @@ int main() {
                      event.entity_index==1));
         assert(native.unload(error));
     }
+    // Retail ordinary slots are fixed indices, not a compacting vector.
+    // Removing slot 0 and rejoining must reuse that slot so the next
+    // food-change RNG pairs are assigned in the original order.
+    {
+        btb::herding::FollowerList followers;
+        assert(followers.add(7));
+        assert(followers.add(4));
+        assert(followers.remove(7));
+        assert(followers.add(9));
+        assert(followers.slots()[0]==9 && followers.slots()[1]==4);
+    }
     std::srand(123);
     for(int difficulty=0;difficulty<3;++difficulty) {
         fg::GameRoot game;
