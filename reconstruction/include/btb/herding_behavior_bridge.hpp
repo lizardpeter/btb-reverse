@@ -83,7 +83,8 @@ public:
 
     [[nodiscard]] HerdingBehaviorEvent arrive_at_home_waypoint(
         std::size_t entity_index,
-        bool original_arrival_confirmed);
+        bool original_arrival_confirmed,
+        bool independently_verified_pre_move_arrival=false);
 
 private:
     [[nodiscard]] RetailEntityRecord32* entity(

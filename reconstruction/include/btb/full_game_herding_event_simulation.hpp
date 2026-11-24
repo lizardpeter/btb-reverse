@@ -155,6 +155,8 @@ struct HerdingOrdinaryFollowerEvidence {
     herding::Vec2i formation_target{};
     int formation_ordinal{};
     bool held_position{};
+    bool ran_nonfollowing_outer_pass{};
+    bool outer_boundary_recovered{};
 };
 
 // On the original tracked-target list, a follower runs the source
@@ -172,6 +174,8 @@ struct HerdingTrackedApproachEvidence {
     herding::Vec2i registered_point{};
     herding::Vec2i source_actor_anchor{};
     bool arrived{};
+    bool ran_nonfollowing_outer_pass{};
+    bool outer_boundary_recovered{};
 };
 
 // Native first and second stage home routing: the original actor

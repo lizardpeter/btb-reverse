@@ -446,6 +446,19 @@ bool NativePicklesMotionSource::advance(
                     observed.events.push_back(std::move(arrival));
                 } else {
                     observed.motion_records[i]=approach->updated;
+                    // 4190E8 tests the membership captured BEFORE calling
+                    // the inner AI. A food release can leave tracked
+                    // membership alive without an ordinary follower slot.
+                    if(!entered_as_follower) {
+                        const auto outer=herding::original_herding_nonfollowing_outer_step(
+                            before,approach->updated,nav,
+                            herding::animal_navigation_recovery_target(data),saved_position);
+                        if(!outer) {error="native tracked outer movement invalid";return false;}
+                        observed.motion_records[i]=outer->animal;
+                        auto& proof=observed.tracked_approach_evidence.back();
+                        proof.ran_nonfollowing_outer_pass=true;
+                        proof.outer_boundary_recovered=outer->boundary_recovered;
+                    }
                 }
                 continue;
             }
@@ -556,10 +569,21 @@ bool NativePicklesMotionSource::advance(
                     // animal movement starts on the NEXT game tick.
                     break;
                 }
-                if(!follower_indices_.contains(static_cast<int>(i)))
-                    continue;
+                // A new follower entered UpdateHerdingAnimal via the
+                // nonfollowing outer dispatcher. Do not skip that pass
+                // just because membership changed inside the inner call.
+                if(!entered_as_follower) {
+                    auto& proof=observed.ordinary_follower_evidence.back();
+                    const auto outer=herding::original_herding_nonfollowing_outer_step(
+                        proof.before,observed.motion_records[i],nav,
+                        herding::animal_navigation_recovery_target(data),saved_position);
+                    if(!outer) {error="native newly joined follower outer movement invalid";return false;}
+                    observed.motion_records[i]=outer->animal;
+                    proof.ran_nonfollowing_outer_pass=true;
+                    proof.outer_boundary_recovered=outer->boundary_recovered;
+                }
+                continue;
             }
-            if(following)continue;
 
             const auto retreat=herding::original_herding_near_retreat(before,hero,original_anchor);
             if(retreat) {

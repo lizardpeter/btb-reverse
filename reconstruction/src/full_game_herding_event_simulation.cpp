@@ -25,7 +25,9 @@ bool apply_confirmed_event(
     std::vector<Audio>& sounds,
     std::string& error,
     bool independent_tracked_membership=false,
-    const herding::RetailEntityRecord32* pre_patrol_dog=nullptr) {
+    const herding::RetailEntityRecord32* pre_patrol_dog=nullptr,
+    const herding::RetailEntityRecord32* pre_outer_animal=nullptr,
+    bool verified_pre_move_arrival=false) {
 
     if (!event.retail_trigger_confirmed) {
         error="Herding source event has no original collision/trigger evidence";
@@ -65,17 +67,17 @@ bool apply_confirmed_event(
             });
         const auto* collision_dog=pre_patrol_dog ? pre_patrol_dog :
             (dog==records.end()?nullptr:&*dog);
+        const auto& collision_animal=pre_outer_animal?*pre_outer_animal:records[event.entity_index];
         if (!collision_dog ||
             !herding::original_herding_animal_hits_scruffty(
-                records[event.entity_index],*collision_dog)) {
+                collision_animal,*collision_dog)) {
             error="Scruffty collision was not established by original "
                   "animal-first four-corner contact";
             return false;
         }
         if (event.retail_rect_contact &&
             (event.retail_rect_contact->first !=
-                herding::original_herding_entity_rect(
-                    records[event.entity_index]) ||
+                herding::original_herding_entity_rect(collision_animal) ||
              event.retail_rect_contact->second !=
                 herding::original_herding_entity_rect(*collision_dog))) {
             error="Scruffty source rectangles differ from original "
@@ -115,7 +117,7 @@ bool apply_confirmed_event(
         step=staged.begin_home_route(event.entity_index);
         break;
     case HerdingObservedKind::ReachHomeWaypoint:
-        step=staged.arrive_at_home_waypoint(event.entity_index,true);
+        step=staged.arrive_at_home_waypoint(event.entity_index,true,verified_pre_move_arrival);
         break;
     case HerdingObservedKind::AnimalChatter:
         if(event.source_verified_sound_id<0x331 || event.source_verified_sound_id>0x339) {
@@ -130,7 +132,8 @@ bool apply_confirmed_event(
     }
 
     for (auto& sound : speech_for_id(step.sound_id)) {
-        if(event.kind==HerdingObservedKind::PickUpFood) sound.priority=90;
+        if(event.kind==HerdingObservedKind::PickUpFood ||
+           event.kind==HerdingObservedKind::EnterHomeRoute) sound.priority=90;
         if(event.kind==HerdingObservedKind::JoinFollower) sound.priority=10;
         sounds.push_back(std::move(sound));
     }
@@ -303,6 +306,7 @@ bool HerdingEventSimulation::advance(
     bool food_applied=false;
     std::vector<std::optional<herding::Vec2i>> perception_anchors(candidate.entities().size());
     std::vector<std::optional<herding::Vec2i>> saved_positions(candidate.entities().size());
+    std::vector<std::optional<herding::RetailEntityRecord32>> pre_outer_animals(candidate.entities().size());
     if(observed.source_ordered_food_and_tracking) {
         if(!observed.require_native_event_proofs ||
            !candidate.apply_source_motion(0,observed.motion_records.front())) {
@@ -819,6 +823,11 @@ bool HerdingEventSimulation::advance(
             error="tracked arrival event missing original <30 proof";
             return false;
         }
+        const bool should_run_outer=observed.source_ordered_food_and_tracking && !probe.arrived &&
+            !candidate.followers().contains(static_cast<int>(probe.entity_index));
+        if(probe.ran_nonfollowing_outer_pass!=should_run_outer) {
+            error="native tracked approach outer membership gate invalid";return false;
+        }
         if(probe.arrived) {
             if(actual.x!=prior.x || actual.y!=prior.y ||
                actual.behavior_state!=0) {
@@ -826,19 +835,29 @@ bool HerdingEventSimulation::advance(
                 return false;
             }
         } else {
+            auto expected_motion=source_step->updated;
+            if(should_run_outer) {
+                const auto outer=herding::original_herding_nonfollowing_outer_step(
+                    probe.before,expected_motion,data_.retail_transformed_group0(),
+                    herding::animal_navigation_recovery_target(data_),saved_positions[probe.entity_index]);
+                if(!outer || outer->boundary_recovered!=probe.outer_boundary_recovered) {
+                    error="native tracked outer polygon pass differs";return false;
+                }
+                expected_motion=outer->animal;
+            }
             constexpr float kOriginalX87Tolerance=0.001f;
-            if(actual.x!=source_step->updated.x ||
-               actual.y!=source_step->updated.y ||
-               actual.direction!=source_step->updated.direction ||
-               actual.animation_frame!=source_step->updated.animation_frame ||
+            if(actual.x!=expected_motion.x ||
+               actual.y!=expected_motion.y ||
+               actual.direction!=expected_motion.direction ||
+               actual.animation_frame!=expected_motion.animation_frame ||
                actual.animation_frame_countdown!=
-                   source_step->updated.animation_frame_countdown ||
-               actual.movement_active!=source_step->updated.movement_active ||
+                   expected_motion.animation_frame_countdown ||
+               actual.movement_active!=expected_motion.movement_active ||
                std::fabs(actual.x_float-
-                    source_step->updated.x_float)>kOriginalX87Tolerance ||
+                    expected_motion.x_float)>kOriginalX87Tolerance ||
                std::fabs(actual.y_float-
-                    source_step->updated.y_float)>kOriginalX87Tolerance ||
-               actual.movement_speed!=source_step->updated.movement_speed) {
+                    expected_motion.y_float)>kOriginalX87Tolerance ||
+               actual.movement_speed!=expected_motion.movement_speed) {
                 error="native tracked-target movement differs from original 0x4172B0";
                 return false;
             }
@@ -905,22 +924,37 @@ bool HerdingEventSimulation::advance(
             error="native ordinary follower orbit and source spacing invalid";
             return false;
         }
+        auto expected_motion=expected->moved;
+        pre_outer_animals[probe.entity_index]=expected_motion;
+        const bool should_run_outer=observed.source_ordered_food_and_tracking && !was_following;
+        if(probe.ran_nonfollowing_outer_pass!=should_run_outer) {
+            error="native ordinary follower outer membership gate invalid";return false;
+        }
+        if(should_run_outer) {
+            const auto outer=herding::original_herding_nonfollowing_outer_step(
+                probe.before,expected_motion,data_.retail_transformed_group0(),
+                herding::animal_navigation_recovery_target(data_),saved_positions[probe.entity_index]);
+            if(!outer || outer->boundary_recovered!=probe.outer_boundary_recovered) {
+                error="native ordinary follower outer polygon pass differs";return false;
+            }
+            expected_motion=outer->animal;
+        }
         const auto& actual=observed.motion_records[probe.entity_index];
         constexpr float kX87ApproximationTolerance=0.001f;
-        if(actual.x!=expected->moved.x ||
-           actual.y!=expected->moved.y ||
-           actual.direction!=expected->moved.direction ||
+        if(actual.x!=expected_motion.x ||
+           actual.y!=expected_motion.y ||
+           actual.direction!=expected_motion.direction ||
            actual.movement_active!=1 ||
-           actual.animation_frame!=expected->moved.animation_frame ||
+           actual.animation_frame!=expected_motion.animation_frame ||
            actual.animation_frame_countdown!=
-               expected->moved.animation_frame_countdown ||
+               expected_motion.animation_frame_countdown ||
            actual.behavior_state!=0 ||
-           std::fabs(actual.x_float-expected->moved.x_float)>
+           std::fabs(actual.x_float-expected_motion.x_float)>
                kX87ApproximationTolerance ||
-           std::fabs(actual.y_float-expected->moved.y_float)>
+           std::fabs(actual.y_float-expected_motion.y_float)>
                kX87ApproximationTolerance ||
            std::fabs(actual.movement_speed-
-               expected->moved.movement_speed)>
+               expected_motion.movement_speed)>
                kX87ApproximationTolerance) {
             error="native animal ordinary formation differs from retail source";
             return false;
@@ -1230,7 +1264,13 @@ bool HerdingEventSimulation::advance(
         }
         const auto* pre_patrol_dog=observed.source_ordered_food_and_tracking &&
             observed.scruffty_patrol_evidence ? &observed.scruffty_patrol_evidence->before : nullptr;
-        if (!apply_confirmed_event(candidate,event,sounds,error,independent_tracked_membership,pre_patrol_dog)) {
+        const auto& pre_outer=pre_outer_animals[event.entity_index];
+        const bool pre_move_arrival=observed.require_native_event_proofs &&
+            event.kind==HerdingObservedKind::ReachHomeWaypoint &&
+            std::any_of(observed.home_motion_evidence.begin(),observed.home_motion_evidence.end(),
+                [&](const auto& p){return p.entity_index==event.entity_index && p.arrived;});
+        if (!apply_confirmed_event(candidate,event,sounds,error,independent_tracked_membership,pre_patrol_dog,
+                                   pre_outer?&*pre_outer:nullptr,pre_move_arrival)) {
             return false;
         }
         if (event.kind==HerdingObservedKind::TrackedTargetArrived) {

@@ -256,15 +256,15 @@ HerdingBehaviorEvent HerdingRecoveredBehavior::begin_home_route(
 }
 
 HerdingBehaviorEvent HerdingRecoveredBehavior::arrive_at_home_waypoint(
-    std::size_t index,bool original_arrival_confirmed) {
+    std::size_t index,bool original_arrival_confirmed,
+    bool independently_verified_pre_move_arrival) {
 
     auto* animal=entity(index);
     if (!valid_ || !animal || !original_arrival_confirmed ||
         !is_herd_animal(animal->entity_type()) ||
-        !original_herding_home_arrival(*animal)) {
-        // The 2002 game compares its actual integer position to the
-        // species-specific entrance/waypoint with DISTANCE < 10.
-        // A caller's asserted contact must not bypass this check.
+        (!independently_verified_pre_move_arrival && !original_herding_home_arrival(*animal))) {
+        // Native proofs check the actual PRE-move anchor; scripted
+        // legacy sources still require a direct <10 spatial check.
         return {};
     }
     const auto step=home_route_arrival_step(
