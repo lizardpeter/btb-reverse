@@ -1090,6 +1090,13 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
         result.replay_preparation = plan;
         globals_.menu.replay_active_latch =
             plan.set_replay_active_latch;
+        if(plan.stop_and_release_activity_music) {
+            bool already_stopped=false;
+            for(const auto& a:result.effects.audio)
+                if(a.operation==AudioOperation::StopBackingTrack)already_stopped=true;
+            if(!already_stopped)result.effects.audio.push_back({
+                AudioOperation::StopBackingTrack});
+        }
         if (plan.stop_all_managed_sounds) {
             result.effects.audio.push_back({
                 AudioOperation::StopManagedSounds

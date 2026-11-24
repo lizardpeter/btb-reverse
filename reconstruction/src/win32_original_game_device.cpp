@@ -58,6 +58,16 @@ bool Win32OriginalGameDevice::draw_ordered(
     return bink_.render_walkthrough_overlay(error);
 }
 
+bool Win32OriginalGameDevice::capture_replay_underlay(std::string& error) {
+    return draw_.capture_replay_underlay(error);
+}
+
+bool Win32OriginalGameDevice::draw_replay_ordered(
+    const std::vector<ResolvedDraw>& draws,std::string& error) {
+    // No active minigame movie or walkthrough may paint over this UI.
+    return draw_.render_replay_ordered(draws,error);
+}
+
 bool Win32OriginalGameDevice::print_current_frame(std::string& error) {
     return Win32RetailPrintProvider::print_original_backbuffer(
         draw_.bink_render_target(),draw_.window_handle(),error);

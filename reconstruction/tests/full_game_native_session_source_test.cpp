@@ -75,6 +75,8 @@ public:
     int draw_count{};
     int present_count{};
     int print_count{};
+    int replay_captures{};
+    int replay_draws{};
     bool fail_print{};
     std::vector<std::string> operation_order{};
     bool fail_draw{};
@@ -122,6 +124,17 @@ public:
         for (const auto& draw : draws) {
             received_draws.push_back(draw.original);
         }
+        error.clear();return true;
+    }
+    bool capture_replay_underlay(std::string& error) override {
+        ++replay_captures;operation_order.push_back("capture");
+        error.clear();return true;
+    }
+    bool draw_replay_ordered(const std::vector<ResolvedDraw>& draws,
+                            std::string& error) override {
+        if(!replay_captures){error="no captured source frame";return false;}
+        ++replay_draws;operation_order.push_back("replay");
+        for(const auto& d:draws)received_draws.push_back(d.original);
         error.clear();return true;
     }
     bool print_current_frame(std::string& error) override {
@@ -184,6 +197,36 @@ public:
     }
 };
 
+class SourceReplayActivity final : public ActivityDriver {
+public:
+    bool initialize(int,std::string& error) override {error.clear();return true;}
+    ActivityFrameOutput advance(const ActivityFrameInput& input) override {
+        ActivityFrameOutput out;
+        out.draws.push_back({"Data/ui/original.bmp",0,0});
+        if(input.click_pulse) {
+            out.save_and_unload=true;
+            out.next_saved_state=static_cast<int>(btb::game_flow::State::GolfInit);
+            out.next_replay_class=1;
+            out.next_outer_state=static_cast<int>(btb::game_flow::State::PlayAgainYesNoSetup);
+        }
+        return out;
+    }
+    bool unload(std::string& error) override {error.clear();return true;}
+};
+
+class ReplayMenu final : public FrontEndDriver {
+public:
+    bool initialize(const btb::progress::Record&,btb::progress::FinaleGate&,
+                    std::string& error) override {error.clear();return true;}
+    void synchronize_finale_gate(btb::progress::FinaleGate) noexcept override {}
+    ActivityFrameOutput advance(const ActivityFrameInput& input) override {
+        ActivityFrameOutput out;
+        out.draws.push_back({"Data/ui/replay.bmp",0,0,std::nullopt,true});
+        if(input.click_pulse)out.negative_ui_action=-20;
+        return out;
+    }
+};
+
 class Instruction final : public FrontEndDriver {
 public:
     bool initialize(
@@ -224,6 +267,40 @@ int main() {
     touch(directory,"data/sound/help_0.wav");
     touch(directory,"Data/movies/start_0.bik");
     touch(directory,"Data/ui/original.bmp");
+    touch(directory,"Data/ui/replay.bmp");
+    touch(directory,"Data/sound/replay.wav");
+
+    {
+        auto game_storage=std::make_unique<GameRoot>();auto& game=*game_storage;
+        assert(game.select_profile(0));
+        game.install(ActivityId::Golf,std::make_unique<SourceReplayActivity>());
+        assert(game.install_generic_front_end_pair(
+            State::PlayAgainYesNoSetup,std::make_unique<ReplayMenu>()));
+        assert(game.install_generic_front_end_pair(
+            State::PlayAgainDifficultySetup,std::make_unique<ReplayMenu>()));
+        Device device;
+        auto session_storage=std::make_unique<NativeGameSession>(
+            game,device,OriginalAssetResolver{directory},startup_fixture(),walkthrough_fixture());
+        auto& session=*session_storage;
+        std::istringstream sounds("replay.wav 573\n");
+        assert(session.load_sound_catalog(sounds).success);
+        game.set_outer_state(State::GolfInit);
+        assert(session.tick({},false,false).submitted);
+        assert(session.tick({},false,false).submitted);
+        device.operation_order.clear();
+        const auto exit=session.tick({.click_pulse=true},true,false);
+        assert(exit.submitted&&exit.prepared.game.replay_preparation);
+        assert(device.operation_order==std::vector<std::string>({"draw","capture","present"}));
+        assert(device.replay_captures==1);
+        assert(session.tick({},false,false).submitted); // setup draws underlay
+        assert(device.replay_draws==1);
+        const auto replay=session.tick({.click_pulse=true},true,false);
+        assert(replay.submitted&&device.replay_draws==2);
+        assert(device.received_draws.back().color_keyed);
+        assert(game.globals().dispatcher.current_state==static_cast<int>(State::PlayAgainDifficultySetup));
+        assert(session.tick({},false,false).submitted);
+        assert(device.replay_draws==3&&device.replay_captures==1);
+    }
 
     {
         GameRoot game;

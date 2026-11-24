@@ -88,6 +88,18 @@ NativeSessionFrame NativeGameSession::tick(
         (skip_video_ && (movie_mode == 13 || movie_mode == 14))
             ? true : physical.global_movie_finished;
 
+    const auto entry_state=static_cast<game_flow::State>(
+        root_.globals().dispatcher.current_state);
+    using S=game_flow::State;
+    const bool replay_screen=entry_state==S::PlayAgainYesNoSetup||
+        entry_state==S::PlayAgainYesNoUpdate||
+        entry_state==S::PlayAgainDifficultySetup||
+        entry_state==S::PlayAgainDifficultyUpdate||
+        entry_state==S::FireworksReplayChoiceSetup||
+        entry_state==S::FireworksReplayChoiceUpdate;
+    const bool replay_underlay=replay_screen&&root_.globals().menu.replay_active_latch;
+    if(entry_state==S::SpudSkateInit)skate_snapshot_valid_=false;
+
     auto game = root_.advance(input);
     frame.prepared.game = game;
 
@@ -288,13 +300,36 @@ NativeSessionFrame NativeGameSession::tick(
     const auto mode=root_.globals().dispatcher.generic_screen_mode;
     const bool global_movie_frame =
         !skip_video_ &&
-        ((frame.prepared.game.kind == FrameKind::Intercept &&
+        (frame.global_movie_opened ||
+         (frame.prepared.game.kind == FrameKind::Intercept &&
           (mode == 13 || mode == 14)) ||
          frame.prepared.game.effects.retain_original_global_movie_pixels);
-    if (!global_movie_frame &&
-        !device_.draw_ordered(frame.prepared.resources.draws,error)) {
-        fail(frame,PhysicalPresentationStage::SubmitDraw,error);
-        return frame;
+    const bool preparing_replay=frame.prepared.game.replay_preparation&&
+        frame.prepared.game.replay_preparation->draw_replay_underlay;
+    if (!global_movie_frame) {
+        const bool skate_replay=preparing_replay&&entry_state==S::SpudSkateRun&&
+                                skate_snapshot_valid_;
+        const auto& draws=frame.prepared.resources.draws;
+        // For an activity whose source has already unloaded the Bink
+        // bank, do not replace its final visible scene with BMP-only art.
+        bool drawn=false;
+        if(skate_replay)drawn=device_.draw_replay_ordered({},error);
+        else if(replay_underlay)drawn=device_.draw_replay_ordered(draws,error);
+        else if(preparing_replay&&draws.empty())drawn=true; // capture existing pixels
+        else drawn=device_.draw_ordered(draws,error);
+        if(!drawn) {
+            fail(frame,PhysicalPresentationStage::SubmitDraw,error);
+            return frame;
+        }
+        if((preparing_replay&&!skate_replay)||
+           (entry_state==S::SpudSkateRun&&!preparing_replay&&
+            !frame.prepared.game.effects.save_and_unload)) {
+            if(!device_.capture_replay_underlay(error)) {
+                fail(frame,PhysicalPresentationStage::SubmitDraw,error);
+                return frame;
+            }
+            if(entry_state==S::SpudSkateRun)skate_snapshot_valid_=true;
+        }
     }
     if(frame.prepared.game.effects.request_original_frame_print &&
        !device_.print_current_frame(error)) {

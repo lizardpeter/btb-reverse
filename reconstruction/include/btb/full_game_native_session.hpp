@@ -59,6 +59,15 @@ public:
     [[nodiscard]] virtual bool draw_ordered(
         const std::vector<ResolvedDraw>& draws,
         std::string& error) = 0;
+    // 0042CFD0 captures the real 640x480 backbuffer into 51C298;
+    // 00428E30 redraws that snapshot before the keyed replay art.
+    [[nodiscard]] virtual bool capture_replay_underlay(std::string& error) {
+        error="native replay underlay capture unavailable";return false;
+    }
+    [[nodiscard]] virtual bool draw_replay_ordered(
+        const std::vector<ResolvedDraw>&,std::string& error) {
+        error="native replay underlay rendering unavailable";return false;
+    }
     // Called ONLY after the authentic ordered DD7 frame has been drawn.
     // Platform implementations must report actual printing errors. A user
     // cancelling the native dialog is normal, and is not called 'printed'.
@@ -136,6 +145,9 @@ private:
     OriginalWalkthroughCatalog walkthroughs_{};
     bool skip_video_{};
     bool walkthrough_open_{};
+    // Spud Skate tears down its movie surfaces during GameRoot::advance.
+    // Keep its last actually composed frame before that teardown.
+    bool skate_snapshot_valid_{};
     bool failed_{};
     bool pending_present_{};
 };
