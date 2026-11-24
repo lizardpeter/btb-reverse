@@ -10,6 +10,9 @@ on:
       - "reconstruction/src/bink32_audio_movie.cpp"
       - "reconstruction/src/bink32_audio_stream.cpp"
       - "reconstruction/tools/bink32_native_audio_audit.cpp"
+      - "reconstruction/tools/bink32_retail_video_audit.cpp"
+      - "tools/audit_retail_bink.py"
+      - "tools/test_audit_retail_bink.py"
       - "reconstruction/tools/bink32_native_frame_dump.cpp"
       - "reconstruction/CMakeLists.txt"
   workflow_dispatch:
@@ -42,7 +45,7 @@ jobs:
           CXX: g++-14
         run: cmake -S reconstruction -B build/reconstruction
       - name: Build portable original-format Bink diagnostic tools
-        run: cmake --build build/reconstruction --parallel --target btb_bink32_native_frame_dump btb_bink32_native_audio_audit
+        run: cmake --build build/reconstruction --parallel --target btb_bink32_native_frame_dump btb_bink32_native_audio_audit btb_bink32_retail_video_audit
       - name: Upload tools for local retail-media validation
         uses: actions/upload-artifact@v4
         with:
@@ -50,5 +53,7 @@ jobs:
           path: |
             build/reconstruction/btb_bink32_native_frame_dump
             build/reconstruction/btb_bink32_native_audio_audit
+            build/reconstruction/btb_bink32_retail_video_audit
+            tools/audit_retail_bink.py
           if-no-files-found: error
           retention-days: 3

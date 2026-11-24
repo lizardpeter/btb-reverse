@@ -20,6 +20,8 @@ jobs:
           python-version: "3.12"
       - name: Compile Python tooling
         run: python -m py_compile tools/*.py
+      - name: Exercise read-only retail media audit fixtures
+        run: python -m unittest discover -s tools -p test_audit_retail_bink.py
 
 
   reconstruction-cpp:
