@@ -404,10 +404,7 @@ GameFrame GameRoot::advance(const ActivityFrameInput& sample) {
                         globals_.dispatcher.leave_activity_active=false;
                         if(hit==0&&initialized_activity_){
                             auto& driver=drivers_[static_cast<std::size_t>(*initialized_activity_)];
-                            if(!driver->request_confirmed_leave()){
-                                result.kind=FrameKind::ActivityFailed;
-                                result.error="activity has no recovered leave-confirmation handler";
-                            }
+                            if(!driver->request_confirmed_leave())pending_confirmed_leave_=true;
                         }
                     }
                 }
@@ -627,6 +624,15 @@ GameFrame GameRoot::advance(const ActivityFrameInput& sample) {
         return result;
     }
 
+    // 0042A7E7 checks the pending completion movie before loading the
+    // activity-select background. Park Designer and Fireworks return to 4.
+    if(state.state==game_flow::State::ActivitySelectSetup&&
+       globals_.shared_completion_code!=-1){
+        set_outer_state(game_flow::State::SharedMovieTransition);
+        result.kind=FrameKind::FrontEndUpdated;
+        result.state_changed=true;
+        return result;
+    }
     if (state.state == game_flow::State::ActivitySelectSetup ||
         state.state == game_flow::State::ActivitySelectUpdate) {
 
@@ -840,6 +846,8 @@ GameFrame GameRoot::advance(const ActivityFrameInput& sample) {
             return result;
         }
         initialized_activity_ = activity->id;
+        shared_back_hover_=false;
+        pending_confirmed_leave_=false;
         // 00411C80 and 0040B7E0 initialize the completion return to 4.
         if(activity->id==ActivityId::Fireworks ||
            activity->id==ActivityId::ParkDesigner) {
@@ -869,7 +877,78 @@ GameFrame GameRoot::advance(const ActivityFrameInput& sample) {
         return result;
     }
 
+    // Original activity handlers test 0051C2E8 before any update on the
+    // next ordinary frame. Their resource-specific unload implementations
+    // are used here; no gameplay/progress mutation is performed on exit.
+    if(pending_confirmed_leave_){
+        pending_confirmed_leave_=false;
+        using S=game_flow::State;
+        S destination=S::ActivitySelectSetup;
+        switch(activity->id){
+        case ActivityId::Dinosaur: destination=S::DinoChooserSetup;break;
+        case ActivityId::SpudSkate:
+        case ActivityId::SpudMaze: destination=S::SpudChooserSetup;break;
+        case ActivityId::Maze:
+        case ActivityId::Golf: destination=S::AdventureChooserSetup;break;
+        case ActivityId::BobsBand: destination=S::MusicChooserSetup;break;
+        default: break;
+        }
+        if(!unload_current(result.error)){
+            pending_confirmed_leave_=true;
+            result.kind=FrameKind::ActivityFailed;
+            return result;
+        }
+        result.effects.save_and_unload=true;
+        result.effects.audio.push_back({AudioOperation::StopManagedSounds});
+        result.effects.audio.push_back({AudioOperation::StopBackingTrack});
+        globals_.shared_movie_return_state=static_cast<int>(destination);
+        // 00413F10 returns to 4 even with a pending movie. State 4
+        // will perform that transition on the following dispatch.
+        if(activity->id!=ActivityId::Fireworks&&globals_.shared_completion_code!=-1)
+            destination=S::SharedMovieTransition;
+        result.effects.next_outer_state=static_cast<int>(destination);
+        apply_effects(result.effects);
+        result.kind=FrameKind::ActivityUpdated;
+        result.state_changed=true;
+        if(!profile_directory_.empty()&&!save_profile_files(profile_directory_,result.error))
+            result.kind=FrameKind::ActivityFailed;
+        return result;
+    }
+
+    const bool shared_back=activity->id!=ActivityId::ParkDesigner&&
+        effective_input.pointer_position_valid&&drivers_[index]->shared_back_available()&&
+        effective_input.pointer_x>572&&effective_input.pointer_x<617&&
+        effective_input.pointer_y>422&&effective_input.pointer_y<467;
+    const bool shared_back_click=shared_back&&(effective_input.click_pulse||effective_input.pointer_release_pulse);
+    // The shared controller consumes the back-button action, not the
+    // activity's own placement/shot interaction.
+    if(shared_back_click)effective_input.click_pulse=false;
     result.effects = drivers_[index]->advance(effective_input);
+    if(!result.effects.fatal_error&&!result.effects.save_and_unload&&
+       !result.effects.next_outer_state&&shared_back){
+        if(!result.effects.retain_original_global_movie_pixels)
+            result.effects.draws.push_back({input.pointer_button_held?
+                "Data/ui/backreddep.bmp":"Data/ui/backred.bmp",574,418,{},true});
+        if(!shared_back_hover_)
+            result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},456,50,2});
+        if(shared_back_click&&!result.effects.open_yes_no_confirmation){
+            if(activity->id==ActivityId::Dinosaur&&drivers_[index]->shared_back_starts_replay()){
+                // 0042B0B8 completed dinosaur bypasses leave confirmation.
+                result.effects.save_and_unload=true;
+                result.effects.next_saved_state=static_cast<int>(game_flow::State::DinoInit);
+                result.effects.next_replay_class=1;
+                result.effects.next_outer_state=static_cast<int>(game_flow::State::PlayAgainYesNoSetup);
+            }else{
+                result.effects.open_leave_activity_confirmation=true;
+                if(activity->id==ActivityId::Herding||activity->id==ActivityId::Dinosaur||
+                   activity->id==ActivityId::BobsBand||activity->id==ActivityId::Fireworks)
+                    result.effects.audio.push_back({AudioOperation::StopManagedSounds});
+                if(activity->id==ActivityId::Fireworks)
+                    result.effects.audio.push_back({AudioOperation::StopBackingTrack});
+            }
+        }
+    }
+    shared_back_hover_=shared_back;
     // A provider can have a valid registered ActivityDriver yet still lack a
     // required original subsystem (for example the Fireworks Bink bank).
     // Fail BEFORE applying progress, transitions, audio or save/unload.

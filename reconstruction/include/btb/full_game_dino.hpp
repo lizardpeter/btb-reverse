@@ -25,6 +25,11 @@ public:
         const ActivityFrameInput& input) override;
     [[nodiscard]] bool unload(std::string& error) override;
 
+    bool shared_back_available() const noexcept override {
+        return runtime_&&!runtime_->selected_piece();
+    }
+    bool shared_back_starts_replay() const noexcept override {return completion_started_;}
+
     [[nodiscard]] bool initialized() const noexcept { return !!runtime_; }
     [[nodiscard]] const dino::Runtime* runtime() const noexcept {
         return runtime_.get();

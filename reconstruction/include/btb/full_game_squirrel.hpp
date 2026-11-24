@@ -38,6 +38,7 @@ public:
     [[nodiscard]] int level() const noexcept {return level_;}
     [[nodiscard]] int placed_count() const noexcept {return placed_count_;}
     [[nodiscard]] bool animating() const noexcept {return animating_;}
+    bool shared_back_available() const noexcept override {return selected_choice_<0;}
 private:
     [[nodiscard]] bool generate_choices(std::string& error);
     [[nodiscard]] ActivityFrameOutput draw() const;

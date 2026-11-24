@@ -293,6 +293,9 @@ public:
     // Recovered native activity exit and modal redraw hooks. Only drivers
     // with a source-backed implementation opt in.
     virtual bool request_confirmed_leave() noexcept {return false;}
+    // 004084B0 only sets generic back/help bits for the normal cursor.
+    virtual bool shared_back_available() const noexcept {return true;}
+    virtual bool shared_back_starts_replay() const noexcept {return false;}
     virtual bool redraw_confirmation_background(ActivityFrameOutput&,std::string&) {return false;}
 };
 
@@ -406,6 +409,8 @@ private:
     std::vector<Draw> modal_background_{};
     std::optional<bool> pending_modal_choice_{};
     int modal_hover_{-1},modal_armed_{-1};
+    bool shared_back_hover_{};
+    bool pending_confirmed_leave_{};
     void consume_menu_action(
         game_flow::State update,
         GameFrame& result) noexcept;

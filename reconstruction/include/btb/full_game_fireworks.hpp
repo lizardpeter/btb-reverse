@@ -73,6 +73,12 @@ public:
         const ActivityFrameInput& input) override;
     [[nodiscard]] bool unload(std::string& error) override;
 
+    bool shared_back_available() const noexcept override {
+        // The native movie/show and certificate branches have separate
+        // replay navigation in 0042C08B. Do not open the editor modal there.
+        return layout_&&editor_.cursor.kind==fireworks::EditorCursorKind::Normal&&
+            static_cast<int>(editor_.internal_state)<9;
+    }
     [[nodiscard]] bool initialized() const noexcept {
         return layout_.has_value();
     }
