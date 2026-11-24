@@ -133,8 +133,11 @@ END
            "Data\\SubGameMaze\\player.bmp");
     assert(intro.effects.draws[3].x==182);
     assert(intro.effects.draws[3].y==203);
-    assert(intro.effects.audio.size()==1);
-    assert(intro.effects.audio[0].sound_id==0x49);
+    assert(intro.effects.audio.size()==3);
+    assert(intro.effects.audio[0].operation==fg::AudioOperation::StartBackingTrack);
+    assert(intro.effects.audio[0].source_asset=="Data/music/maze.wav");
+    assert(intro.effects.audio.back().sound_id==0x49);
+    assert(intro.effects.audio.back().input_interruptible);
     assert(maze->remaining_seconds()==240);
     frame=game.advance({.managed_sound_playing=true,
                         .elapsed_centiseconds=200,
@@ -218,7 +221,7 @@ END
     pickup_game.set_outer_state(State::MazeInit);
     assert(pickup_game.advance({}).kind==fg::FrameKind::ActivityInitialized);
     auto pickup=pickup_game.advance({.elapsed_centiseconds=100});
-    assert(pickup.effects.audio.size()==1);
+    assert(pickup.effects.audio.size()==3);
     pickup=pickup_game.advance({.elapsed_centiseconds=200});
     assert(actual->boxes().remaining==4);
     pickup=pickup_game.advance({.elapsed_centiseconds=300});
@@ -295,10 +298,29 @@ END
     tick();tick();
     for(int i=0;i<180;++i)tick();
     assert(live->boxes().remaining==2&&!live->player()->frozen);
-    for(int i=0;i<300&&live->boxes().remaining==2;++i)tick(0x01);
+    int slide_frames=0;
+    for(int i=0;i<500&&live->boxes().remaining==2;++i) {
+        const auto old_screen=live->player()->screen;
+        const auto old_x=live->player()->x;
+        const auto was_sliding=live->player()->transition!=0;
+        auto f=tick(0x01);
+        if(was_sliding) {
+            assert(live->player()->x==old_x);
+            if(live->player()->transition) {
+                ++slide_frames;
+                int cropped_backgrounds=0;
+                for(const auto& d:f.effects.draws) {
+                    assert(d.source_asset!="Data\\SubGameMaze\\player.bmp");
+                    if(!d.color_keyed&&d.source_rectangle)++cropped_backgrounds;
+                }
+                assert(cropped_backgrounds==2);
+            }
+        }
+    }
+    assert(slide_frames>1);
     assert(live->player()->screen==0&&live->boxes().remaining==1);
     for(int i=0;i<100&&live->player()->frozen;++i)tick();
-    for(int i=0;i<500&&live->boxes().remaining>0;++i)tick(0x02);
+    for(int i=0;i<1000&&live->boxes().remaining>0;++i)tick(0x02);
     assert(live->player()->screen==2&&live->boxes().remaining==0);
     for(int i=0;i<5&&live->player();++i)tick();
     assert(complete->globals().player_progress[0].get(

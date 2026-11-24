@@ -1,6 +1,7 @@
 #include "btb/full_game_maze.hpp"
 #include "btb/maze_presentation.hpp"
 #include "btb/maze_runtime.hpp"
+#include "btb/maze_controller.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -192,6 +193,8 @@ bool MazeDriver::initialize(int player_index,std::string& error) {
         input_mode_.mouse_mode=false; // 0x00512124 initial 0
         mouse_debounce_={};
         pointer_sampled_=false;
+        transition_={};transition_.phase=0;
+        drive_animation_frame_=0;drive_animation_wait_=0;
         pickup_animation_frame_=0;
         pickup_animation_wait_=0;
         pickup_voice_sequence_=0;
@@ -214,23 +217,8 @@ bool MazeDriver::initialize(int player_index,std::string& error) {
     }
 }
 
-ActivityFrameOutput MazeDriver::draw() const {
-    ActivityFrameOutput output;
-    if(!data_)return output;
-    const auto current=static_cast<maze::Screen>(player_.screen);
-    const auto* background=maze::surface_binding(
-        maze::background_surface(current));
-    if(!background) {
-        output.fatal_error="missing original Maze backdrop source binding";
-        return output;
-    }
-    output.draws.push_back({
-        std::string(background->filename),0,0,std::nullopt,false
-    });
-    // Source 0x0041C110 draws the four package slots for this screen
-    // before the animated player. Active boxes use the +0x510D20
-    // reference-point table parsed after END in maze_nodes.txt.
-    const auto screen_index=static_cast<std::size_t>(player_.screen);
+void MazeDriver::append_boxes(ActivityFrameOutput& output,int screen,int offset) const {
+    const auto screen_index=static_cast<std::size_t>(screen);
     for(const auto& slot:boxes_.screens[screen_index]) {
         if(slot.node_id<0)continue;
         if(slot.status==maze::kSpudAvailablePackageStatus ||
@@ -239,7 +227,7 @@ ActivityFrameOutput MazeDriver::draw() const {
             if(slot.status==maze::kSpudAvailablePackageStatus) {
                 if(slot.node_id>=4) {
                     output.fatal_error="Maze box location outside retail 0..3";
-                    return output;
+                    return;
                 }
                 const auto& point=data_->box_locations[screen_index][
                     static_cast<std::size_t>(slot.node_id)];
@@ -250,32 +238,31 @@ ActivityFrameOutput MazeDriver::draw() const {
                 y=slot.dropped_y;
             }
             output.draws.push_back({
-                "Data\\SubGameMaze\\box.bmp",x-8,y-8,
+                "Data\\SubGameMaze\\box.bmp",x-8+offset,y-8,
                 std::nullopt,true
             });
         }
     }
-    const auto sprite=maze::actor_source_rect(
-        player_.frozen?pickup_animation_frame_:0,player_.facing);
-    const auto where=maze::player_destination(player_.x,player_.y);
-    output.draws.push_back({
-        "Data\\SubGameMaze\\player.bmp",where.x,where.y,
-        Rect{sprite.left,sprite.top,sprite.right,sprite.bottom},true
-    });
+}
+
+void MazeDriver::append_spud(ActivityFrameOutput& output,int screen,int offset) const {
     // Retail DrawMazeActivity shows the live Spud sprite only after NPC
     // phase 1 and only on the player's screen; hidden phases are not
     // substituted with a fake actor standing on the map.
-    if(static_cast<int>(npc_.phase)>1 && npc_.screen==player_.screen) {
+    if(static_cast<int>(npc_.phase)>1 && npc_.screen==screen) {
         const auto spud_frame=maze::actor_source_rect(
             npc_.animation_frame,npc_.current_direction);
         const auto spud=maze::spud_destination(
-            npc_.position.x,npc_.position.y,0);
+            npc_.position.x,npc_.position.y,offset);
         output.draws.push_back({
             "Data\\SubGameMaze\\spud.bmp",spud.x,spud.y,
             Rect{spud_frame.left,spud_frame.top,
                  spud_frame.right,spud_frame.bottom},true
         });
     }
+}
+
+void MazeDriver::append_hud(ActivityFrameOutput& output) const {
     const int initial=data_->timer_by_difficulty[
         static_cast<std::size_t>(difficulty_)];
     const auto timer=maze::timer_source_rect(
@@ -287,7 +274,7 @@ ActivityFrameOutput MazeDriver::draw() const {
         });
     }
     // Source HUD is derived from the same real package bank, not an
-    // independent invented counter. Collection remains unconnected.
+    // independent invented counter.
     for(const auto& marker:maze::package_progress_markers(
             boxes_.total,boxes_.total-boxes_.remaining)) {
         const auto* image=maze::surface_binding(marker.surface);
@@ -298,6 +285,49 @@ ActivityFrameOutput MazeDriver::draw() const {
                 std::nullopt,true
             });
     }
+}
+
+ActivityFrameOutput MazeDriver::draw() const {
+    ActivityFrameOutput output;
+    if(!data_)return output;
+    const auto current=static_cast<maze::Screen>(player_.screen);
+    const auto* background=maze::surface_binding(maze::background_surface(current));
+    output.draws.push_back({std::string(background->filename),0,0,std::nullopt,false});
+    append_boxes(output,player_.screen,0);
+    if(output.fatal_error)return output;
+    const auto sprite=maze::actor_source_rect(
+        player_.frozen?pickup_animation_frame_:drive_animation_frame_,player_.facing);
+    const auto where=maze::player_destination(player_.x,player_.y);
+    output.draws.push_back({
+        "Data\\SubGameMaze\\player.bmp",where.x,where.y,
+        Rect{sprite.left,sprite.top,sprite.right,sprite.bottom},true
+    });
+    append_spud(output,player_.screen,0);
+    append_hud(output);
+    return output;
+}
+
+ActivityFrameOutput MazeDriver::draw_transition(const maze::ScreenTransitionFrame& f) const {
+    if(f.completed)return draw();
+    ActivityFrameOutput output;
+    const auto* background=maze::surface_binding(
+        maze::background_surface(transition_.previous_screen));
+    // 0041C710 preserves the previous frame border and HUD, then
+    // draws the two moving strips inside the 600x380 playfield.
+    output.draws.push_back({std::string(background->filename),0,0,std::nullopt,false});
+    append_hud(output);
+    const auto strip=[&](const maze::TransitionBlit& b) {
+        if(b.source.right<=b.source.left)return;
+        const auto* binding=maze::surface_binding(maze::background_surface(b.screen));
+        output.draws.push_back({std::string(binding->filename),b.destination_x,b.destination_y,
+            Rect{b.source.left,b.source.top,b.source.right,b.source.bottom},false});
+    };
+    strip(f.left_blit);strip(f.right_blit);
+    // 0041C110: new-screen boxes first, old-screen Spud and boxes next.
+    // The player is hidden until the slide finishes.
+    append_boxes(output,static_cast<int>(transition_.destination_screen),f.actor_offset_a);
+    append_spud(output,static_cast<int>(transition_.previous_screen),f.actor_offset_b);
+    append_boxes(output,static_cast<int>(transition_.previous_screen),f.actor_offset_b);
     return output;
 }
 
@@ -309,8 +339,12 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
     // 0x49+difficulty narrator line. Never signal its finish by a fixed
     // fake timeout; the physical managed-sound observation is required.
     if(!intro_voice_queued_) {
+        // 0041D4D0 invokes PlayActivityMusicByIndex(5) before the
+        // interruptible opening narrator. The original WAV exists on disc.
+        out.audio.push_back({AudioOperation::StartBackingTrack,"Data/music/maze.wav"});
+        out.audio.push_back({AudioOperation::StopManagedSounds});
         out.audio.push_back({
-            AudioOperation::ManagedSoundId,{},0x49+difficulty_,90,1
+            AudioOperation::ManagedSoundId,{},0x49+difficulty_,90,1,true
         });
         intro_voice_queued_=true;
         return out;
@@ -336,7 +370,8 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
         });
         lowtime_voice_queued_=true;
     }
-    if(boxes_.remaining<=0 || remaining_seconds_<0) {
+    if(maze::classify_end_condition(boxes_.remaining,remaining_seconds_,
+            transition_.phase)!=maze::EndCondition::None || exit_phase_!=0) {
         if(exit_phase_==0) {
             won_=boxes_.remaining<=0;
             out.audio.push_back({AudioOperation::StopManagedSounds});
@@ -366,8 +401,14 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
         out.next_replay_class=1;
         return out;
     }
+    bool began_transition=false;
+    std::optional<maze::ScreenTransitionFrame> slide;
     try {
-        if(player_.frozen) {
+        if(transition_.phase!=0) {
+            // 0041D4D0 suppresses player input while the slide advances.
+            slide=maze::advance_screen_transition(transition_);
+            if(slide->completed)player_.transition=0;
+        } else if(player_.frozen) {
             // Source 0x0041C110 holds the player while the pickup
             // animation advances from row 3 through row 7.
             if(--pickup_animation_wait_<1) {
@@ -376,9 +417,10 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
                 if(pickup_animation_frame_>7) {
                     player_.frozen=false;
                     pickup_animation_frame_=0;
+                    drive_animation_frame_=0;drive_animation_wait_=20;
                     const int voice=pickup_voice_sequence_<6
                         ? 0x4d+pickup_voice_sequence_
-                        : 0x51+(input.random_value&1);
+                        : 0x51+(random_stream().next_rand()&1);
                     ++pickup_voice_sequence_;
                     out.audio.push_back({
                         AudioOperation::ManagedSoundId,{},voice,10,1
@@ -388,10 +430,23 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
         } else {
             MazePlayerPort io(input,out,player_,input_mode_,
                               mouse_debounce_,pointer_sampled_,random_stream());
+            const auto previous_screen=player_.screen;
             original_motion4::update_maze_player(player_,io);
+            if(player_.screen!=previous_screen) {
+                transition_={};
+                transition_.previous_screen=static_cast<maze::Screen>(previous_screen);
+                transition_.destination_screen=static_cast<maze::Screen>(player_.screen);
+                began_transition=true;
+            } else if(player_.x!=player_.previous_x||player_.y!=player_.previous_y) {
+                // 0041C110: three driving columns, ten draw ticks each.
+                if(--drive_animation_wait_<1) {
+                    drive_animation_frame_=(drive_animation_frame_+1)%3;
+                    drive_animation_wait_=10;
+                }
+            }
             // Original 0x0041B140 scans current screen's four boxes,
             // truncating player coordinates, radius strictly <46.
-            if(maze::collect_source_box(
+            if(!began_transition&&maze::collect_source_box(
                     boxes_,*data_,player_.screen,player_.x,player_.y)) {
                 player_.frozen=true;
                 pickup_animation_frame_=3;
@@ -423,8 +478,10 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
     }
     // Source movement updates the actor BEFORE DrawMazeActivity; replace
     // the pre-input ordered draw plan with the new physical coordinates.
-    auto updated=draw();
-    updated.audio=std::move(out.audio);
+    // The portal-capture frame retains its prior presentation; the
+    // next dispatch starts 0041C710. No input is accepted during sliding.
+    auto updated=began_transition?std::move(out):slide?draw_transition(*slide):draw();
+    if(!began_transition)updated.audio=std::move(out.audio);
     return updated;
 }
 
@@ -436,6 +493,8 @@ bool MazeDriver::unload(std::string& error) {
     input_mode_={};
     mouse_debounce_={};
     pointer_sampled_=false;
+    transition_={};transition_.phase=0;
+    drive_animation_frame_=0;drive_animation_wait_=0;
     pickup_animation_frame_=0;
     pickup_animation_wait_=0;
     pickup_voice_sequence_=0;

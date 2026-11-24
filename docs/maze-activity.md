@@ -454,3 +454,20 @@ This is a host compatibility correction, not a change to retail artwork
 or game logic. A pixel-level test covers different unused high bytes
 and exact-versus-near-magenta colors. Physical reproduction on the user's
 display still requires retesting.
+
+
+## Live slide and driving presentation
+
+The earlier host used the recovered graph portal destinations but snapped
+directly to the next map. The existing 0041C710 transition state now
+drives the live Maze frame: prior border/HUD, two cropped moving map
+strips, both package banks at the recovered offsets, and old-screen Spud.
+The player is hidden and movement is gated until the slide ends; outcome
+feedback is also gated as in 0041D4D0. The initial portal-capture frame
+retains its previous presentation. Walking/driving advances the existing
+three sprite columns on the retail ten-frame cadence. The startup
+sound path plays the actual Data/music/maze.wav (activity index 5),
+stops previous managed narration and marks the opening voice interruptible.
+The engine sound loop and exact animation counter phase at pickup remain
+separate parity work. The synthetic complete-route fixture checks
+movement gating, both strips, all four pickups, and final progress.
