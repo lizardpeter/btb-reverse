@@ -298,6 +298,19 @@ void GameRoot::consume_pregame_action(
         if (choice.persistent_herding_difficulty) {
             globals_.retained_herding_difficulty = *choice.difficulty;
         }
+        using S=game_flow::State;
+        switch(update) {
+        case S::DinoPregameUpdate:
+            if(globals_.menu.selected_subgame>=0&&globals_.menu.selected_subgame<3)
+                globals_.menu.dino_source_variants[static_cast<std::size_t>(
+                    globals_.menu.selected_subgame)]=*choice.difficulty;
+            break;
+        case S::SpudMazePregameUpdate: globals_.menu.spud_maze_difficulty=*choice.difficulty;break;
+        case S::GolfPregameUpdate: globals_.menu.golf_difficulty=*choice.difficulty;break;
+        case S::MazePregameUpdate: globals_.menu.maze_difficulty=*choice.difficulty;break;
+        case S::SquirrelPregameUpdate: globals_.menu.squirrel_difficulty=*choice.difficulty;break;
+        default:break;
+        }
     }
     if (choice.skate_immediate_start) {
         globals_.spud_skate_start_latch = true;
@@ -795,7 +808,27 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
             auto& record = globals_.player_progress[
                 static_cast<std::size_t>(*globals_.active_profile)];
             if (pregame) {
-                driver->configure_menu_state(globals_.menu);
+                // Restore each activity's original retained difficulty
+                // BEFORE configuring the highlight and eventual game driver.
+                using S=game_flow::State;
+                auto& menu=globals_.menu;
+                switch(pregame->setup) {
+                case S::HerdingPregameSetup: menu.source_variant=globals_.retained_herding_difficulty;break;
+                case S::DinoPregameSetup:
+                    if(menu.selected_subgame>=0&&menu.selected_subgame<3) {
+                        const auto value=menu.dino_source_variants[static_cast<std::size_t>(menu.selected_subgame)];
+                        if(value)menu.source_variant=*value;
+                    }
+                    break;
+                case S::SpudMazePregameSetup: menu.source_variant=menu.spud_maze_difficulty;break;
+                case S::GolfPregameSetup: menu.source_variant=menu.golf_difficulty;break;
+                case S::MazePregameSetup: menu.source_variant=menu.maze_difficulty;break;
+                case S::SquirrelPregameSetup: menu.source_variant=menu.squirrel_difficulty;break;
+                default:break;
+                }
+                if(pregame->selected_difficulty)
+                    menu.variant_selection_origin=pregame->update;
+                driver->configure_menu_state(menu);
             }
             if (!driver->initialize(
                     record,globals_.finale_gate,result.error)) {
@@ -837,11 +870,6 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
                     break;
                 default: break;
                 }
-                if (pregame->setup ==
-                    game_flow::State::HerdingPregameSetup) {
-                    globals_.menu.source_variant =
-                        globals_.retained_herding_difficulty;
-                }
                 if (pregame->starts_global_movie_mode14) {
                     result.original_global_intro_movie_index =
                         retail_pregame_global_intro_index(pregame->setup);
@@ -867,6 +895,7 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
             return result;
         }
         driver->synchronize_finale_gate(globals_.finale_gate);
+        if(pregame)driver->configure_menu_state(globals_.menu);
         result.effects = driver->advance(effective_input);
         apply_effects(result.effects);
         result.state_changed =

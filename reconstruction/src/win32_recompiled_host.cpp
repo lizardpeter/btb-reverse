@@ -547,7 +547,7 @@ LRESULT CALLBACK native_window_proc(
     case WM_MOUSEMOVE:
         host->set_pointer(lp);return 0;
     case WM_LBUTTONDOWN:
-        host->set_pointer(lp);host->native_input.press_mouse();return 0;
+        host->set_pointer(lp);host->native_input.press_mouse(host->pointer_x,host->pointer_y);return 0;
     case WM_LBUTTONUP:
         host->set_pointer(lp);host->native_input.release_mouse();return 0;
     case WM_KEYDOWN:

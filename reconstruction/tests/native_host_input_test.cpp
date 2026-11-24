@@ -5,6 +5,15 @@
 using namespace btb::full_game;
 int main() {
     {
+        NativeHostInput mouse;
+        mouse.press_mouse(22,44);mouse.release_mouse();
+        auto frame=mouse.sample(55,66,0);
+        assert(frame.menu_release_input&&frame.pointer_release_pulse);
+        assert(frame.menu_press_position&&frame.menu_press_position->first==22&&
+               frame.menu_press_position->second==44);
+        assert(!mouse.sample(55,66,1).menu_press_position);
+    }
+    {
         btb::full_game::NativeHostInput mouse;
         mouse.press_mouse();mouse.release_mouse();
         const auto pulse=mouse.sample(220,260,0);

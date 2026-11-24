@@ -86,6 +86,7 @@ bool GenericUiScreenDriver::initialize(
         ui_state_.fireworks_finale_locked = finale_gate.locked;
     }
     secondary_delay_=0;
+    captured_area_.reset();
     replacements_.clear();
     replacements_.reserve(table.size());
     for (std::size_t i=0; i<table.size(); ++i) {
@@ -159,9 +160,15 @@ ActivityFrameOutput GenericUiScreenDriver::advance(
         return result;
     }
 
-    const auto hovered = generic_ui_hit(
-        catalog_.hot_areas[index],
-        input.pointer_x,input.pointer_y);
+    if(screen_==front_end::Screen::InstructionWithDifficulty)
+        append_generic_ui_difficulty_art(result.draws,records,replacements_,difficulty_);
+    const auto hit = generic_ui_hit(
+        catalog_.hot_areas[index],input.pointer_x,input.pointer_y);
+    const auto press_hit=input.menu_press_position
+        ? generic_ui_hit(catalog_.hot_areas[index],input.menu_press_position->first,
+                         input.menu_press_position->second) : hit;
+    const auto pointer=resolve_menu_pointer(captured_area_,hit,press_hit,input);
+    const auto hovered=pointer.hover;
     const auto current = hovered
         ? static_cast<int>(*hovered + 1) : 0;
     const auto prior=ui_state_.selected_area_one_based;
@@ -191,9 +198,9 @@ ActivityFrameOutput GenericUiScreenDriver::advance(
     }
 
     append_generic_ui_art(result.draws,records,replacements_,
-                          hovered,input.pointer_button_held,secondary_delay_,
-                          current==prior);
-    if (input.click_pulse && hovered) {
+                          hovered,pointer.depressed,secondary_delay_,
+                          current==prior||pointer.depressed);
+    if (pointer.activate && hovered) {
         const auto armed = front_end::arm_generic_ui_click(
             ui_state_,records[*hovered],static_cast<int>(*hovered));
         if (armed.stop_all_managed_sounds) {

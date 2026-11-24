@@ -109,6 +109,36 @@ void add_ui_art(std::vector<Draw>& draws,std::string path,int x,int y,
 }
 }
 
+MenuPointerStep resolve_menu_pointer(
+    std::optional<std::size_t>& captured,
+    std::optional<std::size_t> hit,
+    std::optional<std::size_t> press_hit,
+    const ActivityFrameInput& input) noexcept {
+    if(!input.menu_release_input)
+        return {hit,input.click_pulse&&hit.has_value(),input.pointer_button_held};
+    if(input.click_pulse)captured=press_hit;
+    const bool matches=captured&&hit&&*captured==*hit;
+    MenuPointerStep step{hit,input.pointer_release_pulse&&matches,
+                         input.pointer_button_held&&matches};
+    if(input.pointer_button_held&&!matches)step.hover.reset();
+    if(input.pointer_release_pulse||!input.pointer_button_held)captured.reset();
+    return step;
+}
+
+void append_generic_ui_difficulty_art(
+    std::vector<Draw>& draws,
+    const std::vector<front_end::ReplacementRecord>& records,
+    const std::vector<front_end::ReplacementRuntimeState>& runtime,
+    int difficulty) {
+    if(difficulty<0||difficulty>2||runtime.size()!=records.size())return;
+    for(std::size_t i=0;i<records.size();++i) {
+        const auto& row=records[i];
+        if(row.target_state_or_action!=-2-difficulty||row.hover_frame_count<=0)continue;
+        add_ui_art(draws,animation_path(row.hover_bitmap_base,
+            runtime[i].hover_animation_frame),row.secondary_x,row.secondary_y);
+    }
+}
+
 void append_generic_ui_art(
     std::vector<Draw>& draws,
     const std::vector<front_end::ReplacementRecord>& records,
@@ -165,6 +195,7 @@ bool ActivitySelectDriver::initialize(
     ui_state_ = {};
     ui_state_.fireworks_finale_locked = finale_gate.locked;
     secondary_delay_=0;
+    captured_area_.reset();
     replacement_runtime_.clear();
     replacement_runtime_.reserve(records.size());
     for (std::size_t i = 0; i < records.size(); ++i) {
@@ -237,8 +268,13 @@ ActivityFrameOutput ActivitySelectDriver::advance(
         return out;
     }
 
-    const auto hovered = activity_select_hit(
+    const auto hit = activity_select_hit(
         catalog_.hot_areas[1], input.pointer_x, input.pointer_y);
+    const auto press_hit=input.menu_press_position
+        ? activity_select_hit(catalog_.hot_areas[1],input.menu_press_position->first,
+                              input.menu_press_position->second) : hit;
+    const auto pointer=resolve_menu_pointer(captured_area_,hit,press_hit,input);
+    const auto hovered=pointer.hover;
     const auto prior = ui_state_.selected_area_one_based;
     const auto current = hovered
         ? static_cast<int>(*hovered + 1) : 0;
@@ -270,9 +306,9 @@ ActivityFrameOutput ActivitySelectDriver::advance(
     }
 
     append_generic_ui_art(out.draws,records,replacement_runtime_,
-                          hovered,input.pointer_button_held,secondary_delay_,
-                          current==prior);
-    if (input.click_pulse && hovered) {
+                          hovered,pointer.depressed,secondary_delay_,
+                          current==prior||pointer.depressed);
+    if (pointer.activate && hovered) {
         const auto i = *hovered;
         const auto armed = front_end::arm_generic_ui_click(
             ui_state_, records[i], static_cast<int>(i));

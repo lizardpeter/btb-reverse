@@ -217,6 +217,10 @@ struct ActivityFrameInput {
     bool pointer_position_valid{};
     // A release is distinct from the first-down pulse for retail 00429C90.
     bool pointer_release_pulse{};
+    // Real host reports independent down/held/up events. The portable
+    // source fixtures may still inject an already completed click.
+    bool menu_release_input{};
+    std::optional<std::pair<int,int>> menu_press_position{};
 };
 
 struct ActivityFrameOutput {

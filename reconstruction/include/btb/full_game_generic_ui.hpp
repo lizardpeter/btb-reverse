@@ -34,6 +34,8 @@ public:
           initial_random_draws_(std::move(initial_random_draws)) {}
 
     void configure_menu_state(const RetailMenuState& menu) override {
+        if(screen_==front_end::Screen::InstructionWithDifficulty)
+            difficulty_=menu.source_variant;
         if (!pregame_setup_ || !pregame_bitmaps_) {
             return;
         }
@@ -113,6 +115,8 @@ private:
     front_end::GenericUiRuntimeState ui_state_{};
     bool initialized_{};
     int secondary_delay_{};
+    int difficulty_{};
+    std::optional<std::size_t> captured_area_{};
     std::optional<Draw> backdrop_{};
     std::optional<game_flow::State> pregame_setup_{};
     std::optional<OriginalUiBitmapCatalog> pregame_bitmaps_{};

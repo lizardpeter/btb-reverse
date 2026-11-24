@@ -185,6 +185,39 @@ int main() {
                static_cast<int>(pregame.back));
     }
 
+    // All six difficulty-based instruction pairs retain their own
+    // selection even when another game changes the common variant.
+    for(const auto& pregame:kRetailPregamePairs) {
+        if(!pregame.selected_difficulty)continue;
+        auto storage=std::make_unique<GameRoot>();auto& game=*storage;
+        assert(game.select_profile(0));
+        assert(game.install_pregame_front_end_pair(pregame.setup,
+            std::make_unique<GenericUiScreenDriver>(catalog,pregame.screen,
+                std::vector<int>(6,0))));
+        if(pregame.setup==State::DinoPregameSetup)
+            game.globals().menu.selected_subgame=1;
+        game.set_outer_state(pregame.setup);
+        assert(game.advance({}).kind==FrameKind::FrontEndInitialized);
+        if(pregame.starts_global_movie_mode14) {
+            game.globals().dispatcher.global_movie_finished=true;
+            assert(game.advance({}).kind==FrameKind::FrontEndUpdated);
+        }
+        const auto hard=click_area(game,3);
+        assert(hard.pregame_action&&hard.pregame_action->difficulty==2);
+        game.globals().menu.source_variant=1;
+        game.set_outer_state(pregame.setup);
+        assert(game.advance({}).kind==FrameKind::FrontEndInitialized);
+        assert(game.globals().menu.source_variant==2);
+        assert(game.globals().menu.variant_selection_origin==pregame.update);
+        if(pregame.setup==State::DinoPregameSetup) {
+            game.globals().menu.selected_subgame=2;
+            game.set_outer_state(pregame.setup);
+            assert(game.advance({}).kind==FrameKind::FrontEndInitialized);
+            assert(game.globals().menu.source_variant==0);
+            assert(game.globals().menu.dino_source_variants[1]==2);
+        }
+    }
+
     // Herding retains 0x51C340 separately from the current source
     // variant when the user changes Easy/Medium/Hard.
     auto herding_storage=std::make_unique<GameRoot>();

@@ -41,6 +41,27 @@ void append_generic_ui_art(
     std::optional<std::size_t> hovered,bool held,int& secondary_delay,
     bool draw_hover = true);
 
+// Source 00428600's captured area 00446CEC. Down latches an area,
+// held motion may not activate another area, and up must match.
+struct MenuPointerStep {
+    std::optional<std::size_t> hover{};
+    bool activate{};
+    bool depressed{};
+};
+[[nodiscard]] MenuPointerStep resolve_menu_pointer(
+    std::optional<std::size_t>& captured,
+    std::optional<std::size_t> hit,
+    std::optional<std::size_t> press_hit,
+    const ActivityFrameInput& input) noexcept;
+
+// Draw the selected difficulty's hover artwork at its secondary
+// coordinates before the normal hover/pressed/idle pass (51C2F8).
+void append_generic_ui_difficulty_art(
+    std::vector<Draw>& draws,
+    const std::vector<front_end::ReplacementRecord>& records,
+    const std::vector<front_end::ReplacementRuntimeState>& runtime,
+    int difficulty);
+
 // The native 0x04/0x05 Activity Select pair, with deferred audio click
 // resolution and the progress-gated Firework Finale action 0x22.
 // Rendering/hover surface loads are still handled by the common UI compositor;
@@ -90,6 +111,7 @@ private:
     front_end::GenericUiRuntimeState ui_state_{};
     bool initialized_{};
     int secondary_delay_{};
+    std::optional<std::size_t> captured_area_{};
     std::optional<Draw> backdrop_{};
 };
 

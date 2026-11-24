@@ -31,6 +31,11 @@ struct RetailMenuState {
     // These addresses live in the original uninitialized image region and
     // are zero-filled by the PE loader until the Dino pregame updates them.
     std::array<std::optional<std::int32_t>,3> dino_source_variants{{0,0,0}};
+    // Original zero-filled retained difficulty globals 0x51C350..35C.
+    std::int32_t spud_maze_difficulty{};
+    std::int32_t golf_difficulty{};
+    std::int32_t maze_difficulty{};
+    std::int32_t squirrel_difficulty{};
 };
 
 struct RetailMenuAction {
