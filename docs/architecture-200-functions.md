@@ -13,7 +13,7 @@ Original EXE SHA-256: c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff
 - analysis/reconstruction/architecture_200.csv: prototype, module, tentative C++ owner, original global/asset references, callers, callees and uncertainty
 - analysis/reconstruction/architecture_global_xrefs.json: original DAT-address sharing across functions, untyped
 - analysis/reconstruction/architecture_200_summary.json: audited totals
-- reconstruction/include/btb/original_architecture_map.hpp: C++26 METADATA ONLY
+- include/btb/original_architecture_map.hpp: C++26 METADATA ONLY
 
 ## Candidate module distribution
 

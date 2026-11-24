@@ -23,7 +23,7 @@ GHIDRA = common.GHIDRA
 SHA = common.SOURCE_SHA
 FINAL = ARCH / "architecture_224_selection.csv"
 FIRST = ARCH / "architecture_200_selection.csv"
-REVIEWED = ARCH / "reviewed_functions.csv"
+REVIEWED = ROOT / "records/reviewed_functions.csv"
 
 BASE_COLS = common.COLS
 EXTRA_COLS = (
@@ -285,7 +285,7 @@ def build():
         "- analysis/reconstruction/architecture_615.csv — all 615 original functions reconciled.",
         "- analysis/reconstruction/architecture_615_summary.json — disjoint cohort / fidelity totals.",
         "- analysis/reconstruction/architecture_615_globals.json — full original global-reference census.",
-        "- reconstruction/include/btb/original_architecture_615.hpp — constexpr metadata only.",
+        "- include/btb/original_architecture_615.hpp — constexpr metadata only.",
         "",
         "## Reconstruction boundary",
         "",
@@ -332,7 +332,7 @@ def build():
         ARCH / "architecture_615_globals.json": json.dumps(xrefs_report, indent=2) + "\n",
         ROOT / "docs/architecture-final-224.md": "\n".join(docs),
         ROOT / "docs/architecture-615-functions.md": "\n".join(docs615),
-        ROOT / "reconstruction/include/btb/original_architecture_615.hpp": header,
+        ROOT / "include/btb/original_architecture_615.hpp": header,
     }
 
 

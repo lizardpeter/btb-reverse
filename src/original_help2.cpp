@@ -18,7 +18,7 @@ void load_original_help_info(State& s,std::istream& input) {
             if(r.left==-1) {
                 // Retail 00401030 calls fscanf("%d %d %d %d %d") but
                 // tests the FIRST value regardless of conversion count.
-                // Shipped contexts 14..19 have only four -1 fields;
+                // Shipped contexts 13..19 have only four -1 fields;
                 // the next section marker must remain unread. Portable
                 // streams do not recover from a failed numeric extraction
                 // automatically, so inspect the next token before reading.

@@ -12,7 +12,7 @@ Use a C++26-capable toolchain. The Windows CI builds both architectures using
 Visual Studio 2026; Linux CI uses GCC 14.
 
 ```powershell
-cmake -S reconstruction -B build/reconstruction-win -G "Visual Studio 18 2026" -A x64
+cmake -S . -B build/reconstruction-win -G "Visual Studio 18 2026" -A x64
 cmake --build build/reconstruction-win --config Release --target btb_game
 .\build\reconstruction-win\Release\btb_game.exe --native-original "C:\Games\BTB-BBP"
 ```
@@ -50,7 +50,7 @@ by successful automated tests.
 ## Tests
 
 ```sh
-CXX=g++-14 cmake -S reconstruction -B build/reconstruction
+CXX=g++-14 cmake -S . -B build/reconstruction
 cmake --build build/reconstruction --parallel
 ctest --test-dir build/reconstruction --output-on-failure
 ./build/reconstruction/btb_game --recompiled-smoke

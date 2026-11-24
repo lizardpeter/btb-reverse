@@ -25,11 +25,11 @@ int main(int argc,char** argv) {
     assert(state.regions[1][0].sound_id==477 && state.regions[1][1].sound_id==701);
     assert(state.regions[2][0].left==20 && state.active==0 && state.activation_phase==0);
     // The shipped helpinfo.txt switches from five to FOUR sentinel
-    // integers at context 14. Do not consume the next context label.
+    // integers at context 13. Do not consume the next context label.
     std::ostringstream mixed;
     for(int i=0;i<20;++i) {
         mixed<<"Context_"<<i<<"\r\n579 420 625 465 "<<(400+i)<<"\r\n";
-        mixed<<(i<14?"-1 -1 -1 -1 -1\r\n":"-1 -1 -1 -1\r\n");
+        mixed<<(i<13?"-1 -1 -1 -1 -1\r\n":"-1 -1 -1 -1\r\n");
     }
     mixed<<"END";
     std::istringstream shipped_shape(mixed.str());

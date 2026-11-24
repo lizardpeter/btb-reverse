@@ -30,7 +30,7 @@ Original executable SHA-256: c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd
 - analysis/reconstruction/architecture_615.csv — all 615 original functions reconciled.
 - analysis/reconstruction/architecture_615_summary.json — disjoint cohort / fidelity totals.
 - analysis/reconstruction/architecture_615_globals.json — full original global-reference census.
-- reconstruction/include/btb/original_architecture_615.hpp — constexpr metadata only.
+- include/btb/original_architecture_615.hpp — constexpr metadata only.
 
 ## Reconstruction boundary
 

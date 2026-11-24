@@ -8,8 +8,8 @@ Reverse-engineering workspace for **Bob the Builder: Bob Builds a Park** (Window
 the **compiles** stage in the reviewed C++26 source inventory; **0 remain**
 unreviewed or architecture-only. Every compile-stage function is associated
 with a C++ source file, validation test, and evidence record. This count is
-maintained in [the generated function summary](analysis/reconstruction/summary.json),
-[the reviewed source ledger](analysis/reconstruction/reviewed_functions.csv),
+maintained in [the generated function summary](records/summary.json),
+[the reviewed source ledger](records/reviewed_functions.csv),
 and [the full 615-function architecture inventory](docs/architecture-615-functions.md).
 
 **100% function source coverage is not 100% runtime or binary equivalence.**
@@ -44,10 +44,38 @@ The 45,056-byte root-level `Bob the Builder - Bob Builds a Park.exe` is a launch
 
 ## Repository layout
 
-- `docs/` - hand-maintained reverse-engineering notes
-- `tools/` - dependency-free scanners for the original files
-- `analysis/generated/` - generated reports that are safe to regenerate
-- `ghidra/` - Ghidra project support/scripts as they are added
+- `src/` — faithful original game and native Bink decoder reconstruction, including reconstructed gameplay coordinators.
+- `include/btb/` — shared source interfaces and generated original-function registries.
+- `runtime/` — native executable entrypoints and platform/device adapters (Win32, DirectDraw, DirectSound, movie surfaces, printing).
+- `enhanced/` — opt-in improvements, separate from faithful behavior; currently a baseline-only build target.
+- `records/` — canonical reviewed function ledger and generated status, work queue and dependency graph.
+- `tests/` — portable and native source regression suites.
+- `tools/` — evidence generators, scanners and native diagnostics (`tools/native/`).
+- `analysis/` and `ghidra/` — original-executable evidence, architecture reports and reverse-engineering tooling.
+- `docs/` — technical notes and integration documentation.
+- `cmake/` — one shared build graph; `reconstruction/` is a compatibility CMake entrypoint only.
+
+## Faithful and enhanced builds
+
+The default build is faithful and never compiles enhancements into `btb_game`.
+Use an independent build directory when enabling the enhanced variant.
+
+```bash
+cmake -S . -B build/faithful
+cmake --build build/faithful --target btb_game
+cmake -S . -B build/enhanced -DBTB_BUILD_ENHANCED=ON
+cmake --build build/enhanced --target btb_game_enhanced
+```
+
+For Visual Studio, add `-A x64` to configure and `--config Release` to build.
+Both launchers use the original installed data; original EXE or Bink DLL
+are not required by the native x64 path. Enhanced currently shares the
+faithful implementation and adds no new gameplay features. Future improvements
+must be explicit opt-in changes under `enhanced/`, with the faithful build
+and its regression suite preserved. Fixes that restore original behavior
+belong in `src/` or the platform adapter in `runtime/`, not in enhanced.
+
+See [source layout policy](docs/source-layout.md) and [AGENTS.md](AGENTS.md).
 
 ## First scan
 
@@ -84,7 +112,7 @@ See `docs/initial-analysis.md` for the first verified anchors.
 
 ## First integrated game executable
 
-The `reconstruction` CMake project builds `btb_game` and the
+The root CMake project builds `btb_game` and the
 native Windows C++26 host, with a shared game-flow dispatcher and drivers
 registered for **all ten activities**. That does not imply all ten have
 completed a real on-device playthrough: the five-stream Spud Skate backend, native Fireworks bank and global/movie

@@ -85,7 +85,7 @@ class FinalArchitectureTests(unittest.TestCase):
 
     def test_cpp_registry_metadata_not_body(self):
         header = self.outputs[
-            builder.ROOT / "reconstruction/include/btb/original_architecture_615.hpp"]
+            builder.ROOT / "include/btb/original_architecture_615.hpp"]
         self.assertIn("Not 615 source implementations", header)
         self.assertIn("kOriginalArchitecture615", header)
 

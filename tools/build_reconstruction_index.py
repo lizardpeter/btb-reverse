@@ -16,9 +16,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GHIDRA = ROOT / "analysis/ghidra_main_exe"
-REVIEWED = ROOT / "analysis/reconstruction/reviewed_functions.csv"
-GENERATED = ROOT / "analysis/reconstruction"
-HEADER = ROOT / "reconstruction/include/btb/original_function_registry.hpp"
+REVIEWED = ROOT / "records/reviewed_functions.csv"
+GENERATED = ROOT / "records"
+HEADER = ROOT / "include/btb/original_function_registry.hpp"
 EXPECTED_SHA = "c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05"
 
 # Tentative ranges from docs/module-map.md; boundaries are not proof of ownership.

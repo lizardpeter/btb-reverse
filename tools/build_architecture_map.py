@@ -130,7 +130,7 @@ def generate():
     if len(selection) != 200 or len(set(selection)) != 200 or any(a not in by_addr for a in selection):
         raise ValueError("Must select precisely 200 distinct original functions")
     stages = {normalize(f["address"]): f["stage"]
-              for f in read_csv(ARCH / "reviewed_functions.csv")}
+              for f in read_csv(ROOT / "records/reviewed_functions.csv")}
     external_labels = {f["address"].lower(): f["namespace"] + "!" + f["name"]
                        for f in read_csv(GHIDRA / "external_symbols.csv")}
     incoming, outgoing, external = defaultdict(set), defaultdict(set), defaultdict(set)
@@ -224,7 +224,7 @@ def generate():
         "- analysis/reconstruction/architecture_200.csv: prototype, module, tentative C++ owner, original global/asset references, callers, callees and uncertainty",
         "- analysis/reconstruction/architecture_global_xrefs.json: original DAT-address sharing across functions, untyped",
         "- analysis/reconstruction/architecture_200_summary.json: audited totals",
-        "- reconstruction/include/btb/original_architecture_map.hpp: C++26 METADATA ONLY",
+        "- include/btb/original_architecture_map.hpp: C++26 METADATA ONLY",
         "",
         "## Candidate module distribution",
         "",
@@ -282,7 +282,7 @@ def generate():
         ARCH / "architecture_global_xrefs.json": json.dumps(globals_report, indent=2) + "\n",
         ARCH / "architecture_200_summary.json": json.dumps(summary, indent=2, sort_keys=True) + "\n",
         ROOT / "docs/architecture-200-functions.md": "\n".join(markdown),
-        ROOT / "reconstruction/include/btb/original_architecture_map.hpp": header,
+        ROOT / "include/btb/original_architecture_map.hpp": header,
     }
 
 def run(check=False):
