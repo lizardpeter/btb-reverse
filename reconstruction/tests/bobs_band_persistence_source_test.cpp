@@ -12,6 +12,7 @@ int main() {
     namespace fs = std::filesystem;
 
     const auto root = fs::temp_directory_path() / "btb_band_reconstruction_io";
+    fs::remove_all(root);
     fs::create_directories(root);
 
     auto missing = load_sequence_file(root, Conductor::Bob, 2);
@@ -58,5 +59,6 @@ int main() {
         assert(sidecar[i+3] == 0);
     }
 
+    in.close(); // Windows cannot remove an open input file.
     fs::remove_all(root);
 }

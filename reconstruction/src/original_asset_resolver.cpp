@@ -88,6 +88,10 @@ AssetResolution OriginalAssetResolver::resolve_below(
             return {AssetResolutionStatus::FileSystemError, {},
                     "cannot inspect source asset: " + ec.message()};
         }
+        // Windows can report a successful exact lookup for a different
+        // spelling. Enumerate there to return the actual on-disk spelling,
+        // so cache keys are identical across retail case variants.
+#ifndef _WIN32
         if (!std::filesystem::is_symlink(status)) {
             const bool right_type = last
                 ? std::filesystem::is_regular_file(status)
@@ -98,6 +102,7 @@ AssetResolution OriginalAssetResolver::resolve_below(
             }
         }
 
+#endif
         std::filesystem::path match;
         int matches = 0;
         for (std::filesystem::directory_iterator it(current, ec), end;
@@ -118,13 +123,13 @@ AssetResolution OriginalAssetResolver::resolve_below(
             if (!right_type) {
                 continue;
             }
+            // Exact spelling wins on a case-sensitive directory even
+            // when this Windows volume permits case-distinct filenames.
+            if(it->path().filename().string()==components[i]) {
+                match=it->path();matches=1;break;
+            }
             match = it->path();
             ++matches;
-            if (matches > 1) {
-                return {AssetResolutionStatus::AmbiguousCaseFold, {},
-                    "multiple source entries differ only in case: " +
-                    components[i]};
-            }
         }
         if (ec) {
             // Absent roots are a normal missing-asset condition; inaccessible
@@ -136,6 +141,10 @@ AssetResolution OriginalAssetResolver::resolve_below(
             return {AssetResolutionStatus::FileSystemError, {},
                     "cannot enumerate source asset directory: " +
                     ec.message()};
+        }
+        if(matches>1) {
+            return {AssetResolutionStatus::AmbiguousCaseFold, {},
+                "multiple source entries differ only in case: " + components[i]};
         }
         if (matches == 0) {
             return {AssetResolutionStatus::Missing, {},

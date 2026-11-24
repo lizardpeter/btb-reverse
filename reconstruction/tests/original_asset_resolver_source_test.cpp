@@ -36,6 +36,8 @@ int main() {
         "data\\subgameopen\\bobinstand.BMP");
     assert(original_windows_case.found());
     assert(original_windows_case.absolute_path == direct.absolute_path);
+    assert(original_windows_case.absolute_path.parent_path().filename()=="SubGameOpen");
+    assert(original_windows_case.absolute_path.parent_path().parent_path().filename()=="Data");
 
     const auto front_end = lookup.resolve(
         "loaddata\\uiHotAreaReplace.txt");
