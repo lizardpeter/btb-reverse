@@ -1331,6 +1331,7 @@ add_test(NAME full_game_herding_firstpass_native
 set(BTB_HERDING_INTEGRATED_TARGETS btb_full_game_herding_firstpass_native_tests)
 foreach(test_name IN ITEMS
     full_game_herding_event_simulation_source
+    full_game_herding_retail_map_source
     full_game_herding_presentation_source
     full_game_herding_source
     herding_behavior_bridge_source
