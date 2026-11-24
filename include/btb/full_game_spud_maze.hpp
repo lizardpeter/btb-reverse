@@ -18,8 +18,8 @@ namespace btb::full_game {
 // Original 0x004207E0 + 0x00423F40 source-backed native activity.
 // Integrates five retail screen graphs, source damaged-repair selection,
 // Bob's reconstructed movement/hammer interaction, 83px repair sprite,
-// countdown and activity save. The separate Pilchard motion/collision and
-// original Mr Bentley narrator sequence still require their native host.
+// countdown, live Pilchard, scrolling maps, outcome narration and save.
+// Physical retail parity still requires an interactive comparison.
 class SpudMazeDriver final : public ActivityDriver {
 public:
     explicit SpudMazeDriver(std::filesystem::path root,int difficulty=0,
@@ -47,7 +47,10 @@ public:
     }
 
 private:
-    [[nodiscard]] ActivityFrameOutput draw() const;
+    [[nodiscard]] ActivityFrameOutput draw(const spud_maze::SlideFrame* slide=nullptr) const;
+    spud_maze::SlideState slide_{};
+    spud_maze::BentleyState bentley_{};
+    void append_repairs(ActivityFrameOutput&,int screen,int offset) const;
 
     std::filesystem::path root_;
     int difficulty_{};
@@ -65,6 +68,9 @@ private:
     maze_spud_batch::CollisionState hammer_{};
     int total_repairs_{};
     int repairs_remaining_{};
+    int walk_animation_wait_{};
+    bool move_permitted_{};
+    bool walking_{};
     int repair_animation_frames_{}; // 0x005109F0: four-tick frame gate
     int repair_cycles_remaining_{}; // 0x00514514: five repair passes
     int timer_{};

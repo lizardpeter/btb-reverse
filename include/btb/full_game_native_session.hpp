@@ -74,6 +74,11 @@ public:
         error="native original-frame printer unavailable";
         return false;
     }
+    // Activity initializers/unloaders in retail release their owned bitmap
+    // groups. The native cache must not accumulate old activities forever.
+    // Stateless devices need no cache cleanup. Preserve the composed frame
+    // and captured replay underlay; neither is a cached source bitmap.
+    virtual void release_activity_bitmaps() noexcept {}
     [[nodiscard]] virtual bool present(std::string& error) = 0;
 };
 

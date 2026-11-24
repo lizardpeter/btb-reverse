@@ -84,22 +84,25 @@ data\subgamegolf\wendy.bmp
     // Retail DrawGolfActivity draws five toolbar balls, physical ball
     // and shadow BMPs, then the authored course/characters, not merely
     // eight neutral backdrop/actor sprites.
-    assert(step.effects.draws.size()==15);
-    assert(step.effects.draws[0].source_asset==
-           "Data\\SubGameGolf\\golfbg.bmp");
-    assert(step.effects.draws[1].source_asset==
-           "Data\\SubGameGolf\\toolbar ball.bmp");
-    assert(step.effects.draws[1].x==373);
-    assert(step.effects.draws[1].y==437);
-    assert(step.effects.draws[5].x==453);
-    assert(step.effects.draws[6].source_asset==
-           "Data\\SubGameGolf\\shadow.bmp");
-    assert(step.effects.draws[7].source_asset==
-           "Data\\SubGameGolf\\golfballstop.bmp");
-    assert(step.effects.draws[7].x==187);
-    assert(step.effects.draws[7].y==330);
-    assert(step.effects.draws[8].source_asset==
-           "data\\subgamegolf\\flag.bmp");
+    assert(step.effects.draws.size()==17);
+    assert(step.effects.draws[0].source_asset=="Data\\SubGameGolf\\golfbg.bmp");
+    const auto& digit=step.effects.draws[1];
+    assert(digit.source_asset=="Data\\SubGameGolf\\golfnumbers.bmp");
+    assert(digit.color_keyed && digit.x==535 && digit.y==426);
+    assert(digit.source_rectangle->left==135 && digit.source_rectangle->right==150);
+    assert(digit.source_rectangle->bottom==32);
+    assert(step.effects.draws[2].source_asset=="Data\\SubGameGolf\\toolbar ball.bmp");
+    assert(step.effects.draws[2].color_keyed && step.effects.draws[2].x==373);
+    assert(step.effects.draws[6].x==453);
+    assert(step.effects.draws[7].source_asset=="Data\\SubGameGolf\\marker.bmp");
+    assert(step.effects.draws[8].source_asset=="Data\\SubGameGolf\\shadow.bmp");
+    assert(step.effects.draws[9].source_asset=="Data\\SubGameGolf\\golfballstop.bmp");
+    assert(step.effects.draws[9].x==187 && step.effects.draws[9].y==330);
+    assert(step.effects.draws[10].source_asset=="data\\subgamegolf\\flag.bmp");
+    assert(step.effects.draws.back().source_rectangle->top==44*174);
+    assert(step.effects.audio.size()==2);
+    assert(step.effects.audio[0].source_asset=="Data/music/golf.wav");
+    assert(step.effects.audio[1].sound_id==123 && step.effects.audio[1].input_interruptible);
     assert(step.effects.progress_writes.empty());
 
     for (int shot=0; shot<5; ++shot) {
@@ -211,8 +214,11 @@ data\subgamegolf\wendy.bmp
     assert(step.kind==FrameKind::ActivityInitialized);
     // Mouse X maps through the retail 88 - (x/7) aiming equation.
     step=native.advance({.pointer_x=616});
+    assert(step.effects.draws.back().source_rectangle->top==0);
     assert(live->round()->state()==btb::golf::RoundState::Aim);
     step=native.advance({.pointer_x=0});
+    assert(step.effects.draws.back().source_rectangle->top==44*174);
+    assert(step.effects.audio.size()==1 && step.effects.audio[0].sound_id==101);
     assert(step.kind==FrameKind::ActivityUpdated);
     step=native.advance({.pointer_x=0,.directional_input_bits=0x02});
     // Aim is now 87, then the UI returns to mouse-originated aim at 616.
@@ -228,6 +234,10 @@ data\subgamegolf\wendy.bmp
         for(int ticks=0;ticks<71;++ticks) {
             step=native.advance({});
             assert(live->round()->state()==btb::golf::RoundState::SwingAnimationDelay);
+            for(const auto& draw:step.effects.draws)if(draw.source_asset==live->round()->data().bob_sprite_path){
+                assert(draw.source_rectangle->left==(ticks+1)/9*133);
+                assert(draw.source_rectangle->right<=2128);
+            }
         }
         step=native.advance({});
         assert(live->round()->state()==btb::golf::RoundState::BallFlight);

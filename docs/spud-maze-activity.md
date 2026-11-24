@@ -282,3 +282,25 @@ It currently preserves:
 - hammer-drop geometry/cooldown
 - repair/no-hammer/Pilchard sound groups
 - startup music/voice constants
+
+## Native outcome and scrolling integration
+
+00422DD0 now drives the five-map horizontal slide with its own retail
+619-pixel boundary, previous/current screen strips, acceleration and
+repair/actor offsets. Player input is gated during the slide and normal
+completion waits for the slide to finish. 00423BE0's six-phase Bentley
+outcome controller now draws the actual 4256x80 bentley.bmp sheet and
+queues the source sound IDs 713, 714/715 and 716/717 or 726/727. Voice
+gates consume real managed-sound status. The original Skateboardfix.wav backing track and interruptible 694 voice
+are started by 00423F40's host path; completed repairs fill the hammer
+markers from the left. Pilchard's source rows now follow the direction
+0/1 versus 2/3/4 branch. Synthetic regressions cover both slide directions,
+Bentley success/timeout voice IDs and live timeout-to-replay on all three
+difficulties. Real interactive timing and motion still require comparison.
+
+The supplied original Bentley BMP has 56 cells of 76x80; its background
+contains 233,449 pixels at RGB (255,1,255) and 7,571 at (255,0,255).
+The original 16-bit key compares those colors identically. On RGB32
+surfaces, the native blitter now compares the equivalent RGB565 high
+bits while preserving opaque output pixels unchanged. This corrects
+near-magenta source art without modifying the retail files.

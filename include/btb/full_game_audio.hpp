@@ -53,6 +53,8 @@ enum class SoundEffectKind {
     StartBackingWav,
     StopBackingWav,
     PlayDirectSample,
+    EnsureActivityLoopWav,
+    StopActivityLoopWav,
 };
 
 struct SoundEffect {

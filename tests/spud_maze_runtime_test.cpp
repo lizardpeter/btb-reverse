@@ -88,6 +88,60 @@ int main() {
     static_assert(pilchard_reaction_sound_id(0) == 720);
     static_assert(pilchard_reaction_sound_id(1) == 721);
 
+    for(int direction:{-1,1}) {
+        SlideState slide{};slide.previous=2;slide.destination=2+direction;slide.phase=1;
+        int frames=0;
+        while(slide.phase) {
+            const auto f=advance_slide(slide);
+            ++frames;
+            assert(frames<500);
+            if(!f.complete) {
+                // Retail leftward last visible strip can start at x=19:
+                // 00422DD0 tests right<21, not left<20. Both source
+                // rectangles are still within the actual 640px BMP.
+                assert(f.left.left>=(direction<0?19:20)&&f.left.right==619);
+                assert(f.left.right>f.left.left && f.right.right>f.right.left);
+                assert(f.right.destination_x==619-f.left.left+20);
+                assert(f.right.left==20&&f.right.right<=620);
+                assert(f.left.screen==(direction>0?2:1));
+                assert(f.right.screen==(direction>0?3:2));
+            }
+        }
+        assert(frames==(direction<0?81:80));
+    }
+    {
+        int frame=0,wait=0;
+        assert(advance_bob_walk_animation(frame,wait,1,true,false));
+        assert(frame==13 && wait==4);
+        for(int i=0;i<3;++i)assert(!advance_bob_walk_animation(frame,wait,1,true,false));
+        assert(frame==13);
+        assert(advance_bob_walk_animation(frame,wait,1,true,false));
+        assert(frame==14);
+        frame=24;wait=0;
+        assert(advance_bob_walk_animation(frame,wait,3,true,false)&&frame==13);
+        frame=6;wait=0;
+        assert(advance_bob_walk_animation(frame,wait,0,true,false)&&frame==0);
+        frame=1;wait=0;
+        assert(advance_bob_walk_animation(frame,wait,2,true,false)&&frame==6);
+        frame=9;wait=0;
+        assert(advance_bob_walk_animation(frame,wait,3,false,true)&&frame==0&&wait==8);
+    }
+    for(bool failed:{false,true}) {
+        BentleyState b{};
+        std::vector<int> voices;
+        bool done=false;
+        for(int i=0;i<3000&&!done;++i) {
+            // Simulate actual completion of each submitted voice, keeping
+            // the phase-3 response busy for additional calls.
+            const bool playing=b.phase==3&&b.wait>1;
+            const auto f=advance_bentley(b,failed,playing,1);
+            assert(b.frame>=0&&b.frame<56);
+            if(f.sound_id>=0)voices.push_back(f.sound_id);
+            done=f.complete;
+        }
+        assert(done&&b.visible);
+        assert((voices==std::vector<int>{713,failed?714:715,failed?717:727}));
+    }
     static_assert(kStartupMusicIndex == 7);
     static_assert(kStartupVoiceSoundId == 694);
     static_assert(kLowTimerWarningSoundId == 994);

@@ -42,6 +42,7 @@ public:
 private:
     [[nodiscard]] bool generate_choices(std::string& error);
     [[nodiscard]] ActivityFrameOutput draw() const;
+    [[nodiscard]] ActivityFrameOutput advance_gameplay(const ActivityFrameInput&);
     std::filesystem::path root_;
     int difficulty_{};
     retail::OriginalRetailRandom standalone_random_{};
@@ -61,5 +62,6 @@ private:
     bool animating_{};
     bool complete_{};
     int completion_stage_{};
+    int intro_stage_{};
 };
 } // namespace btb::full_game

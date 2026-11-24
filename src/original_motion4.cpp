@@ -229,7 +229,7 @@ void update_maze_spud_npc(Npc& s,IO& io){
   // Otherwise an off-screen reset can strand Spud in the previous map.
   s.screen=s.player_screen;
   s.collision_latch=0;s.carry_active=0;s.current_direction=1;
-  s.animation_frame=7;
+  s.animation_frame=0; // 0041CCB0 writes DAT_005107AC=0 at spawn
   if(s.screen==1)s.current_node=maze::spud_random_edge_node(1,static_cast<I32>(io.random32()%2));
   else s.current_node=0;
   const auto& first=npc_node(s,s.current_node);
@@ -251,7 +251,7 @@ void update_maze_spud_npc(Npc& s,IO& io){
     :location;
   set_npc_path(s,io,target);
   s.phase=maze::SpudNpcPhase::TravelToPackage;
-  s.animation_countdown=7;
+  s.animation_countdown=(s.difficulty==2?2:1)/2;
   break;
  }
  case maze::SpudNpcPhase::TravelToPackage:{
@@ -266,7 +266,7 @@ void update_maze_spud_npc(Npc& s,IO& io){
   if(result.mark_package_taken){
    bank[static_cast<std::size_t>(s.selected_package)].status=2;
    if(result.play_pickup_voice)sound(io,0x59);
-   s.animation_frame+=result.animation_advance;s.carry_active=1;
+   s.animation_frame+=result.animation_advance;
   }
   break;
  }
@@ -287,7 +287,7 @@ void update_maze_spud_npc(Npc& s,IO& io){
   }
   s.path={choice.node_id};s.path_index=0;s.carry_active=1;
   s.phase=maze::SpudNpcPhase::TravelCarryingPackage;
-  s.animation_countdown=20;
+  s.animation_countdown=maze::spud_carry_speed(s.difficulty)/2;
   break;
  }
  case maze::SpudNpcPhase::TravelCarryingPackage:{
@@ -322,7 +322,7 @@ void update_maze_spud_npc(Npc& s,IO& io){
  }
  case maze::SpudNpcPhase::ResetPath:{
   const auto step=maze::spud_return_route_build(s.screen,
-    s.screen==1?static_cast<I32>(io.random32()%2):0,20);
+    s.screen==1?static_cast<I32>(io.random32()%2):0,s.difficulty==2?2:1);
   s.collision_latch=0;s.carry_active=0;s.animation_countdown=step.animation_countdown;
   set_npc_path(s,io,step.target_node);
   s.phase=step.next_phase;

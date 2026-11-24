@@ -45,15 +45,20 @@ int main() {
     static_assert(background_surface(Screen::East) ==
                   SurfaceKind::EastBackground);
 
-    static_assert(retail_actor_column(0) == 0);
-    static_assert(retail_actor_column(3) == 3);
-    static_assert(retail_actor_column(4) == 3);
+    static_assert(retail_actor_direction(0) == 0);
+    static_assert(retail_actor_direction(3) == 3);
+    static_assert(retail_actor_direction(4) == 3);
 
     constexpr auto actor = actor_source_rect(4, 2);
-    static_assert(actor.left == 384);
+    static_assert(actor.left == 512);
     static_assert(actor.top == 256);
-    static_assert(actor.right == 512);
+    static_assert(actor.right == 640);
     static_assert(actor.bottom == 384);
+    constexpr auto fallback_direction=actor_source_rect(13,4);
+    static_assert(fallback_direction.left==1664);
+    static_assert(fallback_direction.right==1792);
+    static_assert(fallback_direction.top==384);
+    static_assert(fallback_direction.bottom==512);
 
     assert(player_destination(247.9f, 267.9f) == (Pointi{182,203}));
     assert(spud_destination(200.9f, 100.9f, -20) == (Pointi{116,36}));

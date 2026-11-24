@@ -99,6 +99,19 @@ inline constexpr std::array<std::int32_t,3> kSourceNpcSpawnFrames{{
 }};
 inline constexpr std::int32_t kSpudHomeCooldownFrames = 500;
 inline constexpr std::int32_t kSpudPickupAnimationAdvance = 7;
+
+// 0041C110 advances the visible NPC sheet after choosing the current
+// source rectangle. Walking uses columns 0..6, carrying uses 7..13.
+// The draw-time reload is DAT_005107EC (10 during normal Maze play).
+inline constexpr void advance_spud_sprite_animation(
+    std::int32_t& frame,std::int32_t& countdown,bool carrying,
+    std::int32_t reload=10) noexcept {
+    if(--countdown<1) {
+        ++frame;
+        if(carrying ? frame>13 : frame>6)frame=carrying?7:0;
+        countdown=reload;
+    }
+}
 inline constexpr std::int32_t kSpudPathArrivalDistanceExclusive = 3;
 
 [[nodiscard]] constexpr bool spud_package_available(

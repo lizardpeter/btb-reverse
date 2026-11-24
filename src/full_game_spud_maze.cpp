@@ -238,12 +238,14 @@ bool SpudMazeDriver::initialize(int player,std::string& error) {
         player_=player;
         repairs_remaining_=damaged.repairs_remaining;
         total_repairs_=damaged.repairs_remaining;
+        walk_animation_wait_=0;move_permitted_=false;walking_=false;
         repair_animation_frames_=0;
         repair_cycles_remaining_=0;
         timer_origin_=-1;
         spawned_pilchard_delay_=data_->spud_spawn_times[
             static_cast<std::size_t>(difficulty_)];
         exit_phase_=0;
+        slide_={};bentley_={};
         won_=false;
         first_audio_=false;
         warning_played_=false;
@@ -255,7 +257,16 @@ bool SpudMazeDriver::initialize(int player,std::string& error) {
     }
 }
 
-ActivityFrameOutput SpudMazeDriver::draw() const {
+void SpudMazeDriver::append_repairs(ActivityFrameOutput& out,int screen,int offset) const {
+    const auto index=static_cast<std::size_t>(screen);
+    for(std::size_t i=0;i<bob_.repairs[index].size();++i) {
+        if(bob_.repairs[index][i].counter<=0)continue;
+        const auto& p=data_->repair_points[index][i];
+        out.draws.push_back({piece_filename(index,i),p[0]+offset,p[1],std::nullopt,true});
+    }
+}
+
+ActivityFrameOutput SpudMazeDriver::draw(const spud_maze::SlideFrame* slide) const {
     ActivityFrameOutput out;
     if(!data_)return out;
     if(bob_.screen<0||bob_.screen>=5) {
@@ -263,18 +274,22 @@ ActivityFrameOutput SpudMazeDriver::draw() const {
         return out;
     }
     const auto screen=static_cast<std::size_t>(bob_.screen);
-    out.draws.push_back({
-        "Data\\SubGameSpudMaze\\screen"+
-            std::to_string(screen+1)+".bmp",
-        0,0,std::nullopt,false
-    });
-    for(std::size_t index=0;index<bob_.repairs[screen].size();++index) {
-        if(bob_.repairs[screen][index].counter<=0)continue;
-        const auto& p=data_->repair_points[screen][index];
-        out.draws.push_back({
-            piece_filename(screen,index),p[0],p[1],std::nullopt,true
-        });
+    const bool sliding=slide&&!slide->complete;
+    const int offset=sliding?slide->new_offset:0;
+    const auto background=[](int s) {
+        return "Data\\SubGameSpudMaze\\screen"+std::to_string(s+1)+".bmp";
+    };
+    out.draws.push_back({background(sliding?slide_.previous:bob_.screen),0,0,std::nullopt,false});
+    if(sliding) {
+        const auto strip=[&](const spud_maze::SlideStrip& b) {
+            if(b.right>b.left)
+                out.draws.push_back({background(b.screen),b.destination_x,20,
+                    Rect{b.left,20,b.right,400},false});
+        };
+        strip(slide->left);strip(slide->right);
+        append_repairs(out,slide_.previous,slide->old_offset);
     }
+    append_repairs(out,bob_.screen,offset);
     // Retail Repair.bmp is exactly 4980x249 (60x3 cells of 83px).
     // 0x004227F0 selects horizontal frames +30 when Bob holds the
     // hammer AND faces right/left; the three vertical bands encode
@@ -286,7 +301,7 @@ ActivityFrameOutput SpudMazeDriver::draw() const {
         ((facing==1||facing==3)&&bob_.repair_tool_engaged?30:0);
     out.draws.push_back({
         "Data\\SubGameSpudMaze\\Repair.bmp",
-        static_cast<int>(bob_.x)-41,
+        static_cast<int>(bob_.x)-41+offset,
         static_cast<int>(bob_.y)-41,
         Rect{frame*83,row*83,(frame+1)*83,(row+1)*83},true
     });
@@ -294,10 +309,10 @@ ActivityFrameOutput SpudMazeDriver::draw() const {
     // columns with 128px direction bands (0x004227F0).
     if(pilchard_.phase>=2 && pilchard_.screen==bob_.screen) {
         const int col=std::clamp(pilchard_.animation_frame,0,38);
-        const int row=pilchard_.roaming_direction==3?1:0;
+        const int row=(pilchard_.roaming_direction==0||pilchard_.roaming_direction==1)?0:1;
         out.draws.push_back({
             "Data\\SubGameSpudMaze\\pilchard.bmp",
-            static_cast<int>(pilchard_.x)-78,
+            static_cast<int>(pilchard_.x)-78+offset,
             static_cast<int>(pilchard_.y)-64,
             Rect{col*156,row*128,(col+1)*156,(row+1)*128},true
         });
@@ -306,9 +321,14 @@ ActivityFrameOutput SpudMazeDriver::draw() const {
        hammer_.hammer.screen==bob_.screen) {
         out.draws.push_back({
             "Data\\SubGameSpudMaze\\hammer.bmp",
-            hammer_.hammer.x,hammer_.hammer.y-30,
+            hammer_.hammer.x+offset,hammer_.hammer.y-30,
             std::nullopt,true
         });
+    }
+    if(bentley_.visible) {
+        const int x=bentley_.frame*76;
+        out.draws.push_back({"Data\\SubGameSpudMaze\\bentley.bmp",bentley_.x,bentley_.y,
+            Rect{x,0,x+76,80},true});
     }
     // 0x004227F0 submits border after Bob and track repairs, then timer
     // and the original sequence of 20px hammer-icons.
@@ -325,7 +345,7 @@ ActivityFrameOutput SpudMazeDriver::draw() const {
         });
     for(int i=0;i<total_repairs_;++i) {
         out.draws.push_back({
-            i<repairs_remaining_
+            i<total_repairs_-repairs_remaining_
                 ?"Data\\SubGameSpudMaze\\toolbarhammer.bmp"
                 :"Data\\SubGameSpudMaze\\toolbarhammergrey.bmp",
             244-(total_repairs_/2)*20+(i%12)*20,
@@ -340,8 +360,9 @@ ActivityFrameOutput SpudMazeDriver::advance(
     ActivityFrameOutput out=draw();
     if(!data_||out.fatal_error)return out;
     if(!first_audio_) {
+        out.audio.push_back({AudioOperation::StartBackingTrack,"Data/music/Skateboardfix.wav"});
         out.audio.push_back({AudioOperation::ManagedSoundId,{},
-            spud_maze::kStartupVoiceSoundId,50,1});
+            spud_maze::kStartupVoiceSoundId,50,1,true});
         first_audio_=true;
     }
     if(timer_origin_<0)timer_origin_=input.elapsed_centiseconds;
@@ -356,16 +377,30 @@ ActivityFrameOutput SpudMazeDriver::advance(
         warning_played_=true;
     }
     const auto outcome=spud_maze::activity_outcome(repairs_remaining_,timer_);
-    if(outcome!=spud_maze::ActivityOutcome::Continue) {
+    if((outcome!=spud_maze::ActivityOutcome::Continue&&slide_.phase==0)||exit_phase_!=0) {
         if(exit_phase_==0) {
             won_=outcome==spud_maze::ActivityOutcome::Success;
             exit_phase_=1;
-            return out;
         }
         if(exit_phase_==1) {
-            if(input.managed_sound_playing)return out;
-            exit_phase_=2;
-            return out;
+            // 00423BE0: stop repair interaction, animate original Bentley,
+            // wait for actual managed voices, then allow replay teardown.
+            bob_.facing=3;bob_.hazard_lock=false;
+            repair_cycles_remaining_=0;repair_animation_frames_=0;
+            const int bit=bentley_.phase==3&&!input.managed_sound_playing
+                ?random_stream().next_rand()&1:0;
+            const auto narration=spud_maze::advance_bentley(
+                bentley_,!won_,input.managed_sound_playing,bit);
+            if(narration.stop_managed)out.audio.push_back({AudioOperation::StopManagedSounds});
+            if(narration.sound_id>=0)out.audio.push_back({
+                AudioOperation::ManagedSoundId,{},narration.sound_id,50,1});
+            if(narration.complete)exit_phase_=2;
+            auto rendered=draw();
+            // 00422400 has the separate 8-tick 0..9 narration cycle.
+            static_cast<void>(spud_maze::advance_bob_walk_animation(
+                bob_.animation,walk_animation_wait_,bob_.facing,false,true));
+            rendered.audio=std::move(out.audio);
+            return rendered;
         }
         if(won_)
             out.progress_writes.push_back({progress::Slot::SpudMaze,1});
@@ -377,8 +412,13 @@ ActivityFrameOutput SpudMazeDriver::advance(
         out.next_replay_class=1;
         return out;
     }
+    bool portal_captured=false;
+    std::optional<spud_maze::SlideFrame> slide_frame;
     try {
-        if(repair_cycles_remaining_>0) {
+        if(slide_.phase!=0) {
+            slide_frame=spud_maze::advance_slide(slide_);
+            if(slide_frame->complete)bob_.transition=0;
+        } else if(repair_cycles_remaining_>0) {
             // Exact active-repair branch in original 0x00422400:
             // 0x005109F0 gates every four frames; frame 9 advances
             // through 14 and wraps to 9 while 0x00514514 counts down
@@ -395,6 +435,9 @@ ActivityFrameOutput SpudMazeDriver::advance(
                     bob_.animation=0;
                     repair_animation_frames_=0;
                     repair_cycles_remaining_=0;
+                    walk_animation_wait_=5;
+                    move_permitted_=true;
+                    walking_=false;
                     if(repairs_remaining_<=0)
                         throw std::logic_error(
                             "retail Spud Maze repair counter underflow");
@@ -404,7 +447,20 @@ ActivityFrameOutput SpudMazeDriver::advance(
         } else {
             SpudMazeInputPort io(input,out,pilchard_,random_stream(),
                                  bob_,input_mode_,pointer_sampled_);
+            const auto previous=bob_.screen;
+            const int previous_animation=bob_.animation;
+            const int previous_input_ticks=bob_.input_ticks;
+            bob_.can_move_x=move_permitted_;
+            move_permitted_=false;
             original_motion4::update_spud_maze_bob(bob_,io);
+            walking_=bob_.input_ticks!=previous_input_ticks;
+            // Motion4 also exposes the older free-running animation count;
+            // the physical scene owns the source four-tick animation instead.
+            if(!io.repair_begun())bob_.animation=previous_animation;
+            if(previous!=bob_.screen) {
+                slide_={};slide_.previous=previous;slide_.destination=bob_.screen;
+                slide_.phase=1;portal_captured=true;
+            }
             if(io.repair_begun()) {
                 repair_animation_frames_=4;
                 repair_cycles_remaining_=5;
@@ -422,7 +478,7 @@ ActivityFrameOutput SpudMazeDriver::advance(
         // a previously dropped hammer) BEFORE UpdateSpudMazePilchard.
         // Do not permit the newly dropped hammer to be recovered on the
         // same physical frame as Pilchard's collision.
-        if(spud_maze::pickup_dropped_hammer(hammer_,bob))
+        if(!portal_captured&&spud_maze::pickup_dropped_hammer(hammer_,bob))
             bob_.repair_tool_engaged=true;
         const auto pilot=spud_maze::update_pilchard_native(
             pilchard_,hammer_,*data_,difficulty_,bob,
@@ -440,7 +496,14 @@ ActivityFrameOutput SpudMazeDriver::advance(
         out.fatal_error=std::string("Spud Maze source Bob/Pilchard: ")+e.what();
         return out;
     }
-    auto frame=draw();
+    if(portal_captured)return out;
+    auto frame=draw(slide_frame?&*slide_frame:nullptr);
+    if(repair_cycles_remaining_==0 && !bob_.hazard_lock) {
+        // Scene has already submitted the current sprite; update for next
+        // frame, keeping the movement permission latch through transitions.
+        if(spud_maze::advance_bob_walk_animation(bob_.animation,
+            walk_animation_wait_,bob_.facing,walking_,false))move_permitted_=true;
+    }
     frame.audio=std::move(out.audio);
     return frame;
 }
@@ -455,9 +518,11 @@ bool SpudMazeDriver::unload(std::string& error) {
     total_repairs_=0;
     repair_animation_frames_=0;
     repair_cycles_remaining_=0;
+    walk_animation_wait_=0;move_permitted_=false;walking_=false;
     spawned_pilchard_delay_=0;
     timer_origin_=-1;
     exit_phase_=0;
+    slide_={};bentley_={};
     won_=false;
     first_audio_=false;
     warning_played_=false;

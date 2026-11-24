@@ -94,3 +94,7 @@ the native swing controls.
 **No compilation or execution of these newly added source tests occurred**.
 A complete native game still needs the other activity drivers, sprite/DirectX
 providers, exact UI input maps and remaining front-end state handlers.
+
+## Native host correction batch (2026-11-24)
+
+The actual retail BMPs were inspected: Bob's sheet is 2128×7830 (16×45 cells of 133×174); golfnumbers.bmp is 150×32 and ordered 1–9 then 0, and marker.bmp is 44×44. The live host now submits the aim-row and swing-column crops, keyed 15×32 score digits, keyed attempt markers and the source 140-pixel aiming marker. The marker's exact visual placement and airborne ball bounce remain to be verified against a physical retail run. Source state 99 uses nine ticks per swing column; normal-speed state 3 skips alternate physics ticks, checks hot areas while in flight, and power increments on the acceptance frame as in 00415080. The source music and interruptible 123/101 opening voices are now connected. The independent Dinosaur and Squirrel native drivers also restore their original startup music; Squirrel adds the 643/632/644 voice sequence and Dinosaur stops managed sound before correct-piece praise. Tests validate source effects, not physical output.

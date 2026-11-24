@@ -96,6 +96,8 @@ int main() {
             drew_repair|=draw.source_asset.find("-")!=std::string::npos;
         }
         assert(drew_bob&&drew_border&&drew_repair);
+        for(const auto& d:step.effects.draws)
+            assert(d.source_asset!="Data\\SubGameSpudMaze\\toolbarhammer.bmp");
         for(const auto& sprite:step.effects.draws)
             if(sprite.source_asset=="Data\\SubGameSpudMaze\\Repair.bmp") {
                 assert(sprite.source_rectangle);
@@ -105,8 +107,10 @@ int main() {
                 assert(sprite.source_rectangle->bottom==83);
             }
         assert(!step.effects.audio.empty());
-        assert(step.effects.audio[0].sound_id==
-               btb::spud_maze::kStartupVoiceSoundId);
+        assert(step.effects.audio[0].operation==fg::AudioOperation::StartBackingTrack);
+        assert(step.effects.audio[0].source_asset=="Data/music/Skateboardfix.wav");
+        assert(step.effects.audio[1].sound_id==btb::spud_maze::kStartupVoiceSoundId);
+        assert(step.effects.audio[1].input_interruptible);
         assert(step.effects.progress_writes.empty());
         step=game.advance({.elapsed_centiseconds=105,
                            .directional_input_bits=0x04});
@@ -114,8 +118,13 @@ int main() {
         assert(std::abs(live->bob()->y-371.f)<0.02f); // original Up scan code
         step=game.advance({.elapsed_centiseconds=110,
                            .directional_input_bits=0x08});
+        // No movement until the next 00422400 four-tick permission gate.
+        assert(std::abs(live->bob()->y-371.f)<0.02f);
+        for(int tick=0;tick<3;++tick)
+            step=game.advance({.elapsed_centiseconds=115+tick*5,
+                               .directional_input_bits=0x08});
         // The recovered integer heading and float stores introduce subpixel drift.
-        assert(std::abs(live->bob()->y-375.f)<0.2f&&std::abs(live->bob()->x-76.f)<1.0f); // original Down scan code
+        assert(std::abs(live->bob()->y-375.f)<0.2f&&std::abs(live->bob()->x-76.f)<1.0f);
 
         step=game.advance({.elapsed_centiseconds=10100});
         assert(live->timer()==400-difficulty*100);
@@ -124,9 +133,25 @@ int main() {
         step=game.advance({.elapsed_centiseconds=100000});
         assert(live->timer()<0);
         assert(!step.effects.save_and_unload);
-        step=game.advance({.elapsed_centiseconds=100001});
-        assert(!step.effects.save_and_unload);
-        step=game.advance({.elapsed_centiseconds=100002});
+        std::vector<int> narration;
+        bool bentley_drawn=false;
+        for(int tick=1;tick<3000&&!step.effects.save_and_unload;++tick) {
+            step=game.advance({.elapsed_centiseconds=100000+tick});
+            assert(!step.effects.fatal_error);
+            for(const auto& voice:step.effects.audio)
+                if(voice.sound_id>=713&&voice.sound_id<=727)
+                    narration.push_back(voice.sound_id);
+            for(const auto& image:step.effects.draws)
+                if(image.source_asset=="Data\\SubGameSpudMaze\\bentley.bmp") {
+                    bentley_drawn=true;
+                    assert(image.source_rectangle&&image.source_rectangle->right<=4256);
+                }
+        }
+        // The first timeout frame starts the entrance animation and does
+        // not queue a voice until Bentley enters the visible playfield.
+        assert(bentley_drawn);
+        assert(narration.size()==3&&narration[0]==713&&narration[1]==714);
+        assert(narration[2]==716||narration[2]==717);
         assert(step.effects.save_and_unload);
         assert(step.effects.progress_writes.empty());
         assert(game.globals().dispatcher.current_state==

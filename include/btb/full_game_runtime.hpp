@@ -159,6 +159,8 @@ enum class AudioOperation {
     StopBackingTrack,
     StopManagedSounds,
     ManagedSoundId,
+    EnsureActivityLoop,
+    StopActivityLoop,
 };
 struct Audio {
     AudioOperation operation{};
@@ -223,6 +225,9 @@ struct ActivityFrameInput {
     // source fixtures may still inject an already completed click.
     bool menu_release_input{};
     std::optional<std::pair<int,int>> menu_press_position{};
+    // Exact physical IsSoundIdPlaying(0x49+difficulty) observations.
+    // Source-only fixture drivers can omit them and use aggregate status.
+    std::optional<std::array<bool,3>> maze_intro_voice_playing{};
 };
 
 struct ActivityFrameOutput {

@@ -141,6 +141,8 @@ void Win32OriginalDirectSound::shutdown() noexcept {
         release_buffer(slot);
     }
     release_buffer(backing_);
+    release_buffer(activity_loop_);
+    activity_loop_file_.clear();
     for (auto*& sample : samples_) {
         release_buffer(sample);
     }
@@ -337,7 +339,14 @@ bool Win32OriginalDirectSound::apply(
         return true;
     }
 
-    // These three operations require actual resolved WAV bytes; never
+    if (kind==SoundEffectKind::StopActivityLoopWav) {
+        release_buffer(activity_loop_);
+        activity_loop_file_.clear();
+        error.clear();
+        return true;
+    }
+
+    // These operations require actual resolved WAV bytes; never
     // replace missing game assets with an artificial beep or silence.
     if (!effect.source || !effect.source->found()) {
         error="original WAV file missing for DirectSound load/play";
@@ -355,6 +364,31 @@ bool Win32OriginalDirectSound::apply(
             return false;
         }
         return play_once(backing_,true,error);
+    }
+    if (kind==SoundEffectKind::EnsureActivityLoopWav) {
+        const auto& file=effect.source->absolute_path;
+        if (!activity_loop_ || activity_loop_file_!=file) {
+            release_buffer(activity_loop_);
+            activity_loop_file_.clear();
+            if (!create_wave_buffer(file,activity_loop_,error))return false;
+            activity_loop_file_=file;
+        }
+        DWORD status=0;
+        const auto hr=activity_loop_->GetStatus(&status);
+        if(FAILED(hr)) {
+            error=hr_error("GetStatus original activity loop",hr);
+            return false;
+        }
+        if(status&DSBSTATUS_PLAYING) {
+            error.clear();
+            return true;
+        }
+        const auto rewind=activity_loop_->SetCurrentPosition(0);
+        if(FAILED(rewind)) {
+            error=hr_error("Rewind original activity loop",rewind);
+            return false;
+        }
+        return play_once(activity_loop_,true,error);
     }
     if (kind==SoundEffectKind::PlayDirectSample) {
         IDirectSoundBuffer* sample=nullptr;

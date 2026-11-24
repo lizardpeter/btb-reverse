@@ -173,6 +173,7 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
 
     if(startup_pending_) {
         const auto intro=dino::startup_presentation(species_);
+        out.audio.push_back({AudioOperation::StartBackingTrack,"Data/music/dinosaur.wav"});
         out.audio.push_back({AudioOperation::ManagedSoundId,{},
                              intro.intro_sound_id,
                              intro.intro_sound_priority,
@@ -203,6 +204,7 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
             const auto roll=static_cast<int>(
                 static_cast<std::uint32_t>(input.random_value)%6U);
             if(dropped==dino::DropResult::Accepted) {
+                out.audio.push_back({AudioOperation::StopManagedSounds});
                 out.audio.push_back({AudioOperation::ManagedSoundId,{},
                     dino::correct_drop_sound_id(roll),50,1});
                 (void)animations_.queue_correct_drop(roll);
