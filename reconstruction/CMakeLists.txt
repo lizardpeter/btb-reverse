@@ -847,6 +847,7 @@ btb_require_cpp26(btb_original_source9_algorithms PUBLIC)
 
 add_library(btb_park_designer_scene
     src/park_designer_scene.cpp
+    src/park_designer_placement.cpp
 )
 target_include_directories(btb_park_designer_scene PUBLIC include)
 btb_require_cpp26(btb_park_designer_scene PUBLIC)
@@ -1373,6 +1374,7 @@ foreach(test_name IN ITEMS
     full_game_generic_ui_source
     full_game_menu_actions_source
     full_game_park_scene_source
+    park_designer_placement_source
     full_game_pregame_resources_source
     full_game_pregame_root_source
     full_game_pregame_source

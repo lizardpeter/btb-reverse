@@ -50,9 +50,10 @@ void retail_qsort(std::span<std::size_t> records,Index lo,Index hi,Compare compa
     // A save is external data: prevent overflow in retail arithmetic.
     auto coord=[](p::I32 v){return v>=-10000&&v<=10000;};
     if(o.record_index!=static_cast<p::I32>(i)||!coord(o.left)||!coord(o.top)||
-       !coord(o.right)||!coord(o.bottom)||o.object_code<0||
-       o.bound_category<0||o.bound_category>=4||o.bound_variant<0||o.bound_variant>=5)
-        return false;
+       !coord(o.right)||!coord(o.bottom)||o.object_code<0)return false;
+    // The source auxiliary water layer does not initialize +38/+3C.
+    if(o.object_code>=101&&o.object_code<=199)return true;
+    if(o.bound_category<0||o.bound_category>=4||o.bound_variant<0||o.bound_variant>=5)return false;
     if(o.object_code==7)
         return o.visual_frame_or_segment>=0&&o.visual_frame_or_segment<13&&
             (o.fountain_phase==0||o.fountain_phase==1)&&
