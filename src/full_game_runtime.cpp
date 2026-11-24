@@ -976,10 +976,12 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
 
     if (state.kind == game_flow::StateKind::ActivityInit) {
         if (initialized_activity_ && initialized_activity_ != activity->id) {
+            const bool leaving_maze=initialized_activity_==ActivityId::Maze;
             if (!unload_current(result.error)) {
                 result.kind = FrameKind::ActivityFailed;
                 return result;
             }
+            if(leaving_maze)result.effects.audio.push_back({AudioOperation::StopActivityLoop});
         }
         // The retail pregame/chooser writes selected variant and conductor
         // globals before the corresponding original initializer executes.
@@ -1049,6 +1051,8 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
         result.effects.save_and_unload=true;
         result.effects.audio.push_back({AudioOperation::StopManagedSounds});
         result.effects.audio.push_back({AudioOperation::StopBackingTrack});
+        if(activity->id==ActivityId::Maze)
+            result.effects.audio.push_back({AudioOperation::StopActivityLoop});
         globals_.shared_movie_return_state=static_cast<int>(destination);
         // 00413F10 returns to 4 even with a pending movie. State 4
         // will perform that transition on the following dispatch.
@@ -1147,6 +1151,8 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
     }
 
     if (result.effects.save_and_unload) {
+        if(activity->id==ActivityId::Maze)
+            result.effects.audio.push_back({AudioOperation::StopActivityLoop});
         // Native state-10 teardown persists the activity before the outer
         // dispatcher switches to Play Again. Do not commit the next state if
         // the activity's persistence failed.

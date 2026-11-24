@@ -339,6 +339,13 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
     // Original 0x0041D4D0 gates active movement behind the opening
     // 0x49+difficulty narrator line. Never signal its finish by a fixed
     // fake timeout; the physical managed-sound observation is required.
+    // 0041D4D0 checks the independently owned engine buffer and starts
+    // it looping if stopped, even during the opening narrator gate.
+    // The original disc spells the filename with a literal space.
+    if(exit_phase_==0 && maze::classify_end_condition(boxes_.remaining,
+           remaining_seconds_,transition_.phase)==maze::EndCondition::None)
+        out.audio.push_back({AudioOperation::EnsureActivityLoop,
+                            "Data/SubGameMaze/lofty engine.wav"});
     if(!intro_voice_queued_) {
         // 0041D4D0 invokes PlayActivityMusicByIndex(5) before the
         // interruptible opening narrator. The original WAV exists on disc.

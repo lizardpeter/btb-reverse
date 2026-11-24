@@ -9,11 +9,13 @@ bool needs_asset(SoundEffectKind kind) noexcept {
     switch (kind) {
     case SoundEffectKind::LoadManagedWav:
     case SoundEffectKind::StartBackingWav:
+    case SoundEffectKind::EnsureActivityLoopWav:
     case SoundEffectKind::PlayDirectSample:
         return true;
     case SoundEffectKind::StopRewindManagedSlot:
     case SoundEffectKind::ReleaseManagedSlot:
     case SoundEffectKind::PlayManagedSlot:
+    case SoundEffectKind::StopActivityLoopWav:
     case SoundEffectKind::StopBackingWav:
         return false;
     }

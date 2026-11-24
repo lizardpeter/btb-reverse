@@ -133,9 +133,11 @@ END
            "Data\\SubGameMaze\\player.bmp");
     assert(intro.effects.draws[3].x==182);
     assert(intro.effects.draws[3].y==203);
-    assert(intro.effects.audio.size()==3);
-    assert(intro.effects.audio[0].operation==fg::AudioOperation::StartBackingTrack);
-    assert(intro.effects.audio[0].source_asset=="Data/music/maze.wav");
+    assert(intro.effects.audio.size()==4);
+    assert(intro.effects.audio[0].operation==fg::AudioOperation::EnsureActivityLoop);
+    assert(intro.effects.audio[0].source_asset=="Data/SubGameMaze/lofty engine.wav");
+    assert(intro.effects.audio[1].operation==fg::AudioOperation::StartBackingTrack);
+    assert(intro.effects.audio[1].source_asset=="Data/music/maze.wav");
     assert(intro.effects.audio.back().sound_id==0x49);
     assert(intro.effects.audio.back().input_interruptible);
     assert(maze->remaining_seconds()==240);
@@ -197,6 +199,7 @@ END
     assert(!frame.effects.save_and_unload);
     frame=game.advance({.elapsed_centiseconds=24800});
     assert(frame.effects.save_and_unload);
+    assert(frame.effects.audio.back().operation==fg::AudioOperation::StopActivityLoop);
     assert(frame.effects.progress_writes.empty());
     assert(game.globals().dispatcher.current_state==
            static_cast<int>(State::PlayAgainYesNoSetup));
@@ -221,7 +224,7 @@ END
     pickup_game.set_outer_state(State::MazeInit);
     assert(pickup_game.advance({}).kind==fg::FrameKind::ActivityInitialized);
     auto pickup=pickup_game.advance({.elapsed_centiseconds=100});
-    assert(pickup.effects.audio.size()==3);
+    assert(pickup.effects.audio.size()==4);
     pickup=pickup_game.advance({.elapsed_centiseconds=200});
     assert(actual->boxes().remaining==4);
     pickup=pickup_game.advance({.elapsed_centiseconds=300});

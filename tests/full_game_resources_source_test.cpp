@@ -52,5 +52,18 @@ int main() {
     assert(frame.sound[2].source &&
            !frame.sound[2].source->found());
     assert(!frame.sound[3].source);
+    fs::create_directories(root/"Data"/"SubGameMaze");
+    std::ofstream(root/"Data"/"SubGameMaze"/"lofty engine.wav")<<"RIFF";
+    AudioFramePlan loop;
+    loop.operations={
+        {SoundEffectKind::EnsureActivityLoopWav,-1,-1,"Data/SubGameMaze/lofty engine.wav"},
+        {SoundEffectKind::StopActivityLoopWav}
+    };
+    const auto resolved=resolve_game_frame_assets(resolver,{},loop);
+    assert(resolved.ready_for_submission());
+    assert(resolved.sound[0].source&&resolved.sound[0].source->found());
+    assert(!resolved.sound[1].source);
+    fs::remove(root/"Data"/"SubGameMaze"/"lofty engine.wav");
+    assert(!resolve_game_frame_assets(resolver,{},loop).ready_for_submission());
     fs::remove_all(root);
 }

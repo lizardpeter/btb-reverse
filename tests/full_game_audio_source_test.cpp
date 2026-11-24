@@ -113,6 +113,18 @@ int main() {
     assert(direct.operations[1].kind == SoundEffectKind::PlayDirectSample);
     assert(direct.operations[2].kind == SoundEffectKind::StopBackingWav);
 
+    const auto loop = planner.plan({
+        {AudioOperation::EnsureActivityLoop,"Data/SubGameMaze/lofty engine.wav"},
+        {AudioOperation::StopBackingTrack},
+        {AudioOperation::StopActivityLoop}
+    }, {});
+    assert(loop.operations.size()==3);
+    assert(loop.operations[0].kind==SoundEffectKind::EnsureActivityLoopWav);
+    assert(loop.operations[0].filename=="Data/SubGameMaze/lofty engine.wav");
+    assert(loop.operations[1].kind==SoundEffectKind::StopBackingWav);
+    assert(loop.operations[2].kind==SoundEffectKind::StopActivityLoopWav);
+    assert(planner.plan({{AudioOperation::EnsureActivityLoop}},{}).invalid_requests==1);
+
     planner.reset();
     assert(planner.manager().mapped_slot(510) == -1);
 

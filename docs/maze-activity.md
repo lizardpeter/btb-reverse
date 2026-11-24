@@ -471,3 +471,14 @@ stops previous managed narration and marks the opening voice interruptible.
 The engine sound loop and exact animation counter phase at pickup remain
 separate parity work. The synthetic complete-route fixture checks
 movement gating, both strips, all four pickups, and final progress.
+
+## Engine sound lifecycle
+
+The original 0041A730 creates a separate CSound engine buffer, and
+0041D4D0 tests its playing status and starts it with looping enabled.
+The actual original game directory contains Data/SubGameMaze/lofty engine.wav
+(36,834 bytes, literal space in filename). The live host now ensures the
+independent buffer is playing without reloading it or replacing the
+background music or managed voices. Maze teardown, confirmed exit and
+activity replacement release the buffer. Physical DirectSound verification
+is still required. No original media changed.

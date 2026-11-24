@@ -61,6 +61,8 @@ private:
     IDirectSound8* sound_{};
     std::array<IDirectSoundBuffer*,sound::kManagedSlotCount> slots_{};
     IDirectSoundBuffer* backing_{};
+    IDirectSoundBuffer* activity_loop_{};
+    std::filesystem::path activity_loop_file_{};
     std::vector<IDirectSoundBuffer*> samples_{};
 };
 

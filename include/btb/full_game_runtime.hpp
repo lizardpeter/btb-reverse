@@ -159,6 +159,8 @@ enum class AudioOperation {
     StopBackingTrack,
     StopManagedSounds,
     ManagedSoundId,
+    EnsureActivityLoop,
+    StopActivityLoop,
 };
 struct Audio {
     AudioOperation operation{};
