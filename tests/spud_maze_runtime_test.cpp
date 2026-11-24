@@ -96,13 +96,35 @@ int main() {
             ++frames;
             assert(frames<500);
             if(!f.complete) {
-                assert(f.left.left>=20&&f.left.right<=620);
+                // Retail leftward last visible strip can start at x=19:
+                // 00422DD0 tests right<21, not left<20. Both source
+                // rectangles are still within the actual 640px BMP.
+                assert(f.left.left>=(direction<0?19:20)&&f.left.right==619);
+                assert(f.left.right>f.left.left && f.right.right>f.right.left);
+                assert(f.right.destination_x==619-f.left.left+20);
                 assert(f.right.left==20&&f.right.right<=620);
                 assert(f.left.screen==(direction>0?2:1));
                 assert(f.right.screen==(direction>0?3:2));
             }
         }
-        assert(frames>10);
+        assert(frames==(direction<0?81:80));
+    }
+    {
+        int frame=0,wait=0;
+        assert(advance_bob_walk_animation(frame,wait,1,true,false));
+        assert(frame==13 && wait==4);
+        for(int i=0;i<3;++i)assert(!advance_bob_walk_animation(frame,wait,1,true,false));
+        assert(frame==13);
+        assert(advance_bob_walk_animation(frame,wait,1,true,false));
+        assert(frame==14);
+        frame=24;wait=0;
+        assert(advance_bob_walk_animation(frame,wait,3,true,false)&&frame==13);
+        frame=6;wait=0;
+        assert(advance_bob_walk_animation(frame,wait,0,true,false)&&frame==0);
+        frame=1;wait=0;
+        assert(advance_bob_walk_animation(frame,wait,2,true,false)&&frame==6);
+        frame=9;wait=0;
+        assert(advance_bob_walk_animation(frame,wait,3,false,true)&&frame==0&&wait==8);
     }
     for(bool failed:{false,true}) {
         BentleyState b{};

@@ -238,6 +238,7 @@ bool SpudMazeDriver::initialize(int player,std::string& error) {
         player_=player;
         repairs_remaining_=damaged.repairs_remaining;
         total_repairs_=damaged.repairs_remaining;
+        walk_animation_wait_=0;move_permitted_=false;walking_=false;
         repair_animation_frames_=0;
         repair_cycles_remaining_=0;
         timer_origin_=-1;
@@ -395,6 +396,9 @@ ActivityFrameOutput SpudMazeDriver::advance(
                 AudioOperation::ManagedSoundId,{},narration.sound_id,50,1});
             if(narration.complete)exit_phase_=2;
             auto rendered=draw();
+            // 00422400 has the separate 8-tick 0..9 narration cycle.
+            static_cast<void>(spud_maze::advance_bob_walk_animation(
+                bob_.animation,walk_animation_wait_,bob_.facing,false,true));
             rendered.audio=std::move(out.audio);
             return rendered;
         }
@@ -431,6 +435,9 @@ ActivityFrameOutput SpudMazeDriver::advance(
                     bob_.animation=0;
                     repair_animation_frames_=0;
                     repair_cycles_remaining_=0;
+                    walk_animation_wait_=5;
+                    move_permitted_=true;
+                    walking_=false;
                     if(repairs_remaining_<=0)
                         throw std::logic_error(
                             "retail Spud Maze repair counter underflow");
@@ -441,7 +448,15 @@ ActivityFrameOutput SpudMazeDriver::advance(
             SpudMazeInputPort io(input,out,pilchard_,random_stream(),
                                  bob_,input_mode_,pointer_sampled_);
             const auto previous=bob_.screen;
+            const int previous_animation=bob_.animation;
+            const int previous_input_ticks=bob_.input_ticks;
+            bob_.can_move_x=move_permitted_;
+            move_permitted_=false;
             original_motion4::update_spud_maze_bob(bob_,io);
+            walking_=bob_.input_ticks!=previous_input_ticks;
+            // Motion4 also exposes the older free-running animation count;
+            // the physical scene owns the source four-tick animation instead.
+            if(!io.repair_begun())bob_.animation=previous_animation;
             if(previous!=bob_.screen) {
                 slide_={};slide_.previous=previous;slide_.destination=bob_.screen;
                 slide_.phase=1;portal_captured=true;
@@ -483,6 +498,12 @@ ActivityFrameOutput SpudMazeDriver::advance(
     }
     if(portal_captured)return out;
     auto frame=draw(slide_frame?&*slide_frame:nullptr);
+    if(repair_cycles_remaining_==0 && !bob_.hazard_lock) {
+        // Scene has already submitted the current sprite; update for next
+        // frame, keeping the movement permission latch through transitions.
+        if(spud_maze::advance_bob_walk_animation(bob_.animation,
+            walk_animation_wait_,bob_.facing,walking_,false))move_permitted_=true;
+    }
     frame.audio=std::move(out.audio);
     return frame;
 }
@@ -497,6 +518,7 @@ bool SpudMazeDriver::unload(std::string& error) {
     total_repairs_=0;
     repair_animation_frames_=0;
     repair_cycles_remaining_=0;
+    walk_animation_wait_=0;move_permitted_=false;walking_=false;
     spawned_pilchard_delay_=0;
     timer_origin_=-1;
     exit_phase_=0;

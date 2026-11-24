@@ -118,8 +118,13 @@ int main() {
         assert(std::abs(live->bob()->y-371.f)<0.02f); // original Up scan code
         step=game.advance({.elapsed_centiseconds=110,
                            .directional_input_bits=0x08});
+        // No movement until the next 00422400 four-tick permission gate.
+        assert(std::abs(live->bob()->y-371.f)<0.02f);
+        for(int tick=0;tick<3;++tick)
+            step=game.advance({.elapsed_centiseconds=115+tick*5,
+                               .directional_input_bits=0x08});
         // The recovered integer heading and float stores introduce subpixel drift.
-        assert(std::abs(live->bob()->y-375.f)<0.2f&&std::abs(live->bob()->x-76.f)<1.0f); // original Down scan code
+        assert(std::abs(live->bob()->y-375.f)<0.2f&&std::abs(live->bob()->x-76.f)<1.0f);
 
         step=game.advance({.elapsed_centiseconds=10100});
         assert(live->timer()==400-difficulty*100);

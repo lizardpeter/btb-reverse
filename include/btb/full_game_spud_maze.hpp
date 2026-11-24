@@ -68,6 +68,9 @@ private:
     maze_spud_batch::CollisionState hammer_{};
     int total_repairs_{};
     int repairs_remaining_{};
+    int walk_animation_wait_{};
+    bool move_permitted_{};
+    bool walking_{};
     int repair_animation_frames_{}; // 0x005109F0: four-tick frame gate
     int repair_cycles_remaining_{}; // 0x00514514: five repair passes
     int timer_{};

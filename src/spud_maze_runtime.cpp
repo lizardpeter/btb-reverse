@@ -197,6 +197,24 @@ SlideFrame advance_slide(SlideState& s) noexcept {
     return f;
 }
 
+bool advance_bob_walk_animation(int& frame,int& countdown,int facing,
+                               bool moving,bool narrating) noexcept {
+    // 00422400: the scene draw is followed by this animation update,
+    // which grants exactly one movement step for the next input call.
+    if(--countdown>0)return false;
+    countdown=narrating?8:4;
+    const int next=frame+1;
+    if(narrating)frame=(next>9||next<0)?0:next;
+    else if(!moving) {
+        if(facing==1||facing==3)frame=(next>9||next<0)?0:next;
+    } else if(facing==2) {
+        --frame;
+        if(frame<1||frame>=7)frame=6;
+    } else if(facing==0)frame=(next>6||next<0)?0:next;
+    else frame=(next<13||next>24)?13:next;
+    return true;
+}
+
 BentleyStep advance_bentley(BentleyState& s,bool failed,
                             bool playing,int random_bit) noexcept {
     BentleyStep out{};
