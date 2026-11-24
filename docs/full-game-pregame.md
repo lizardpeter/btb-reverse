@@ -203,3 +203,32 @@ that choice's background after another choice was selected.
 This is an integration **test source fixture only**. It does not
 prove that the full Windows executable was compiled, played, or that
 the DirectDraw/Bink/DirectSound outputs match the retail game.
+
+
+## Retail instruction-media cross-check (2026-11-24)
+
+The supplied BTB-BBP original directory contains every one of the ten BIK
+names in the first column of binkwalk.txt. None of the legacy walkthrough
+help WAV names occur in the supplied sound directory. The actual
+Data/sound/binklist.txt mappings below all resolve to existing original WAVs
+(checked against the complete directory listing of 1,006 entries).
+
+| Activity | Managed sound ID | Actual WAV |
+|---|---:|---|
+| Herding | 501 | IS_PC_WEN_01.wav |
+| Dinosaur | 496 | IS_DD_WEN_01.wav |
+| Spud Skate | 506 | IS_SS2_WEN_01.wav |
+| Maze | 488 | IS_CG1_WEN_01.wav |
+| Fireworks opening | 498 | IS_GO_BOB_01.wav |
+| Fireworks follow-up | 499 | IS_GO_WEN_O1.wav |
+| Squirrel | 503 | IS_SR_WEN_01.wav |
+| Bob's Band | 500 | IS_MP_WEN_01.wav |
+| Park Designer | 497 | IS_DYP_WEN_01.wav |
+| Golf | 489 | IS_CG2_WEN_01.wav |
+| Spud Maze | 505 | IS_SS1_WEN_01.wav |
+
+The regression uses the production generic UI, session, resolver and sound
+planner with isolated fixture files and a recording device for every
+pregame route, including the four intro-gated routes and the two-stage
+Fireworks narration. It does not claim interactive DirectDraw or DirectSound
+verification.

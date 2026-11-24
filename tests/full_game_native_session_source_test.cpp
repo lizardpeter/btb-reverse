@@ -1,4 +1,5 @@
 #include "btb/full_game_native_session.hpp"
+#include "btb/full_game_generic_ui.hpp"
 
 #include <cassert>
 #include <cstdio>
@@ -82,6 +83,7 @@ public:
     bool fail_draw{};
     bool fail_present{};
     std::string last_movie{};
+    std::string last_walk_movie{};
     std::vector<Draw> received_draws{};
 
     bool observe(PhysicalFrameObservation& out,
@@ -102,6 +104,7 @@ public:
         std::string& error) override {
         ++walk_open;
         last_movie=movie.generic_string();
+        last_walk_movie=last_movie;
         error.clear(); return true;
     }
     bool close_walkthrough_movie(std::string& error) override {
@@ -246,6 +249,135 @@ public:
         return result;
     }
 };
+
+ // Exercise every actual pregame route using the production GenericUiScreenDriver,
+ // NativeGameSession and managed audio planner, with test-only device/file fixtures.
+ // The shipped binkwalk.txt lists obsolete WAVs; none exist in this fixture.
+ void verify_all_retail_instruction_media(const fs::path& parent) {
+     using namespace btb;
+     using game_flow::State;
+     const auto directory=parent/"retail_instruction_media";
+     constexpr const char* movies[]={
+         "herdwalthrough","dinowalthrough","skate1walthrough",
+         "skate2walthrough","advent1walthrough","advent2walthrough",
+         "fireworkwalthrough","squirelwalthrough","musicwalthrough",
+         "designwalthrough"
+     };
+     constexpr const char* voices[]={
+         "IS_PC_WEN_01.wav","IS_DD_WEN_01.wav","IS_SS2_WEN_01.wav",
+         "IS_CG1_WEN_01.wav","IS_GO_BOB_01.wav","IS_SR_WEN_01.wav",
+         "IS_MP_WEN_01.wav","IS_DYP_WEN_01.wav","IS_CG2_WEN_01.wav",
+         "IS_SS1_WEN_01.wav"
+     };
+     constexpr int ids[]={501,496,506,488,498,503,500,497,489,505};
+     constexpr int selected[]={0,0,1,0,0,0,0,0,1,0};
+     constexpr int walk_index[]={0,1,3,4,6,7,8,9,5,2};
+     std::ostringstream walkthrough_text,voice_text,bitmap_text;
+     for(const auto* name:movies) {
+         const std::string clip=std::string("Data/movies/")+name+".bik";
+         touch(directory,clip);
+         walkthrough_text<<clip<<" Data/sound/"<<name<<"help.wav\n";
+     }
+     walkthrough_text<<"NULL Data/sound/dinowalthroughsubhelp.wav\n"
+                       "NULL Data/sound/skate1walthroughsubhelp.wav\n"
+                       "NULL Data/sound/advent1walthroughsubhelp.wav\n";
+     for(std::size_t i=0;i<kRetailPregamePairs.size();++i) {
+         touch(directory,std::string("Data/sound/")+voices[i]);
+         voice_text<<voices[i]<<' '<<ids[i]<<'\n';
+     }
+     touch(directory,"Data/sound/IS_GO_WEN_O1.wav");
+     voice_text<<"IS_GO_WEN_O1.wav 499\n";
+     for(int i=0;i<8;++i)touch(directory,"Data/movies/start_"+std::to_string(i)+".bik");
+     for(int i=0;i<23;++i) {
+         const auto bitmap="Data/ui/backdrop"+std::to_string(i)+".bmp";
+         touch(directory,bitmap);
+         bitmap_text<<bitmap<<'\n';
+     }
+     bitmap_text<<"END.bmp\n";
+     std::string error;
+     OriginalUiBitmapCatalog bitmaps;
+     std::istringstream bitmap_input(bitmap_text.str());
+     assert(bitmaps.read(bitmap_input,error));
+     OriginalWalkthroughCatalog walkthroughs;
+     std::istringstream walkthrough_input(walkthrough_text.str());
+     assert(walkthroughs.read(walkthrough_input,error));
+
+     GenericUiCatalog catalog;
+     for(std::size_t i=0;i<front_end::kScreenCount;++i) {
+         front_end::HotAreaScreen areas;
+         front_end::ReplacementScreen replacement;
+         const auto count=front_end::kRetailHotAreaCounts[i];
+         catalog.counts.push_back(count);
+         for(int j=0;j<count;++j) {
+             const int x=10+j*12;
+             areas.areas.push_back({{{{x,50},{x+10,50},{x+10,90},{x,90}}},{}});
+             front_end::ReplacementRecord record{};
+             record.target_state_or_action=-5;
+             record.hover_sound_ids={-1,-1,-1};
+             replacement.records.push_back(std::move(record));
+         }
+         catalog.hot_areas.push_back(std::move(areas));
+         catalog.replacements.push_back(std::move(replacement));
+     }
+     assert(catalog.validate(error));
+     const auto assert_voice=[](const NativeSessionFrame& frame,int id,const char* name) {
+         assert(frame.submitted&&!frame.failure);
+         bool loaded=false,played=false;
+         for(const auto& sound:frame.prepared.resources.sound) {
+             if(sound.original.sound_id!=id)continue;
+             if(sound.original.kind==SoundEffectKind::LoadManagedWav) {
+                 assert(sound.source&&sound.source->found());
+                 assert(sound.source->absolute_path.filename()==name);
+                 loaded=true;
+             }
+             if(sound.original.kind==SoundEffectKind::PlayManagedSlot)played=true;
+         }
+         assert(loaded&&played);
+     };
+     for(std::size_t i=0;i<kRetailPregamePairs.size();++i) {
+         const auto& pair=kRetailPregamePairs[i];
+         auto game=std::make_unique<GameRoot>();
+         assert(game->select_profile(0));
+         auto driver=std::make_unique<GenericUiScreenDriver>(catalog,pair.screen,
+             std::vector<int>(catalog.counts[static_cast<std::size_t>(pair.screen)],0));
+         assert(driver->bind_retail_pregame_backdrops(bitmaps,pair.setup));
+         assert(game->install_pregame_front_end_pair(pair.setup,std::move(driver)));
+         game->globals().menu.selected_subgame=selected[i];
+         game->set_outer_state(pair.setup);
+         Device device;
+         auto session=std::make_unique<NativeGameSession>(*game,device,
+             OriginalAssetResolver{directory},startup_fixture(),walkthroughs);
+         std::istringstream sounds(voice_text.str());
+         assert(session->load_sound_catalog(sounds).success);
+         const auto opened=session->tick({},false,false);
+         assert(opened.submitted&&!opened.failure&&opened.walkthrough_opened);
+         assert(opened.prepared.game.original_walkthrough_index==walk_index[i]);
+         assert(device.walk_open==1);
+         assert(device.last_walk_movie.find(std::string(movies[walk_index[i]])+".bik")!=std::string::npos);
+         assert(opened.global_movie_opened==pair.starts_global_movie_mode14);
+         assert(!fs::exists(directory/"Data/sound"/(std::string(movies[walk_index[i]])+"help.wav")));
+         if(pair.starts_global_movie_mode14) {
+             const auto waiting=session->tick({},false,false);
+             assert(waiting.submitted&&!waiting.failure);
+             device.sample.global_movie_finished=true;
+         }
+         const auto narrated=session->tick({},false,false);
+         assert_voice(narrated,ids[i],voices[i]);
+         assert(session->has_walkthrough()&&device.walk_open==1);
+         assert(game->globals().dispatcher.current_state==static_cast<int>(pair.update));
+         if(pair.setup==State::FireworksPregameSetup) {
+             device.sample.any_managed_voice_playing=true;
+             const auto waiting=session->tick({},false,false);
+             assert(waiting.submitted&&!waiting.failure);
+             device.sample.any_managed_voice_playing=false;
+             const auto completed=session->tick({},false,false);
+             assert(completed.submitted&&!completed.failure);
+             assert_voice(session->tick({},false,false),499,"IS_GO_WEN_O1.wav");
+         }
+     }
+     fs::remove_all(directory);
+ }
+
 }
 
 int main() {
@@ -259,6 +391,7 @@ int main() {
     const auto directory=fs::temp_directory_path()/
         "btb_original_native_session_source";
     fs::remove_all(directory);
+    verify_all_retail_instruction_media(directory);
     touch(directory,"data/movies/bink_5.bik");
     touch(directory,"data/movies/bink_0.bik");
     touch(directory,"Data/movies/start_0.bik");
