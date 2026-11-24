@@ -13,9 +13,25 @@ void load_original_help_info(State& s,std::istream& input) {
         for(std::size_t entry=1;;++entry) {
             if(entry>=30)throw std::runtime_error("help group exceeds original 30-region storage");
             auto& r=s.regions[group][entry];
-            if(!(input>>r.left>>r.top>>r.right>>r.bottom>>r.sound_id))
+            if(!(input>>r.left>>r.top>>r.right>>r.bottom))
                 throw std::runtime_error("truncated help region");
-            if(r.left==-1)break;
+            if(r.left==-1) {
+                // Retail 00401030 calls fscanf("%d %d %d %d %d") but
+                // tests the FIRST value regardless of conversion count.
+                // Shipped contexts 14..19 have only four -1 fields;
+                // the next section marker must remain unread. Portable
+                // streams do not recover from a failed numeric extraction
+                // automatically, so inspect the next token before reading.
+                input>>std::ws;
+                const auto next=input.peek();
+                if(next=='-'||next=='+'||(next>='0'&&next<='9')) {
+                    if(!(input>>r.sound_id))
+                        throw std::runtime_error("invalid help sentinel");
+                }
+                break;
+            }
+            if(!(input>>r.sound_id))
+                throw std::runtime_error("truncated help region");
             ++s.counts[group];
         }
     }

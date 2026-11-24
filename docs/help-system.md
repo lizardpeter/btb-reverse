@@ -155,6 +155,8 @@ terminated by:
 -1 -1 -1 -1 -1
 ```
 
+The shipped file actually uses four `-1` fields in contexts 14–19. The original `00401030` checks the first field after `fscanf` even if fewer than five conversions succeeded, leaving the next section label unread. The native parser accepts both sentinel forms while still requiring five fields for ordinary regions.
+
 `LoadHelpInfo` retains a count for each context and stores the region/sound
 records in a fixed global table.
 
