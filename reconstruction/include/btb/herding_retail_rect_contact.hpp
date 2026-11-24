@@ -1,5 +1,8 @@
 #pragma once
 
+#include "btb/herding_runtime.hpp"
+
+#include <bit>
 #include <cstdint>
 
 namespace btb::herding {
