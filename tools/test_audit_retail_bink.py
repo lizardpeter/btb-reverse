@@ -44,7 +44,7 @@ class AuditTest(unittest.TestCase):
         def fake(command, timeout):
             if command[0] == "video":
                 return {"status": "passed", "output_tail": "SUMMARY decoded=2/2 frames"}
-            return {"status": "passed", "output_tail": "Native Bink1 audio structural audit"}
+            return {"status": "passed", "output_tail": "Native Bink1 audio structural audit: 2/2 packets\nPCM16 validated bytes=4096"}
         with patch.object(audit, "run_tool", side_effect=fake) as run:
             report = audit.audit(self.root, Path("video"), Path("audio"), 10, None)
             self.assertEqual(report["fully_decoded_paths"], 1)
@@ -52,6 +52,16 @@ class AuditTest(unittest.TestCase):
         with patch.object(audit, "run_tool", side_effect=fake):
             report = audit.audit(self.root, Path("video"), None, 10, None)
             self.assertEqual(report["partial_paths"], 1)
+
+    def test_incomplete_audio_is_failure(self):
+        (self.root / "one.bik").write_bytes(movie(1))
+        def fake(command, timeout):
+            if command[0] == "video":
+                return {"status": "passed", "output_tail": "SUMMARY decoded=2/2 frames"}
+            return {"status": "passed", "output_tail": "Native Bink1 audio structural audit: 1/2 packets"}
+        with patch.object(audit, "run_tool", side_effect=fake):
+            report = audit.audit(self.root, Path("video"), Path("audio"), 10, None)
+            self.assertEqual(report["failed_paths"], 1)
 
     def test_missing_native_summary_is_failure(self):
         (self.root / "one.bik").write_bytes(movie())

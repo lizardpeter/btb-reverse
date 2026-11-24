@@ -137,6 +137,16 @@ def audit(root: Path, video_tool: Path | None, audio_tool: Path | None,
                                         if audio_tool else {"status": "not_run"})}
                 for t in header["audio_tracks"]
             ]
+            for track in item["audio"]:
+                if track["status"] == "passed":
+                    summary = re.search(r"Native Bink1 audio structural audit: (\d+)/(\d+) packets",
+                                        track["output_tail"])
+                    pcm = re.search(r"PCM16 validated bytes=(\d+)", track["output_tail"])
+                    if not summary or tuple(map(int, summary.groups())) != (header["frames"], header["frames"]) or not pcm:
+                        track["status"] = "failed"
+                        track["error"] = "native tool omitted complete packet/PCM16 validation"
+                    else:
+                        track["pcm16_bytes"] = int(pcm.group(1))
             item["status"] = ("failed" if item["video"]["status"] in {"failed", "timeout"} or
                               any(a["status"] in {"failed", "timeout"} for a in item["audio"])
                               else "passed" if video_tool and (audio_tool or not item["audio"]) and

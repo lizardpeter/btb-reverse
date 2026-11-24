@@ -110,7 +110,7 @@ int main(int argc,char** argv) {
         if(!pcm){std::fputs("Unable to open candidate output.\n",stderr);return 1;}
     }
     std::size_t blocks=0,skipped=0;
-    std::uint64_t output_values=0;
+    std::uint64_t output_values=0,pcm_bytes=0;
     double maximum=0.0;
     for(std::uint32_t frame=1;frame<=index->header.frame_count;++frame) {
         const auto encoded=split_encoded_frame(*index,bytes,frame);
@@ -140,18 +140,22 @@ int main(int argc,char** argv) {
                 maximum=std::max(maximum,std::abs(double(sample)));
             }
         }
+        // Even a read-only audit exercises the actual playback PCM16 path.
+        const auto packed=encode_bink1_pcm16(*result,decoder->layout());
+        if(!packed) {
+            std::fprintf(stderr,
+                "PCM16 structural mismatch in source frame %u: "
+                "declared bytes=%u\n",frame,result->declared_pcm_bytes);
+            return 1;
+        }
+        const auto data=serialize_bink1_pcm16_le(packed->interleaved_samples);
+        if(data.size()!=result->declared_pcm_bytes) {
+            std::fprintf(stderr,"PCM16 byte count mismatch in source frame %u\n",frame);
+            return 1;
+        }
+        pcm_bytes+=data.size();
         if(argc==5) {
             if(s16) {
-                const auto packed=encode_bink1_pcm16(*result,decoder->layout());
-                if(!packed) {
-                    std::fprintf(stderr,
-                        "PCM16 structural mismatch in source frame %u: "
-                        "declared bytes=%u\n",
-                        frame,result->declared_pcm_bytes);
-                    return 1;
-                }
-                const auto data=serialize_bink1_pcm16_le(
-                    packed->interleaved_samples);
                 pcm.write(reinterpret_cast<const char*>(data.data()),
                           static_cast<std::streamsize>(data.size()));
                 if(!pcm) {
@@ -173,6 +177,7 @@ int main(int argc,char** argv) {
                 chosen,spec.track_id,spec.sample_rate,spec.channels,
                 spec.transform==BinkAudioTransform::dct?"DCT":"RDFT",
                 static_cast<unsigned long long>(output_values),maximum);
+    std::printf("PCM16 validated bytes=%llu\n",static_cast<unsigned long long>(pcm_bytes));
     std::puts("WARNING: structural decode only. These sample values "
               "have NOT been validated against retail PCM or FFmpeg.");
     return 0;
