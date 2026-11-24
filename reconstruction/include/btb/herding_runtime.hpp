@@ -585,7 +585,7 @@ struct RetailEntityRecord32 {
     std::int32_t target_x{};              // +0x5C
     std::int32_t target_y{};              // +0x60
 
-    [[nodiscard]] EntityType entity_type() const noexcept {
+    [[nodiscard]] constexpr EntityType entity_type() const noexcept {
         return static_cast<EntityType>(type);
     }
 
