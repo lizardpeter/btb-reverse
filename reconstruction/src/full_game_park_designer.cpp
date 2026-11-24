@@ -67,6 +67,11 @@ bool ParkDesignerDriver::initialize(int player_index,std::string& error) {
     }
 }
 
+bool ParkDesignerDriver::redraw_confirmation_background(ActivityFrameOutput& out,std::string& error) {
+    if(!initialized()||!service_){error="Park Designer modal scene unavailable";return false;}
+    return service_->render(state_.save,*bounds_,out,error);
+}
+
 ActivityFrameOutput ParkDesignerDriver::advance(const ActivityFrameInput& input) {
     ActivityFrameOutput output{};
     if(!initialized()) {

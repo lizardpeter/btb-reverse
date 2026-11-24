@@ -49,6 +49,8 @@ public:
     [[nodiscard]] ActivityFrameOutput advance(const ActivityFrameInput& input) override;
     [[nodiscard]] bool unload(std::string& error) override;
 
+    bool request_confirmed_leave() noexcept override {request_exit(true);return true;}
+    bool redraw_confirmation_background(ActivityFrameOutput&,std::string&) override;
     void request_exit(bool shutdown = false) noexcept {
         state_.exit_requested=!shutdown;
         state_.shutdown_requested=shutdown;

@@ -29,6 +29,7 @@ private:
     std::optional<Selection> selection_{};
     std::optional<std::pair<int,int>> queued_{};
     int hover_{-1},view_hover_{-1};
+    bool backing_started_{},back_hover_{};
     void voice(ActivityFrameOutput&,const ActivityFrameInput&,int,int);
 };
 }

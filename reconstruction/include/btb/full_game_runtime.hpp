@@ -215,6 +215,8 @@ struct ActivityFrameInput {
     // A real logical 640x480 pointer sample, rather than the default
     // zero coordinates of headless source fixtures.
     bool pointer_position_valid{};
+    // A release is distinct from the first-down pulse for retail 00429C90.
+    bool pointer_release_pulse{};
 };
 
 struct ActivityFrameOutput {
@@ -228,6 +230,7 @@ struct ActivityFrameOutput {
     std::optional<std::int32_t> next_replay_class{};
     bool save_and_unload{};
     bool open_yes_no_confirmation{};
+    bool open_leave_activity_confirmation{};
     bool open_progress_screen{};
     bool open_options_overlay{};
     std::optional<int> negative_ui_action{};
@@ -287,6 +290,10 @@ public:
     [[nodiscard]] virtual ActivityFrameOutput advance(
         const ActivityFrameInput& input) = 0;
     [[nodiscard]] virtual bool unload(std::string& error) = 0;
+    // Recovered native activity exit and modal redraw hooks. Only drivers
+    // with a source-backed implementation opt in.
+    virtual bool request_confirmed_leave() noexcept {return false;}
+    virtual bool redraw_confirmation_background(ActivityFrameOutput&,std::string&) {return false;}
 };
 
 struct GameGlobals {
@@ -395,7 +402,10 @@ public:
 private:
     [[nodiscard]] GameFrame advance_profile_name_entry(
         const ActivityFrameInput&,GameFrame);
-    void apply_effects(const ActivityFrameOutput& output) noexcept;
+    void apply_effects(const ActivityFrameOutput& output);
+    std::vector<Draw> modal_background_{};
+    std::optional<bool> pending_modal_choice_{};
+    int modal_hover_{-1},modal_armed_{-1};
     void consume_menu_action(
         game_flow::State update,
         GameFrame& result) noexcept;

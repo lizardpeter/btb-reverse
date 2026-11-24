@@ -41,11 +41,12 @@ struct NativeHostInput {
  std::array<unsigned,256> held_scan_by_vk{};
  bool pointer_held{};
  bool click_pulse{};
+ bool release_pulse{};
  int typed_character{-1};
  std::uint32_t initial_tick{};
  bool clock_started{};
  void press_mouse() noexcept {pointer_held=true;click_pulse=true;}
- void release_mouse() noexcept {pointer_held=false;}
+ void release_mouse() noexcept {if(pointer_held)release_pulse=true;pointer_held=false;}
  void key_down(unsigned key,bool repeated,unsigned scan=0) noexcept {
   if(key>=keys.size())return;
   keys[key]=0x80;
@@ -54,7 +55,7 @@ struct NativeHostInput {
   if(dik<scan_keys.size() && dik!=0)scan_keys[dik]=0x80;
   // Original Golf/manual uses Space as another primary-click pulse.
   // WM_KEYDOWN autorepeat must not generate repeated activations.
-  if(key==0x20&&!repeated)click_pulse=true;
+  if(key==0x20&&!repeated){click_pulse=true;release_pulse=true;}
  }
  void key_up(unsigned key) noexcept {
   if(key>=keys.size())return;
@@ -70,7 +71,7 @@ struct NativeHostInput {
  }
  void lose_focus() noexcept {
   keys.fill(0);scan_keys.fill(0);held_scan_by_vk.fill(0);
-  pointer_held=false;click_pulse=false;typed_character=-1;
+  pointer_held=false;click_pulse=false;release_pulse=false;typed_character=-1;
  }
  [[nodiscard]] ActivityFrameInput sample(
     int x,int y,std::uint32_t monotonic_ms) noexcept {
@@ -79,6 +80,7 @@ struct NativeHostInput {
   out.pointer_x=x;out.pointer_y=y;
   out.keyboard_state=scan_keys;
   out.pointer_button_held=pointer_held;
+  out.pointer_release_pulse=release_pulse;release_pulse=false;
   out.directional_input_bits=static_cast<std::uint8_t>(
       (keys[0x25]?0x01:0) | (keys[0x27]?0x02:0) |
       (keys[0x26]?0x04:0) | (keys[0x28]?0x08:0));

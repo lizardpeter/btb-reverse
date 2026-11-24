@@ -50,6 +50,7 @@ p::Vec2i hotspot(p::EditorMode mode,int page,int variant,p::Rect sprite) {
 void RetailParkDesignerNativeService::begin_session() noexcept {
     controls_={};controls_.first_mode_voice_pending=true;
     selection_.reset();queued_.reset();hover_=-1;view_hover_=-1;
+    backing_started_=false;back_hover_=false;
 }
 void RetailParkDesignerNativeService::cancel_drag(p::SaveData& d) noexcept {
     if(selection_&&selection_->slot){
@@ -74,10 +75,13 @@ bool RetailParkDesignerNativeService::render(p::SaveData& d,const p::BoundAreas&
 bool RetailParkDesignerNativeService::emit_sound(const p::LoopSound& s,ActivityFrameOutput& out,std::string& error) {
     switch(s.kind){
     case p::LoopSoundKind::StopIntroSound:
-        out.audio.push_back({AudioOperation::StopBackingTrack});break;
+        if(!backing_started_)out.audio.push_back({AudioOperation::StopBackingTrack});break;
     case p::LoopSoundKind::StartParkBackingTrack:
         if(s.id!=2){error="unexpected Park Designer music index";return false;}
-        out.audio.push_back({AudioOperation::StartBackingTrack,"Data/music/dyp.wav"});break;
+        if(!backing_started_){
+            out.audio.push_back({AudioOperation::StartBackingTrack,"Data/music/dyp.wav"});
+            backing_started_=true;
+        }break;
     case p::LoopSoundKind::ManagedVoice:
     case p::LoopSoundKind::InputInterruptibleVoice:
         out.audio.push_back({AudioOperation::ManagedSoundId,{},s.id,50,1,true});break;
@@ -95,6 +99,15 @@ bool RetailParkDesignerNativeService::update_editor(p::SaveData& d,const p::Boun
     const bool click=in.click_pulse;
     int hit=p::retail_toolbar_hit(x,y);
     bool consumed=false;
+    // 004084B0 shared back-button bounds are sourced from .data
+    // 0043ECF4/F8/FC/ED00. 00428470 draws the 52px rollover at 574,418.
+    const bool back=!selection_&&controls_.cursor_mode==0&&x>572&&x<617&&y>422&&y<467;
+    if(back){
+        bitmap(out,in.pointer_button_held?"Data/ui/backreddep.bmp":"Data/ui/backred.bmp",574,418);
+        if(!back_hover_)out.audio.push_back({AudioOperation::ManagedSoundId,{},456,50,2});
+        if(click){out.open_leave_activity_confirmation=true;consumed=true;}
+    }
+    back_hover_=back;
     // Original view-specific hover/buttons are processed before generic toolbar.
     if(m==3){
         int v=-1;

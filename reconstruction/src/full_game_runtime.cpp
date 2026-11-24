@@ -200,7 +200,7 @@ bool GameRoot::unload_current(std::string& error) {
 }
 
 void GameRoot::apply_effects(
-    const ActivityFrameOutput& output) noexcept {
+    const ActivityFrameOutput& output) {
 
     // The original global progress and movie codes belong to the root, not
     // to individual minigame-owned state objects.
@@ -233,8 +233,12 @@ void GameRoot::apply_effects(
     if (output.open_options_overlay) {
         globals_.dispatcher.options_active = true;
     }
-    if (output.open_yes_no_confirmation) {
-        globals_.dispatcher.generic_yes_no_active = true;
+    if (output.open_yes_no_confirmation || output.open_leave_activity_confirmation) {
+        modal_background_=output.draws;
+        modal_hover_=-1;modal_armed_=-1;
+        pending_modal_choice_.reset();
+        globals_.dispatcher.generic_yes_no_active=output.open_yes_no_confirmation;
+        globals_.dispatcher.leave_activity_active=output.open_leave_activity_confirmation;
     }
     if (output.yes_no_context) {
         globals_.ui_context = *output.yes_no_context;
@@ -305,8 +309,14 @@ void GameRoot::consume_pregame_action(
     }
 }
 
-GameFrame GameRoot::advance(const ActivityFrameInput& input) {
+GameFrame GameRoot::advance(const ActivityFrameInput& sample) {
     GameFrame result;
+    ActivityFrameInput input=sample;
+    if(pending_modal_choice_){
+        input.confirmation_resolved=true;input.confirmation_yes=*pending_modal_choice_;
+        input.click_pulse=false;input.pointer_release_pulse=false;
+        pending_modal_choice_.reset();
+    }
     // The original shared Yes/No screen owns the modal while unresolved.
     // Once the physical UI reports a completed choice, release that overlay
     // before 68-state dispatch and deliver the choice to the activity on
@@ -341,6 +351,68 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
     }
     if (!dispatch.dispatch) {
         result.kind = FrameKind::Intercept;
+        // Original 00429C90/00429FE0 run before the outer state table.
+        // Preserve explicit fixture-provided confirmation input; the live
+        // Win32 path supplies physical pointer-down/release samples.
+        const bool generic=dispatch.intercept==game_flow::Intercept::GenericYesNo;
+        const bool leave=dispatch.intercept==game_flow::Intercept::LeaveCurrentActivity;
+        if((generic||leave)&&input.pointer_position_valid){
+            result.effects.draws=modal_background_;
+            if(generic&&initialized_activity_==ActivityId::ParkDesigner){
+                ActivityFrameOutput scene{};
+                std::string error;
+                auto& driver=drivers_[static_cast<std::size_t>(*initialized_activity_)];
+                if(driver->redraw_confirmation_background(scene,error))result.effects.draws=std::move(scene.draws);
+                else if(!error.empty()){result.kind=FrameKind::ActivityFailed;result.error=std::move(error);return result;}
+            }
+            const char* backdrop=nullptr;
+            if(leave)backdrop="Data/ui/main/quitmain.bmp";
+            else if(globals_.ui_context==1)backdrop="Data/ui/deletegame.bmp";
+            else if(globals_.ui_context==2)backdrop="Data/ui/Deletebricks.bmp";
+            else if(globals_.ui_context==3)backdrop="Data/ui/Deleteallobjects.bmp";
+            else if(globals_.ui_context==4)backdrop="Data/ui/DeleteFireworks.bmp";
+            if(!backdrop){result.kind=FrameKind::ActivityFailed;result.error="unmapped original confirmation context";return result;}
+            result.effects.draws.push_back({backdrop,0,0,{},true});
+            const int x=input.pointer_x,y=input.pointer_y;
+            int hit=-1;
+            if(leave){
+                if(y>260&&y<316){
+                    if(x>220&&x<305)hit=0;
+                    if(x>334&&x<420)hit=1;
+                }
+            }else if(y>=260&&y<=312){
+                if(x>=220&&x<=305)hit=0;
+                if(x>=334&&x<=417)hit=1;
+            }
+            if(input.click_pulse)modal_armed_=hit;
+            if(hit>=0){
+                const bool pressed=input.pointer_button_held&&modal_armed_==hit;
+                const char* asset=hit==0?(pressed?"Data/ui/playagain/payesdep.bmp":"Data/ui/playagain/payessel.bmp"):
+                    (pressed?"Data/ui/playagain/panodep.bmp":"Data/ui/playagain/panosel.bmp");
+                result.effects.draws.push_back({asset,hit==0?220:334,260,{},true});
+                if(leave&&hit!=modal_hover_)
+                    result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},453+hit,50,2});
+            }
+            if(input.pointer_release_pulse){
+                const bool choice=hit>=0&&(leave||modal_armed_==hit);
+                modal_armed_=-1;
+                if(choice){
+                    if(generic){
+                        pending_modal_choice_=(hit==0);
+                    }else{
+                        globals_.dispatcher.leave_activity_active=false;
+                        if(hit==0&&initialized_activity_){
+                            auto& driver=drivers_[static_cast<std::size_t>(*initialized_activity_)];
+                            if(!driver->request_confirmed_leave()){
+                                result.kind=FrameKind::ActivityFailed;
+                                result.error="activity has no recovered leave-confirmation handler";
+                            }
+                        }
+                    }
+                }
+            }
+            modal_hover_=hit;
+        }
         return result;
     }
 
