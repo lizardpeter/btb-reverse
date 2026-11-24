@@ -108,6 +108,30 @@ int main() {
     for (int i=0;i<6;++i) static_cast<void>(exact_six.next_rand());
     assert(continuous_rand.state()==exact_six.state());
 
+    // 00417094 is an earlier, different loop: literal target 486,650,
+    // no shared RNG consumption, fixed saved anchor on every retry.
+    h::OriginalFixedHerdingRecovery fixed{.entity=entity};
+    assert(h::resume_original_herding_fixed_recovery(fixed,world,1)==
+           h::OriginalRoamingLoopStatus::Pending);
+    assert(fixed.attempts==1 && fixed.entity.previous_x==478 &&
+           fixed.entity.previous_y==471 && fixed.entity.movement_speed==0.f);
+    assert(fixed.entity.y>471 && fixed.entity.y<477);
+    assert(h::resume_original_herding_fixed_recovery(fixed,world,10)==
+           h::OriginalRoamingLoopStatus::Accepted);
+    assert(fixed.finished && fixed.attempts==3 && fixed.entity.y>=478);
+    h::OriginalFixedHerdingRecovery uninterrupted{.entity=entity};
+    assert(h::resume_original_herding_fixed_recovery(uninterrupted,world,10)==
+           h::OriginalRoamingLoopStatus::Accepted);
+    assert(uninterrupted.entity.x_float==fixed.entity.x_float);
+    assert(uninterrupted.entity.y_float==fixed.entity.y_float);
+    assert(uninterrupted.attempts==fixed.attempts);
+    auto inside_fixed=entity;
+    inside_fixed.y=500;inside_fixed.y_float=500.f;
+    h::OriginalFixedHerdingRecovery stationary{.entity=inside_fixed};
+    assert(h::resume_original_herding_fixed_recovery(stationary,world,1)==
+           h::OriginalRoamingLoopStatus::AlreadyInside);
+    assert(stationary.attempts==0 && stationary.entity.movement_speed==entity.movement_speed);
+
     // If already inside, the source returns without drawing even one
     // new pair of random values.
     auto inside_entity=entity;

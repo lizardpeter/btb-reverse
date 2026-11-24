@@ -159,4 +159,79 @@ resume_original_herding_roaming_loop(
     return state.status;
 }
 
+// Independent PRE-dispatch group-two correction: 00417094..0041721E.
+// Unlike the randomized epilogue, the target here is a literal
+// (0x1e6,0x28a), and this path consumes NO rand() values. The saved
+// integer anchor remains fixed while float positions accumulate.
+// The caller must preserve the initial perception anchor/distance
+// calculated at 00416A30 before invoking this correction.
+inline constexpr Vec2i kRetailPreDispatchRecoveryTarget{486,650};
+struct OriginalFixedHerdingRecovery {
+    RetailEntityRecord32 entity{};
+    std::uint64_t attempts{};
+    bool finished{};
+    OriginalRoamingLoopStatus status{OriginalRoamingLoopStatus::Pending};
+};
+
+[[nodiscard]] inline OriginalRoamingLoopStatus
+resume_original_herding_fixed_recovery(
+    OriginalFixedHerdingRecovery& state,
+    const std::vector<Vec2i>& group2,
+    std::size_t max_attempts_this_call) noexcept {
+    if(state.finished)return state.status;
+    if(!is_herd_animal(state.entity.entity_type()) ||
+       state.entity.behavior_state!=0 || group2.size()<3 ||
+       max_attempts_this_call==0) {
+        state.status=OriginalRoamingLoopStatus::InvalidInput;
+        return state.status;
+    }
+    const auto check_inside=[&]() -> std::optional<bool> {
+        const auto valid=[](float v) {
+            return std::isfinite(v) &&
+                static_cast<double>(v)>=std::numeric_limits<std::int32_t>::min() &&
+                static_cast<double>(v)<=std::numeric_limits<std::int32_t>::max();
+        };
+        if(!valid(state.entity.x_float)||!valid(state.entity.y_float))return std::nullopt;
+        return retail_geometry::original_polygon_contains(group2,
+            static_cast<int>(state.entity.x_float),static_cast<int>(state.entity.y_float));
+    };
+    auto inside=check_inside();
+    if(!inside) {
+        state.status=OriginalRoamingLoopStatus::InvalidInput;return state.status;
+    }
+    if(*inside) {
+        state.finished=true;
+        state.status=state.attempts==0?OriginalRoamingLoopStatus::AlreadyInside:
+            OriginalRoamingLoopStatus::Accepted;
+        return state.status;
+    }
+    for(std::size_t i=0;i<max_attempts_this_call;++i) {
+        auto restored=state.entity;
+        restored.x=restored.previous_x;restored.y=restored.previous_y;
+        const auto anchor=original_herding_recovery_anchor(restored);
+        if(!anchor) {state.status=OriginalRoamingLoopStatus::InvalidInput;return state.status;}
+        const auto heading=original_herding_integer_heading(anchor->x,anchor->y,
+            kRetailPreDispatchRecoveryTarget.x,kRetailPreDispatchRecoveryTarget.y);
+        if(!heading) {state.status=OriginalRoamingLoopStatus::InvalidInput;return state.status;}
+        const auto motion=original_herding_steering_step(restored.x_float,restored.y_float,
+            *heading,kRetailHerdingFollowerStep,false);
+        if(!motion) {state.status=OriginalRoamingLoopStatus::InvalidInput;return state.status;}
+        restored.x_float=motion->x;restored.y_float=motion->y;
+        restored.x=motion->rounded_x;restored.y=motion->rounded_y;
+        restored.direction=motion->facing_index;
+        restored.movement_speed=0.f;
+        state.entity=restored;
+        ++state.attempts;
+        inside=check_inside();
+        if(!inside) {state.status=OriginalRoamingLoopStatus::InvalidInput;return state.status;}
+        if(*inside) {
+            state.status=OriginalRoamingLoopStatus::Accepted;
+            state.finished=true;
+            return state.status;
+        }
+    }
+    state.status=OriginalRoamingLoopStatus::Pending;
+    return state.status;
+}
+
 } // namespace btb::herding
