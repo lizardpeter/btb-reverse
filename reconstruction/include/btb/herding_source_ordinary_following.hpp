@@ -48,7 +48,8 @@ struct RetailOrdinaryFollowerStep {
 original_herding_ordinary_follower_step(
     const RetailEntityRecord32& before,
     const RetailEntityRecord32& pickles,
-    int formation_ordinal) noexcept {
+    int formation_ordinal,
+    std::optional<Vec2i> perception_anchor={}) noexcept {
 
     if(!is_herd_animal(before.entity_type()) ||
        before.behavior_state!=0 ||
@@ -68,10 +69,10 @@ original_herding_ordinary_follower_step(
        before.animation_frame==std::numeric_limits<std::int32_t>::max())
         return std::nullopt;
 
-    const std::int64_t ax=static_cast<std::int64_t>(before.x)+
+    const std::int64_t ax=perception_anchor?perception_anchor->x:static_cast<std::int64_t>(before.x)+
         (static_cast<std::int64_t>(before.source_left)-
          before.source_right)/2;
-    const std::int64_t ay=static_cast<std::int64_t>(before.y)+
+    const std::int64_t ay=perception_anchor?perception_anchor->y:static_cast<std::int64_t>(before.y)+
         (static_cast<std::int64_t>(before.source_bottom)-
          before.source_top)/2;
     const std::int64_t hx=static_cast<std::int64_t>(pickles.x)-40;

@@ -301,6 +301,8 @@ bool HerdingEventSimulation::advance(
     auto staged_tracked=tracked_slots_;
     int staged_registration_counter=registration_counter_;
     bool food_applied=false;
+    std::vector<std::optional<herding::Vec2i>> perception_anchors(candidate.entities().size());
+    std::vector<std::optional<herding::Vec2i>> saved_positions(candidate.entities().size());
     if(observed.source_ordered_food_and_tracking) {
         if(!observed.require_native_event_proofs ||
            !candidate.apply_source_motion(0,observed.motion_records.front())) {
@@ -321,20 +323,59 @@ bool HerdingEventSimulation::advance(
         // state. Only higher-index actors receive changed prestates;
         // the current actor retains its own pre-update record for proofs.
         // No movement or membership is committed until the whole frame passes.
-        std::size_t last_pair_index=0;
+        if(data_.coordinate_groups.size()!=4 || data_.coordinate_groups[2].size()<3) {
+            error="native ordered group-two polygon missing";return false;
+        }
         auto pair_records=candidate.entities();
         for(auto& record:pair_records)record.movement_active=0;
-        for(const auto& probe:observed.pair_scan_evidence) {
-            const auto i=probe.entity_index;
-            if(i<=last_pair_index || i>=pair_records.size() ||
-               probe.separated_count==0 ||
-               candidate.followers().contains(static_cast<int>(i)) ||
+        std::size_t fixed_cursor=0,pair_cursor=0;
+        for(std::size_t i=1;i<pair_records.size();++i) {
+            auto before=pair_records[i];
+            const bool following=candidate.followers().contains(static_cast<int>(i));
+            // Replay the original pre-dispatch recovery for every
+            // eligible record, not only those the source chose to report.
+            if(herding::is_herd_animal(before.entity_type()) &&
+               before.behavior_state==0 && !following &&
+               before.temporary_target_timer<=1) {
+                before.previous_x=before.x;before.previous_y=before.y;
+                if(before.temporary_target_timer==1)before.temporary_target_timer=0;
+                herding::OriginalFixedHerdingRecovery fixed{.entity=before};
+                const auto status=herding::resume_original_herding_fixed_recovery(
+                    fixed,data_.coordinate_groups[2],4096);
+                if(status!=herding::OriginalRoamingLoopStatus::AlreadyInside &&
+                   status!=herding::OriginalRoamingLoopStatus::Accepted) {
+                    error="native fixed recovery replay did not converge";return false;
+                }
+                if(fixed.attempts) {
+                    if(fixed_cursor>=observed.fixed_recovery_evidence.size()) {
+                        error="native fixed group-two recovery omitted";return false;
+                    }
+                    const auto& proof=observed.fixed_recovery_evidence[fixed_cursor++];
+                    if(proof.entity_index!=i || proof.attempts!=fixed.attempts ||
+                       proof.before.entity_id!=before.entity_id || proof.before.type!=before.type ||
+                       proof.before.x!=before.x || proof.before.y!=before.y ||
+                       proof.before.x_float!=before.x_float || proof.before.y_float!=before.y_float ||
+                       proof.before.previous_x!=before.previous_x ||
+                       proof.before.previous_y!=before.previous_y ||
+                       proof.before.temporary_target_timer!=before.temporary_target_timer) {
+                        error="native fixed group-two recovery evidence invalid";return false;
+                    }
+                    perception_anchors[i]=herding::original_herding_animal_tracking_anchor(before);
+                    saved_positions[i]=herding::Vec2i{before.previous_x,before.previous_y};
+                    before=fixed.entity;
+                    if(!candidate.apply_source_motion(i,before)) {
+                        error="native fixed recovery changed entity identity";return false;
+                    }
+                }
+                pair_records[i]=before;
+            }
+            if(pair_cursor>=observed.pair_scan_evidence.size() ||
+               observed.pair_scan_evidence[pair_cursor].entity_index!=i)continue;
+            const auto& probe=observed.pair_scan_evidence[pair_cursor++];
+            if(probe.separated_count==0 || following ||
                tracked_slots_.contains(static_cast<int>(i))) {
                 error="native pair scan order or membership invalid";return false;
             }
-            last_pair_index=i;
-            auto before=pair_records[i];
-            if(before.temporary_target_timer==1)before.temporary_target_timer=0;
             if(before.behavior_state!=0 || before.temporary_target_timer>0 ||
                before.movement_active!=0 ||
                before.entity_id!=probe.before.entity_id ||
@@ -352,7 +393,7 @@ bool HerdingEventSimulation::advance(
                 error="native ordered pair scan prestate differs from source";return false;
             }
             const auto far=herding::original_far_untracked_animal_roam_step(
-                before,observed.motion_records.front(),data_.retail_transformed_group0());
+                before,observed.motion_records.front(),data_.retail_transformed_group0(),perception_anchors[i],saved_positions[i]);
             if(far.coverage==herding::RetailFarAnimalRoamCoverage::NotCovered ||
                far.coverage==herding::RetailFarAnimalRoamCoverage::InvalidInput) {
                 error="native pair scan bypassed an original higher-priority branch";return false;
@@ -362,9 +403,34 @@ bool HerdingEventSimulation::advance(
             if(!count || *count!=probe.separated_count) {
                 error="native pair scan count differs from retail";return false;
             }
+            herding::OriginalRoamingLoop loop{.entity=pair_records[i]};
+            const auto inside=retail_geometry::original_polygon_contains(
+                data_.coordinate_groups[2],loop.entity.x,loop.entity.y);
+            if(!inside || probe.randomized_recovery.has_value()==*inside) {
+                error="native pair recovery contradicted group-two polygon";return false;
+            }
+            if(probe.randomized_recovery) {
+                const auto& retry=*probe.randomized_recovery;
+                if(retry.entity_index!=i || retry.attempts==0 || retry.attempts>4096 ||
+                   retry.before.x_float!=loop.entity.x_float ||
+                   retry.before.y_float!=loop.entity.y_float ||
+                   retry.before.previous_x!=loop.entity.previous_x ||
+                   retry.before.previous_y!=loop.entity.previous_y) {
+                    error="native pair randomized recovery prestate invalid";return false;
+                }
+                retail::OriginalRetailRandom replay{retry.rng_state_before};
+                const auto status=herding::resume_original_herding_roaming_loop(
+                    loop,replay,data_.coordinate_groups[2],static_cast<std::size_t>(retry.attempts));
+                if(status!=herding::OriginalRoamingLoopStatus::Accepted ||
+                   loop.attempts!=retry.attempts ||
+                   loop.consumed_random_calls!=2*retry.attempts ||
+                   replay.state()!=retry.rng_state_after) {
+                    error="native pair randomized recovery RNG differs";return false;
+                }
+            }
             const auto outer=herding::original_herding_nonfollowing_outer_step(
-                before,pair_records[i],data_.retail_transformed_group0(),
-                herding::animal_navigation_recovery_target(data_));
+                before,loop.entity,data_.retail_transformed_group0(),
+                herding::animal_navigation_recovery_target(data_),saved_positions[i]);
             const auto& actual=observed.motion_records[i];
             if(!outer || outer->boundary_recovered!=probe.outer_boundary_recovered ||
                actual.x!=outer->animal.x || actual.y!=outer->animal.y ||
@@ -384,6 +450,10 @@ bool HerdingEventSimulation::advance(
                     error="native pair scan later entity prestate invalid";return false;
                 }
             }
+        }
+        if(fixed_cursor!=observed.fixed_recovery_evidence.size() ||
+           pair_cursor!=observed.pair_scan_evidence.size()) {
+            error="native fixed/pair recovery evidence out of order";return false;
         }
         for(const auto& probe:observed.tracked_admission_evidence) {
             if(probe.entity_index==0 || probe.entity_index>=candidate.entities().size()) {
@@ -713,7 +783,7 @@ bool HerdingEventSimulation::advance(
         const auto target=
             herding::original_herding_species_registration_point(
                 prior.entity_type());
-        const auto anchor=
+        const auto anchor=perception_anchors[probe.entity_index]?perception_anchors[probe.entity_index]:
             herding::original_herding_animal_tracking_anchor(prior);
         if(!target || !anchor ||
            target->x!=probe.registered_point.x ||
@@ -825,7 +895,7 @@ bool HerdingEventSimulation::advance(
         const auto expected=
             herding::original_herding_ordinary_follower_step(
                 probe.before,observed.motion_records.front(),
-                probe.formation_ordinal);
+                probe.formation_ordinal,perception_anchors[probe.entity_index]);
         if(!expected ||
            expected->source_formation_target.x!=
                probe.formation_target.x ||
@@ -889,7 +959,7 @@ bool HerdingEventSimulation::advance(
         const auto preliminary=
             herding::original_far_untracked_animal_roam_step(
                 probe.before,observed.motion_records.front(),
-                data_.retail_transformed_group0());
+                data_.retail_transformed_group0(),perception_anchors[probe.entity_index],saved_positions[probe.entity_index]);
         if(preliminary.coverage!=
                herding::RetailFarAnimalRoamCoverage::
                    RequiresOriginalBoundaryRecovery) {
@@ -898,7 +968,7 @@ bool HerdingEventSimulation::advance(
         }
         const auto verified=
             herding::original_far_untracked_animal_boundary_recovery(
-                probe.before,preliminary.animal,probe.group3_target);
+                probe.before,preliminary.animal,probe.group3_target,saved_positions[probe.entity_index]);
         if(!verified) {
             error="original group-three recovered heading invalid";
             return false;
@@ -910,7 +980,7 @@ bool HerdingEventSimulation::advance(
            moved.previous_x!=verified->animal.previous_x ||
            moved.previous_y!=verified->animal.previous_y ||
            moved.direction!=verified->animal.direction ||
-           moved.movement_active!=0 ||
+           moved.movement_active!=verified->animal.movement_active ||
            moved.movement_speed!=0.0f ||
            std::fabs(moved.x_float-
                verified->animal.x_float)>kRecoveryTrigTolerance ||
@@ -948,11 +1018,11 @@ bool HerdingEventSimulation::advance(
            herding::required_food_for(prior.entity_type())==candidate.food().selected) {
             error="native near-retreat contradicts original animal prestate";return false;
         }
-        const auto expected=herding::original_herding_near_retreat(probe.before,observed.motion_records.front());
+        const auto expected=herding::original_herding_near_retreat(probe.before,observed.motion_records.front(),perception_anchors[i]);
         if(!expected) {error="near-retreat lacks original strict 80-unit gate";return false;}
         const auto outer=herding::original_herding_nonfollowing_outer_step(
             probe.before,expected->moved,data_.retail_transformed_group0(),
-            herding::animal_navigation_recovery_target(data_));
+            herding::animal_navigation_recovery_target(data_),saved_positions[i]);
         if(!outer || outer->boundary_recovered!=probe.boundary_recovered) {
             error="native near-retreat boundary gate invalid";return false;
         }
@@ -1003,7 +1073,7 @@ bool HerdingEventSimulation::advance(
         }
         const auto verified=herding::original_far_untracked_animal_roam_step(
             probe.before,observed.motion_records.front(),
-            data_.retail_transformed_group0());
+            data_.retail_transformed_group0(),perception_anchors[probe.entity_index],saved_positions[probe.entity_index]);
         if (verified.coverage!=
                 herding::RetailFarAnimalRoamCoverage::AdvancedWithinPolygon) {
             error="far-roam movement lacked original 80-unit/inside-polygon evidence";
@@ -1120,7 +1190,7 @@ bool HerdingEventSimulation::advance(
                 const auto contact=
                     herding::original_herding_food_attraction_contact(
                         proof->before,observed.motion_records.front(),
-                        candidate.food().selected,false);
+                        candidate.food().selected,false,perception_anchors[event.entity_index]);
                 genuine_attraction=contact && *contact;
             }
             const bool source_proven=

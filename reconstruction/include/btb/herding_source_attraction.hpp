@@ -21,7 +21,8 @@ original_herding_food_attraction_contact(
     const RetailEntityRecord32& animal,
     const RetailEntityRecord32& pickles,
     FoodType selected_food,
-    bool already_following) noexcept {
+    bool already_following,
+    std::optional<Vec2i> perception_anchor={}) noexcept {
 
     if (!is_herd_animal(animal.entity_type()) ||
         pickles.entity_type()!=EntityType::FarmerPickles ||
@@ -46,8 +47,8 @@ original_herding_food_attraction_contact(
     const std::int64_t pickles_y=
         static_cast<std::int64_t>(pickles.y)+
         pickles.source_bottom-pickles.source_top-20;
-    const auto dx=animal_x-pickles.x;
-    const auto dy=animal_y-pickles_y;
+    const auto dx=(perception_anchor?static_cast<std::int64_t>(perception_anchor->x):animal_x)-pickles.x;
+    const auto dy=(perception_anchor?static_cast<std::int64_t>(perception_anchor->y):animal_y)-pickles_y;
     if(dx<=-80 || dx>=80 || dy<=-80 || dy>=80)
         return false;
     return dx*dx+dy*dy<6400;

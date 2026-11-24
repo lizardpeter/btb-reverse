@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <vector>
 
 namespace btb::herding {
@@ -60,7 +61,9 @@ struct RetailFarAnimalRoamStep {
 original_far_untracked_animal_roam_step(
     const RetailEntityRecord32& original,
     const RetailEntityRecord32& pickles,
-    const std::vector<Vec2i>& original_group0_nav) noexcept {
+    const std::vector<Vec2i>& original_group0_nav,
+    std::optional<Vec2i> perception_anchor={},
+    std::optional<Vec2i> saved_position={}) noexcept {
 
     RetailFarAnimalRoamStep result{};
     result.animal=original;
@@ -100,8 +103,8 @@ original_far_untracked_animal_roam_step(
     const std::int64_t hero_y=
         static_cast<std::int64_t>(pickles.y)+
         pickles.source_bottom-pickles.source_top-20;
-    const auto dx=animal_cx-static_cast<std::int64_t>(pickles.x);
-    const auto dy=animal_cy-hero_y;
+    const auto dx=(perception_anchor?static_cast<std::int64_t>(perception_anchor->x):animal_cx)-pickles.x;
+    const auto dy=(perception_anchor?static_cast<std::int64_t>(perception_anchor->y):animal_cy)-hero_y;
     // Distances inside +/-80 can enter source food/follower AI; never
     // guess those branches. Check deltas first to avoid overflow.
     if (dx>-80 && dx<80 && dy>-80 && dy<80 &&
@@ -109,8 +112,8 @@ original_far_untracked_animal_roam_step(
         return result;
 
     auto moved=original;
-    moved.previous_x=original.x;
-    moved.previous_y=original.y;
+    moved.previous_x=saved_position?saved_position->x:original.x;
+    moved.previous_y=saved_position?saved_position->y:original.y;
     // An earlier animal can set this entity's latch before its own turn.
     // Retail skips only drift in that case; the polygon check still runs.
     if (moved.movement_active==0) {

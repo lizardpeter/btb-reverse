@@ -52,8 +52,9 @@ int main() {
         for(int i=0;i<5;++i)
             f<<100+i*20<<" "<<200+i*12<<"\n";
         f<<"-1 -1\n";
-        for(int i=0;i<6;++i)
-            f<<300+i*40<<" "<<350+i*10<<"\n";
+        // Nondegenerate synthetic group-two polygon. Individual
+        // branch tests replace it to exercise actual recovery.
+        f<<"-100 -100\n700 -100\n1600 -100\n1600 1600\n700 1600\n-100 1600\n";
         f<<"-1 -1\n";
         f<<"777 999\n-1 -1\n";
     }

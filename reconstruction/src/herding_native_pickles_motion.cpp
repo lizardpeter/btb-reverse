@@ -273,6 +273,11 @@ bool NativePicklesMotionSource::advance(
     const auto source_far_animal_roam=[&]() -> bool {
         const auto& hero=observed.motion_records.front();
         const auto nav=data.retail_transformed_group0();
+        if(data.coordinate_groups.size()!=4 || data.coordinate_groups[2].size()<3) {
+            error="native Pets Corner group-two polygon missing";return false;
+        }
+        const auto& group2=data.coordinate_groups[2];
+        constexpr std::size_t kRecoveryBudget=4096;
         // Original UpdateHerdingActivity 0x00418FA2 resets global
         // 0x00510770 on EACH frame, not when the minigame starts.
         int formation_ordinal=0;
@@ -280,6 +285,11 @@ bool NativePicklesMotionSource::advance(
             auto before=observed.motion_records[i];
             if(!herding::is_herd_animal(before.entity_type()))
                 continue;
+            const bool entered_as_follower=follower_indices_.contains(static_cast<int>(i));
+            if(before.behavior_state==0 && !entered_as_follower) {
+                before.previous_x=before.x;before.previous_y=before.y;
+                observed.motion_records[i]=before;
+            }
 
             // Original UpdateHerdingAnimal 0x416F57 gives an animal
             // with a positive temporary target exclusive steering
@@ -382,11 +392,28 @@ bool NativePicklesMotionSource::advance(
                 continue;
             }
             if(before.behavior_state!=0)continue;
+            // 416A30 calculates perception BEFORE 4170EC corrects
+            // the world pose. Preserve it through all inner decisions.
+            const auto original_anchor=herding::original_herding_animal_tracking_anchor(before);
+            std::optional<herding::Vec2i> saved_position{};
+            if(!entered_as_follower) {
+                herding::OriginalFixedHerdingRecovery fixed{.entity=before};
+                const auto status=herding::resume_original_herding_fixed_recovery(
+                    fixed,group2,kRecoveryBudget);
+                if(status!=herding::OriginalRoamingLoopStatus::AlreadyInside &&
+                   status!=herding::OriginalRoamingLoopStatus::Accepted) {
+                    error="original fixed group-two recovery did not converge";return false;
+                }
+                if(fixed.attempts) {
+                    observed.fixed_recovery_evidence.push_back({i,before,fixed.attempts});
+                    saved_position=herding::Vec2i{before.previous_x,before.previous_y};
+                    before=fixed.entity;
+                    observed.motion_records[i]=before;
+                }
+            }
             const auto original_point=
                 herding::original_herding_species_registration_point(
                     before.entity_type());
-            const auto original_anchor=
-                herding::original_herding_animal_tracking_anchor(before);
             if(!original_point || !original_anchor) {
                 error="retail follower source lacks original tracking coordinates";
                 return false;
@@ -445,7 +472,7 @@ bool NativePicklesMotionSource::advance(
                 }
             }
             const auto contact=herding::original_herding_food_attraction_contact(
-                before,hero,selected_food_,following);
+                before,hero,selected_food_,following,original_anchor);
             if(!contact) {
                 error="invalid original herd-animal 80px attraction probe";
                 return false;
@@ -473,7 +500,7 @@ bool NativePicklesMotionSource::advance(
                 // the original post-movement Scruffty collision.
                 const auto step=
                     herding::original_herding_ordinary_follower_step(
-                        before,hero,formation_ordinal);
+                        before,hero,formation_ordinal,original_anchor);
                 if(!step) {
                     error="original ordinary follower formation step invalid";
                     return false;
@@ -534,7 +561,7 @@ bool NativePicklesMotionSource::advance(
             }
             if(following)continue;
 
-            const auto retreat=herding::original_herding_near_retreat(before,hero);
+            const auto retreat=herding::original_herding_near_retreat(before,hero,original_anchor);
             if(retreat) {
                 auto& rng=shared_random_?*shared_random_:standalone_random_;
                 const auto rng_before=rng.state();
@@ -547,7 +574,7 @@ bool NativePicklesMotionSource::advance(
                 const auto chatter=herding::original_herding_animal_chatter(rng,species,statuses);
                 if(!chatter) {error="original near-retreat chatter input invalid";return false;}
                 const auto outer=herding::original_herding_nonfollowing_outer_step(
-                    before,retreat->moved,nav,herding::animal_navigation_recovery_target(data));
+                    before,retreat->moved,nav,herding::animal_navigation_recovery_target(data),saved_position);
                 if(!outer) {error="original near-retreat outer movement invalid";return false;}
                 observed.motion_records[i]=outer->animal;
                 observed.near_retreat_evidence.push_back({i,before,rng_before,rng.state(),chatter->requested_sound_id,outer->boundary_recovered});
@@ -562,7 +589,7 @@ bool NativePicklesMotionSource::advance(
                 continue;
             }
             const auto step=herding::original_far_untracked_animal_roam_step(
-                before,hero,nav);
+                before,hero,nav,original_anchor,saved_position);
             if(step.coverage!=herding::RetailFarAnimalRoamCoverage::NotCovered &&
                step.coverage!=herding::RetailFarAnimalRoamCoverage::InvalidInput &&
                before.movement_active==0) {
@@ -573,12 +600,28 @@ bool NativePicklesMotionSource::advance(
                     observed.motion_records,i,false);
                 if(!count) {error="native ordered animal separation failed";return false;}
                 if(*count!=0) {
+                    // The original entered the latch-clear branch before
+                    // pair separation. Its group-two RANDOM retry still
+                    // executes if separation put the current actor outside.
+                    std::optional<HerdingRoamingRecoveryEvidence> retry;
+                    auto& rng=shared_random_?*shared_random_:standalone_random_;
+                    auto inner=observed.motion_records[i];
+                    herding::OriginalRoamingLoop loop{.entity=inner};
+                    const auto rng_before=rng.state();
+                    const auto status=herding::resume_original_herding_roaming_loop(
+                        loop,rng,group2,kRecoveryBudget);
+                    if(status!=herding::OriginalRoamingLoopStatus::AlreadyInside &&
+                       status!=herding::OriginalRoamingLoopStatus::Accepted) {
+                        error="original randomized group-two recovery did not converge";return false;
+                    }
+                    if(loop.attempts)retry=HerdingRoamingRecoveryEvidence{
+                        i,inner,rng_before,rng.state(),loop.attempts};
                     const auto outer=herding::original_herding_nonfollowing_outer_step(
-                        before,observed.motion_records[i],nav,
-                        herding::animal_navigation_recovery_target(data));
+                        before,loop.entity,nav,
+                        herding::animal_navigation_recovery_target(data),saved_position);
                     if(!outer) {error="native separated animal outer movement failed";return false;}
                     observed.motion_records[i]=outer->animal;
-                    observed.pair_scan_evidence.push_back({i,before,*count,outer->boundary_recovered});
+                    observed.pair_scan_evidence.push_back({i,before,*count,outer->boundary_recovered,retry});
                     continue;
                 }
             }
@@ -599,7 +642,7 @@ bool NativePicklesMotionSource::advance(
                 const auto point=data.coordinate_groups[3].front();
                 const auto recovery=
                     herding::original_far_untracked_animal_boundary_recovery(
-                        before,step.animal,point);
+                        before,step.animal,point,saved_position);
                 if(!recovery) {
                     error="source 0x419167 animal boundary movement invalid";
                     return false;

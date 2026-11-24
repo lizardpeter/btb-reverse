@@ -31,13 +31,15 @@ struct RetailFarBoundaryRecoveryStep {
 original_far_untracked_animal_boundary_recovery(
     const RetailEntityRecord32& before,
     const RetailEntityRecord32& out_of_group0_candidate,
-    Vec2i original_group3_target) noexcept {
+    Vec2i original_group3_target,
+    std::optional<Vec2i> saved_position={}) noexcept {
+    const auto saved=saved_position.value_or(Vec2i{before.x,before.y});
     if(!is_herd_animal(before.entity_type()) ||
        before.behavior_state!=0 ||
        before.entity_id!=out_of_group0_candidate.entity_id ||
        before.type!=out_of_group0_candidate.type ||
-       out_of_group0_candidate.previous_x!=before.x ||
-       out_of_group0_candidate.previous_y!=before.y ||
+       out_of_group0_candidate.previous_x!=saved.x ||
+       out_of_group0_candidate.previous_y!=saved.y ||
        before.source_right<before.source_left ||
        before.source_bottom<before.source_top)
         return std::nullopt;
@@ -46,10 +48,10 @@ original_far_untracked_animal_boundary_recovery(
     // piVar8[0xc] = sprite-left; [0xe] = sprite-right.
     // piVar8[0xf] = sprite-bottom; [0xd] = sprite-top.
     // X is NEGATIVE half width, Y is POSITIVE half height.
-    const std::int64_t ax=static_cast<std::int64_t>(before.x)+
+    const std::int64_t ax=static_cast<std::int64_t>(saved.x)+
         (static_cast<std::int64_t>(before.source_left)-
          before.source_right)/2;
-    const std::int64_t ay=static_cast<std::int64_t>(before.y)+
+    const std::int64_t ay=static_cast<std::int64_t>(saved.y)+
         (static_cast<std::int64_t>(before.source_bottom)-
          before.source_top)/2;
     if(ax<std::numeric_limits<std::int32_t>::min() ||
@@ -96,7 +98,8 @@ original_herding_nonfollowing_outer_step(
     const RetailEntityRecord32& before,
     const RetailEntityRecord32& inner_result,
     const std::vector<Vec2i>& nav,
-    std::optional<Vec2i> return_point) noexcept {
+    std::optional<Vec2i> return_point,
+    std::optional<Vec2i> saved_position={}) noexcept {
     if(!is_herd_animal(before.entity_type()) || before.behavior_state!=0 ||
        before.entity_id!=inner_result.entity_id || before.type!=inner_result.type ||
        inner_result.direction<0 || inner_result.direction>8 ||
@@ -105,7 +108,8 @@ original_herding_nonfollowing_outer_step(
         return std::nullopt;
     auto moved=inner_result;
     if(moved.direction==8)moved.direction=0;
-    moved.previous_x=before.x;moved.previous_y=before.y;
+    const auto saved=saved_position.value_or(Vec2i{before.x,before.y});
+    moved.previous_x=saved.x;moved.previous_y=saved.y;
     if(moved.movement_active==0) {
         if(moved.movement_speed<kRetailFarAnimalSpeedCeiling)
             moved.movement_speed+=kRetailFarAnimalSpeedGain;
@@ -125,7 +129,7 @@ original_herding_nonfollowing_outer_step(
     if(!inside)return std::nullopt;
     if(*inside)return RetailNonfollowingOuterStep{moved,false};
     if(!return_point)return std::nullopt;
-    const auto recovered=original_far_untracked_animal_boundary_recovery(before,moved,*return_point);
+    const auto recovered=original_far_untracked_animal_boundary_recovery(before,moved,*return_point,saved);
     if(!recovered)return std::nullopt;
     return RetailNonfollowingOuterStep{recovered->animal,true};
 }

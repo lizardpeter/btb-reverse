@@ -23,14 +23,16 @@ struct RetailNearRetreatStep {
 };
 [[nodiscard]] inline std::optional<RetailNearRetreatStep>
 original_herding_near_retreat(const RetailEntityRecord32& animal,
-                             const RetailEntityRecord32& hero) noexcept {
+                             const RetailEntityRecord32& hero,
+                             std::optional<Vec2i> perception_anchor={}) noexcept {
     if(!is_herd_animal(animal.entity_type()) ||
        animal.behavior_state!=0 || animal.temporary_target_timer>0 ||
        hero.entity_type()!=EntityType::FarmerPickles ||
        hero.source_bottom<hero.source_top ||
        !std::isfinite(animal.x_float)||!std::isfinite(animal.y_float))
         return std::nullopt;
-    const auto anchor=original_herding_animal_tracking_anchor(animal);
+    const auto anchor=perception_anchor?perception_anchor:
+        original_herding_animal_tracking_anchor(animal);
     const auto hy=static_cast<std::int64_t>(hero.y)+hero.source_bottom-hero.source_top-20;
     if(!anchor || hy<std::numeric_limits<int>::min() || hy>std::numeric_limits<int>::max())
         return std::nullopt;
