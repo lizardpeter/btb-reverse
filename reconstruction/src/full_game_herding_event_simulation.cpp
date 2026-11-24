@@ -317,6 +317,74 @@ bool HerdingEventSimulation::advance(
             }
             food_applied=true;
         }
+        // Reconstruct the pair scan from already-validated food-release
+        // state. Only higher-index actors receive changed prestates;
+        // the current actor retains its own pre-update record for proofs.
+        // No movement or membership is committed until the whole frame passes.
+        std::size_t last_pair_index=0;
+        auto pair_records=candidate.entities();
+        for(auto& record:pair_records)record.movement_active=0;
+        for(const auto& probe:observed.pair_scan_evidence) {
+            const auto i=probe.entity_index;
+            if(i<=last_pair_index || i>=pair_records.size() ||
+               probe.separated_count==0 ||
+               candidate.followers().contains(static_cast<int>(i)) ||
+               tracked_slots_.contains(static_cast<int>(i))) {
+                error="native pair scan order or membership invalid";return false;
+            }
+            last_pair_index=i;
+            auto before=pair_records[i];
+            if(before.temporary_target_timer==1)before.temporary_target_timer=0;
+            if(before.behavior_state!=0 || before.temporary_target_timer>0 ||
+               before.movement_active!=0 ||
+               before.entity_id!=probe.before.entity_id ||
+               before.type!=probe.before.type ||
+               before.x!=probe.before.x || before.y!=probe.before.y ||
+               before.x_float!=probe.before.x_float ||
+               before.y_float!=probe.before.y_float ||
+               before.direction!=probe.before.direction ||
+               before.movement_speed!=probe.before.movement_speed ||
+               before.source_left!=probe.before.source_left ||
+               before.source_right!=probe.before.source_right ||
+               before.source_top!=probe.before.source_top ||
+               before.source_bottom!=probe.before.source_bottom ||
+               before.temporary_target_timer!=probe.before.temporary_target_timer) {
+                error="native ordered pair scan prestate differs from source";return false;
+            }
+            const auto far=herding::original_far_untracked_animal_roam_step(
+                before,observed.motion_records.front(),data_.retail_transformed_group0());
+            if(far.coverage==herding::RetailFarAnimalRoamCoverage::NotCovered ||
+               far.coverage==herding::RetailFarAnimalRoamCoverage::InvalidInput) {
+                error="native pair scan bypassed an original higher-priority branch";return false;
+            }
+            pair_records[i]=before;
+            const auto count=herding::original_herding_pair_scan(pair_records,i,false);
+            if(!count || *count!=probe.separated_count) {
+                error="native pair scan count differs from retail";return false;
+            }
+            const auto outer=herding::original_herding_nonfollowing_outer_step(
+                before,pair_records[i],data_.retail_transformed_group0(),
+                herding::animal_navigation_recovery_target(data_));
+            const auto& actual=observed.motion_records[i];
+            if(!outer || outer->boundary_recovered!=probe.outer_boundary_recovered ||
+               actual.x!=outer->animal.x || actual.y!=outer->animal.y ||
+               actual.direction!=outer->animal.direction ||
+               actual.previous_x!=outer->animal.previous_x ||
+               actual.previous_y!=outer->animal.previous_y ||
+               actual.movement_speed!=outer->animal.movement_speed ||
+               actual.movement_active!=outer->animal.movement_active ||
+               !std::isfinite(actual.x_float)||!std::isfinite(actual.y_float)||
+               std::fabs(actual.x_float-outer->animal.x_float)>0.001f||
+               std::fabs(actual.y_float-outer->animal.y_float)>0.001f) {
+                error="native pair scan final motion differs from retail";return false;
+            }
+            for(std::size_t j=i+1;j<pair_records.size();++j) {
+                if(pair_records[j].movement_active &&
+                   !candidate.apply_source_motion(j,pair_records[j])) {
+                    error="native pair scan later entity prestate invalid";return false;
+                }
+            }
+        }
         for(const auto& probe:observed.tracked_admission_evidence) {
             if(probe.entity_index==0 || probe.entity_index>=candidate.entities().size()) {
                 error="invalid native tracked admission entity";

@@ -26,7 +26,6 @@ original_herding_near_retreat(const RetailEntityRecord32& animal,
                              const RetailEntityRecord32& hero) noexcept {
     if(!is_herd_animal(animal.entity_type()) ||
        animal.behavior_state!=0 || animal.temporary_target_timer>0 ||
-       animal.movement_active!=0 ||
        hero.entity_type()!=EntityType::FarmerPickles ||
        hero.source_bottom<hero.source_top ||
        !std::isfinite(animal.x_float)||!std::isfinite(animal.y_float))

@@ -563,6 +563,25 @@ bool NativePicklesMotionSource::advance(
             }
             const auto step=herding::original_far_untracked_animal_roam_step(
                 before,hero,nav);
+            if(step.coverage!=herding::RetailFarAnimalRoamCoverage::NotCovered &&
+               step.coverage!=herding::RetailFarAnimalRoamCoverage::InvalidInput &&
+               before.movement_active==0) {
+                // 417C85 checks the latch once and scans only higher
+                // entity indices. Mutations are visible on their turns.
+                observed.motion_records[i]=before;
+                const auto count=herding::original_herding_pair_scan(
+                    observed.motion_records,i,false);
+                if(!count) {error="native ordered animal separation failed";return false;}
+                if(*count!=0) {
+                    const auto outer=herding::original_herding_nonfollowing_outer_step(
+                        before,observed.motion_records[i],nav,
+                        herding::animal_navigation_recovery_target(data));
+                    if(!outer) {error="native separated animal outer movement failed";return false;}
+                    observed.motion_records[i]=outer->animal;
+                    observed.pair_scan_evidence.push_back({i,before,*count,outer->boundary_recovered});
+                    continue;
+                }
+            }
             switch(step.coverage) {
             case herding::RetailFarAnimalRoamCoverage::NotCovered:
                 break;

@@ -67,8 +67,7 @@ original_far_untracked_animal_roam_step(
     if (!is_herd_animal(original.entity_type()) ||
         pickles.entity_type()!=EntityType::FarmerPickles ||
         original.behavior_state!=0 ||
-        original.temporary_target_timer>0 ||
-        original.movement_active!=0)
+        original.temporary_target_timer>0)
         return result;
 
     if (original.direction<0 || original.direction>=8 ||
@@ -112,6 +111,9 @@ original_far_untracked_animal_roam_step(
     auto moved=original;
     moved.previous_x=original.x;
     moved.previous_y=original.y;
+    // An earlier animal can set this entity's latch before its own turn.
+    // Retail skips only drift in that case; the polygon check still runs.
+    if (moved.movement_active==0) {
     if (moved.movement_speed<kRetailFarAnimalSpeedCeiling) {
         moved.movement_speed=static_cast<float>(
             moved.movement_speed+kRetailFarAnimalSpeedGain);
@@ -133,6 +135,7 @@ original_far_untracked_animal_roam_step(
     }
     moved.x=static_cast<int>(moved.x_float);
     moved.y=static_cast<int>(moved.y_float);
+    }
     const auto inside=retail_geometry::original_polygon_contains(
         original_group0_nav,moved.x,moved.y);
     if (!inside) {

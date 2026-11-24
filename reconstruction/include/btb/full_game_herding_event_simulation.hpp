@@ -18,6 +18,7 @@
 #include "btb/herding_source_delivered_animation.hpp"
 #include "btb/herding_source_ordinary_following.hpp"
 #include "btb/herding_source_near_retreat.hpp"
+#include "btb/herding_source_pair_separation.hpp"
 #include "btb/herding_source_animal_chatter.hpp"
 
 #include <cstddef>
@@ -115,6 +116,15 @@ struct HerdingNearRetreatEvidence {
     bool boundary_recovered{};
 };
 
+// Source 417C85 mutates later entity records BEFORE their own AI update.
+// Replay this ordered scan from the frame-entry table, not final poses.
+struct HerdingPairScanEvidence {
+    std::size_t entity_index{};
+    herding::RetailEntityRecord32 before{};
+    std::size_t separated_count{};
+    bool outer_boundary_recovered{};
+};
+
 struct HerdingFarRoamEvidence {
     std::size_t entity_index{};
     herding::RetailEntityRecord32 before{};
@@ -210,6 +220,7 @@ struct HerdingObservedFrame {
     std::vector<HerdingSteeringEvidence> steering_evidence{};
     std::vector<HerdingRoamingRecoveryEvidence> recovery_evidence{};
     std::vector<HerdingFarRoamEvidence> far_roam_evidence{};
+    std::vector<HerdingPairScanEvidence> pair_scan_evidence{};
     std::vector<HerdingNearRetreatEvidence> near_retreat_evidence{};
     std::vector<HerdingFarBoundaryEvidence> far_boundary_evidence{};
     std::vector<HerdingOrdinaryFollowerEvidence> ordinary_follower_evidence{};

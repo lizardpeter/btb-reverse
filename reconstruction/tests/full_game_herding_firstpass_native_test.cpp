@@ -300,6 +300,34 @@ int main() {
         assert(native.unload(error));
     }
 
+    // Live ordered pair scan: a separated later animal must see its
+    // updated pose and active latch during its own ordinary far-roam turn.
+    {
+        std::ifstream input(root/"Data"/"SubGame1"/"herd.txt");
+        auto data=btb::herding::parse_data(input);
+        fg::NativePicklesMotionSource native{};
+        std::vector<btb::herding::RetailEntityRecord32> animals;
+        std::string error;
+        assert(native.initialize(data,0,animals,error));
+        animals[0].x=150;animals[0].y=300;
+        animals[0].x_float=150;animals[0].y_float=300;
+        auto& a=animals[1];auto& b=animals[2];
+        a.x=610;a.y=550;a.x_float=610;a.y_float=550;
+        b.x=600;b.y=550;b.x_float=600;b.y_float=550;
+        const auto pair=btb::herding::original_herding_pair_separation(a,b);
+        assert(pair && pair->separated);
+        fg::HerdingObservedFrame frame;
+        assert(native.advance(data,{}, {},animals,frame,error));
+        const auto proof=std::find_if(frame.pair_scan_evidence.begin(),
+            frame.pair_scan_evidence.end(),[](const auto& p){return p.entity_index==1;});
+        assert(proof!=frame.pair_scan_evidence.end() && proof->separated_count==1);
+        assert(frame.motion_records[1].x_float==pair->current.x_float);
+        assert(frame.motion_records[2].x_float==pair->later.x_float);
+        assert(frame.motion_records[2].movement_active==1);
+        assert(frame.motion_records[2].movement_speed==0);
+        assert(native.unload(error));
+    }
+
     // Recovered x86 0x417603 follower-slot geometry and source
     // speed response: slot 0 holds at 15 source units; beyond that
     // it steers into Pickles' own facing-dependent orbit.

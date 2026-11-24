@@ -34,7 +34,6 @@ original_far_untracked_animal_boundary_recovery(
     Vec2i original_group3_target) noexcept {
     if(!is_herd_animal(before.entity_type()) ||
        before.behavior_state!=0 ||
-       before.movement_active!=0 ||
        before.entity_id!=out_of_group0_candidate.entity_id ||
        before.type!=out_of_group0_candidate.type ||
        out_of_group0_candidate.previous_x!=before.x ||
@@ -100,11 +99,12 @@ original_herding_nonfollowing_outer_step(
     std::optional<Vec2i> return_point) noexcept {
     if(!is_herd_animal(before.entity_type()) || before.behavior_state!=0 ||
        before.entity_id!=inner_result.entity_id || before.type!=inner_result.type ||
-       inner_result.direction<0 || inner_result.direction>=8 ||
+       inner_result.direction<0 || inner_result.direction>8 ||
        !std::isfinite(inner_result.movement_speed) || inner_result.movement_speed<0 ||
        !std::isfinite(inner_result.x_float)||!std::isfinite(inner_result.y_float))
         return std::nullopt;
     auto moved=inner_result;
+    if(moved.direction==8)moved.direction=0;
     moved.previous_x=before.x;moved.previous_y=before.y;
     if(moved.movement_active==0) {
         if(moved.movement_speed<kRetailFarAnimalSpeedCeiling)
