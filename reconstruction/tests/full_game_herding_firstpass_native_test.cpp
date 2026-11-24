@@ -342,7 +342,7 @@ int main() {
         assert(following->moved.movement_speed>0.f);
         assert(following->moved.x_float<animal.x_float);
         // The formation slot applies two different spacing formulas:
-        // orbit radius=slot*25+15 and speed gap=slot*50+15.
+        // orbit radius=slot*25+15 and speed gap=(slot+1)*50+15.
         const auto second=
             btb::herding::original_herding_ordinary_follower_step(
                 animal,hero,1);
@@ -416,6 +416,9 @@ int main() {
         assert(observation.motion_records[1].movement_active==1);
         animals=observation.motion_records;
         const auto original_follow_pos=animals[1].x_float;
+        // The first slot accelerates only after its post-increment
+        // spacing exceeds 65+15. Move Pickles away from the sheep.
+        animals[0].x=400;animals[0].x_float=400.f;
         assert(native.advance(data,{}, {},animals,observation,error));
         const auto proof=std::find_if(
             observation.ordinary_follower_evidence.begin(),
@@ -749,7 +752,7 @@ int main() {
                     frame.motion_records[1]));
             assert(event.retail_rect_contact->second==
                 btb::herding::original_herding_entity_rect(
-                    frame.motion_records.back()));
+                    frame.scruffty_patrol_evidence->before));
         }
         assert(scruffty_events==1);
         // A removed ordinary follower cannot generate another

@@ -146,8 +146,8 @@ original_herding_ordinary_follower_step(
         const double radians=static_cast<double>(heading)*kRetailHerdingRadiansPerDegree;
         const auto sine=static_cast<float>(std::sin(radians));
         const auto cosine=static_cast<float>(std::cos(radians));
-        moved.x_float=static_cast<float>(static_cast<double>(before.x_float)+sine*speed);
-        moved.y_float=static_cast<float>(static_cast<double>(before.y_float)-cosine*speed);
+        moved.x_float=static_cast<float>(static_cast<double>(before.x_float)+static_cast<double>(sine)*speed);
+        moved.y_float=static_cast<float>(static_cast<double>(before.y_float)-static_cast<double>(cosine)*speed);
         if(!std::isfinite(moved.x_float)||!std::isfinite(moved.y_float)||
            moved.x_float<=static_cast<float>(std::numeric_limits<int>::min()) ||
            moved.x_float>=static_cast<float>(std::numeric_limits<int>::max()) ||

@@ -105,7 +105,7 @@ ActivityFrameOutput HerdingDriver::advance(
             "data\\music\\petscorner.wav"
         });
         out.audio.push_back({
-            AudioOperation::ManagedSoundId,{},581,50,1
+            AudioOperation::ManagedSoundId,{},581,90,1
         });
     }
 

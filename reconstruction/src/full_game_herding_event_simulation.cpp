@@ -24,7 +24,8 @@ bool apply_confirmed_event(
     const HerdingObservedEvent& event,
     std::vector<Audio>& sounds,
     std::string& error,
-    bool independent_tracked_membership=false) {
+    bool independent_tracked_membership=false,
+    const herding::RetailEntityRecord32* pre_patrol_dog=nullptr) {
 
     if (!event.retail_trigger_confirmed) {
         error="Herding source event has no original collision/trigger evidence";
@@ -62,9 +63,11 @@ bool apply_confirmed_event(
             records.begin(),records.end(),[](const auto& entity) {
                 return entity.entity_type()==herding::EntityType::Scruffty;
             });
-        if (dog==records.end() ||
+        const auto* collision_dog=pre_patrol_dog ? pre_patrol_dog :
+            (dog==records.end()?nullptr:&*dog);
+        if (!collision_dog ||
             !herding::original_herding_animal_hits_scruffty(
-                records[event.entity_index],*dog)) {
+                records[event.entity_index],*collision_dog)) {
             error="Scruffty collision was not established by original "
                   "animal-first four-corner contact";
             return false;
@@ -74,7 +77,7 @@ bool apply_confirmed_event(
                 herding::original_herding_entity_rect(
                     records[event.entity_index]) ||
              event.retail_rect_contact->second !=
-                herding::original_herding_entity_rect(*dog))) {
+                herding::original_herding_entity_rect(*collision_dog))) {
             error="Scruffty source rectangles differ from original "
                   "animal-first four-corner contact";
             return false;
@@ -415,6 +418,12 @@ bool HerdingEventSimulation::advance(
         if (probe.before.entity_id!=actual_before.entity_id ||
             probe.before.x!=actual_before.x ||
             probe.before.y!=actual_before.y ||
+            probe.before.x_float!=actual_before.x_float ||
+            probe.before.y_float!=actual_before.y_float ||
+            probe.before.source_left!=actual_before.source_left ||
+            probe.before.source_top!=actual_before.source_top ||
+            probe.before.source_right!=actual_before.source_right ||
+            probe.before.source_bottom!=actual_before.source_bottom ||
             probe.before.animation_frame!=actual_before.animation_frame ||
             probe.before.animation_frame_countdown!=
                 actual_before.animation_frame_countdown ||
@@ -1069,7 +1078,9 @@ bool HerdingEventSimulation::advance(
                 return false;
             }
         }
-        if (!apply_confirmed_event(candidate,event,sounds,error,independent_tracked_membership)) {
+        const auto* pre_patrol_dog=observed.source_ordered_food_and_tracking &&
+            observed.scruffty_patrol_evidence ? &observed.scruffty_patrol_evidence->before : nullptr;
+        if (!apply_confirmed_event(candidate,event,sounds,error,independent_tracked_membership,pre_patrol_dog)) {
             return false;
         }
         if (event.kind==HerdingObservedKind::TrackedTargetArrived) {

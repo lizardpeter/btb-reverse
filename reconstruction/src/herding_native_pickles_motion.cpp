@@ -181,12 +181,10 @@ bool NativePicklesMotionSource::advance(
     // movement latch, not persistent steering state.
     for(auto& entity:observed.motion_records)entity.movement_active=0;
 
-    // UpdateHerdingActivity 0x418F23..0x41908D moves Scruffty once
-    // per actual game frame, including frames where Pickles is idle.
-    // Reuse the independently recovered patrol kernel and supply its
-    // before/after evidence to HerdingEventSimulation for validation.
-    // The other animals remain stationary until their source dispatch
-    // and follower branches are connected; no delivery is invented.
+    // 00419600 appends Scruffty AFTER all animals; 00418F23
+    // dispatches in table order. Follower contact uses his previous
+    // pose, then he advances his own patrol at the end of the loop.
+    const auto source_scruffty_patrol=[&]() -> bool {
     for(std::size_t i=0;i<source.size();++i) {
         if(source[i].entity_type()!=herding::EntityType::Scruffty)
             continue;
@@ -206,6 +204,8 @@ bool NativePicklesMotionSource::advance(
         observed.motion_records[i]=step->animal;
         scruffty_patrol_state_=step->state;
     }
+    return true;
+    };
 
     const auto source_food_pickup=[&] {
         // Source 0x004182B0 checks every original food hotspot using
@@ -601,7 +601,7 @@ bool NativePicklesMotionSource::advance(
     };
     if(motion.movement_mask==0) {
         source_food_pickup();
-        if(!animate_pickles()||!source_far_animal_roam())return false;
+        if(!animate_pickles()||!source_far_animal_roam()||!source_scruffty_patrol())return false;
         error.clear();
         return true;
     }
@@ -643,7 +643,7 @@ bool NativePicklesMotionSource::advance(
     // Source-confirmed food pickup, animal attraction and Scruffty
     // patrol are active; follower steering/deliveries are not faked.
     source_food_pickup();
-    if(!animate_pickles()||!source_far_animal_roam())return false;
+    if(!animate_pickles()||!source_far_animal_roam()||!source_scruffty_patrol())return false;
     error.clear();
     return true;
 }
