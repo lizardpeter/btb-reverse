@@ -361,7 +361,18 @@ struct Host {
         game.install(ActivityId::ParkDesigner,
             std::make_unique<ParkDesignerDriver>(
                 root/"Data"/"SubGameDYP",profile_dir,
-                std::make_shared<RetailParkDesignerNativeService>(original_game_random),
+                std::make_shared<RetailParkDesignerNativeService>(original_game_random,
+                    [this,original_profile_font](profiles::ProfileInfo& info,
+                        std::span<const Rect>& glyphs,std::string& error)->bool{
+                        const auto player=game.globals().active_profile;
+                        if(!player||*player<0||static_cast<std::size_t>(*player)>=game.globals().profile_metadata.size()){
+                            error="retail Park Designer print profile is invalid";return false;
+                        }
+                        info=game.globals().profile_metadata[static_cast<std::size_t>(*player)];
+                        glyphs=original_profile_font->brown_font_rectangles();
+                        if(glyphs.empty()){error="original fontdatabrown.txt not loaded";return false;}
+                        error.clear();return true;
+                    }),
                 &original_game_random));
 
         // An explicitly selected profile is a diagnostic shortcut. Normal

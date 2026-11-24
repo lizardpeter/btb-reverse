@@ -2,6 +2,8 @@
 #include "btb/full_game_park_designer.hpp"
 #include "btb/full_game_park_scene.hpp"
 #include "btb/park_designer_editor_control_slice.hpp"
+#include <functional>
+#include <span>
 
 namespace btb::full_game {
 // Production provider. All bitmap commands refer to original assets, not
@@ -9,7 +11,9 @@ namespace btb::full_game {
 // persistent layout remains unchanged.
 class RetailParkDesignerNativeService final : public ParkDesignerNativeService {
 public:
-    explicit RetailParkDesignerNativeService(retail::OriginalRetailRandom& rng):rng_(rng){}
+    using PrintProfile=std::function<bool(profiles::ProfileInfo&,std::span<const Rect>&,std::string&)>;
+    explicit RetailParkDesignerNativeService(retail::OriginalRetailRandom& rng,
+        PrintProfile print_profile={}):rng_(rng),print_profile_(std::move(print_profile)) {}
     void begin_session() noexcept override;
     void cancel_drag(park_designer::SaveData&) noexcept override;
     bool native_intro() const noexcept override {return true;}
@@ -25,6 +29,8 @@ private:
         std::optional<int> slot{};
     };
     retail::OriginalRetailRandom& rng_;
+    PrintProfile print_profile_{};
+    bool compose_print_label(ActivityFrameOutput&,std::string&);
     RetailParkScenePlan scene_{};
     park_designer::EditorControlState controls_{};
     std::optional<Selection> selection_{};

@@ -88,6 +88,48 @@ bool RetailParkDesignerNativeService::emit_sound(const p::LoopSound& s,ActivityF
     }
     return true;
 }
+bool RetailParkDesignerNativeService::compose_print_label(ActivityFrameOutput& out,std::string& error) {
+    // 0040E5B4..0040E6AC: center actual profile glyphs at (320,420),
+    // draw selected 50x45 tool at (220,420), then the 640x480 printbar
+    // overlay at (0,0) before calling ExportAndPrintGameImage.
+    profiles::ProfileInfo profile{};
+    std::span<const Rect> glyphs;
+    if(!print_profile_||!print_profile_(profile,glyphs,error)){
+        if(error.empty())error="original Park Designer print profile/font provider unavailable";
+        return false;
+    }
+    if(profile.name_length<0||profile.name_length>static_cast<int>(profiles::kMaxNameGlyphs)||
+       profile.badge_index<-1||profile.badge_index>=profiles::kBadgeCount){
+        error="invalid retail Park Designer print profile";return false;
+    }
+    int width=0;
+    for(int i=0;i<profile.name_length;++i){
+        int id=profile.name_glyph_codes[static_cast<std::size_t>(i)];
+        if(id<0||static_cast<std::size_t>(id)>=glyphs.size()){
+            error="invalid retail Park Designer print glyph";return false;
+        }
+        const auto& g=glyphs[static_cast<std::size_t>(id)];
+        if(g.right<=g.left||g.bottom<g.top){
+            error="invalid retail Park Designer print font rectangle";return false;
+        }
+        width+=g.right-g.left;
+    }
+    int x=320-width/2;
+    for(int i=0;i<profile.name_length;++i){
+        auto r=glyphs[static_cast<std::size_t>(profile.name_glyph_codes[static_cast<std::size_t>(i)])];
+        out.draws.push_back({"Data/ui/enter name boxed font.bmp",x,420,
+            Rect{r.left,r.top,r.right,r.bottom+1},true});
+        x+=r.right-r.left;
+    }
+    if(profile.badge_index>=0){
+        int l=profile.badge_index*50;
+        bitmap(out,"Data/ui/fonttools.bmp",220,420,p::Rect{l,0,l+50,45});
+    }
+    bitmap(out,"Data/ui/printbar.bmp",0,0);
+    out.request_original_frame_print=true;
+    error.clear();return true;
+}
+
 bool RetailParkDesignerNativeService::update_editor(p::SaveData& d,const p::BoundAreas& bounds,
     const ActivityFrameInput& in,ActivityFrameOutput& out,std::string& error) {
     int m=d.state(S::ActiveEditorMode),s=d.state(S::Season);
@@ -127,8 +169,9 @@ bool RetailParkDesignerNativeService::update_editor(p::SaveData& d,const p::Boun
             const auto action=p::apply_park_view_click(d,static_cast<p::ViewToolbarItem>(v),draw);
             if(action.managed_voice)voice(out,in,*action.managed_voice,99);
             if(action.action==p::ControlAction::PrintImage){
-                bitmap(out,"Data/ui/printbar.bmp",0,400);
-                out.request_original_frame_print=true;
+                // NativeGameSession prints after ordered blits. Stop the
+                // command list here, exactly where the retail export runs.
+                return compose_print_label(out,error);
             }
             consumed=true;
         }

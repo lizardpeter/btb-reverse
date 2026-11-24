@@ -21,7 +21,12 @@ int main(){
         for(int i=0;i<60;++i)polygons<<"0 0 40 0 40 40 0 40 -1 -1\n";
     }
     btb::retail::OriginalRetailRandom rng{7};
-    auto backend=std::make_shared<RetailParkDesignerNativeService>(rng);
+    auto print_profile=[](btb::profiles::ProfileInfo& profile,std::span<const Rect>& glyphs,std::string& error){
+        static constexpr std::array<Rect,2> rects{{{0,0,12,35},{12,0,20,35}}};
+        profile.name_length=2;profile.name_glyph_codes[0]=0;profile.name_glyph_codes[1]=1;
+        profile.badge_index=2;glyphs=rects;error.clear();return true;
+    };
+    auto backend=std::make_shared<RetailParkDesignerNativeService>(rng,print_profile);
     ParkDesignerDriver d(root,root/"saves",backend,&rng);
     std::string error;
     assert(d.initialize(0,error));
@@ -60,6 +65,17 @@ int main(){
     assert(asset(f,p::kRetailParkBackground.winter));
     f=step(410,440,true);
     assert(f.request_original_frame_print);
+    assert(f.draws.size()>=4);
+    const auto& label0=f.draws[f.draws.size()-4];
+    const auto& label1=f.draws[f.draws.size()-3];
+    const auto& badge=f.draws[f.draws.size()-2];
+    const auto& bar=f.draws.back();
+    assert(label0.source_asset=="Data/ui/enter name boxed font.bmp"&&label0.x==310&&label0.y==420);
+    assert(label1.x==322&&label1.y==420);
+    assert(label0.source_rectangle->bottom==36);
+    assert(badge.source_asset=="Data/ui/fonttools.bmp"&&badge.x==220&&badge.y==420);
+    assert(badge.source_rectangle->left==100&&badge.source_rectangle->bottom==45);
+    assert(bar.source_asset=="Data/ui/printbar.bmp"&&bar.x==0&&bar.y==0);
     f=step(550,440,true);
     assert(f.open_yes_no_confirmation&&f.yes_no_context==3);
     ActivityFrameInput decline{};decline.confirmation_resolved=true;
@@ -95,7 +111,7 @@ int main(){
         <<"275 419 323 468 258\n332 419 382 468 259\n391 419 442 468 260\n"
         <<"535 426 571 462 261\n-1 -1 -1 -1 -1\nEND\n";
     assert(game->configure_contextual_help(help_table,error));
-    auto service=std::make_shared<RetailParkDesignerNativeService>(rng);
+    auto service=std::make_shared<RetailParkDesignerNativeService>(rng,print_profile);
     auto driver=std::make_unique<ParkDesignerDriver>(root,root/"modal-saves",service,&rng);
     auto* live=driver.get();
     game->install(ActivityId::ParkDesigner,std::move(driver));
