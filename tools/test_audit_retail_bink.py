@@ -1,3 +1,4 @@
+import json
 import struct
 import tempfile
 import unittest
@@ -52,6 +53,34 @@ class AuditTest(unittest.TestCase):
         with patch.object(audit, "run_tool", side_effect=fake):
             report = audit.audit(self.root, Path("video"), None, 10, None)
             self.assertEqual(report["partial_paths"], 1)
+
+    def test_strict_cli_gate(self):
+        (self.root / "one.bik").write_bytes(movie(1))
+        with tempfile.TemporaryDirectory() as output:
+            out = Path(output) / "report.json"
+            video = Path(output) / "video"
+            audio = Path(output) / "audio"
+            video.write_bytes(b"video tool")
+            audio.write_bytes(b"audio tool")
+            base = [str(self.root), "--video-tool", str(video),
+                    "--require-complete", "--out", str(out)]
+            def fake(command, timeout):
+                if command[0] == str(video):
+                    return {"status": "passed", "output_tail": "SUMMARY decoded=2/2 frames"}
+                return {"status": "passed", "output_tail":
+                        "Native Bink1 audio structural audit: 2/2 packets\nPCM16 validated bytes=4096"}
+            with patch.object(audit, "run_tool", side_effect=fake):
+                self.assertEqual(audit.main(base), 1)  # audio missing
+                self.assertFalse(json.loads(out.read_text())["complete_decode"])
+                both = base + ["--audio-tool", str(audio)]
+                self.assertEqual(audit.main(both + ["--expected-count", "2"]), 1)
+                self.assertEqual(audit.main(both + ["--expected-count", "1"]), 0)
+                report = json.loads(out.read_text())
+                self.assertTrue(report["complete_decode"])
+                self.assertTrue(report["inventory_count_matches"])
+                self.assertEqual(report["video_frames_validated"], 2)
+                self.assertEqual(report["audio_tracks_validated"], 1)
+                self.assertEqual(report["native_tools_sha256"]["video"], audit.digest(video))
 
     def test_incomplete_audio_is_failure(self):
         (self.root / "one.bik").write_bytes(movie(1))

@@ -70,7 +70,7 @@ jobs:
       - name: Configure C++26 Windows game
         run: cmake -S reconstruction -B build/reconstruction-win -G "Visual Studio 18 2026" -A x64
       - name: Build isolated Bink1 codec and audio tests on Windows x64
-        run: cmake --build build/reconstruction-win --config Release --target btb_bink32_recovered btb_bink32_audio_master_clock_tests btb_bink32_audio_stream_tests btb_bink32_audio_pcm_tests
+        run: cmake --build build/reconstruction-win --config Release --target btb_bink32_recovered btb_bink32_retail_video_audit btb_bink32_native_audio_audit btb_bink32_audio_master_clock_tests btb_bink32_audio_stream_tests btb_bink32_audio_pcm_tests
       - name: Exercise native Bink1 audio reconstruction on Windows x64
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^(bink32_audio_master_clock|bink32_audio_stream_multiblock|bink32_audio_pcm16_format)$"
       - name: Build game and integrated regression
@@ -145,6 +145,15 @@ jobs:
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_shared_ui8$"
       - name: Validate nine native CRT procedures Win64 Release
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_crt9$"
+      - name: Upload native x64 Bink audit tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: btb-native-bink-win64-tools
+          path: |
+            build/reconstruction-win/Release/btb_bink32_retail_video_audit.exe
+            build/reconstruction-win/Release/btb_bink32_native_audio_audit.exe
+            tools/audit_retail_bink.py
+          if-no-files-found: error
       - name: Upload source-only preview EXE
         uses: actions/upload-artifact@v4
         with:

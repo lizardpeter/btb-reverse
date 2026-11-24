@@ -138,6 +138,11 @@ int main() {
         auto movies=std::make_unique<Win32HybridBinkProvider>(
             invalid_display,audio,missing,false,false);
         std::string error;
+        Win32OriginalBinkExports original_exports;
+        if(original_exports.load_exact_original(missing,error) ||
+           original_exports.loaded() || original_exports.find("BinkOpen") ||
+           error!="original Bink DLL loader is disabled in the native x64 build")return 45;
+        error.clear();
         if(movies->open_global(missing,error) ||
            !error.starts_with("native-only x64 Bink global: "))return 41;
         error.clear();

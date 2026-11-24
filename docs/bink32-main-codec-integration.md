@@ -22,11 +22,19 @@ cmake --build build/reconstruction --target btb_bink32_retail_video_audit btb_bi
 python tools/audit_retail_bink.py /path/to/BTB-BBP \
   --video-tool build/reconstruction/btb_bink32_retail_video_audit \
   --audio-tool build/reconstruction/btb_bink32_native_audio_audit \
+  --require-complete \
   --out analysis/generated/native-bink-audit.json
 ```
 
 On Windows use the equivalent Release executables with `.exe` suffix.
-The diagnostic workflow publishes the Linux tools as well.
+The diagnostic workflow publishes the Linux tools as well. The Windows x64
+repo-checks job publishes both Release audit executables and the Python
+runner as `btb-native-bink-win64-tools`, separately from the game EXE.
+`--require-complete` makes partial decode reports return a failing exit
+code; `--expected-count N` additionally checks the number of discovered
+movie paths against a separately established installation inventory. A count
+match alone does not establish asset identity. The report records validated
+frame/track totals and SHA-256 of each supplied native tool.
 
 The script recursively discovers case-insensitive .bik paths, validates
 metadata and frame offsets, reports identical-file aliases, decodes every

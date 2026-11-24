@@ -176,11 +176,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--audio-tool", type=Path)
     parser.add_argument("--max-frames", type=int)
     parser.add_argument("--timeout", type=float, default=1800)
+    parser.add_argument("--require-complete", action="store_true",
+                        help="fail if any discovered movie is not fully decoded")
+    parser.add_argument("--expected-count", type=int,
+                        help="fail unless this many movie paths were discovered")
     parser.add_argument("--out", type=Path, required=True,
                         help="JSON report outside the original installation")
     args = parser.parse_args(argv)
     if (args.max_frames is not None and args.max_frames < 1) or args.timeout <= 0:
         parser.error("positive frame limit and timeout required")
+    if args.expected_count is not None and args.expected_count < 1:
+        parser.error("expected count must be positive")
+    if args.require_complete and not args.video_tool:
+        parser.error("--require-complete requires --video-tool")
     if args.out.resolve().is_relative_to(args.root.resolve()):
         parser.error("write reports outside the original game installation")
     for tool in (args.video_tool, args.audio_tool):
@@ -190,11 +198,31 @@ def main(argv: list[str] | None = None) -> int:
                    args.video_tool.resolve() if args.video_tool else None,
                    args.audio_tool.resolve() if args.audio_tool else None,
                    args.timeout, args.max_frames)
+    report["complete_decode"] = (report["movie_count"] > 0 and
+                                 report["fully_decoded_paths"] == report["movie_count"])
+    report["expected_count"] = args.expected_count
+    report["inventory_count_matches"] = (None if args.expected_count is None else
+                                         report["movie_count"] == args.expected_count)
+    report["require_complete"] = args.require_complete
+    report["video_frames_validated"] = sum(
+        m["header"]["frames"] for m in report["movies"]
+        if m["status"] == "passed")
+    report["audio_tracks_validated"] = sum(
+        a["status"] == "passed" for m in report["movies"] for a in m.get("audio", []))
+    report["native_tools_sha256"] = {
+        name: digest(tool.resolve()) for name, tool in
+        (("video", args.video_tool), ("audio", args.audio_tool)) if tool is not None}
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(f'{report["movie_count"]} paths, {report["fully_decoded_paths"]} fully decoded, '
           f'{report["partial_paths"]} partial, {report["failed_paths"]} failed')
-    return 1 if not report["movie_count"] or report["failed_paths"] else 0
+    if report["inventory_count_matches"] is False:
+        print("Discovered movie count differs from expected inventory.", file=sys.stderr)
+    if args.require_complete and not report["complete_decode"]:
+        print("Complete native decode gate failed.", file=sys.stderr)
+    return int(not report["movie_count"] or bool(report["failed_paths"]) or
+               report["inventory_count_matches"] is False or
+               (args.require_complete and not report["complete_decode"]))
 
 
 if __name__ == "__main__":

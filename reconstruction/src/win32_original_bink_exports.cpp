@@ -9,6 +9,7 @@
 namespace btb::full_game {
 namespace {
 
+#if !defined(_WIN64)
 constexpr std::array<OriginalBinkExport,12> kRequiredOriginalExports{{
     {"BinkOpen",8,nullptr},
     {"BinkClose",4,nullptr},
@@ -43,6 +44,7 @@ FARPROC lookup_export(
     return GetProcAddress(module,without_underscore.c_str());
 }
 
+#endif // original x86 Bink ABI only
 } // namespace
 
 Win32OriginalBinkExports::~Win32OriginalBinkExports() {
@@ -62,6 +64,11 @@ bool Win32OriginalBinkExports::load_exact_original(
     std::string& error) {
 
     unload();
+#if defined(_WIN64)
+    (void)dll_path;
+    error="original Bink DLL loader is disabled in the native x64 build";
+    return false;
+#else
     if (!dll_path.is_absolute()) {
         error="original binkw32.dll must be loaded by absolute path";
         return false;
@@ -111,6 +118,7 @@ bool Win32OriginalBinkExports::load_exact_original(
     }
     error.clear();
     return true;
+#endif
 }
 
 FARPROC Win32OriginalBinkExports::find(
