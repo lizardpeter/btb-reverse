@@ -249,7 +249,7 @@ Known slot-state values from `PlayManagedSoundById` / `StopSoundSlot` are:
 
 The C++26 reconstruction now contains a byte-exact host-independent model in:
 
-`reconstruction/include/btb/sound_manager.hpp`
+`include/btb/sound_manager.hpp`
 
 with `static_assert` checks for every recovered offset and the total
 `0x7738` size.
@@ -294,13 +294,13 @@ formats `data\\sound\\%s`, creates a one-buffer DirectSound group, and
 starts/initializes playback state.
 
 The pure metadata portion of this policy is reproduced and tested in
-`reconstruction/include/btb/sound_manager.hpp`.
+`include/btb/sound_manager.hpp`.
 
 
 ### Source-level managed SoundManager runtime
 
 The 80-slot policy is now implemented in
-`reconstruction/src/sound_manager.cpp`, not only represented as layout
+`src/sound_manager.cpp`, not only represented as layout
 helpers.
 
 The constructor's exact metadata defaults are:
@@ -456,7 +456,7 @@ resource-buffer members found in some later SDK variants are absent here.
 
 These exact host-independent layouts are now represented by:
 
-`reconstruction/include/btb/dsutil.hpp`
+`include/btb/dsutil.hpp`
 
 with C++26 offset/size tests.
 

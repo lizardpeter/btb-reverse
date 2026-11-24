@@ -6,9 +6,9 @@ UI engine parameterized by `loaddata/NumUiHotArea.txt`,
 
 New source-level modules:
 
-- `reconstruction/include/btb/full_game_generic_ui.hpp`
-- `reconstruction/src/full_game_generic_ui.cpp`
-- `reconstruction/tests/full_game_generic_ui_source_test.cpp`
+- `include/btb/full_game_generic_ui.hpp`
+- `src/full_game_generic_ui.cpp`
+- `tests/full_game_generic_ui_source_test.cpp`
 
 The generic runtime uses the existing `GenericUiCatalog` parser and
 `front_end_ui_runtime.hpp` logic for managed hover-voice sequencing,

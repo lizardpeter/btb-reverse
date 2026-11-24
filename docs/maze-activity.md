@@ -152,9 +152,9 @@ The mouse path first truncates the player's float coordinates to integers. A cur
 
 The reconstruction is in:
 
-- `reconstruction/include/btb/maze_input.hpp`
-- `reconstruction/src/maze_input.cpp`
-- `reconstruction/tests/maze_input_test.cpp`
+- `include/btb/maze_input.hpp`
+- `src/maze_input.cpp`
+- `tests/maze_input_test.cpp`
 
 ## Shared integer-angle and node-seeking movement
 
@@ -295,9 +295,9 @@ Completion clears the transition phase and signed direction after the moving cro
 
 The implementation/regression is:
 
-- `reconstruction/include/btb/maze_transition.hpp`
-- `reconstruction/src/maze_transition.cpp`
-- `reconstruction/tests/maze_transition_test.cpp`
+- `include/btb/maze_transition.hpp`
+- `src/maze_transition.cpp`
+- `tests/maze_transition_test.cpp`
 
 ## Outer activity controller
 
@@ -316,28 +316,28 @@ The retail `0x0041D4D0 UpdateMazeActivity` controller is now separated from the 
 
 The typed C++26 reconstruction now spans:
 
-- `reconstruction/include/btb/maze_data.hpp`
-- `reconstruction/src/maze_data.cpp`
-- `reconstruction/include/btb/maze_runtime.hpp`
-- `reconstruction/src/maze_runtime.cpp`
-- `reconstruction/include/btb/maze_input.hpp`
-- `reconstruction/src/maze_input.cpp`
-- `reconstruction/include/btb/maze_motion.hpp`
-- `reconstruction/src/maze_motion.cpp`
-- `reconstruction/include/btb/maze_player_navigation.hpp`
-- `reconstruction/src/maze_player_navigation.cpp`
-- `reconstruction/include/btb/maze_transition.hpp`
-- `reconstruction/src/maze_transition.cpp`
-- `reconstruction/include/btb/maze_presentation.hpp`
-- `reconstruction/include/btb/maze_controller.hpp`
-- `reconstruction/tests/maze_data_test.cpp`
-- `reconstruction/tests/maze_runtime_test.cpp`
-- `reconstruction/tests/maze_input_test.cpp`
-- `reconstruction/tests/maze_motion_test.cpp`
-- `reconstruction/tests/maze_player_navigation_test.cpp`
-- `reconstruction/tests/maze_transition_test.cpp`
-- `reconstruction/tests/maze_presentation_test.cpp`
-- `reconstruction/tests/maze_controller_test.cpp`
+- `include/btb/maze_data.hpp`
+- `src/maze_data.cpp`
+- `include/btb/maze_runtime.hpp`
+- `src/maze_runtime.cpp`
+- `include/btb/maze_input.hpp`
+- `src/maze_input.cpp`
+- `include/btb/maze_motion.hpp`
+- `src/maze_motion.cpp`
+- `include/btb/maze_player_navigation.hpp`
+- `src/maze_player_navigation.cpp`
+- `include/btb/maze_transition.hpp`
+- `src/maze_transition.cpp`
+- `include/btb/maze_presentation.hpp`
+- `include/btb/maze_controller.hpp`
+- `tests/maze_data_test.cpp`
+- `tests/maze_runtime_test.cpp`
+- `tests/maze_input_test.cpp`
+- `tests/maze_motion_test.cpp`
+- `tests/maze_player_navigation_test.cpp`
+- `tests/maze_transition_test.cpp`
+- `tests/maze_presentation_test.cpp`
+- `tests/maze_controller_test.cpp`
 
 It currently reproduces the complete graph/data parse, portal semantics, retail-bounded shortest-path search, one-call-late mouse/keyboard arbitration, exact shared integer-angle and node-seeking motion, player 4px/30px node-candidate scanning, three-sample all-or-nothing mouse debounce, the complete two-screen slide compositor, exact surface bindings, actor sheet geometry/origins, timer/package HUD composition, and the typed outer completion/startup/leave controller.
 

@@ -149,8 +149,8 @@ A drive index of `-1` disables that fallback.
 - `CloseGlobalBinkMovie` closes/clears the global handle and re-enables input.
 
 The C++26 reconstruction is in
-`reconstruction/include/btb/bink_system.hpp` and
-`reconstruction/src/bink_system.cpp`. Machine-readable globals/modes are in
+`include/btb/bink_system.hpp` and
+`src/bink_system.cpp`. Machine-readable globals/modes are in
 `ghidra/bink_runtime_globals.csv`.
 
 ## Activity-specific playback

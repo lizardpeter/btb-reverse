@@ -67,7 +67,7 @@ The enter function resets the activation phase to 0 after switching modes.
 
 The exact context mapping is represented in:
 
-- `reconstruction/include/btb/help_system.hpp`
+- `include/btb/help_system.hpp`
 - `ghidra/help_contexts.csv`
 
 ## Twenty help contexts
@@ -236,7 +236,7 @@ Normal outer game-flow execution resumes on the next active frame.
 
 ## Source reconstruction
 
-`reconstruction/include/btb/help_system.hpp` now preserves:
+`include/btb/help_system.hpp` now preserves:
 
 - all 20 context IDs;
 - the exact 68-entry retail outer-state map;

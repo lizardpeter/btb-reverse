@@ -8,10 +8,10 @@ not reconstructed from a screenshot, inferred from asset names, or a
 modern generic collision library.
 
 Source implementations:
-- `reconstruction/include/btb/retail_point_in_polygon.hpp`
-- `reconstruction/include/btb/herding_navigation_boundary.hpp`
-- `reconstruction/include/btb/herding_retail_rect_contact.hpp`
-- `reconstruction/src/full_game_herding_event_simulation.cpp`
+- `include/btb/retail_point_in_polygon.hpp`
+- `include/btb/herding_navigation_boundary.hpp`
+- `include/btb/herding_retail_rect_contact.hpp`
+- `src/full_game_herding_event_simulation.cpp`
 - Their matching source-only test files.
 
 ## 0x00428520 — shared PointInPolygon

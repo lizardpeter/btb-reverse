@@ -22,7 +22,7 @@ The machine-readable ordered generic-screen map is in `ghidra/ui_screens.csv`.
 Global `0x0051C27C` selects the current generic UI screen. The executable uses it to index the parsed hot-area counts and replacement records.
 
 The 12 table-backed screens are also source-level in
-`reconstruction/include/btb/front_end_ui.hpp`; the exact counts come from
+`include/btb/front_end_ui.hpp`; the exact counts come from
 `NumUiHotArea.txt`'s sequence `8 10 6 5 5 4 4 3 3 2 3 2 -1`.
 
 The retail table formats are also reconstructed rather than merely summarized:
@@ -242,7 +242,7 @@ global Bink before updating; Progress does not.
 
 The exact chain is retained in
 `ghidra/gameflow_dispatch_precedence.csv` and
-`reconstruction/include/btb/game_flow.hpp`.
+`include/btb/game_flow.hpp`.
 
 ### Options
 
@@ -371,9 +371,9 @@ In memory:
 
 The buildable reconstruction is in:
 
-- `reconstruction/include/btb/player_profiles.hpp`
-- `reconstruction/src/player_profiles.cpp`
-- `reconstruction/tests/player_profiles_test.cpp`
+- `include/btb/player_profiles.hpp`
+- `src/player_profiles.cpp`
+- `tests/player_profiles_test.cpp`
 
 ### Retail profile deletion
 
@@ -421,8 +421,8 @@ profile selection bypass it and use screen 1.
 
 The original `loaddata/NumUiHotArea.txt`, `uiHotArea.txt` and
 `uiHotAreaReplace.txt` were rechecked from the installed game source.
-`reconstruction/include/btb/full_game_front_end.hpp` and
-`reconstruction/src/full_game_front_end.cpp` now load and cross-validate
+`include/btb/full_game_front_end.hpp` and
+`src/full_game_front_end.cpp` now load and cross-validate
 all 12 screen record counts and implement **screen index 1**, the 10-area
 Activity Select screen, as an actual `FrontEndDriver` of the shared
 `GameRoot`.

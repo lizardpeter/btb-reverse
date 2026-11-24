@@ -232,8 +232,8 @@ space and returning to that same control does not replay its hover voice until
 some other control has replaced the remembered action.
 
 The typed C++26 model is in
-`reconstruction/include/btb/fireworks_editor.hpp` and
-`reconstruction/src/fireworks_editor.cpp`, with a dedicated editor test.
+`include/btb/fireworks_editor.hpp` and
+`src/fireworks_editor.cpp`, with a dedicated editor test.
 
 The state-0 dispatcher ordering is now represented exactly too. A normal hit
 calls `BeginFireworksEditorAction(action)` and then immediately
@@ -295,7 +295,7 @@ This preview path always uses the direct palette index **0..11**. It does not
 apply the authored-show row-1 `type+12` arithmetic.
 
 The typed preview controller is in
-`reconstruction/include/btb/fireworks_editor.hpp`.
+`include/btb/fireworks_editor.hpp`.
 
 ### Exact actor visual initialization
 
@@ -726,8 +726,8 @@ and writes only `-1` to the record's type field. The other three dwords are
 left stale until a later allocation overwrites them.
 
 The exact threshold scheduler and active-event allocation/lifetime are now
-represented in `reconstruction/include/btb/fireworks_sequence.hpp` and
-`reconstruction/src/fireworks_sequence.cpp`.
+represented in `include/btb/fireworks_sequence.hpp` and
+`src/fireworks_sequence.cpp`.
 
 ### Certificate composition
 
@@ -784,4 +784,4 @@ the shared activity-level back/exit flags checked at the top of
 `UpdateFireworksActivity`.
 
 The exact layout and interaction model are in
-`reconstruction/include/btb/fireworks_certificate.hpp`.
+`include/btb/fireworks_certificate.hpp`.

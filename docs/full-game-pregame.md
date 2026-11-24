@@ -6,13 +6,13 @@ instruction pairs**, not a preview renderer. These are **20 of the original
 
 New files:
 
-- `reconstruction/include/btb/full_game_pregame.hpp`
-- `reconstruction/include/btb/full_game_walkthrough_catalog.hpp`
-- `reconstruction/src/full_game_walkthrough_catalog.cpp`
-- `reconstruction/include/btb/full_game_pregame_resources.hpp`
-- `reconstruction/src/full_game_pregame_resources.cpp`
+- `include/btb/full_game_pregame.hpp`
+- `include/btb/full_game_walkthrough_catalog.hpp`
+- `src/full_game_walkthrough_catalog.cpp`
+- `include/btb/full_game_pregame_resources.hpp`
+- `src/full_game_pregame_resources.cpp`
 - `ghidra/pregame_action_routes.csv` — **60 actual jump-table entries**
-- Source-only tests in `reconstruction/tests/full_game_pregame*_source_test.cpp`
+- Source-only tests in `tests/full_game_pregame*_source_test.cpp`
   and `full_game_walkthrough_catalog_source_test.cpp`.
 
 The production coordinator `GameRoot` now has

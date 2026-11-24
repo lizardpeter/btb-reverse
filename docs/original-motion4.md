@@ -39,7 +39,7 @@ and Windows x64 native game/provider builds and regression.
 
 **Historical snapshot for this particular batch:** it advanced the compiled
 source inventory to 595/615 on October 15, 2026. The **current** reconstructed
-source inventory is [615/615 (100%)](../analysis/reconstruction/summary.json),
+source inventory is [615/615 (100%)](../records/summary.json),
 with **0** original functions awaiting source-stage reconstruction.
 Original executable differential checks added in this historical batch: **0**.
 Fully retail-verified functions in the current reviewed ledger: **0/615**.

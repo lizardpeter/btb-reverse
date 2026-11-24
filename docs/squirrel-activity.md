@@ -418,8 +418,8 @@ The outer completion stage then separately performs its final 665..667 Wendy lin
 ## Exact scene geometry and composition
 
 The scene shell is now source-level in
-`reconstruction/include/btb/squirrel_presentation.hpp` and
-`reconstruction/src/squirrel_presentation.cpp`.
+`include/btb/squirrel_presentation.hpp` and
+`src/squirrel_presentation.cpp`.
 
 The level background is treated as horizontally packed **480-pixel panels**.
 Retail draws a **620x480** viewport from:
@@ -672,15 +672,15 @@ Retail:
 
 Buildable source:
 
-- `reconstruction/include/btb/squirrel_data.hpp`
-- `reconstruction/src/squirrel_data.cpp`
-- `reconstruction/include/btb/squirrel_runtime.hpp`
-- `reconstruction/src/squirrel_runtime.cpp`
+- `include/btb/squirrel_data.hpp`
+- `src/squirrel_data.cpp`
+- `include/btb/squirrel_runtime.hpp`
+- `src/squirrel_runtime.cpp`
 
 Tests:
 
-- `reconstruction/tests/squirrel_data_test.cpp`
-- `reconstruction/tests/squirrel_runtime_test.cpp`
+- `tests/squirrel_data_test.cpp`
+- `tests/squirrel_runtime_test.cpp`
 
 Current source coverage includes:
 

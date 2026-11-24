@@ -6,8 +6,8 @@ The original main EXE Ghidra pseudocode for:
 - **0x00404470** \`CSound_Reset\`
 - **0x004044B0** \`CSound_IsSoundPlaying\`
 
-is now implemented in \`reconstruction/src/dsutil_group_runtime.cpp\` using
-\`reconstruction/include/btb/dsutil_group_runtime.hpp\`.
+is now implemented in \`src/dsutil_group_runtime.cpp\` using
+\`include/btb/dsutil_group_runtime.hpp\`.
 
 These functions share the 20-byte C++ source model of \`RetailCSound32\`
 already recovered in \`dsutil.hpp\`.

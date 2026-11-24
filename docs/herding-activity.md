@@ -141,9 +141,9 @@ The exact 0x64-byte record layout is now committed in `herding_runtime.hpp` with
 
 Current buildable source:
 
-- `reconstruction/include/btb/herding_data.hpp`
-- `reconstruction/src/herding_data.cpp`
-- `reconstruction/tests/herding_data_test.cpp`
+- `include/btb/herding_data.hpp`
+- `src/herding_data.cpp`
+- `tests/herding_data_test.cpp`
 
 It preserves the exact retail sentinel segmentation and the verified group-0 coordinate transform.
 
@@ -543,8 +543,8 @@ It then draws the UI surround and, when a food type is selected, the selected
 food toolbar at **(284,417)**.
 
 The typed model is in
-`reconstruction/include/btb/herding_presentation.hpp` with regression tests in
-`reconstruction/tests/herding_presentation_test.cpp`. The recovered constants
+`include/btb/herding_presentation.hpp` with regression tests in
+`tests/herding_presentation_test.cpp`. The recovered constants
 are also preserved in `ghidra/herding_render_geometry.csv`.
 
 #### Exact surface globals
@@ -651,12 +651,12 @@ rendering architecture.
 The recovered Herding presentation and completion rules now have an
 explicit C++26 adapter for the common 68-state `GameRoot`:
 
-- `reconstruction/include/btb/full_game_herding_presentation.hpp`
-- `reconstruction/src/full_game_herding_presentation.cpp`
-- `reconstruction/include/btb/full_game_herding.hpp`
-- `reconstruction/src/full_game_herding.cpp`
-- `reconstruction/tests/full_game_herding_presentation_source_test.cpp`
-- `reconstruction/tests/full_game_herding_source_test.cpp`
+- `include/btb/full_game_herding_presentation.hpp`
+- `src/full_game_herding_presentation.cpp`
+- `include/btb/full_game_herding.hpp`
+- `src/full_game_herding.cpp`
+- `tests/full_game_herding_presentation_source_test.cpp`
+- `tests/full_game_herding_source_test.cpp`
 
 The compositor accepts the original 0x64-byte entity records after an
 AI update. It computes the retail 600×380 world camera, draws the exact
@@ -870,7 +870,7 @@ Win32 build still require further reconstruction.
 
 The reconstructed original game now has a source-scoped movement
 coordinator at
-`reconstruction/include/btb/herding_source_partial_dispatcher.hpp`.
+`include/btb/herding_source_partial_dispatcher.hpp`.
 It connects three separate previously isolated branches of the retail
 `UpdateHerdingAnimal` routine:
 

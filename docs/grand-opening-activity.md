@@ -670,18 +670,18 @@ States 2..7 exist in the retail switch but route through passive/common drawing 
 
 Buildable source:
 
-- `reconstruction/include/btb/grand_opening_data.hpp`
-- `reconstruction/src/grand_opening_data.cpp`
-- `reconstruction/include/btb/grand_opening_sequence.hpp`
-- `reconstruction/src/grand_opening_sequence.cpp`
-- `reconstruction/include/btb/grand_opening_runtime.hpp`
-- `reconstruction/src/grand_opening_runtime.cpp`
+- `include/btb/grand_opening_data.hpp`
+- `src/grand_opening_data.cpp`
+- `include/btb/grand_opening_sequence.hpp`
+- `src/grand_opening_sequence.cpp`
+- `include/btb/grand_opening_runtime.hpp`
+- `src/grand_opening_runtime.cpp`
 
 Tests:
 
-- `reconstruction/tests/grand_opening_data_test.cpp`
-- `reconstruction/tests/grand_opening_sequence_test.cpp`
-- `reconstruction/tests/grand_opening_runtime_test.cpp`
+- `tests/grand_opening_data_test.cpp`
+- `tests/grand_opening_sequence_test.cpp`
+- `tests/grand_opening_runtime_test.cpp`
 
 Current source-level coverage includes:
 

@@ -130,8 +130,8 @@ The exact pre-dispatch sequence is machine-readable in
 
 The main flow is now represented directly in:
 
-- `reconstruction/include/btb/game_flow.hpp`
-- `reconstruction/tests/game_flow_test.cpp`
+- `include/btb/game_flow.hpp`
+- `tests/game_flow_test.cpp`
 
 That source contains:
 
@@ -143,7 +143,7 @@ That source contains:
 - invalid-state/no-op behavior.
 
 The generic 12-screen front-end catalog is separately represented in
-`reconstruction/include/btb/front_end_ui.hpp`.
+`include/btb/front_end_ui.hpp`.
 
 
 ## Bob's Band -> Spud Maze boundary

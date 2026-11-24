@@ -3,10 +3,10 @@
 The C++26 Golf gameplay helpers already reconstructed (native
 `0x00415080`) now have a **shared-game lifecycle**:
 
-- `reconstruction/include/btb/golf_activity.hpp`
-- `reconstruction/src/golf_activity.cpp`
-- `reconstruction/include/btb/full_game_golf.hpp`
-- `reconstruction/src/full_game_golf.cpp`
+- `include/btb/golf_activity.hpp`
+- `src/golf_activity.cpp`
+- `include/btb/full_game_golf.hpp`
+- `src/full_game_golf.cpp`
 
 This is separate from the former Dinosaur-only preview. The source
 driver implements the original `0x36 GolfInit / 0x37 GolfRun` pair via
@@ -83,10 +83,10 @@ the native swing controls.
 
 ## Deferred source regressions
 
-- `reconstruction/tests/golf_activity_source_test.cpp` exercises five
+- `tests/golf_activity_source_test.cpp` exercises five
   consecutive original-data shots, fixed attempts across difficulty, physics,
   score/audio completion gating and progress termination.
-- `reconstruction/tests/full_game_golf_source_test.cpp` routes the same
+- `tests/full_game_golf_source_test.cpp` routes the same
   source model through `GameRoot` state `0x36` to `0x37`, checks
   data-backed presentation effects, and verifies the slot-62/Play Again
   handoff after the fifth completed round.

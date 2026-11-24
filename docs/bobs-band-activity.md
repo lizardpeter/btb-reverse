@@ -1,8 +1,8 @@
 # Bob's Band / Music sequencer — source reconstruction
 
 **Status:** C++26 gameplay source is now present under
-`reconstruction/include/btb/bobs_band*.hpp` and
-`reconstruction/src/bobs_band*.cpp`. The source has NOT been included in the
+`include/btb/bobs_band*.hpp` and
+`src/bobs_band*.cpp`. The source has NOT been included in the
 unified executable build yet; full-game integration and the next full compile
 are deliberately deferred. These modules were written from the original PE32
 executable and the installed `machinedata.txt`, not approximated from video.
@@ -161,7 +161,7 @@ reconstruction and evidence; they do not establish a working Band build.
 
 ## Whole-game source adapter (October 8)
 
-`reconstruction/src/full_game_bobs_band.cpp` now connects the existing
+`src/full_game_bobs_band.cpp` now connects the existing
 music module to `GameRoot` (the ten-activity / 68-state coordinator).
 The shared activity contract keeps **backing WAV start** separate from
 **one-shot pitch sample triggers**, preserving the need for different native

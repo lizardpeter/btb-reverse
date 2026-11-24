@@ -9,8 +9,8 @@ or a miniature game demo.
 ## End-to-end frame ownership
 
 `NativeGameSession` in
-`reconstruction/include/btb/full_game_native_session.hpp`
-and `reconstruction/src/full_game_native_session.cpp` now owns the
+`include/btb/full_game_native_session.hpp`
+and `src/full_game_native_session.cpp` now owns the
 original per-frame dataflow:
 
 1. Poll device: query **actual** managed-sound buffer status from the

@@ -79,10 +79,10 @@ verified retail-perfect frames or a replacement for a native
 differential test.
 
 Regression *source*, not an executed test:
-- `reconstruction/tests/herding_source_steering_source_test.cpp`
+- `tests/herding_source_steering_source_test.cpp`
   covers cardinal directions, facing sectors, signed truncation,
   original 3.0 movement and speed ramp.
-- `reconstruction/tests/full_game_herding_event_simulation_source_test.cpp`
+- `tests/full_game_herding_event_simulation_source_test.cpp`
   now checks acceptance of an expected steering probe and rejection
   of a contradictory position without committing any behavior state.
 

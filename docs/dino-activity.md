@@ -449,9 +449,9 @@ The correct/incorrect drop groups are chosen by `rand() % 6`. The initializer's 
 
 The newly closed presentation/completion layer is in:
 
-- `reconstruction/include/btb/dino_presentation.hpp`
-- `reconstruction/src/dino_presentation.cpp`
-- `reconstruction/tests/dino_presentation_test.cpp`
+- `include/btb/dino_presentation.hpp`
+- `src/dino_presentation.cpp`
+- `tests/dino_presentation_test.cpp`
 
 It intentionally preserves the dormant `render_mode == 2` and phase-10 paths
 as retail behavior instead of deleting them from the faithful reconstruction.

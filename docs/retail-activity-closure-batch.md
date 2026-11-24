@@ -16,7 +16,7 @@ These functions join the 35-function batch in
 - `0x0040D7D0`: DrawParkDesignerSegmentedPondSurface
 - `0x00402B00`: SoundManagerConstructor
 
-The new source file `reconstruction/include/btb/retail_activity_closure.hpp`
+The new source file `include/btb/retail_activity_closure.hpp`
 covers WinMM wave reset, DirectSound lost-buffer recovery and voice
 playback, Bobs Band hit regions, maze input debouncing, squirrel conveyor,
 native keyboard translation, exact Bink frame seek/iteration, and

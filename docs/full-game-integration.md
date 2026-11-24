@@ -12,7 +12,7 @@ launcher is not the game.
 ## Ten activities in the native 68-state router
 
 The original game's top-level state machine
-(`reconstruction/include/btb/game_flow.hpp`) has all ten of these
+(`include/btb/game_flow.hpp`) has all ten of these
 initialize/run pairs:
 
 | Game-owned module | Retail outer states | Source-level recovery | Unified host integration |

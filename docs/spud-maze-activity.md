@@ -84,9 +84,9 @@ They are the damaged skateboard-track **repair spots**. Retail reserves 11 statu
 
 Current source:
 
-- `reconstruction/include/btb/spud_maze_data.hpp`
-- `reconstruction/src/spud_maze_data.cpp`
-- `reconstruction/tests/spud_maze_data_test.cpp`
+- `include/btb/spud_maze_data.hpp`
+- `src/spud_maze_data.cpp`
+- `tests/spud_maze_data_test.cpp`
 
 It preserves the five-screen graph, node links/types, 11-pixel Y correction, reference triples, all difficulty tuning, the ignored file speed, retail 4.0 runtime speed, and fixed trailing list sizes.
 
