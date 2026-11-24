@@ -24,7 +24,7 @@ initialize/run pairs:
 | Fireworks | `0x24 / 0x25` | layout, editor and sequence models | Not hosted |
 | Squirrel | `0x28 / 0x29` | data, runtime and presentation models | Not hosted |
 | Bob's Band | `0x2E / 0x2F` | editor, 5x24 grid, sequence I/O, 5 machine animations, 3 conductors and 24s sequencer | **Source-integrated** with the new shared 68-state root; actual bitmap/audio platform callbacks still not bound |
-| Park Designer | `0x32 / 0x33` | data/runtime models | Not hosted |
+| Park Designer | `0x32 / 0x33` | seasonal scene renderer, native editor, pond/fountain and bandstand placement, profile save, print composition | Native provider connected; differential Windows validation pending |
 | Golf | `0x36 / 0x37` | data/runtime + **new full-game round lifecycle, exact scoring and fixed-five-attempt source driver** | **Source-integrated** in `GameRoot`; source-backed partial presentation; exact input/animation and sound devices remain unbound |
 | Spud Maze | `0x3A / 0x3B` | data/runtime models | Not hosted |
 
@@ -608,3 +608,7 @@ original-game differential tests remain outstanding. No new
 C++ build or execution was performed under the project instruction.
 
 [Scruffty patrol and roam recovery audit](herding-autonomous-motion-branches.md).
+
+## November 24, 2026 — live Park Designer and shared UI milestone
+
+The production Windows host now binds `RetailParkDesignerNativeService` instead of a missing editor/render provider. The activity uses the original bitmap catalog, geometry, object records, seasonal variants, and managed sound IDs. Shared Back and physical Yes/No routing are implemented for the activity paths tested in the native coordinator. Contextual help uses the original help table for bitmap scenes; movie-surface capture and dynamic object regions remain separate work. See [Park Designer](park-designer-activity.md) for implementation boundaries. Earlier progress notes below/above are historical, not current availability claims.

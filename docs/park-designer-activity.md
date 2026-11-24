@@ -621,3 +621,9 @@ symbol in `ghidra/known_symbols.csv`.
 
 The next executable address, `0x00410FD0`, is already Fireworks grid logic,
 so the Park Designer -> Fireworks boundary is now exact at the helper level.
+
+## Native integration — November 24, 2026
+
+The Windows host supplies `RetailParkDesignerNativeService` to `ParkDesignerDriver`. The implementation renders original seasonal backgrounds, pond strips, fountain frames, bandstand parts and decorations in source-derived draw order; supports palette selection, placement, pickup, dragging, deletion, seasonal switching, confirmation dialogs and the original profile save format. The compound pond and bandstand placement tests exercise the recorded geometry and linkage rules. Picking up a bandstand pillar follows the original `0040E440` unlink/roof-removal path; canceling follows `0040E3E0` rather than restoring an invalid disconnected pillar. Print composition uses the active player's original brown-font glyphs, badge and full-screen printbar, then requests the platform print operation. Original bitmap files are not embedded or replaced with new artwork.
+
+Regression coverage includes editor input, scene composition, placement and deletion, linkage, profile persistence, contextual help, print composition and shared physical confirmation. These tests establish source-level behavior, not pixel-perfect, timing-perfect or complete retail parity. Physical Windows gameplay and printing, full session comparison, and remaining edge cases in the original 10,433-byte editor function still require verification. Shared help in movie-backed scenes is not certified.

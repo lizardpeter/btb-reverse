@@ -9,4 +9,4 @@ Source: original Windows PE32 SHA256 `c6e35972af53e972382f095ac3eaf13e00efbe1573
 
 The tests exercise all 20 decoration variants, all 15 supported bandstand cells, both seasons, strict toolbar edges, rejected/full placements, RNG consumption and persisted record round trips. No bitmap pixels or original executable are included.
 
-**Integration boundary:** these are source-backed building blocks for the missing Park Designer native editor/render service. They do not by themselves implement cursor lifecycle, compound Pond or Bandstand placement, scrolling presentation, or printing. The existing driver still requires a real provider before an actual activity session can run.
+**Integration milestone (2026-11-24):** the Windows host now installs the native Park Designer editor/render service. The catalog is consumed by the seasonal scene renderer, palette, object placement, drag preview and print composition. The original assets remain external. Source-level regression tests exercise the service, but a complete differential retail session and physical Windows printing are not yet certified.
