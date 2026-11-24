@@ -142,14 +142,25 @@ void update_player(Player& p,IO& io,bool spud){
   for(std::size_t i=0;i<repairs.size();++i){
    auto& r=repairs[i];
    if(r.counter<=0)continue;
-   const float cx=static_cast<float>(r.x),cy=static_cast<float>(r.y+r.height/2+20);
-   const auto delta=io.actor_distance(p.x,p.y,cx,cy);
-   if(delta>=20.f||std::fabs(cx-p.x)>=15.f||!input.action_pressed)continue;
+   // Original 004221A? reads the individual sprite width/height:
+   // center X, bottom Y plus 20; 0043B4B0 contains float32 40.
+   const I32 cx=r.x+r.width/2,cy=r.y+r.height+20;
+   const I32 px=static_cast<I32>(p.x),py=static_cast<I32>(p.y);
+   const auto delta=io.actor_distance(static_cast<float>(px),static_cast<float>(py),
+                                     static_cast<float>(cx),static_cast<float>(cy));
+   if(delta>=40.f||std::abs(cx-px)>=15||!input.action_pressed)continue;
    if(!p.repair_tool_engaged){
     const I32 voice=0x2c5 + static_cast<I32>(io.random32()%2);
     sound(io,voice,50);
    }else{
-    const I32 voice=0x2be + static_cast<I32>(io.random32()%7);
+    I32 voice=0x2be+static_cast<I32>(io.random32()%7);
+    // Source rejects the previous repair voice (0051453C).
+    // Guard a broken random provider without inventing a substitute.
+    for(int retry=0;voice==p.repair_sound;++retry){
+     if(retry>=4096)throw std::runtime_error("original repair voice RNG exhausted");
+     voice=0x2be+static_cast<I32>(io.random32()%7);
+    }
+    p.repair_sound=voice;
     sound(io,voice,50);
     r.counter=0;p.repair_hit_count+=1;p.animation=9;p.hazard_lock=true;
     io.spud_repair_completed(p.screen,static_cast<I32>(i));

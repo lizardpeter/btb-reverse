@@ -15,7 +15,7 @@
 namespace btb::original_motion4 {
 using I32=std::int32_t;using U32=std::uint32_t;
 struct Input {I32 dx{},dy{};bool mouse_pressed{},action_pressed{};};
-struct Repair {I32 x{},y{},height{40},counter{1};};
+struct Repair {I32 x{},y{},height{40},counter{1},width{};};
 struct Player {
  float x{},y{},previous_x{},previous_y{};
  I32 screen{},node{},last_captured_node{-1},last_direction{-1},

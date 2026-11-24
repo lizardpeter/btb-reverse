@@ -125,7 +125,7 @@ int main(){
  {
   Host io;Player p{};p.screen=0;p.node=0;p.x=0;p.y=0;
   p.graphs[0].nodes={node(0,0,0)};
-  p.repairs[0].push_back({1,-30,40,1});
+  p.repairs[0].push_back({-10,-70,20,1,22}); // center 1, bottom+20=-30; original <40
   p.repair_tool_engaged=true;
   io.in={0,0,false,true};
   update_spud_maze_bob(p,io);

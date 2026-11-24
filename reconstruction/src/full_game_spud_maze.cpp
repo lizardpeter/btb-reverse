@@ -1,6 +1,7 @@
 #include "btb/full_game_spud_maze.hpp"
 #include "btb/maze_presentation.hpp"
 #include "btb/maze_runtime.hpp"
+#include "btb/original_asset_resolver.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -15,19 +16,49 @@ class SpudMazeInputPort final : public original_motion4::IO {
 public:
     SpudMazeInputPort(const ActivityFrameInput& input,
                       ActivityFrameOutput& effects,
-                      spud_maze::PilchardNative& pilchard,retail::OriginalRetailRandom& rng)
-        :input_(input),effects_(effects),pilchard_(pilchard),rng_(rng) {}
+                      spud_maze::PilchardNative& pilchard,retail::OriginalRetailRandom& rng,
+                      original_motion4::Player& player,maze::InputModeState& mode,
+                      bool& pointer_sampled)
+        :input_(input),effects_(effects),pilchard_(pilchard),rng_(rng),
+         player_(player),mode_(mode),pointer_sampled_(pointer_sampled) {}
 
     original_motion4::Input player_input(bool spud) override {
         if(!spud)
             throw std::logic_error("Maze input requested in Spud Maze");
         const auto bits=input_.directional_input_bits;
-        return {
-            (bits&0x02U)?1:(bits&0x01U)?-1:0,
-            // 004211A0 emits +1 on bit 4; 00421360 subtracts Y.
-            (bits&0x08U)?1:(bits&0x04U)?-1:0,
-            input_.pointer_button_held,input_.click_pulse
-        };
+        if(!pointer_sampled_&&input_.pointer_position_valid){
+            mode_.remembered_mouse_x=input_.pointer_x;
+            mode_.remembered_mouse_y=input_.pointer_y;
+            pointer_sampled_=true;
+        }
+        // 004211A0: entry mode decides THIS call. Unlike Maze,
+        // Spud uses a +50 pointer-Y offset, 26-unit dead zone,
+        // separate 0.1/0.4 thresholds and no three-sample debounce.
+        player_.mouse_mode=mode_.mouse_mode;
+        if(mode_.mouse_mode&&input_.pointer_position_valid){
+            if(bits||input_.click_pulse)mode_.mouse_mode=false;
+            const maze::Vec2i from{static_cast<int>(player_.x),static_cast<int>(player_.y)};
+            const maze::Vec2i to{input_.pointer_x,input_.pointer_y+50};
+            int dx=0,dy=0;
+            if(std::hypot(double(from.x)-to.x,double(from.y)-to.y)>26.0){
+                const auto angle=maze::angle_between_integer_points_degrees(from,to);
+                const long double rad=angle*static_cast<long double>(0.017453530803322792f);
+                const auto sn=static_cast<float>(std::sin(rad));
+                const auto cs=static_cast<float>(std::cos(rad));
+                if(std::fabs(sn)>0.1)dx=sn>0?1:-1;
+                if(std::fabs(cs)>0.4)dy=cs>0?-1:1;
+            }
+            return {dx,dy,input_.pointer_button_held,input_.click_pulse};
+        }
+        const auto raw=maze::keyboard_direction_from_bits(bits);
+        if(input_.pointer_position_valid){
+            if(raw.x==0&&raw.y==0&&
+                (input_.pointer_x!=mode_.remembered_mouse_x||
+                 input_.pointer_y!=mode_.remembered_mouse_y))mode_.mouse_mode=true;
+            mode_.remembered_mouse_x=input_.pointer_x;
+            mode_.remembered_mouse_y=input_.pointer_y;
+        }
+        return {raw.x,-raw.y,input_.pointer_button_held,input_.click_pulse};
     }
     original_motion4::U32 random32() override {
         return static_cast<original_motion4::U32>(rng_.next_rand());
@@ -87,12 +118,32 @@ private:
     ActivityFrameOutput& effects_;
     spud_maze::PilchardNative& pilchard_;
     retail::OriginalRetailRandom& rng_;
+    original_motion4::Player& player_;
+    maze::InputModeState& mode_;
+    bool& pointer_sampled_;
     bool repair_begun_{};
 };
 
 std::string piece_filename(std::size_t screen,std::size_t ordinal) {
     return "Data\\SubGameSpudMaze\\"+
         std::to_string(screen+1)+"-"+std::to_string(ordinal+1)+".bmp";
+}
+
+// Source loader queries each repair BMP's dimensions. Read only the
+// original DIB metadata; native DirectDraw still loads the pixel data.
+std::pair<int,int> repair_bitmap_dimensions(const std::filesystem::path& path){
+    std::ifstream f(path,std::ios::binary);
+    std::array<unsigned char,26> b{};
+    if(!f.read(reinterpret_cast<char*>(b.data()),b.size())||b[0]!='B'||b[1]!='M')
+        throw std::runtime_error("invalid repair BMP header: "+path.string());
+    const auto le=[&](std::size_t offset){
+        return std::uint32_t(b[offset])|(std::uint32_t(b[offset+1])<<8)|
+            (std::uint32_t(b[offset+2])<<16)|(std::uint32_t(b[offset+3])<<24);
+    };
+    const auto w=static_cast<std::int32_t>(le(18)),h=static_cast<std::int32_t>(le(22));
+    if(le(14)<40||w<=0||w>8192||h==0||h>8192||h< -8192)
+        throw std::runtime_error("invalid repair BMP dimensions: "+path.string());
+    return {w,std::abs(h)};
 }
 
 } // namespace
@@ -156,10 +207,15 @@ bool SpudMazeDriver::initialize(int player,std::string& error) {
                 n.links=node.links;
                 actor.graphs[screen].nodes.push_back(n);
             }
-            for(const auto& point:loaded->repair_points[screen]) {
+            for(std::size_t i=0;i<loaded->repair_points[screen].size();++i) {
+                const auto& point=loaded->repair_points[screen][i];
+                const auto name=piece_filename(screen,i);
+                const auto file=OriginalAssetResolver(root_).resolve(name);
+                if(!file.found())throw std::runtime_error("missing original repair bitmap: "+name);
+                const auto [width,height]=repair_bitmap_dimensions(file.absolute_path);
                 actor.repairs[screen].push_back({
-                    point[0],point[1],40,
-                    damaged.damaged[ordinal++]?1:0
+                    point[0],point[1],height,
+                    damaged.damaged[ordinal++]?1:0,width
                 });
             }
         }
@@ -170,6 +226,7 @@ bool SpudMazeDriver::initialize(int player,std::string& error) {
         if(timer_<=0)
             throw std::runtime_error("invalid original Spud Maze timer");
         bob_=std::move(actor);
+        input_mode_={};input_mode_.mouse_mode=false;pointer_sampled_=false;
         data_=std::move(loaded);
         pilchard_={};
         pilchard_.spawn_wait=data_->spud_spawn_times[
@@ -345,7 +402,8 @@ ActivityFrameOutput SpudMazeDriver::advance(
                 }
             }
         } else {
-            SpudMazeInputPort io(input,out,pilchard_,random_stream());
+            SpudMazeInputPort io(input,out,pilchard_,random_stream(),
+                                 bob_,input_mode_,pointer_sampled_);
             original_motion4::update_spud_maze_bob(bob_,io);
             if(io.repair_begun()) {
                 repair_animation_frames_=4;
@@ -388,7 +446,7 @@ ActivityFrameOutput SpudMazeDriver::advance(
 }
 
 bool SpudMazeDriver::unload(std::string& error) {
-    bob_={};
+    bob_={};input_mode_={};pointer_sampled_=false;
     pilchard_={};
     hammer_={};
     data_.reset();

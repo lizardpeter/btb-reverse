@@ -20,6 +20,17 @@ int main() {
         "btb_spud_maze_native_source_fixture";
     fs::remove_all(root);
     fs::create_directories(root/"loaddata");
+    fs::create_directories(root/"Data/SubGameSpudMaze");
+    // Metadata-only synthetic repair surfaces, no shipped artwork.
+    for(int screen=0;screen<5;++screen){
+        for(std::size_t i=0;i<btb::spud_maze::kRepairPointCounts[screen];++i){
+            std::array<unsigned char,26> bmp{};bmp[0]='B';bmp[1]='M';
+            bmp[14]=40;bmp[18]=2;bmp[22]=20;
+            std::ofstream image(root/"Data/SubGameSpudMaze"/
+                (std::to_string(screen+1)+"-"+std::to_string(i+1)+".bmp"),std::ios::binary);
+            image.write(reinterpret_cast<const char*>(bmp.data()),bmp.size());
+        }
+    }
     {
         std::ofstream f(root/"loaddata"/"spudmaze_nodes.txt");
         f<<"WestScreen_NODE_NUM_X_Y_DIR_TYPE_LINKS\n"
@@ -66,6 +77,7 @@ int main() {
         assert(live->bob()->y==375.f);
         assert(live->bob()->speed==4.f); // source overwrites file's 2.0
         assert(live->bob()->repair_tool_engaged);
+        assert(live->bob()->repairs[0][0].width==2&&live->bob()->repairs[0][0].height==20);
         assert(live->remaining_repairs()>=4);
         assert(live->remaining_repairs()<=11);
         assert(live->timer()==500-difficulty*100);
