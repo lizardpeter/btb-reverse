@@ -142,7 +142,7 @@ void update_player(Player& p,IO& io,bool spud){
   for(std::size_t i=0;i<repairs.size();++i){
    auto& r=repairs[i];
    if(r.counter<=0)continue;
-   // Original 004221A? reads the individual sprite width/height:
+   // Original 004220D0 repair pass reads the individual sprite width/height:
    // center X, bottom Y plus 20; 0043B4B0 contains float32 40.
    const I32 cx=r.x+r.width/2,cy=r.y+r.height+20;
    const I32 px=static_cast<I32>(p.x),py=static_cast<I32>(p.y);
@@ -153,12 +153,12 @@ void update_player(Player& p,IO& io,bool spud){
     const I32 voice=0x2c5 + static_cast<I32>(io.random32()%2);
     sound(io,voice,50);
    }else{
-    I32 voice=0x2be+static_cast<I32>(io.random32()%7);
+    I32 voice=0x2be + static_cast<I32>(io.random32()%7);
     // Source rejects the previous repair voice (0051453C).
     // Guard a broken random provider without inventing a substitute.
     for(int retry=0;voice==p.repair_sound;++retry){
      if(retry>=4096)throw std::runtime_error("original repair voice RNG exhausted");
-     voice=0x2be+static_cast<I32>(io.random32()%7);
+     voice=0x2be + static_cast<I32>(io.random32()%7);
     }
     p.repair_sound=voice;
     sound(io,voice,50);
@@ -179,16 +179,27 @@ void set_npc_path(Npc& s,IO& io,I32 destination){
  auto& g=s.graphs[static_cast<std::size_t>(s.screen)];
  s.path=io.shortest_path(g,s.current_node,destination);
  if(s.path.empty())throw std::runtime_error("original Maze shortest path returned no nodes");
+ // Retail stores the start separately from the first target node.
+ // The portable pathfinder returns start-inclusive node vectors.
+ if(s.path.size()>1&&s.path.front()==s.current_node)s.path.erase(s.path.begin());
  s.path_index=0;
+ s.current_direction=maze::spud_direction_to_path_node(
+     npc_node(s,s.current_node).links,s.path.front());
 }
-bool npc_step(Npc& s,IO& io,I32 speed){
+I32 npc_step_distance(Npc& s,IO& io,I32 speed){
  if(s.path_index<0||s.path_index>=static_cast<I32>(s.path.size()))
   throw std::out_of_range("original Spud path-index");
  const auto target=get_node(s.graphs[static_cast<std::size_t>(s.screen)],s.path[static_cast<std::size_t>(s.path_index)]);
  maze::move_actor_toward_node(s.graphs[static_cast<std::size_t>(s.screen)],target.id,s.position,speed);
  const float distance=io.actor_distance(s.position.x,s.position.y,
    static_cast<float>(target.retail_position.x),static_cast<float>(target.retail_position.y));
- return distance<3.f;
+ return static_cast<I32>(distance);
+}
+void capture_npc_waypoint(Npc& s,I32 next_index){
+ s.current_node=s.path[static_cast<std::size_t>(s.path_index)];
+ if(next_index>=0&&next_index<static_cast<I32>(s.path.size()))
+  s.current_direction=maze::spud_direction_to_path_node(
+      npc_node(s,s.current_node).links,s.path[static_cast<std::size_t>(next_index)]);
 }
 void decrement_herd_timer(HerdAnimal& animal){
  if(animal.source.animation_frame_countdown>0)
@@ -217,6 +228,7 @@ void update_maze_spud_npc(Npc& s,IO& io){
   // current 0x00510D18 screen before spawning/selecting a target.
   // Otherwise an off-screen reset can strand Spud in the previous map.
   s.screen=s.player_screen;
+  s.collision_latch=0;s.carry_active=0;s.current_direction=1;
   s.animation_frame=7;
   if(s.screen==1)s.current_node=maze::spud_random_edge_node(1,static_cast<I32>(io.random32()%2));
   else s.current_node=0;
@@ -243,8 +255,9 @@ void update_maze_spud_npc(Npc& s,IO& io){
   break;
  }
  case maze::SpudNpcPhase::TravelToPackage:{
-  const bool arrived=npc_step(s,io,s.difficulty==2?2:1);
-  if(!arrived)break;
+  const auto distance=npc_step_distance(s,io,s.difficulty==2?2:1);
+  if(distance>=3)break;
+  capture_npc_waypoint(s,s.path_index+1);
   auto& bank=s.packages[static_cast<std::size_t>(s.screen)];
   const auto& slot=bank[static_cast<std::size_t>(s.selected_package)];
   const auto result=maze::advance_spud_package_route(0,s.path_index,
@@ -258,30 +271,39 @@ void update_maze_spud_npc(Npc& s,IO& io){
   break;
  }
  case maze::SpudNpcPhase::BeginReturnPreparation:
+  s.collision_latch=0;
   s.phase=maze::spud_begin_return_phase();
   break;
  case maze::SpudNpcPhase::ChooseReturnRoute:{
   const auto& node=npc_node(s,s.current_node);
-  const auto choice=maze::select_spud_return_neighbor(node.links,s.current_direction,
-       static_cast<I32>(io.random32()%4),-1,{{-1,-1,-1,-1}});
+  s.collision_latch=0;
+  const auto prior=s.current_direction<4?s.current_direction:0;
+  const auto choice=maze::select_spud_return_neighbor(node.links,prior,
+       static_cast<I32>(io.random32()%4),s.player_node,s.player_links);
   s.current_direction=choice.direction;
   s.nearest_node_distance=999999;
   if(!choice.found_eligible_neighbor){
    s.phase=maze::SpudNpcPhase::ResetPath;break;
   }
-  s.path={choice.node_id};s.path_index=0;
+  s.path={choice.node_id};s.path_index=0;s.carry_active=1;
   s.phase=maze::SpudNpcPhase::TravelCarryingPackage;
   s.animation_countdown=20;
   break;
  }
  case maze::SpudNpcPhase::TravelCarryingPackage:{
-  const bool arrived=npc_step(s,io,maze::spud_carry_speed(s.difficulty));
+  const auto distance=npc_step_distance(s,io,maze::spud_carry_speed(s.difficulty));
   const auto player_gap=io.npc_distance_to_player(s);
-  const auto plan=maze::advance_spud_carry_frame(arrived?0:10,
+  // 0041D1CE consumes the waypoint roll BEFORE collision audio.
+  const int waypoint_roll=distance<3?static_cast<I32>(io.random32()%30):1;
+  const int voice_roll=waypoint_roll==0?static_cast<I32>(io.random32()%4):0;
+  const auto plan=maze::advance_spud_carry_frame(distance,
     s.nearest_node_distance,player_gap,s.collision_latch!=0,
-    1,0,0);
+    waypoint_roll,voice_roll,0);
   s.nearest_node_distance=plan.nearest_node_distance;
-  if(plan.captured_waypoint){s.current_node=s.path[static_cast<std::size_t>(s.path_index)];s.phase=plan.next_phase;}
+  if(plan.captured_waypoint){
+   capture_npc_waypoint(s,-1);s.phase=plan.next_phase;
+   if(plan.waypoint_voice)sound(io,*plan.waypoint_voice);
+  }
   if(plan.drop_package){
    s.carry_active=0;s.collision_latch=1;
    // Retail 0x0041D1CE stores status 3 and the Spud's actual
@@ -300,15 +322,16 @@ void update_maze_spud_npc(Npc& s,IO& io){
  }
  case maze::SpudNpcPhase::ResetPath:{
   const auto step=maze::spud_return_route_build(s.screen,
-    static_cast<I32>(io.random32()%2),20);
+    s.screen==1?static_cast<I32>(io.random32()%2):0,20);
   s.collision_latch=0;s.carry_active=0;s.animation_countdown=step.animation_countdown;
   set_npc_path(s,io,step.target_node);
   s.phase=step.next_phase;
   break;
  }
  case maze::SpudNpcPhase::TravelHome:{
-  const bool arrived=npc_step(s,io,s.difficulty==2?2:1);
-  if(!arrived)break;
+  const auto distance=npc_step_distance(s,io,s.difficulty==2?2:1);
+  if(distance>=3)break;
+  capture_npc_waypoint(s,s.path_index+1);
   const auto step=maze::advance_spud_home_route(0,s.path_index,
     static_cast<I32>(s.path.size()));
   s.path_index=step.next_path_index;s.phase=step.next_phase;

@@ -34,6 +34,9 @@ struct Npc {
      animation_frame{},nearest_node_distance{999999},carry_active{},
      collision_latch{},score{},timer_cooldown{};
  maze::ActorPosition position{};
+ // Original 0041CFFA avoids Bob's current node and its four links.
+ I32 player_node{-1};
+ std::array<I32,4> player_links{{-1,-1,-1,-1}};
  std::array<maze::ScreenGraph,3> graphs{};
  std::array<std::array<maze::SpudPackageSlot,4>,3> packages{};
  // The package slot stores a 0..3 index; the retail pathfinder uses the

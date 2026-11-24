@@ -401,7 +401,17 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
         // The original 0x0041D4D0 calls UpdateMazeSpudNPC after the
         // player update every active frame, including frozen pickups.
         // One shared package bank is authoritative for player and Spud.
+        if(npc_.player_screen!=player_.screen){
+            // 0041B140 reloads the offscreen timer on each portal.
+            npc_.offscreen_wait=npc_.spawn_interval;
+            if(npc_.phase==maze::SpudNpcPhase::SpawnWait)
+                npc_.spawn_wait=npc_.spawn_interval;
+        }
         npc_.player_screen=player_.screen;
+        npc_.player_node=player_.node;
+        const auto& player_graph=player_.graphs[static_cast<std::size_t>(player_.screen)];
+        for(const auto& node:player_graph.nodes)
+            if(node.id==player_.node){npc_.player_links=node.links;break;}
         npc_.packages=boxes_.screens;
         MazePlayerPort spud_io(input,out,player_,input_mode_,
                                mouse_debounce_,pointer_sampled_,random_stream());
