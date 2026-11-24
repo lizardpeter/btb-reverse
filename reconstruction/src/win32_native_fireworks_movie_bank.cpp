@@ -211,8 +211,13 @@ bool Win32HybridFireworksMovieBank::decode_and_queue(
 bool Win32HybridFireworksMovieBank::blit_queued_show(
  std::string& error){
  if(!active_){error.clear();return true;}
- return using_native_?native_.blit_queued_show(error):
-                      retail_.blit_queued_show(error);
+ const bool ok=using_native_?native_.blit_queued_show(error):
+                             retail_.blit_queued_show(error);
+ // Consume this tick's cues. The terminal show frame can be submitted
+ // after state changes to Certificate, but must never leak into later
+ // certificate or replay frames.
+ if(ok)begin_show_frame();
+ return ok;
 }
 bool Win32HybridFireworksMovieBank::ready() const noexcept {
  return active_&&(using_native_?native_.ready():retail_.ready());

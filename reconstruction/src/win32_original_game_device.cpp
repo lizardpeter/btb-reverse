@@ -45,7 +45,11 @@ bool Win32OriginalGameDevice::apply_sound(
 bool Win32OriginalGameDevice::draw_ordered(
     const std::vector<ResolvedDraw>& stream,std::string& error) {
 
-    if (!draw_.render_ordered(stream,error)) {
+    std::vector<ResolvedDraw> before,after;
+    before.reserve(stream.size());
+    for(const auto& draw:stream)
+        (draw.original.after_activity_movie?after:before).push_back(draw);
+    if (!draw_.render_ordered(before,error)) {
         return false;
     }
     // Original Spud Skate's selected 600x380 decoded Bink stream is
@@ -53,6 +57,7 @@ bool Win32OriginalGameDevice::draw_ordered(
     // replaces/forges activity frames or skips the actual movie decoder.
     if(activity_movie_overlay_ && !activity_movie_overlay_(error))
         return false;
+    if(!after.empty()&&!draw_.render_additional(after,error))return false;
     // Source-backed looping walkthrough Bink overlays belong above the
     // original instructional background and button surfaces.
     return bink_.render_walkthrough_overlay(error);

@@ -223,6 +223,9 @@ int main() {
     assert(playing.audio[0].operation==fg::AudioOperation::StopManagedSounds);
     assert(playing.audio[1].sound_id==fw::kCrowdEndSoundId);
     assert(shows.editor().internal_state==fw::InternalState::ShowPlayback);
+    assert(shows.shared_back_available()&&shows.shared_back_starts_replay());
+    assert(playing.draws.back().source_asset=="Data/SubGameFirework/minimised.bmp");
+    assert(playing.draws.back().color_keyed&&playing.draws.back().after_activity_movie);
     assert(!shows.advance({
         .managed_sound_playing=true,.elapsed_centiseconds=461,
         .fireworks_crowd_end_sound_playing=true}).fatal_error);
@@ -265,6 +268,12 @@ int main() {
     assert(!printing.save_and_unload);
     assert(printing.progress_writes.empty());
     assert(shows.editor().internal_state==fw::InternalState::Certificate);
+    assert(shows.shared_back_available()&&shows.shared_back_starts_replay());
+    fg::ActivityFrameOutput edit{};
+    assert(shows.resume_fireworks_replay(false,edit,error));
+    assert(shows.editor().internal_state==fw::InternalState::Editor);
+    assert(source_bank_close==1&&shows.initialized());
+    assert(edit.audio.size()==1&&edit.audio[0].source_asset=="Data/music/grandopening.wav");
     assert(shows.unload(error));
     assert(source_bank_close==1);
 

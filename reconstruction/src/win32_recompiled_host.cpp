@@ -400,8 +400,10 @@ struct Host {
                 // over the certificate's own original artwork.
                 if(fireworks_bank && fireworks_driver &&
                    fireworks_driver->initialized() &&
-                   fireworks_driver->editor().internal_state==
-                       fireworks::InternalState::ShowPlayback)
+                   (fireworks_driver->editor().internal_state==
+                       fireworks::InternalState::ShowPlayback||
+                    fireworks_driver->editor().internal_state==
+                       fireworks::InternalState::Certificate))
                     return fireworks_bank->blit_queued_show(error);
                 error.clear();return true;
             });
