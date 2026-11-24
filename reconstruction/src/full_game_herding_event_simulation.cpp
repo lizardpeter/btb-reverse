@@ -114,6 +114,12 @@ bool apply_confirmed_event(
     case HerdingObservedKind::ReachHomeWaypoint:
         step=staged.arrive_at_home_waypoint(event.entity_index,true);
         break;
+    case HerdingObservedKind::AnimalChatter:
+        if(event.source_verified_sound_id<0x331 || event.source_verified_sound_id>0x339) {
+            error="invalid native animal chatter ID";return false;
+        }
+        sounds.push_back({AudioOperation::ManagedSoundId,{},event.source_verified_sound_id,10,0});
+        return true;
     }
     if (!step.accepted) {
         error="Herding source event conflicts with retail behavior state";
@@ -121,6 +127,8 @@ bool apply_confirmed_event(
     }
 
     for (auto& sound : speech_for_id(step.sound_id)) {
+        if(event.kind==HerdingObservedKind::PickUpFood) sound.priority=90;
+        if(event.kind==HerdingObservedKind::JoinFollower) sound.priority=10;
         sounds.push_back(std::move(sound));
     }
     // Scruffty's randomized reaction has no fixed ID. The exact source
@@ -128,6 +136,7 @@ bool apply_confirmed_event(
     if (event.kind==HerdingObservedKind::ScrufftyCollision &&
         event.source_verified_sound_id>=0) {
         for (auto& sound : speech_for_id(event.source_verified_sound_id)) {
+            sound.priority=90;
             sounds.push_back(std::move(sound));
         }
     }
@@ -822,6 +831,66 @@ bool HerdingEventSimulation::advance(
     // locomotion are checked before any state mutation is committed.
     // A close-range/edge-of-map candidate MUST NOT masquerade as
     // recovered ordinary roaming or fabricate new followers.
+    // Replay the close-range wrong-food movement and the exact 1/2-draw
+    // voice decision using the host's physical sound snapshot.
+    std::vector<bool> near_seen(candidate.entities().size(),false);
+    for(const auto& probe:observed.near_retreat_evidence) {
+        const auto i=probe.entity_index;
+        if(i==0 || i>=candidate.entities().size() || near_seen[i] ||
+           candidate.followers().contains(static_cast<int>(i)) ||
+           (observed.source_ordered_food_and_tracking && tracked_slots_.contains(static_cast<int>(i)))) {
+            error="native near-retreat membership or duplicate evidence invalid";return false;
+        }
+        near_seen[i]=true;
+        const auto& prior=candidate.entities()[i];
+        if(prior.entity_id!=probe.before.entity_id || prior.type!=probe.before.type ||
+           prior.x!=probe.before.x || prior.y!=probe.before.y ||
+           prior.x_float!=probe.before.x_float || prior.y_float!=probe.before.y_float ||
+           prior.movement_speed!=probe.before.movement_speed ||
+           prior.animation_frame!=probe.before.animation_frame ||
+           prior.animation_frame_countdown!=probe.before.animation_frame_countdown ||
+           prior.behavior_state!=0 ||
+           (prior.temporary_target_timer!=probe.before.temporary_target_timer &&
+            !(prior.temporary_target_timer==1 && probe.before.temporary_target_timer==0)) ||
+           herding::required_food_for(prior.entity_type())==candidate.food().selected) {
+            error="native near-retreat contradicts original animal prestate";return false;
+        }
+        const auto expected=herding::original_herding_near_retreat(probe.before,observed.motion_records.front());
+        if(!expected) {error="near-retreat lacks original strict 80-unit gate";return false;}
+        auto moved=expected->moved;
+        const auto inside=retail_geometry::original_polygon_contains(data_.retail_transformed_group0(),moved.x,moved.y);
+        if(!inside || probe.boundary_recovered==*inside) {error="native near-retreat boundary gate invalid";return false;}
+        if(!*inside) {
+            const auto point=herding::animal_navigation_recovery_target(data_);
+            if(!point) {error="near-retreat original group-three point missing";return false;}
+            const auto recovered=herding::original_far_untracked_animal_boundary_recovery(probe.before,moved,*point);
+            if(!recovered) {error="near-retreat original recovery invalid";return false;}
+            moved=recovered->animal;
+            moved.movement_active=1;
+        }
+        const auto species=prior.type-1;
+        const auto offset=static_cast<std::size_t>(species*3);
+        retail::OriginalRetailRandom replay{probe.rng_before};
+        const auto chatter=herding::original_herding_animal_chatter(replay,species,{
+            input.herding_animal_sound_playing[offset],
+            input.herding_animal_sound_playing[offset+1],
+            input.herding_animal_sound_playing[offset+2]});
+        const auto voice_count=std::count_if(observed.events.begin(),observed.events.end(),[&](const auto& event){
+            return event.kind==HerdingObservedKind::AnimalChatter && event.entity_index==i &&
+                   probe.sound_id && event.source_verified_sound_id==*probe.sound_id;
+        });
+        const auto& actual=observed.motion_records[i];
+        if(!chatter || chatter->requested_sound_id!=probe.sound_id || replay.state()!=probe.rng_after ||
+           voice_count!=(probe.sound_id?1:0) ||
+           actual.x!=moved.x || actual.y!=moved.y || actual.direction!=moved.direction ||
+           actual.previous_x!=moved.previous_x || actual.previous_y!=moved.previous_y ||
+           actual.movement_active!=moved.movement_active || actual.movement_speed!=moved.movement_speed ||
+           actual.animation_frame!=moved.animation_frame || actual.animation_frame_countdown!=moved.animation_frame_countdown ||
+           !std::isfinite(actual.x_float) || !std::isfinite(actual.y_float) ||
+           std::fabs(actual.x_float-moved.x_float)>0.001f || std::fabs(actual.y_float-moved.y_float)>0.001f) {
+            error="native near-retreat motion, voice, or RNG differs from original";return false;
+        }
+    }
     for (const auto& probe : observed.far_roam_evidence) {
         if (probe.entity_index==0 ||
             probe.entity_index>=candidate.entities().size() ||
@@ -919,6 +988,10 @@ bool HerdingEventSimulation::advance(
         candidate.entities().size(),false);
     for (const auto& event : observed.events) {
         if(food_applied && event.kind==HerdingObservedKind::PickUpFood)continue;
+        if(event.kind==HerdingObservedKind::AnimalChatter &&
+           !std::any_of(observed.near_retreat_evidence.begin(),observed.near_retreat_evidence.end(),[&](const auto& p){return p.entity_index==event.entity_index && p.sound_id && *p.sound_id==event.source_verified_sound_id;})) {
+            error="animal chatter lacks original retreat/RNG evidence";return false;
+        }
         if(observed.require_native_event_proofs) {
             // A caller-supplied confirmed=true assertion is NOT proof
             // that an animal physically reached the original contact.

@@ -163,7 +163,7 @@ bool NativePicklesMotionSource::initialize(
 
 bool NativePicklesMotionSource::advance(
     const herding::Data& data,
-    const ActivityFrameInput&,
+    const ActivityFrameInput& input,
     const herding::PicklesKeyboardMotion& motion,
     const std::vector<herding::RetailEntityRecord32>& source,
     HerdingObservedFrame& observed,std::string& error) {
@@ -524,6 +524,42 @@ bool NativePicklesMotionSource::advance(
             }
             if(following)continue;
 
+            const auto retreat=herding::original_herding_near_retreat(before,hero);
+            if(retreat) {
+                auto& rng=shared_random_?*shared_random_:standalone_random_;
+                const auto rng_before=rng.state();
+                const auto species=before.type-1;
+                const auto offset=static_cast<std::size_t>(species*3);
+                const std::array<bool,3> statuses{{
+                    input.herding_animal_sound_playing[offset],
+                    input.herding_animal_sound_playing[offset+1],
+                    input.herding_animal_sound_playing[offset+2]}};
+                const auto chatter=herding::original_herding_animal_chatter(rng,species,statuses);
+                if(!chatter) {error="original near-retreat chatter input invalid";return false;}
+                auto moved=retreat->moved;
+                const auto inside=retail_geometry::original_polygon_contains(nav,moved.x,moved.y);
+                if(!inside) {error="original near-retreat polygon probe failed";return false;}
+                if(!*inside) {
+                    const auto point=herding::animal_navigation_recovery_target(data);
+                    if(!point) {error="original near-retreat group-three point missing";return false;}
+                    const auto recovered=herding::original_far_untracked_animal_boundary_recovery(before,moved,*point);
+                    if(!recovered) {error="original near-retreat boundary recovery invalid";return false;}
+                    moved=recovered->animal;
+                    // The original 419217 clears speed, not the active latch.
+                    moved.movement_active=1;
+                }
+                observed.motion_records[i]=moved;
+                observed.near_retreat_evidence.push_back({i,before,rng_before,rng.state(),chatter->requested_sound_id,!*inside});
+                if(chatter->requested_sound_id) {
+                    HerdingObservedEvent voice{};
+                    voice.kind=HerdingObservedKind::AnimalChatter;
+                    voice.entity_index=i;
+                    voice.retail_trigger_confirmed=true;
+                    voice.source_verified_sound_id=*chatter->requested_sound_id;
+                    observed.events.push_back(std::move(voice));
+                }
+                continue;
+            }
             const auto step=herding::original_far_untracked_animal_roam_step(
                 before,hero,nav);
             switch(step.coverage) {

@@ -83,8 +83,8 @@ original_herding_ordinary_follower_step(
             return std::nullopt;
     }
 
-    const double distance=std::hypot(
-        static_cast<double>(ax-hx),static_cast<double>(ay-hy));
+    const float distance=static_cast<float>(std::hypot(
+        static_cast<double>(ax-hx),static_cast<double>(ay-hy)));
     if(!std::isfinite(distance) ||
        distance>std::numeric_limits<int>::max()-1024)
         return std::nullopt;
@@ -120,8 +120,8 @@ original_herding_ordinary_follower_step(
         heading=*source_heading;
         facing=(heading+22)/45;
         if(facing>=8)facing-=8;
-        if(before.direction!=facing && speed>=kRetailFollowTurnThreshold)
-            speed*=kRetailFollowTurnScale;
+        if(before.direction!=facing && speed>kRetailFollowTurnThreshold)
+            speed=static_cast<float>(speed*kRetailFollowTurnScale);
     }
 
     moved.direction=facing;
@@ -129,7 +129,8 @@ original_herding_ordinary_follower_step(
     // computing orbit direction. Speed gains depend on distance to
     // Pickles' SOURCE formation origin, not the selected orbit point.
     if(!holds) {
-        const double gap=distance-(formation_ordinal*50+15);
+        // 0x417717 increments the ordinal BEFORE 0x41782B consumes it.
+        const double gap=static_cast<double>(distance)-((formation_ordinal+1)*50+15);
         if(gap<=1.0) {
             speed=speed>=kRetailFollowBrake
                 ? speed-kRetailFollowBrake:0.0;
@@ -140,14 +141,20 @@ original_herding_ordinary_follower_step(
             if(speed>=kRetailFollowQuietSpeed)
                 speed-=kRetailFollowFineBrake;
         }
-        const auto step=original_herding_steering_step(
-            before.x_float,before.y_float,heading,
-            static_cast<float>(speed),false);
-        if(!step)return std::nullopt;
-        moved.x_float=step->x;
-        moved.y_float=step->y;
-        moved.x=step->rounded_x;
-        moved.y=step->rounded_y;
+        // Source stores speed, FSIN and FCOS to binary32 before multiplying.
+        speed=static_cast<float>(speed);
+        const double radians=static_cast<double>(heading)*kRetailHerdingRadiansPerDegree;
+        const auto sine=static_cast<float>(std::sin(radians));
+        const auto cosine=static_cast<float>(std::cos(radians));
+        moved.x_float=static_cast<float>(static_cast<double>(before.x_float)+sine*speed);
+        moved.y_float=static_cast<float>(static_cast<double>(before.y_float)-cosine*speed);
+        if(!std::isfinite(moved.x_float)||!std::isfinite(moved.y_float)||
+           moved.x_float<=static_cast<float>(std::numeric_limits<int>::min()) ||
+           moved.x_float>=static_cast<float>(std::numeric_limits<int>::max()) ||
+           moved.y_float<=static_cast<float>(std::numeric_limits<int>::min()) ||
+           moved.y_float>=static_cast<float>(std::numeric_limits<int>::max()))return std::nullopt;
+        moved.x=static_cast<int>(moved.x_float);
+        moved.y=static_cast<int>(moved.y_float);
         // 0x41792B: animation timer = truncate(old_timer -
         // source speed * 10). Nonmoving formation-hold skips this.
         moved.animation_frame_countdown=static_cast<int>(

@@ -17,6 +17,8 @@
 #include "btb/herding_source_home_motion.hpp"
 #include "btb/herding_source_delivered_animation.hpp"
 #include "btb/herding_source_ordinary_following.hpp"
+#include "btb/herding_source_near_retreat.hpp"
+#include "btb/herding_source_animal_chatter.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -37,7 +39,8 @@ enum class HerdingObservedKind {
     ScrufftyCollision,
     TrackedTargetArrived,
     EnterHomeRoute,
-    ReachHomeWaypoint
+    ReachHomeWaypoint,
+    AnimalChatter
 };
 
 struct HerdingCollisionEvidence {
@@ -102,6 +105,16 @@ struct HerdingRoamingRecoveryEvidence {
 // A narrow original free-roam branch: animals farther than 80 from
 // Pickles and not following drift through the exact retail 8-way
 // table when the new point stays inside main navigation polygon.
+struct HerdingNearRetreatEvidence {
+    std::size_t entity_index{};
+    herding::RetailEntityRecord32 before{};
+    std::uint32_t rng_before{};
+    std::uint32_t rng_after{};
+    std::optional<int> sound_id{};
+    // Group-0 recovery applies to nonfollowers even after active AI.
+    bool boundary_recovered{};
+};
+
 struct HerdingFarRoamEvidence {
     std::size_t entity_index{};
     herding::RetailEntityRecord32 before{};
@@ -195,6 +208,7 @@ struct HerdingObservedFrame {
     std::vector<HerdingSteeringEvidence> steering_evidence{};
     std::vector<HerdingRoamingRecoveryEvidence> recovery_evidence{};
     std::vector<HerdingFarRoamEvidence> far_roam_evidence{};
+    std::vector<HerdingNearRetreatEvidence> near_retreat_evidence{};
     std::vector<HerdingFarBoundaryEvidence> far_boundary_evidence{};
     std::vector<HerdingOrdinaryFollowerEvidence> ordinary_follower_evidence{};
     std::vector<HerdingTrackedAdmissionEvidence> tracked_admission_evidence{};

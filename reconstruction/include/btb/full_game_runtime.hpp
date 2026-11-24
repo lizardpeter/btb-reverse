@@ -210,6 +210,8 @@ struct ActivityFrameInput {
     // Source IsSoundIdPlaying(349) from the exact managed-slot map AND
     // actual DirectSound GetStatus; not inferred from any-playing.
     bool fireworks_crowd_end_sound_playing{};
+    // Physical managed-voice status of 0x331..0x339 at frame entry.
+    std::array<bool,9> herding_animal_sound_playing{};
 };
 
 struct ActivityFrameOutput {
