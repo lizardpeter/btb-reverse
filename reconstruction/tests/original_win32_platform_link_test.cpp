@@ -5,6 +5,10 @@
 #include "btb/win32_original_display_lifecycle.hpp"
 #include "btb/win32_original_main_window_proc.hpp"
 #include "btb/win32_retail_bink_provider.hpp"
+#include "btb/win32_hybrid_bink_provider.hpp"
+#include "btb/win32_native_spud_skate_movies.hpp"
+#include "btb/win32_native_fireworks_movie_bank.hpp"
+#include <memory>
 #include <cstdio>
 
 int main() {
@@ -125,6 +129,32 @@ int main() {
     if(invalid_display.blit_bink_offscreen_surface(
            nullptr,282,179,63,157,display_error) ||
        display_error.empty())return 40;
+    // Missing source media must fail through the reconstructed decoder on
+    // x64 even with all legacy experimental flags disabled. No DLL fallback.
+    if constexpr(sizeof(void*)==8) {
+        using namespace btb::full_game;
+        const std::filesystem::path missing{};
+        Win32OriginalDirectSound audio{};
+        auto movies=std::make_unique<Win32HybridBinkProvider>(
+            invalid_display,audio,missing,false,false);
+        std::string error;
+        if(movies->open_global(missing,error) ||
+           !error.starts_with("native-only x64 Bink global: "))return 41;
+        error.clear();
+        if(movies->open_walkthrough(missing,missing,error) ||
+           !error.starts_with("native-only x64 Bink walkthrough: "))return 42;
+        auto skate=std::make_unique<Win32HybridSpudSkateMovies>(
+            invalid_display,missing,false);
+        std::array<std::filesystem::path,5> clips{};
+        error.clear();
+        if(skate->open(clips,error) ||
+           !error.starts_with("native-only x64 Spud Skate Bink: "))return 43;
+        auto fireworks=std::make_unique<Win32HybridFireworksMovieBank>(
+            invalid_display,missing,false);
+        error.clear();
+        if(fireworks->open(missing,error) ||
+           !error.starts_with("native-only x64 Fireworks Bink: "))return 44;
+    }
 #endif
     return 0;
 }

@@ -170,6 +170,9 @@ bool Win32HybridFireworksMovieBank::open(
   using_native_=active_=true;error.clear();return true;
  }
  std::string ignored;(void)native_.close(ignored);
+ if constexpr(sizeof(void*)==8){
+  error="native-only x64 Fireworks Bink: "+native_error;return false;
+ }
  if(retail_.open(folder,error)){
   active_=true;using_native_=false;return true;
  }

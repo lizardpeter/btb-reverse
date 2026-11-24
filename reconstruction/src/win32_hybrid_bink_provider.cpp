@@ -25,6 +25,10 @@ bool Win32HybridBinkProvider::open_global(
         error.clear();
         return true;
     }
+    if constexpr(sizeof(void*)==8) {
+        error="native-only x64 Bink global: "+native_error;
+        return false;
+    }
     std::string retail_error;
     if(retail_.open_global(movie,retail_error)) {
         global_=Backend::retail;
@@ -72,6 +76,10 @@ bool Win32HybridBinkProvider::open_walkthrough(
         walkthrough_=Backend::native;
         error.clear();
         return true;
+    }
+    if constexpr(sizeof(void*)==8) {
+        error="native-only x64 Bink walkthrough: "+native_error;
+        return false;
     }
     std::string retail_error;
     if(retail_.open_walkthrough(movie,help_wav,retail_error)) {

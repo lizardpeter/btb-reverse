@@ -175,6 +175,9 @@ bool Win32HybridSpudSkateMovies::open(
   using_native_=active_=true;error.clear();return true;
  }
  std::string ignored;(void)native_.close(ignored);
+ if constexpr(sizeof(void*)==8){
+  error="native-only x64 Spud Skate Bink: "+native_error;return false;
+ }
  if(retail_.open(files,error)){
   using_native_=false;active_=true;return true;
  }

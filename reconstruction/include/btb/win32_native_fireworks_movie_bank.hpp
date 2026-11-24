@@ -37,7 +37,7 @@ class Win32HybridFireworksMovieBank final {
 public:
  Win32HybridFireworksMovieBank(Win32OriginalDirectDraw& d,
                               std::filesystem::path root,bool enabled)
-  :native_(d),retail_(d,std::move(root)),enabled_(enabled){}
+  :native_(d),retail_(d,std::move(root)),enabled_(sizeof(void*)==8||enabled){}
  bool open(const std::filesystem::path&,std::string&);
  bool restart(std::size_t,std::string&);
  bool close(std::string&);

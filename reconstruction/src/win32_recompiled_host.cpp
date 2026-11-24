@@ -47,8 +47,8 @@ namespace btb::full_game {
 namespace {
 namespace fs=std::filesystem;
 
-// Native movie audio/video require separate explicit developer opt-ins.
-// Normal retail playback remains unchanged, including Fireworks cancellation.
+// These flags select experimental native playback on x86 only.
+// x64 provider constructors always select the reconstructed decoder.
 [[nodiscard]] bool native_bink_opt_in(const wchar_t* key) noexcept {
     wchar_t value[3]{};
     return GetEnvironmentVariableW(key,value,3)==1 &&
@@ -80,8 +80,8 @@ struct Host {
     fs::path root{};
     Win32OriginalDirectDraw graphics{};
     Win32OriginalDirectSound audio{};
-    // The original 2002 binkw32.dll is directly callable from
-    // the native x86 build; the x64 build rejects that ABI safely.
+    // The x86 build can use the original DLL as a reference.
+    // The x64 build uses the reconstructed Bink1 backends exclusively.
     Win32HybridBinkProvider movies;
     // Borrowed pointer; the actual decoder is owned by SpudSkateDriver.
     // GameDevice only asks it to blit the currently decoded surface.
@@ -265,10 +265,9 @@ struct Host {
             std::make_unique<SpudMazeDriver>(root,0));
         game.install(ActivityId::Squirrel,
             std::make_unique<SquirrelDriver>(root,0));
-        // Use the original x86 Bink DLL for all FOUR synchronized
-        // stunt-quality tracks and the fifth end.bik track, with
+        // The x64 host uses five native reconstructed Bink streams;
+        // x86 retains the original DLL for comparison. Both require
         // actual decoded DD7 buffers (not fabricated frame numbers).
-        // x64 fails explicitly until a compatible native decoder.
         auto skate_backend=
             std::make_unique<Win32HybridSpudSkateMovies>(graphics,root,
                  native_bink_opt_in(L"BTB_EXPERIMENTAL_NATIVE_BINK_SKATE"));

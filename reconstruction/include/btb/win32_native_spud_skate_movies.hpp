@@ -32,7 +32,7 @@ private:
 class Win32HybridSpudSkateMovies final : public SpudSkateMovieSource {
 public:
  Win32HybridSpudSkateMovies(Win32OriginalDirectDraw& d,std::filesystem::path root,bool enabled)
- :native_(d),retail_(d,std::move(root)),enabled_(enabled){}
+ :native_(d),retail_(d,std::move(root)),enabled_(sizeof(void*)==8||enabled){}
  bool open(const std::array<std::filesystem::path,5>&,std::string&) override;
  bool observe(SpudSkateMovieFrame&,std::string&) override;
  bool select_quality(spud_skate::StuntQuality,std::string&) override;

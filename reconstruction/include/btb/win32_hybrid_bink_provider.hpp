@@ -1,6 +1,6 @@
 #pragma once
-// Bink1 game interface that selects native decoded video when safe, while
-// retaining the original DLL for films carrying compressed audio.
+// x64 uses only the reconstructed Bink1 video/audio implementation.
+// x86 retains the retail decoder for comparison and optional native trials.
 // No fake track muting, movie-completion timers or synthetic frames.
 #if defined(_WIN32)
 #include "btb/win32_native_silent_bink_provider.hpp"
@@ -17,9 +17,9 @@ public:
                             std::filesystem::path root,
                             bool experimental_audio=false,
                             bool experimental_video=false)
-        : native_(renderer,audio,experimental_audio),
+        : native_(renderer,audio,sizeof(void*)==8||experimental_audio),
           retail_(renderer,std::move(root)),
-          native_enabled_(experimental_video||experimental_audio) {}
+          native_enabled_(sizeof(void*)==8||experimental_video||experimental_audio) {}
     void cancel_global_movie() noexcept;
     [[nodiscard]] bool close_global(std::string& error) override;
     [[nodiscard]] bool open_global(

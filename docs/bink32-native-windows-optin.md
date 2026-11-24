@@ -1,14 +1,18 @@
-# Opt-in reconstructed Bink1 playback on current main
+# Native reconstructed Bink1 playback on Windows
 
-The original 2002 x86 Bink DLL remains the default for the real modern game host; no ordinary player-visible behavior is replaced. This adapter reuses the already-merged portable native Bink1 decoder with real DirectDraw7 upload and DirectSound8 audio. It is for Windows dev/recovery verification while original retail audio parity remains pending.
+The Windows x64 game now selects the source-reconstructed Bink1 decoder for global movies (including single-track PCM audio), walkthroughs, Spud Skate's five streams, and the Fireworks movie bank by default. No environment switches are required. It does not fall back to the original 2002 x86 Bink DLL if media is missing, unsupported, or decoding fails. Such failures are explicit. This is a native-only integration candidate, not a claim that all retail movies or whole-game playback have been certified.
 
-In PowerShell set the optional switches before launching the current game:
+The Windows x86 build retains the retail DLL by default as a comparison path. Native x86 trials can use the existing environment flags:
 
-    $env:BTB_EXPERIMENTAL_NATIVE_BINK_VIDEO = "1"
-    $env:BTB_EXPERIMENTAL_NATIVE_BINK_AUDIO = "1"
+```powershell
+$env:BTB_EXPERIMENTAL_NATIVE_BINK_VIDEO = "1"
+$env:BTB_EXPERIMENTAL_NATIVE_BINK_AUDIO = "1"
+$env:BTB_EXPERIMENTAL_NATIVE_BINK_SKATE = "1"
+$env:BTB_EXPERIMENTAL_NATIVE_BINK_FIREWORKS = "1"
+```
 
-Setting the AUDIO flag implies attempting native video as well, only for supported source 640x480 movies. Video-only opt-in requires a movie with no compressed audio track; audio-bearing movies fall back to the original x86 DLL. Walkthrough loops remain source 282x179 with separate original WAV narration. Unsupported/unverifiable tracks and decoding errors also fall back to original playback where available. The x64 original DLL cannot be loaded.
+The AUDIO flag enables the native global movie path for supported 640x480 movies with exactly one compressed audio track; video-only opt-in requires no compressed audio. The x86 comparison path may fall back to original playback. Walkthrough loops remain source 282x179 with separate original WAV narration. Native specialized activity streams retain their own source-backed rendering and timing constraints.
 
-All assets remain read-only, compressed samples and decoded video are kept in memory (no extracted game media files). The experimental full-movie PCM buffer is bounded to 64 MiB and uses the game-owned DirectSound8 device, with audio cursor pacing and monotonic EOS handling.
+Original assets remain read-only. Compressed samples and decoded frames are held in memory; the experimental full-movie PCM buffer is bounded to 64 MiB and uses the game-owned DirectSound8 device with audio cursor pacing and monotonic EOS handling.
 
-The original game still relies on its independent specialized Bink players for Spud Skate and Fireworks; this change does not replace them. Native PCM playback is not retail-certified, and Windows automated build/link tests cannot substitute for a real device test.
+The original Win32 platform-link test now checks all four x64 native-only missing-media error paths with opt-ins disabled. This verifies fail-closed routing, not retail movie fidelity. Real-device playback, differential validation and a complete all-activity playthrough remain required.
