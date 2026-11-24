@@ -1,5 +1,6 @@
 #include "btb/full_game_fireworks.hpp"
 #include "btb/fireworks_certificate_native.hpp"
+#include "btb/original_asset_resolver.hpp"
 
 #include <array>
 #include <cstdint>
@@ -93,6 +94,7 @@ bool FireworksDriver::initialize(int player_index, std::string& error) {
         editor_ = fireworks::EditorRuntimeState{};
         player_index_ = player_index;
         awaiting_delete_confirmation_ = false;
+        intro_audio_stage_=1;
         pre_show_movie_open_ = false;
         movie_bank_open_ = false;
         show_runtime_.reset();
@@ -184,6 +186,20 @@ ActivityFrameOutput FireworksDriver::advance(
 
     using fireworks::InternalState;
     auto state = editor_.internal_state;
+    // 00413F10's entry preamble starts original music index 4 and
+    // input-interruptible Bob 861, then Wendy 898 after real voice EOS.
+    // A Play click in that interval must wait for the second voice too.
+    bool queued_intro_voice=false;
+    if(intro_audio_stage_==1) {
+        output.audio.push_back({AudioOperation::StartBackingTrack,
+                                "Data/music/grandopening.wav"});
+        output.audio.push_back({AudioOperation::StopManagedSounds});
+        output.audio.push_back({AudioOperation::ManagedSoundId,{},861,50,1,true});
+        intro_audio_stage_=2;queued_intro_voice=true;
+    }else if(intro_audio_stage_==2&&!input.managed_sound_playing){
+        output.audio.push_back({AudioOperation::ManagedSoundId,{},898,50,1,true});
+        intro_audio_stage_=0;queued_intro_voice=true;
+    }
     const auto draw_original_editor = [&]() {
         const auto frame = fireworks::run_retail_editor_frame(
             editor_,sequence_,*layout_,input.pointer_x,input.pointer_y);
@@ -199,7 +215,7 @@ ActivityFrameOutput FireworksDriver::advance(
     // does it open the original disk Bink and advance to state 15.
     // No clock, inferred audio status, or synthetic EOS shortcut.
     if(state == InternalState::PreShowMovieSetup) {
-        if(!fireworks::should_open_pre_show_movie(
+        if(queued_intro_voice||!fireworks::should_open_pre_show_movie(
                 input.managed_sound_playing)) {
             draw_original_editor();
             return output;
@@ -218,6 +234,7 @@ ActivityFrameOutput FireworksDriver::advance(
             return output;
         }
         pre_show_movie_open_=true;
+        output.audio.push_back({AudioOperation::StopBackingTrack});
         editor_.internal_state=InternalState::PreShowMoviePlayback;
         // The native renderer clears the now-empty editor surface as retail
         // does before drawing the original Bink frames on later ticks.
@@ -263,6 +280,13 @@ ActivityFrameOutput FireworksDriver::advance(
         // before entering state 9; the state-15 voice ID 142 must not
         // continue underneath the authored fireworks and crowd audio.
         output.audio.push_back({AudioOperation::StopManagedSounds});
+        // 00411C80 creates tune.wav; 00413F10 state 8 loops it, and
+        // 00413450 resets/stops it on the certificate transition.
+        // The original installed EXE has tune.wav adjacent; the retail
+        // CD's Exe directory contains that same asset.
+        const OriginalAssetResolver assets(original_data_dir_.parent_path().parent_path());
+        const auto tune=assets.resolve("tune.wav").found()?"tune.wav":"Exe/tune.wav";
+        output.audio.push_back({AudioOperation::StartBackingTrack,tune});
         show_runtime_.reset();
         show_started_centiseconds_=input.elapsed_centiseconds;
         editor_.internal_state=InternalState::ShowPlayback;
@@ -311,8 +335,10 @@ ActivityFrameOutput FireworksDriver::advance(
         }
         if(decisions.stop_all_for_certificate)
             output.audio.push_back({AudioOperation::StopManagedSounds});
-        if(decisions.enter_certificate)
+        if(decisions.enter_certificate) {
+            output.audio.push_back({AudioOperation::StopBackingTrack});
             editor_.internal_state=InternalState::Certificate;
+        }
         // The original authored-show background is NOT the editor's
         // Bk_01e.bmp. Its verified registered DD7 surface is 0x0050AB10.
         // Render this opaque 640x480 retail bitmap before the separately
@@ -508,6 +534,7 @@ bool FireworksDriver::resume_fireworks_replay(
     editor_.internal_state=view?fireworks::InternalState::ShowSetup:fireworks::InternalState::Editor;
     show_runtime_.reset();certificate_state_={};
     awaiting_delete_confirmation_=false;
+    intro_audio_stage_=0;
     if(!view)output.audio.push_back({AudioOperation::StartBackingTrack,
                                     "Data/music/grandopening.wav"});
     error.clear();return true;
@@ -570,6 +597,7 @@ bool FireworksDriver::unload(std::string& error) {
     editor_ = fireworks::EditorRuntimeState{};
     player_index_ = -1;
     awaiting_delete_confirmation_ = false;
+    intro_audio_stage_=1;
     pre_show_movie_open_=false;
     movie_bank_open_=false;
     show_runtime_.reset();

@@ -1,5 +1,6 @@
 #include "btb/full_game_runtime.hpp"
 
+#include <algorithm>
 #include <utility>
 #include <exception>
 #include <fstream>

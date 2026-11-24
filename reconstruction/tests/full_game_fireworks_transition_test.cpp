@@ -63,6 +63,9 @@ int main() {
         if(sound.operation==fg::AudioOperation::ManagedSoundId &&
            sound.sound_id==880)played_voice=true;
     assert(played_voice);
+    assert(clicked.audio[0].operation==fg::AudioOperation::StartBackingTrack);
+    assert(clicked.audio[0].source_asset=="Data/music/grandopening.wav");
+    assert(clicked.audio[2].sound_id==861&&clicked.audio[2].input_interruptible);
 
     // Original 0x00413F10 state 14 waits WHILE sound 880 is playing.
     // The Bink opens only after its actual DirectSound status goes idle.
@@ -72,10 +75,14 @@ int main() {
     assert(!waiting.draws.empty());
     assert(opens==0);
 
+    const auto wendy=activity.advance({.managed_sound_playing=false});
+    assert(!wendy.fatal_error&&opens==0&&wendy.audio.size()==1);
+    assert(wendy.audio[0].sound_id==898&&wendy.audio[0].input_interruptible);
     const auto started=activity.advance({
         .pointer_x=320,.pointer_y=440,.managed_sound_playing=false});
     assert(!started.fatal_error);
     assert(opens==1);
+    assert(started.audio.back().operation==fg::AudioOperation::StopBackingTrack);
     assert(observed_movie==root/"Data"/"movies"/"fireworkcomplete.bik");
     assert(activity.editor().internal_state==
            fw::InternalState::PreShowMoviePlayback);
@@ -122,7 +129,8 @@ int main() {
     assert(cancelled.initialize(1,error));
     assert(!cancelled.advance({
         .pointer_x=320,.pointer_y=440,.click_pulse=true}).fatal_error);
-    assert(!cancelled.advance({.managed_sound_playing=false}).fatal_error);
+    assert(!cancelled.advance({.managed_sound_playing=false}).fatal_error); // Wendy intro
+    assert(!cancelled.advance({.managed_sound_playing=false}).fatal_error); // real voice idle
     assert(cancelled.editor().internal_state==
            fw::InternalState::PreShowMoviePlayback);
     assert(cancelled.unload(error));
@@ -146,14 +154,17 @@ int main() {
     assert(ready_bank.initialize(0,error));
     assert(!ready_bank.advance({
         .pointer_x=320,.pointer_y=440,.click_pulse=true}).fatal_error);
-    assert(!ready_bank.advance({.managed_sound_playing=false}).fatal_error);
+    assert(!ready_bank.advance({.managed_sound_playing=false}).fatal_error); // Wendy intro
+    assert(!ready_bank.advance({.managed_sound_playing=false}).fatal_error); // real voice idle
     assert(!ready_bank.advance({
         .original_global_movie_finished=true}).fatal_error);
     assert(ready_bank.editor().internal_state==fw::InternalState::ShowSetup);
     const auto opening=ready_bank.advance({});
     assert(!opening.fatal_error);
-    assert(opening.audio.size()==1);
+    assert(opening.audio.size()==2);
     assert(opening.audio[0].operation==fg::AudioOperation::StopManagedSounds);
+    assert(opening.audio[1].operation==fg::AudioOperation::StartBackingTrack);
+    assert(opening.audio[1].source_asset=="Exe/tune.wav");
     assert(bank_opens==1);
     assert(original_bank_source==original);
     assert(ready_bank.editor().internal_state==fw::InternalState::ShowPlayback);
@@ -211,7 +222,8 @@ int main() {
     assert(shows.initialize(0,error));
     assert(!shows.advance({
         .pointer_x=320,.pointer_y=440,.click_pulse=true}).fatal_error);
-    assert(!shows.advance({.managed_sound_playing=false}).fatal_error);
+    assert(!shows.advance({.managed_sound_playing=false}).fatal_error); // Wendy intro
+    assert(!shows.advance({.managed_sound_playing=false}).fatal_error); // real voice idle
     assert(!shows.advance({
         .original_global_movie_finished=true}).fatal_error);
     assert(!shows.advance({.elapsed_centiseconds=440}).fatal_error);
@@ -234,6 +246,7 @@ int main() {
     const auto finale=shows.advance({.elapsed_centiseconds=500});
     assert(!finale.fatal_error);
     assert(source_show_calls==3);
+    assert(finale.audio.back().operation==fg::AudioOperation::StopBackingTrack);
     assert(shows.editor().internal_state==fw::InternalState::Certificate);
     const auto certificate=shows.advance({
         .pointer_x=320,.pointer_y=440});
@@ -283,6 +296,7 @@ int main() {
     const auto play=absent.advance({
         .pointer_x=320,.pointer_y=440,.click_pulse=true});
     assert(!play.fatal_error);
+    assert(!absent.advance({.managed_sound_playing=false}).fatal_error); // second intro voice
     const auto rejected=absent.advance({.managed_sound_playing=false});
     assert(rejected.fatal_error);
     assert(absent.editor().internal_state==

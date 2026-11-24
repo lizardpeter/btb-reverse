@@ -112,6 +112,7 @@ private:
     fireworks::EditorRuntimeState editor_{};
     int player_index_{-1};
     bool awaiting_delete_confirmation_{};
+    int intro_audio_stage_{1}; // 00413F10 51C30C / 50AB70
     OpenPreShowMovie open_pre_show_movie_{};
     CancelPreShowMovie cancel_pre_show_movie_{};
     OpenMovieBank open_movie_bank_{};
