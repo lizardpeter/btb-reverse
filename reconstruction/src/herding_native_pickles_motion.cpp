@@ -301,11 +301,21 @@ bool NativePicklesMotionSource::advance(
                 }
                 observed.motion_records[i]=recovery->moved;
                 if(recovery->branch_taken) {
+                    const bool run_outer=!follower_indices_.contains(static_cast<int>(i));
+                    bool boundary_recovered=false;
+                    // Both paths return from UpdateHerdingAnimal, not
+                    // from the outer UpdateHerdingActivity. 4190F6
+                    // observes the still-clear +48 and runs its drift
+                    // and group-zero navigation check on this frame.
+                    if(run_outer) {
+                        const auto outer=herding::original_herding_nonfollowing_outer_step(
+                            before,recovery->moved,nav,herding::animal_navigation_recovery_target(data));
+                        if(!outer) {error="original temporary target outer movement invalid";return false;}
+                        observed.motion_records[i]=outer->animal;
+                        boundary_recovered=outer->boundary_recovered;
+                    }
                     observed.temporary_target_evidence.push_back({
-                        i,before,recovery->early_return});
-                    // Both the <120 arrival and distant +0x58
-                    // branches RETURN from original animal update.
-                    // Never combine with attraction or generic roam.
+                        i,before,recovery->early_return,run_outer,boundary_recovered});
                     continue;
                 }
                 // Source countdown 1 -> 0 resumes ordinary animal
@@ -536,20 +546,11 @@ bool NativePicklesMotionSource::advance(
                     input.herding_animal_sound_playing[offset+2]}};
                 const auto chatter=herding::original_herding_animal_chatter(rng,species,statuses);
                 if(!chatter) {error="original near-retreat chatter input invalid";return false;}
-                auto moved=retreat->moved;
-                const auto inside=retail_geometry::original_polygon_contains(nav,moved.x,moved.y);
-                if(!inside) {error="original near-retreat polygon probe failed";return false;}
-                if(!*inside) {
-                    const auto point=herding::animal_navigation_recovery_target(data);
-                    if(!point) {error="original near-retreat group-three point missing";return false;}
-                    const auto recovered=herding::original_far_untracked_animal_boundary_recovery(before,moved,*point);
-                    if(!recovered) {error="original near-retreat boundary recovery invalid";return false;}
-                    moved=recovered->animal;
-                    // The original 419217 clears speed, not the active latch.
-                    moved.movement_active=1;
-                }
-                observed.motion_records[i]=moved;
-                observed.near_retreat_evidence.push_back({i,before,rng_before,rng.state(),chatter->requested_sound_id,!*inside});
+                const auto outer=herding::original_herding_nonfollowing_outer_step(
+                    before,retreat->moved,nav,herding::animal_navigation_recovery_target(data));
+                if(!outer) {error="original near-retreat outer movement invalid";return false;}
+                observed.motion_records[i]=outer->animal;
+                observed.near_retreat_evidence.push_back({i,before,rng_before,rng.state(),chatter->requested_sound_id,outer->boundary_recovered});
                 if(chatter->requested_sound_id) {
                     HerdingObservedEvent voice{};
                     voice.kind=HerdingObservedKind::AnimalChatter;

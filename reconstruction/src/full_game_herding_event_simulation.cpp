@@ -371,6 +371,21 @@ bool HerdingEventSimulation::advance(
                   "120-unit early return differs from retail";
             return false;
         }
+        auto expected_motion=expected->moved;
+        const bool should_run_outer=observed.source_ordered_food_and_tracking &&
+            !candidate.followers().contains(static_cast<int>(probe.entity_index));
+        if(probe.ran_nonfollowing_outer_pass!=should_run_outer) {
+            error="native temporary target omitted or invented original outer dispatch";return false;
+        }
+        if(should_run_outer) {
+            const auto outer=herding::original_herding_nonfollowing_outer_step(
+                probe.before,expected_motion,data_.retail_transformed_group0(),
+                herding::animal_navigation_recovery_target(data_));
+            if(!outer || outer->boundary_recovered!=probe.outer_boundary_recovered) {
+                error="native temporary target outer boundary differs from retail";return false;
+            }
+            expected_motion=outer->animal;
+        }
         const auto& moved=observed.motion_records[probe.entity_index];
         // Exact per-axis FSTP values may differ by the original x87
         // extended precision. The source-equivalent direction, timer
@@ -378,18 +393,19 @@ bool HerdingEventSimulation::advance(
         constexpr float kOriginalTrigTolerance=0.001f;
         if (!std::isfinite(moved.x_float) ||
             !std::isfinite(moved.y_float) ||
-            std::fabs(moved.x_float-expected->moved.x_float)>
+            std::fabs(moved.x_float-expected_motion.x_float)>
                 kOriginalTrigTolerance ||
-            std::fabs(moved.y_float-expected->moved.y_float)>
+            std::fabs(moved.y_float-expected_motion.y_float)>
                 kOriginalTrigTolerance ||
-            moved.x!=expected->moved.x ||
-            moved.y!=expected->moved.y ||
-            moved.previous_x!=expected->moved.previous_x ||
-            moved.previous_y!=expected->moved.previous_y ||
-            moved.direction!=expected->moved.direction ||
+            moved.x!=expected_motion.x ||
+            moved.y!=expected_motion.y ||
+            moved.previous_x!=expected_motion.previous_x ||
+            moved.previous_y!=expected_motion.previous_y ||
+            moved.direction!=expected_motion.direction ||
             moved.temporary_target_timer!=
-                expected->moved.temporary_target_timer ||
-            moved.movement_speed!=expected->moved.movement_speed) {
+                expected_motion.temporary_target_timer ||
+            moved.movement_speed!=expected_motion.movement_speed ||
+            moved.movement_active!=expected_motion.movement_active) {
             error="original 0x416F57 temporary target movement differs "
                   "from source 3-unit steering and 120-unit gate";
             return false;
@@ -866,17 +882,13 @@ bool HerdingEventSimulation::advance(
         }
         const auto expected=herding::original_herding_near_retreat(probe.before,observed.motion_records.front());
         if(!expected) {error="near-retreat lacks original strict 80-unit gate";return false;}
-        auto moved=expected->moved;
-        const auto inside=retail_geometry::original_polygon_contains(data_.retail_transformed_group0(),moved.x,moved.y);
-        if(!inside || probe.boundary_recovered==*inside) {error="native near-retreat boundary gate invalid";return false;}
-        if(!*inside) {
-            const auto point=herding::animal_navigation_recovery_target(data_);
-            if(!point) {error="near-retreat original group-three point missing";return false;}
-            const auto recovered=herding::original_far_untracked_animal_boundary_recovery(probe.before,moved,*point);
-            if(!recovered) {error="near-retreat original recovery invalid";return false;}
-            moved=recovered->animal;
-            moved.movement_active=1;
+        const auto outer=herding::original_herding_nonfollowing_outer_step(
+            probe.before,expected->moved,data_.retail_transformed_group0(),
+            herding::animal_navigation_recovery_target(data_));
+        if(!outer || outer->boundary_recovered!=probe.boundary_recovered) {
+            error="native near-retreat boundary gate invalid";return false;
         }
+        const auto& moved=outer->animal;
         const auto species=prior.type-1;
         const auto offset=static_cast<std::size_t>(species*3);
         retail::OriginalRetailRandom replay{probe.rng_before};

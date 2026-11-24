@@ -1,4 +1,5 @@
 #include "btb/herding_source_temporary_target.hpp"
+#include "btb/herding_source_far_boundary_recovery.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -31,7 +32,7 @@ int main() {
     assert(bypass->continue_normal_update);
     assert(bypass->moved.x==200 && bypass->moved.y==200);
 
-    // Original branch computes actor steering origin as 220,220 for
+    // Original branch computes actor steering origin as 180,220 for
     // a 40x40 cell at 200,200, then moves 3 units in the direction
     // of the provided temporary target. A nearby target must clear
     // the timer and EARLY RETURN instead of running free roaming.
@@ -95,6 +96,18 @@ int main() {
     assert(edge->moved.y_float>200.0f);
     assert(edge->moved.temporary_target_timer==0); // now within 120
 
+    // 416F8F uses the signed left-right delta: a target at X=200
+    // lies RIGHT of the source anchor 180, not left of 220.
+    auto horizontal=original_fixture();
+    horizontal.target_x=600;horizontal.target_y=220;
+    const auto inner=h::original_herding_temporary_target_update(horizontal);
+    assert(inner && inner->heading_degrees==90 && inner->moved.movement_active==0);
+    const std::vector<h::Vec2i> nav{{0,0},{1000,0},{1000,1000},{0,1000}};
+    const auto outer=h::original_herding_nonfollowing_outer_step(horizontal,inner->moved,nav,h::Vec2i{92,324});
+    assert(outer && !outer->boundary_recovered);
+    assert(std::fabs(outer->animal.x_float-203.9f)<0.001f);
+    assert(outer->animal.temporary_target_timer==199);
+    assert(outer->animal.movement_speed==3.f && outer->animal.movement_active==0);
     auto invalid=original_fixture();
     invalid.type=static_cast<int>(h::EntityType::GateLeft);
     assert(!h::original_herding_temporary_target_update(invalid));

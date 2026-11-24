@@ -15,8 +15,10 @@ namespace btb::herding {
 // entity +0x5C/+0x60 and positive timer in +0x58.
 //
 // Unlike the roaming recovery loop, this branch computes its steering
-// origin with POSITIVE half-cell dimensions using original
-// abs(left-right)/2 + current integer x, similarly for y.
+// origin with signed NEGATIVE half-width and POSITIVE half-height,
+// as 416F8F..416FAB explicitly subtracts left-right and bottom-top.
+// The nonfollowing outer dispatcher 4190CB refreshes saved X/Y
+// before calling this function; the inner branch restores those integers.
 // Movement magnitude is original 3.0 at 0x43B430.
 // A positive countdown is decremented first. If it reaches 0, ordinary
 // AI resumes without steering on that tick. Otherwise, once moved, the
@@ -66,10 +68,8 @@ original_herding_temporary_target_update(
         original.source_right)-original.source_left;
     const auto height=static_cast<std::int64_t>(
         original.source_bottom)-original.source_top;
-    const auto abs_width=width>=0?width:-width;
-    const auto abs_height=height>=0?height:-height;
-    const auto anchor_x=static_cast<std::int64_t>(original.x)+abs_width/2;
-    const auto anchor_y=static_cast<std::int64_t>(original.y)+abs_height/2;
+    const auto anchor_x=static_cast<std::int64_t>(original.x)-width/2;
+    const auto anchor_y=static_cast<std::int64_t>(original.y)+height/2;
     if (anchor_x<std::numeric_limits<std::int32_t>::min() ||
         anchor_x>std::numeric_limits<std::int32_t>::max() ||
         anchor_y<std::numeric_limits<std::int32_t>::min() ||

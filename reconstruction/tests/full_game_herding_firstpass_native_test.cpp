@@ -542,11 +542,17 @@ int main() {
             observation.temporary_target_evidence.end(),
             [](const auto& proof){return proof.entity_index==1;}));
         const auto& escape=observation.motion_records[1];
-        assert(escape.x==predicted->moved.x &&
-               escape.y==predicted->moved.y);
-        assert(escape.x_float==predicted->moved.x_float &&
-               escape.y_float==predicted->moved.y_float);
-        assert(escape.movement_speed==3.f);
+        auto before_outer=release_before;
+        before_outer.movement_active=0;
+        const auto inner=btb::herding::original_herding_temporary_target_update(before_outer);
+        assert(inner);
+        const auto full=btb::herding::original_herding_nonfollowing_outer_step(
+            before_outer,inner->moved,data.retail_transformed_group0(),
+            btb::herding::animal_navigation_recovery_target(data));
+        assert(full);
+        assert(escape.x==full->animal.x && escape.y==full->animal.y);
+        assert(escape.x_float==full->animal.x_float && escape.y_float==full->animal.y_float);
+        assert(escape.movement_speed==full->animal.movement_speed);
         assert(escape.temporary_target_timer==199);
         for(const auto& e:observation.events)
             assert(!(e.kind==fg::HerdingObservedKind::JoinFollower &&

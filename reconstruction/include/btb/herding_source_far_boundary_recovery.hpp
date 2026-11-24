@@ -34,7 +34,6 @@ original_far_untracked_animal_boundary_recovery(
     Vec2i original_group3_target) noexcept {
     if(!is_herd_animal(before.entity_type()) ||
        before.behavior_state!=0 ||
-       before.temporary_target_timer>0 ||
        before.movement_active!=0 ||
        before.entity_id!=out_of_group0_candidate.entity_id ||
        before.type!=out_of_group0_candidate.type ||
@@ -77,11 +76,58 @@ original_far_untracked_animal_boundary_recovery(
     moved.y_float=motion->y;
     moved.direction=motion->facing_index;
     moved.movement_speed=0.0f;
-    moved.movement_active=0;
+    // 419217 clears +0x4C speed only, preserving the inner AI latch.
+    moved.movement_active=out_of_group0_candidate.movement_active;
     // Keep the pre-frame coordinates at +0x14/+0x18. Next frame
     // original UpdateHerdingActivity will refresh these independently.
     return RetailFarBoundaryRecoveryStep{
         moved,anchor,original_group3_target,*heading};
+}
+
+// Common outer nonfollowing state-zero pass (4190E8..41922A).
+// Unlike the inner AI routine, this executes after every nonfollowing
+// zero-state call that returned 0, even if the temporary timer is positive.
+// Active AI bypasses the direction-table drift, NOT the polygon check.
+struct RetailNonfollowingOuterStep {
+    RetailEntityRecord32 animal{};
+    bool boundary_recovered{};
+};
+[[nodiscard]] inline std::optional<RetailNonfollowingOuterStep>
+original_herding_nonfollowing_outer_step(
+    const RetailEntityRecord32& before,
+    const RetailEntityRecord32& inner_result,
+    const std::vector<Vec2i>& nav,
+    std::optional<Vec2i> return_point) noexcept {
+    if(!is_herd_animal(before.entity_type()) || before.behavior_state!=0 ||
+       before.entity_id!=inner_result.entity_id || before.type!=inner_result.type ||
+       inner_result.direction<0 || inner_result.direction>=8 ||
+       !std::isfinite(inner_result.movement_speed) || inner_result.movement_speed<0 ||
+       !std::isfinite(inner_result.x_float)||!std::isfinite(inner_result.y_float))
+        return std::nullopt;
+    auto moved=inner_result;
+    moved.previous_x=before.x;moved.previous_y=before.y;
+    if(moved.movement_active==0) {
+        if(moved.movement_speed<kRetailFarAnimalSpeedCeiling)
+            moved.movement_speed+=kRetailFarAnimalSpeedGain;
+        const auto dir=static_cast<std::size_t>(moved.direction);
+        moved.x_float=static_cast<float>(static_cast<double>(moved.x_float)+
+            static_cast<double>(kRetailAnimalStepX[dir])*moved.movement_speed);
+        moved.y_float=static_cast<float>(static_cast<double>(moved.y_float)+
+            static_cast<double>(kRetailAnimalStepY[dir])*moved.movement_speed);
+        if(!std::isfinite(moved.x_float)||!std::isfinite(moved.y_float)||
+           moved.x_float<=static_cast<float>(std::numeric_limits<int>::min()) ||
+           moved.x_float>=static_cast<float>(std::numeric_limits<int>::max()) ||
+           moved.y_float<=static_cast<float>(std::numeric_limits<int>::min()) ||
+           moved.y_float>=static_cast<float>(std::numeric_limits<int>::max()))return std::nullopt;
+        moved.x=static_cast<int>(moved.x_float);moved.y=static_cast<int>(moved.y_float);
+    }
+    const auto inside=retail_geometry::original_polygon_contains(nav,moved.x,moved.y);
+    if(!inside)return std::nullopt;
+    if(*inside)return RetailNonfollowingOuterStep{moved,false};
+    if(!return_point)return std::nullopt;
+    const auto recovered=original_far_untracked_animal_boundary_recovery(before,moved,*return_point);
+    if(!recovered)return std::nullopt;
+    return RetailNonfollowingOuterStep{recovered->animal,true};
 }
 
 } // namespace btb::herding

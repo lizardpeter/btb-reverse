@@ -181,6 +181,8 @@ struct HerdingTemporaryTargetEvidence {
     std::size_t entity_index{};
     herding::RetailEntityRecord32 before{};
     bool source_returned_early{};
+    bool ran_nonfollowing_outer_pass{};
+    bool outer_boundary_recovered{};
 };
 
 // Native dog branch 0x418F23 is deterministic given the entity,
