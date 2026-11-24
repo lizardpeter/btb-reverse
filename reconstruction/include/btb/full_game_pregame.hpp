@@ -86,6 +86,41 @@ retail_pregame_for_state(game_flow::State state) noexcept {
     return nullptr;
 }
 
+// Source 0042A2C0: DAT_0051c318 is the per-entry instruction voice latch.
+[[nodiscard]] constexpr int initial_retail_pregame_narration_stage(
+    game_flow::State setup) noexcept {
+    return setup==game_flow::State::FireworksPregameSetup ? 2 :
+        retail_pregame_for_state(setup) ? 1 : 0;
+}
+
+[[nodiscard]] constexpr std::optional<int> advance_retail_pregame_narration(
+    game_flow::State setup,int& stage,bool managed_sound_playing) noexcept {
+    using game_flow::State;
+    if (setup==State::FireworksPregameSetup) {
+        if(stage==2) { stage=3; return 498; }
+        if(stage==3) {
+            if(!managed_sound_playing) stage=1;
+            return std::nullopt;
+        }
+        if(stage==1) { stage=0; return 499; }
+        return std::nullopt;
+    }
+    if(stage!=1) return std::nullopt;
+    stage=0;
+    switch(setup) {
+    case State::HerdingPregameSetup: return 501;
+    case State::DinoPregameSetup: return 496;
+    case State::SpudSkatePregameSetup: return 506;
+    case State::MazePregameSetup: return 488;
+    case State::SquirrelPregameSetup: return 503;
+    case State::BobsBandPregameSetup: return 500;
+    case State::ParkDesignerPregameSetup: return 497;
+    case State::GolfPregameSetup: return 489;
+    case State::SpudMazePregameSetup: return 505;
+    default: return std::nullopt;
+    }
+}
+
 // Argument passed to the independent 0x4281D0 OpenWalkthroughMovie.
 // The Spud and Adventure groups calculate these from original global
 // 0x51C2E4, not from the outer state number or difficulty. No synthetic

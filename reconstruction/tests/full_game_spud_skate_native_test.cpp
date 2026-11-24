@@ -227,7 +227,8 @@ int main() {
     assert(!frame.fatal_error);
     assert(frame.save_and_unload);
     assert(frame.next_outer_state==0x3C);
-    assert(frame.next_saved_state==0x16);
+    assert(frame.next_saved_state==0x1A);
+    assert(frame.next_replay_class==0);
     assert(frame.next_ui_context==0x1A);
     assert(frame.progress_writes.empty());
     assert(shared_rng.state()==expected_rng.state());

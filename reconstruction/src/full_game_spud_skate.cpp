@@ -226,7 +226,10 @@ ActivityFrameOutput SpudSkateDriver::advance(
         if(end.complete_activity) {
             out.audio.push_back({AudioOperation::StopBackingTrack});
             out.next_outer_state=spud_skate::kPlayAgainOuterState;
-            out.next_saved_state=spud_skate::kSpudChooserOuterState;
+            // 00424D10: replay initializes Skate; the chooser is the separate
+            // shared-movie return state. Clear any previous replay class.
+            out.next_saved_state=static_cast<int>(game_flow::State::SpudSkateInit);
+            out.next_replay_class=0;
             out.next_ui_context=0x1A;
             out.save_and_unload=true;
         }
