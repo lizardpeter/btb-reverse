@@ -21,6 +21,7 @@
 #include "btb/herding_source_pair_separation.hpp"
 #include "btb/herding_source_pickles_controls.hpp"
 #include "btb/herding_source_animal_chatter.hpp"
+#include "btb/herding_source_wrong_home.hpp"
 
 #include <cstddef>
 #include <filesystem>
@@ -42,7 +43,8 @@ enum class HerdingObservedKind {
     TrackedTargetArrived,
     EnterHomeRoute,
     ReachHomeWaypoint,
-    AnimalChatter
+    AnimalChatter,
+    WrongHomeGuidance
 };
 
 struct HerdingCollisionEvidence {
@@ -246,6 +248,9 @@ struct HerdingObservedFrame {
     std::vector<HerdingNearRetreatEvidence> near_retreat_evidence{};
     std::vector<HerdingFarBoundaryEvidence> far_boundary_evidence{};
     std::vector<HerdingOrdinaryFollowerEvidence> ordinary_follower_evidence{};
+    // One entry for each already-following, not-tracked, outside-150
+    // ordinary update, including silent latch transitions.
+    std::vector<std::size_t> wrong_home_guidance_updates{};
     std::vector<HerdingTrackedAdmissionEvidence> tracked_admission_evidence{};
     std::vector<HerdingTrackedApproachEvidence> tracked_approach_evidence{};
     std::vector<HerdingHomeMotionEvidence> home_motion_evidence{};
@@ -330,6 +335,7 @@ private:
     // waypoint index it is not reset by InitializeHerdingActivity.
     herding::RetailScrufftyPatrolState scruffty_patrol_state_{};
     herding::RetailPicklesControlState pickles_control_state_{};
+    herding::RetailWrongHomeLatches wrong_home_latches_{};
 };
 
 } // namespace btb::full_game

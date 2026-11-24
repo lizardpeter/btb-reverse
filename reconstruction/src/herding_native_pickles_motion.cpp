@@ -95,7 +95,7 @@ bool NativePicklesMotionSource::begin_frame(std::string& error) {
     auto& rng=shared_random_?*shared_random_:standalone_random_;
     pending_frame_=FrameSnapshot{
         selected_food_,scruffty_patrol_state_,follower_indices_,
-        tracked_slots_,remaining_to_register_,rng.state(),pickles_control_state_};
+        tracked_slots_,remaining_to_register_,rng.state(),pickles_control_state_,wrong_home_latches_};
     error.clear();
     return true;
 }
@@ -116,6 +116,7 @@ void NativePicklesMotionSource::rollback_frame() noexcept {
     tracked_slots_=pending_frame_->tracked;
     remaining_to_register_=pending_frame_->registration_counter;
     pickles_control_state_=pending_frame_->pickles_control;
+    wrong_home_latches_=pending_frame_->wrong_home;
     (shared_random_?*shared_random_:standalone_random_).seed(
         pending_frame_->original_rng_state);
     pending_frame_.reset();
@@ -483,6 +484,20 @@ bool NativePicklesMotionSource::advance(
                     herding::RetailTrackedAdmissionStatus::MissingOrdinaryFollower) {
                     error="source registered animal to invalid tracked list";
                     return false;
+                }
+                if(admission.status==herding::RetailTrackedAdmissionStatus::NotWithinThreshold) {
+                    const auto guidance=herding::original_herding_wrong_home_step(before.entity_type(),*original_anchor,wrong_home_latches_);
+                    if(!guidance) {error="native wrong-home guidance invalid";return false;}
+                    wrong_home_latches_=guidance->next;
+                    observed.wrong_home_guidance_updates.push_back(i);
+                    for(std::size_t j=0;j<guidance->count;++j) {
+                        HerdingObservedEvent voice{};
+                        voice.kind=HerdingObservedKind::WrongHomeGuidance;
+                        voice.entity_index=i;
+                        voice.retail_trigger_confirmed=true;
+                        voice.source_verified_sound_id=guidance->requested_sound_ids[j];
+                        observed.events.push_back(std::move(voice));
+                    }
                 }
             }
             const auto contact=herding::original_herding_food_attraction_contact(

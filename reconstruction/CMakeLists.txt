@@ -312,6 +312,7 @@ foreach(test_name IN ITEMS
     herding_source_steering_source
     herding_source_temporary_target_source
     herding_source_tracked_targets_source
+    herding_source_wrong_home_source
 )
     set(target_name btb_${test_name}_tests)
     add_executable(${target_name} tests/${test_name}_test.cpp)

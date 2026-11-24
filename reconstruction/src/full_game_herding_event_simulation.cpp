@@ -121,6 +121,12 @@ bool apply_confirmed_event(
     case HerdingObservedKind::ReachHomeWaypoint:
         step=staged.arrive_at_home_waypoint(event.entity_index,true,verified_pre_move_arrival);
         break;
+    case HerdingObservedKind::WrongHomeGuidance:
+        if(event.source_verified_sound_id<0x3a9 || event.source_verified_sound_id>0x3ab) {
+            error="invalid native wrong-home guidance ID";return false;
+        }
+        sounds.push_back({AudioOperation::ManagedSoundId,{},event.source_verified_sound_id,10,1});
+        return true;
     case HerdingObservedKind::AnimalChatter:
         if(event.source_verified_sound_id<0x331 || event.source_verified_sound_id>0x339) {
             error="invalid native animal chatter ID";return false;
@@ -308,6 +314,9 @@ bool HerdingEventSimulation::advance(
     int staged_registration_counter=registration_counter_;
     bool food_applied=false;
     auto staged_pickles_control=pickles_control_state_;
+    auto staged_wrong_home=wrong_home_latches_;
+    std::vector<std::pair<std::size_t,int>> expected_wrong_home_voices;
+    std::size_t wrong_home_cursor=0;
     std::optional<herding::RetailPicklesControlProposal> control_plan;
     std::vector<std::optional<herding::Vec2i>> perception_anchors(candidate.entities().size());
     std::vector<std::optional<herding::Vec2i>> saved_positions(candidate.entities().size());
@@ -982,6 +991,20 @@ bool HerdingEventSimulation::advance(
             error="native ordinary follower orbit and source spacing invalid";
             return false;
         }
+        if(observed.source_ordered_food_and_tracking && was_following) {
+            const auto anchor=perception_anchors[probe.entity_index]?perception_anchors[probe.entity_index]:herding::original_herding_animal_tracking_anchor(probe.before);
+            const auto own=herding::original_herding_species_registration_point(probe.before.entity_type());
+            if(!anchor||!own) {error="native wrong-home anchor invalid";return false;}
+            if(!herding::retail_home_within(*anchor,*own,150)) {
+                if(wrong_home_cursor>=observed.wrong_home_guidance_updates.size() || observed.wrong_home_guidance_updates[wrong_home_cursor++]!=probe.entity_index) {
+                    error="native wrong-home guidance update omitted or reordered";return false;
+                }
+                const auto step=herding::original_herding_wrong_home_step(probe.before.entity_type(),*anchor,staged_wrong_home);
+                if(!step) {error="native wrong-home replay failed";return false;}
+                staged_wrong_home=step->next;
+                for(std::size_t j=0;j<step->count;++j)expected_wrong_home_voices.emplace_back(probe.entity_index,step->requested_sound_ids[j]);
+            }
+        }
         auto expected_motion=expected->moved;
         pre_outer_animals[probe.entity_index]=expected_motion;
         const bool should_run_outer=observed.source_ordered_food_and_tracking && !was_following;
@@ -1237,7 +1260,17 @@ bool HerdingEventSimulation::advance(
     }
     std::vector<bool> arrived_at_tracked_point_this_update(
         candidate.entities().size(),false);
+    if(wrong_home_cursor!=observed.wrong_home_guidance_updates.size()) {
+        error="unexpected native wrong-home guidance update";return false;
+    }
+    std::size_t wrong_home_voice_cursor=0;
     for (const auto& event : observed.events) {
+        if(event.kind==HerdingObservedKind::WrongHomeGuidance) {
+            if(wrong_home_voice_cursor>=expected_wrong_home_voices.size() ||
+               expected_wrong_home_voices[wrong_home_voice_cursor++]!=std::pair{event.entity_index,event.source_verified_sound_id}) {
+                error="native wrong-home speech contradicts original ordered latches";return false;
+            }
+        }
         if(food_applied && event.kind==HerdingObservedKind::PickUpFood)continue;
         if(event.kind==HerdingObservedKind::AnimalChatter &&
            !std::any_of(observed.near_retreat_evidence.begin(),observed.near_retreat_evidence.end(),[&](const auto& p){return p.entity_index==event.entity_index && p.sound_id && *p.sound_id==event.source_verified_sound_id;})) {
@@ -1336,6 +1369,9 @@ bool HerdingEventSimulation::advance(
         }
     }
 
+    if(wrong_home_voice_cursor!=expected_wrong_home_voices.size()) {
+        error="native wrong-home speech omitted";return false;
+    }
     HerdingScene presented{};
     presented.entities=candidate.entities();
     presented.selected_food=candidate.food().selected;
@@ -1354,6 +1390,7 @@ bool HerdingEventSimulation::advance(
     registration_counter_=staged_registration_counter;
     scruffty_patrol_state_=staged_scruffty_state;
     pickles_control_state_=staged_pickles_control;
+    wrong_home_latches_=staged_wrong_home;
     provisional.accept();
     error.clear();
     return true;
