@@ -173,8 +173,14 @@ AssetResolution OriginalAssetResolver::resolve(
         return installed;
     }
 
-    return resolve_below(
+    auto disc = resolve_below(
         *disc_root_, *pieces, AssetResolutionStatus::FoundOnDisc);
+    if (!disc.found()) {
+        // Preserve both probes; the second root must not erase why the
+        // primary game directory could not supply the original asset.
+        disc.error = "installed: " + installed.error + "; disc: " + disc.error;
+    }
+    return disc;
 }
 
 } // namespace btb::full_game

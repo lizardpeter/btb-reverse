@@ -153,17 +153,8 @@ struct Host {
             out_error="original game installation directory does not exist";
             return false;
         }
-        // Some retail distributions keep optional source media on a
-        // separately mounted/extracted disc image. Search it only after the
-        // installed tree, using the same path validation and case rules.
-        const auto disc_root=native_profile_env_path(L"BTB_DISC_ROOT");
-        if(disc_root) {
-            ec.clear();
-            if(!fs::is_directory(*disc_root,ec)||ec) {
-                out_error="BTB_DISC_ROOT does not name an accessible original disc asset directory";
-                return false;
-            }
-        }
+        // Use the supplied original game directory directly. The legacy
+        // walkthrough WAV names are not needed by the retail movie opener.
         // Source 0x004027FB seeds CRT srand with GetTickCount. All
         // herding initialization and per-frame RNG draws subsequently
         // share the same value across the life of this Win32 host.
@@ -423,7 +414,7 @@ struct Host {
                 error.clear();return true;
             });
         session=std::make_unique<NativeGameSession>(
-            game,*device,OriginalAssetResolver{root,disc_root},
+            game,*device,OriginalAssetResolver{root},
             std::move(startups),std::move(walkthroughs),skip_video);
 
         std::ifstream sounds(root/"Data"/"sound"/"binklist.txt");

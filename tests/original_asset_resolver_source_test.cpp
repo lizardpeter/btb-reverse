@@ -65,6 +65,14 @@ int main() {
     assert(missing.error.find("advent1walthroughhelp.wav") !=
            std::string::npos);
     assert(missing.error.find(installed.string()) != std::string::npos);
+    assert(missing.error.find(disc.string()) != std::string::npos);
+    const OriginalAssetResolver local_only(installed);
+    const auto local_missing=local_only.resolve("Data/SubGameOpen/missing.bmp");
+    assert(local_missing.status==AssetResolutionStatus::Missing);
+    assert(local_missing.error.find(installed.string())!=std::string::npos);
+    assert(local_missing.error.find("missing.bmp")!=std::string::npos);
+    assert(local_missing.error.find(disc.string())==std::string::npos);
+    assert(local_only.resolve("Data/Sound/binklist.txt").status==AssetResolutionStatus::Missing);
 
 #ifndef _WIN32
     // Windows cannot create both spellings simultaneously; Linux can.
