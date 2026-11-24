@@ -139,11 +139,16 @@ int main() {
         assert(easy.effects.negative_ui_action == -2);
         assert(root.globals().menu.source_variant == 0);
 
-        if (pregame.update == State::SpudSkatePregameUpdate) {
-            assert(easy.pregame_action->skate_immediate_start);
-            assert(root.globals().spud_skate_start_latch);
+        if (!pregame.selected_difficulty) {
+            assert(easy.pregame_action->start_activity);
+            assert(easy.pregame_action->next_state == pregame.activity_init);
+            assert(easy.pregame_action->skate_immediate_start ==
+                (pregame.update == State::SpudSkatePregameUpdate));
+            assert(root.globals().spud_skate_start_latch ==
+                (pregame.update == State::SpudSkatePregameUpdate));
             assert(root.globals().dispatcher.current_state ==
-                   static_cast<int>(State::SpudSkateInit));
+                   static_cast<int>(pregame.activity_init));
+            assert(root.advance({}).kind == FrameKind::ActivityRequiresAdapter);
         } else {
             assert(root.globals().dispatcher.current_state ==
                    static_cast<int>(pregame.update));

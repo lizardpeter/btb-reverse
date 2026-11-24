@@ -56,6 +56,42 @@ int main() {
     using btb::game_flow::State;
     using btb::progress::Slot;
 
+    // Real 00429150 numbered/un-numbered frame convention and
+    // 00428600 draw order: hover, optional keyed, depressed, idle.
+    {
+        std::vector<btb::front_end::ReplacementRecord> records(2);
+        records[0].hover_bitmap_base="Data/ui/actanims/petsh";
+        records[0].hover_frame_count=20;
+        records[0].x=385;records[0].y=170;
+        records[0].pressed_bitmap="Data/ui/pressed.bmp";
+        records[0].optional_surface="Data/ui/adornment.bmp";
+        records[0].secondary_x=10;records[0].secondary_y=20;
+        records[1].secondary_bitmap_base="Data/ui/actanims/dinob";
+        records[1].secondary_frame_count=10;
+        records[1].secondary_x=77;records[1].secondary_y=329;
+        std::vector<btb::front_end::ReplacementRuntimeState> runtime(2);
+        std::vector<Draw> art;
+        int delay=0;
+        append_generic_ui_art(art,records,runtime,0,true,delay);
+        assert(art.size()==4);
+        assert(art[0].source_asset=="Data/ui/actanims/petsh.bmp");
+        assert(art[0].x==385&&art[0].y==170&&!art[0].color_keyed);
+        assert(art[1].source_asset=="Data/ui/adornment.bmp"&&art[1].color_keyed);
+        assert(art[2].source_asset=="Data/ui/pressed.bmp"&&!art[2].color_keyed);
+        assert(art[3].source_asset=="Data/ui/actanims/dinob1.bmp");
+        assert(art[3].x==77&&art[3].y==329);
+        runtime[0].hover_animation_frame=19;
+        for(int i=0;i<6;++i){
+            art.clear();
+            append_generic_ui_art(art,records,runtime,0,false,delay);
+        }
+        assert(art.size()==3);
+        assert(art[0].source_asset=="Data/ui/actanims/petsh19.bmp");
+        assert(art[2].source_asset=="Data/ui/actanims/dinob2.bmp");
+        runtime[1].secondary_animation_frame=9;delay=0;art.clear();
+        append_generic_ui_art(art,records,runtime,0,false,delay,false);
+        assert(art.size()==1&&art[0].source_asset=="Data/ui/actanims/dinob.bmp");
+    }
     auto catalog = fixture_catalog();
     std::string err;
     assert(catalog.validate(err));
