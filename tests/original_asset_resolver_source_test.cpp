@@ -59,6 +59,13 @@ int main() {
     assert(lookup.resolve("Data\\\\").status ==
            AssetResolutionStatus::Missing);
 
+    const auto missing = lookup.resolve(
+        "data/sound/advent1walthroughhelp.wav");
+    assert(missing.status == AssetResolutionStatus::Missing);
+    assert(missing.error.find("advent1walthroughhelp.wav") !=
+           std::string::npos);
+    assert(missing.error.find(installed.string()) != std::string::npos);
+
 #ifndef _WIN32
     // Windows cannot create both spellings simultaneously; Linux can.
     std::ofstream(installed / "Data" / "SubGameOpen" /
