@@ -861,6 +861,15 @@ target_link_libraries(btb_park_designer_scene_tests PRIVATE
     btb_park_designer_scene
 )
 add_test(NAME park_designer_scene COMMAND btb_park_designer_scene_tests)
+add_executable(btb_park_designer_retail_catalog_tests tests/park_designer_retail_catalog_test.cpp)
+target_link_libraries(btb_park_designer_retail_catalog_tests PRIVATE btb_park_designer_scene btb_park_designer)
+btb_require_cpp26(btb_park_designer_retail_catalog_tests PRIVATE)
+if(MSVC)
+    target_compile_options(btb_park_designer_retail_catalog_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(btb_park_designer_retail_catalog_tests PRIVATE -UNDEBUG)
+endif()
+add_test(NAME park_designer_retail_catalog COMMAND btb_park_designer_retail_catalog_tests)
 
 
 # Original 00410D10 Park Designer outer loop and game dispatcher adapter.
@@ -1386,7 +1395,7 @@ foreach(test_name IN ITEMS
     add_test(NAME ${test_name} COMMAND ${target_name})
     list(APPEND BTB_FULL_GAME_SOURCE_TARGETS ${target_name})
 endforeach()
-add_custom_target(btb_full_game_source_regressions DEPENDS ${BTB_FULL_GAME_SOURCE_TARGETS})
+add_custom_target(btb_full_game_source_regressions DEPENDS ${BTB_FULL_GAME_SOURCE_TARGETS} btb_park_designer_retail_catalog_tests)
 
 add_executable(btb_full_game_squirrel_native_tests
     tests/full_game_squirrel_native_test.cpp)
