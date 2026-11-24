@@ -358,7 +358,10 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
         return out;
     }
     if(!intro_done_) {
-        if(input.managed_sound_playing)return out;
+        const bool opening_voice=input.maze_intro_voice_playing
+            ?(*input.maze_intro_voice_playing)[static_cast<std::size_t>(difficulty_)]
+            :input.managed_sound_playing;
+        if(opening_voice)return out;
         intro_done_=true;
         timer_started_=true;
         started_centiseconds_=input.elapsed_centiseconds;

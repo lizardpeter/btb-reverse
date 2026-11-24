@@ -24,8 +24,9 @@ HRESULT blit_rgb32_keyed(IDirectDrawSurface7* dst,IDirectDrawSurface7* src,
     if(FAILED(hr))return hr;
     hr=dst->Lock(&d,&b,DDLOCK_WAIT,nullptr);
     if(FAILED(hr)){src->Unlock(&s);return hr;}
-    const DWORD mask=a.ddpfPixelFormat.dwRBitMask|
-        a.ddpfPixelFormat.dwGBitMask|a.ddpfPixelFormat.dwBBitMask;
+    const DWORD mask=btb::graphics::retail_rgb565_key_mask(
+        a.ddpfPixelFormat.dwRBitMask,a.ddpfPixelFormat.dwGBitMask,
+        a.ddpfPixelFormat.dwBBitMask);
     const auto width=static_cast<std::size_t>(s.right-s.left);
     if(!a.lpSurface||!b.lpSurface||!mask||
        a.ddpfPixelFormat.dwRGBBitCount!=32||

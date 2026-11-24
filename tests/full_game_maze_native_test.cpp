@@ -145,7 +145,9 @@ END
                         .elapsed_centiseconds=200,
                         .directional_input_bits=0x02});
     assert(maze->player()->x==247.0f); // source narrator gate
-    frame=game.advance({.elapsed_centiseconds=300});
+    // 0041D4D0 waits on the opening ID, not an unrelated voice.
+    frame=game.advance({.managed_sound_playing=true,.elapsed_centiseconds=300,
+                        .maze_intro_voice_playing=std::array<bool,3>{false,true,true}});
     assert(maze->player()->x==247.0f);
     frame=game.advance({.elapsed_centiseconds=400,
                         .directional_input_bits=0x02});

@@ -88,6 +88,38 @@ int main() {
     static_assert(pilchard_reaction_sound_id(0) == 720);
     static_assert(pilchard_reaction_sound_id(1) == 721);
 
+    for(int direction:{-1,1}) {
+        SlideState slide{};slide.previous=2;slide.destination=2+direction;slide.phase=1;
+        int frames=0;
+        while(slide.phase) {
+            const auto f=advance_slide(slide);
+            ++frames;
+            assert(frames<500);
+            if(!f.complete) {
+                assert(f.left.left>=20&&f.left.right<=620);
+                assert(f.right.left==20&&f.right.right<=620);
+                assert(f.left.screen==(direction>0?2:1));
+                assert(f.right.screen==(direction>0?3:2));
+            }
+        }
+        assert(frames>10);
+    }
+    for(bool failed:{false,true}) {
+        BentleyState b{};
+        std::vector<int> voices;
+        bool done=false;
+        for(int i=0;i<3000&&!done;++i) {
+            // Simulate actual completion of each submitted voice, keeping
+            // the phase-3 response busy for additional calls.
+            const bool playing=b.phase==3&&b.wait>1;
+            const auto f=advance_bentley(b,failed,playing,1);
+            assert(b.frame>=0&&b.frame<56);
+            if(f.sound_id>=0)voices.push_back(f.sound_id);
+            done=f.complete;
+        }
+        assert(done&&b.visible);
+        assert((voices==std::vector<int>{713,failed?714:715,failed?717:727}));
+    }
     static_assert(kStartupMusicIndex == 7);
     static_assert(kStartupVoiceSoundId == 694);
     static_assert(kLowTimerWarningSoundId == 994);

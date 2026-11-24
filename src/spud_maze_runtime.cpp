@@ -1,5 +1,6 @@
 #include "btb/spud_maze_runtime.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -164,6 +165,102 @@ GraphPath shortest_graph_path(
         0);
 
     return result;
+}
+
+SlideFrame advance_slide(SlideState& s) noexcept {
+    SlideFrame f{};
+    if(s.phase==0) {f.complete=true;return f;}
+    if(s.phase==1) {
+        s.phase=2;
+        s.east=s.destination>s.previous;
+        s.speed=10;
+        s.left=s.east?20:618;
+        s.right=s.east?22:620;
+    }
+    const int step=s.speed/5;
+    if(s.east) {
+        s.left+=step;s.right+=step;
+        f.left={s.previous,s.left,619,20};
+        f.right={s.destination,20,s.right,619-s.left+20};
+        f.old_offset=20-s.left;
+        f.new_offset=619-s.right;
+    } else {
+        s.left-=step;s.right-=step;
+        f.left={s.destination,s.left,619,20};
+        f.right={s.previous,20,s.right,619-s.left+20};
+        f.old_offset=619-s.left;
+        f.new_offset=20-s.left;
+    }
+    const int remaining=s.east?619-s.right:s.right-20;
+    if(remaining<=0) {s.phase=0;f.complete=true;}
+    s.speed=std::max(10,std::min({200,s.speed+1,remaining}));
+    return f;
+}
+
+BentleyStep advance_bentley(BentleyState& s,bool failed,
+                            bool playing,int random_bit) noexcept {
+    BentleyStep out{};
+    switch(s.phase) {
+    case -1:
+        s.visible=true;
+        if(--s.wait<1) {
+            s.wait=9;s.x+=5;
+            if(++s.frame>20) {
+                s.frame=12;
+                if(s.x>149) {
+                    s.phase=0;s.frame=0;
+                    out.stop_managed=true;out.sound_id=713;
+                }
+            }
+        }
+        break;
+    case 0:
+        if(--s.wait<1) {
+            s.wait=9;
+            if(++s.frame>7) {
+                s.frame=0;
+                if(!playing) {s.frame=12;s.phase=1;}
+            }
+        }
+        break;
+    case 1:
+        // Source decrements the counter again on the common phase-2 tail.
+        if(--s.wait<1) {
+            s.wait=9;s.x+=5;
+            if(++s.frame>20) {
+                s.frame=12;
+                if(s.x>299) {s.frame=25;s.phase=2;break;}
+            }
+        }
+        [[fallthrough]];
+    case 2:
+        if(--s.wait<1) {
+            s.wait=9;
+            if(++s.frame>39) {
+                s.frame=25;
+                if(s.pause_cycles--<1) {
+                    s.phase=3;s.failed=failed;
+                    s.frame=failed?40:44;
+                    out.sound_id=failed?714:715;
+                }
+            }
+        }
+        break;
+    case 3:
+    case 4:
+        if(--s.wait<1) {
+            s.wait=9;
+            if(++s.frame>=(s.failed?44:56))s.frame=s.failed?40:44;
+        }
+        if(!playing) {
+            if(s.phase==3) {
+                out.sound_id=(s.failed?716:726)+(random_bit&1);
+                s.phase=4;
+            } else out.complete=true;
+        }
+        break;
+    }
+    return out;
 }
 
 } // namespace btb::spud_maze

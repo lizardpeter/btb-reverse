@@ -174,6 +174,42 @@ struct HammerDrop {
         : -1;
 }
 
+// 00422DD0 uses its own five-screen slide geometry (619 rather than
+// Adventure Maze's 620). The two strips and their actor offsets are
+// retained separately; never reinterpret five screens as the 3-map enum.
+struct SlideStrip {
+    int screen{};
+    int left{},right{},destination_x{};
+};
+struct SlideFrame {
+    SlideStrip left{},right{};
+    int old_offset{},new_offset{};
+    bool complete{};
+};
+struct SlideState {
+    int previous{},destination{};
+    int phase{};
+    int left{},right{},speed{10};
+    bool east{};
+};
+[[nodiscard]] SlideFrame advance_slide(SlideState&) noexcept;
+
+// 00423BE0 outcome narrator; the original 4256x80 Bentley sheet has
+// 56 cells of 76x80. Voice dispatch occurs only on the phase edges.
+struct BentleyState {
+    int phase{-1};
+    int x{-100},y{300};
+    int frame{12},wait{},pause_cycles{2};
+    bool visible{},failed{};
+};
+struct BentleyStep {
+    bool stop_managed{};
+    int sound_id{-1};
+    bool complete{};
+};
+[[nodiscard]] BentleyStep advance_bentley(
+    BentleyState&,bool failed,bool any_voice_playing,int random_bit) noexcept;
+
 inline constexpr std::int32_t kStartupMusicIndex = 7;
 inline constexpr std::int32_t kStartupVoiceSoundId = 694; // SS1_BOB_01
 inline constexpr std::int32_t kLowTimerWarningSoundId = 994; // lowtime.wav
