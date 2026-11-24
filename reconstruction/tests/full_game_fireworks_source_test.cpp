@@ -147,7 +147,8 @@ int main() {
     assert(live->sequence().at(0,0) == FireworkType::LargeRed);
 
     // Source Play sets internal state 14. Without the authenticated Bink
-    // provider the NEXT frame must fail at the GameRoot boundary, not
+    // provider the first silent frame after both introductory voices must fail,
+    // at the GameRoot boundary, not
     // return a successful activity frame or silently skip to results.
     const auto play = root.advance(click(320,440));
     assert(play.kind == FrameKind::ActivityUpdated);
@@ -161,6 +162,19 @@ int main() {
     assert(waiting.kind == FrameKind::ActivityUpdated);
     assert(live->editor().internal_state ==
            btb::fireworks::InternalState::PreShowMovieSetup);
+    // Bob's voice has ended. The second introductory voice must play
+    // before the Bink provider can be opened.
+    const auto wendy = root.advance({});
+    assert(wendy.kind == FrameKind::ActivityUpdated);
+    assert(live->editor().internal_state ==
+           btb::fireworks::InternalState::PreShowMovieSetup);
+    bool heard_wendy=false;
+    for(const auto& audio:wendy.effects.audio)
+        if(audio.operation==AudioOperation::ManagedSoundId &&
+           audio.sound_id==898 && audio.input_interruptible)
+            heard_wendy=true;
+    assert(heard_wendy);
+    assert(root.advance(sound_active).kind == FrameKind::ActivityUpdated);
     // The missing authentic decoder must then fail explicitly; never
     // synthesize a pre-show movie on the silent transition.
     const auto unsupported = root.advance({});
