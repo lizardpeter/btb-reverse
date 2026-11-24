@@ -1350,6 +1350,42 @@ endforeach()
 add_custom_target(btb_herding_source_regressions DEPENDS
     ${BTB_HERDING_PURE_TARGETS} ${BTB_HERDING_INTEGRATED_TARGETS})
 
+# Compile and execute all previously standalone whole-game source contracts.
+set(BTB_FULL_GAME_SOURCE_TARGETS "")
+foreach(test_name IN ITEMS
+    bobs_band_persistence_source
+    full_game_blt_clip_source
+    full_game_bobs_band_source
+    full_game_effect_pipeline_source
+    full_game_front_end_source
+    full_game_generic_ui_source
+    full_game_menu_actions_source
+    full_game_pregame_resources_source
+    full_game_pregame_root_source
+    full_game_pregame_source
+    full_game_resources_source
+    full_game_startup_movies_source
+    full_game_ui_bitmaps_source
+    full_game_walkthrough_catalog_source
+    golf_activity_source
+    original_asset_resolver_source
+    retail_crt_random_source
+    retail_point_in_polygon_source
+)
+    set(target_name btb_${test_name}_tests)
+    add_executable(${target_name} tests/${test_name}_test.cpp)
+    target_link_libraries(${target_name} PRIVATE btb_recompiled_core)
+    btb_require_cpp26(${target_name} PRIVATE)
+    if(MSVC)
+        target_compile_options(${target_name} PRIVATE /UNDEBUG)
+    else()
+        target_compile_options(${target_name} PRIVATE -UNDEBUG)
+    endif()
+    add_test(NAME ${test_name} COMMAND ${target_name})
+    list(APPEND BTB_FULL_GAME_SOURCE_TARGETS ${target_name})
+endforeach()
+add_custom_target(btb_full_game_source_regressions DEPENDS ${BTB_FULL_GAME_SOURCE_TARGETS})
+
 add_executable(btb_full_game_squirrel_native_tests
     tests/full_game_squirrel_native_test.cpp)
 target_link_libraries(btb_full_game_squirrel_native_tests PRIVATE

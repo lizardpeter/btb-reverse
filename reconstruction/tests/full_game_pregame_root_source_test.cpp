@@ -77,7 +77,8 @@ int main() {
     assert(catalog.validate(error));
 
     for (const auto& pregame : kRetailPregamePairs) {
-        GameRoot root;
+        auto root_storage=std::make_unique<GameRoot>();
+    auto& root=*root_storage;
         assert(root.select_profile(0));
         assert(!root.install_pregame_front_end_pair(
             pregame.update,std::make_unique<GenericUiScreenDriver>(
@@ -181,7 +182,8 @@ int main() {
 
     // Herding retains 0x51C340 separately from the current source
     // variant when the user changes Easy/Medium/Hard.
-    GameRoot herding;
+    auto herding_storage=std::make_unique<GameRoot>();
+    auto& herding=*herding_storage;
     assert(herding.select_profile(0));
     assert(herding.install_pregame_front_end_pair(
         State::HerdingPregameSetup,

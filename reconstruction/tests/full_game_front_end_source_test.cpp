@@ -64,7 +64,8 @@ int main() {
     assert(!activity_select_hit(catalog.hot_areas[1], 560, 390));
     assert(!activity_select_hit(catalog.hot_areas[1], 400, 339));
 
-    GameRoot game;
+    auto game_storage=std::make_unique<GameRoot>();
+    auto& game=*game_storage;
     assert(game.select_profile(0));
     // Native DirectDraw7 uses source slot 2 of the separate 23-entry
     // uiBitmapName.txt table for original Activity Select background.

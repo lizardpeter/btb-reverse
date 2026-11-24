@@ -67,7 +67,8 @@ int main() {
     assert(generic_front_end_pair_for_state(State::PlayAgainYesNoUpdate));
     assert(!generic_front_end_pair_for_state(State::GolfPregameUpdate));
 
-    GameRoot root;
+    auto root_storage=std::make_unique<GameRoot>();
+    auto& root=*root_storage;
     assert(root.select_profile(0));
     assert(!root.install_generic_front_end_pair(
         State::GolfPregameSetup,

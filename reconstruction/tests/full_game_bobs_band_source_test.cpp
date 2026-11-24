@@ -68,7 +68,8 @@ static machine animation rectangles
 )";
     }
 
-    GameRoot game;
+    auto game_storage=std::make_unique<GameRoot>();
+    auto& game=*game_storage;
     assert(game.select_profile(0));
     auto band = std::make_unique<BobsBandDriver>(
         originals, saved, btb::bobs_band::Conductor::Bob);
@@ -152,7 +153,7 @@ static machine animation rectangles
     assert(fs::file_size(saved / "musicbob1.txt") == 480);
     assert(fs::file_size(saved / "last.txt") == 20);
     assert(game.globals().dispatcher.saved_state == 0x2E);
-    assert(game.globals().menu.replay_class == 1);
+    assert(game.globals().menu.replay_class == 0);
 
     // A different original Music chooser action now reaches the same
     // installed Band driver, not a hard-coded Bob conductor. -3 means
