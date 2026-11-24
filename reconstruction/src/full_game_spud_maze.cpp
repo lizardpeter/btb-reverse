@@ -15,8 +15,8 @@ class SpudMazeInputPort final : public original_motion4::IO {
 public:
     SpudMazeInputPort(const ActivityFrameInput& input,
                       ActivityFrameOutput& effects,
-                      spud_maze::PilchardNative& pilchard)
-        :input_(input),effects_(effects),pilchard_(pilchard) {}
+                      spud_maze::PilchardNative& pilchard,retail::OriginalRetailRandom& rng)
+        :input_(input),effects_(effects),pilchard_(pilchard),rng_(rng) {}
 
     original_motion4::Input player_input(bool spud) override {
         if(!spud)
@@ -30,7 +30,7 @@ public:
         };
     }
     original_motion4::U32 random32() override {
-        return static_cast<original_motion4::U32>(std::rand());
+        return static_cast<original_motion4::U32>(rng_.next_rand());
     }
     void sound(original_motion4::I32 id,
                original_motion4::I32 priority,
@@ -86,6 +86,7 @@ private:
     const ActivityFrameInput& input_;
     ActivityFrameOutput& effects_;
     spud_maze::PilchardNative& pilchard_;
+    retail::OriginalRetailRandom& rng_;
     bool repair_begun_{};
 };
 
@@ -131,7 +132,7 @@ bool SpudMazeDriver::initialize(int player,std::string& error) {
             throw std::runtime_error("source start node 2 unavailable");
         auto damaged=spud_maze::select_repair_damage(
             static_cast<spud_maze::Difficulty>(difficulty_),
-            static_cast<int>(std::rand()%4)+1);
+            random_stream().next_rand()%4+1);
         original_motion4::Player actor{};
         actor.screen=0;
         actor.node=2;
@@ -344,7 +345,7 @@ ActivityFrameOutput SpudMazeDriver::advance(
                 }
             }
         } else {
-            SpudMazeInputPort io(input,out,pilchard_);
+            SpudMazeInputPort io(input,out,pilchard_,random_stream());
             original_motion4::update_spud_maze_bob(bob_,io);
             if(io.repair_begun()) {
                 repair_animation_frames_=4;
@@ -367,7 +368,7 @@ ActivityFrameOutput SpudMazeDriver::advance(
             bob_.repair_tool_engaged=true;
         const auto pilot=spud_maze::update_pilchard_native(
             pilchard_,hammer_,*data_,difficulty_,bob,
-            []{return static_cast<std::uint32_t>(std::rand());});
+            [this]{return static_cast<std::uint32_t>(random_stream().next_rand());});
         for(const auto& effect:pilot.sound_and_hammer) {
             if(effect.op==maze_spud_batch::Op::PlayManagedSound)
                 out.audio.push_back({

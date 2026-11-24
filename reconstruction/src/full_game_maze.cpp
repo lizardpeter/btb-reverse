@@ -21,9 +21,9 @@ public:
                    original_motion4::Player& player,
                    maze::InputModeState& mode,
                    maze::DirectionalDebounce& debounce,
-                   bool& pointer_sampled)
+                   bool& pointer_sampled,retail::OriginalRetailRandom& rng)
         :input_(in),output_(output),player_(player),mode_(mode),
-         debounce_(debounce),pointer_sampled_(pointer_sampled) {}
+         debounce_(debounce),pointer_sampled_(pointer_sampled),rng_(rng) {}
 
     original_motion4::Input player_input(bool spud_maze) override {
         if(spud_maze)throw std::logic_error("Spud Maze input in Maze driver");
@@ -51,7 +51,7 @@ public:
     }
     original_motion4::U32 random32() override {
         // Original 0x0042FFC4 dispatches the shared CRT rand stream.
-        return static_cast<original_motion4::U32>(std::rand());
+        return static_cast<original_motion4::U32>(rng_.next_rand());
     }
     void sound(original_motion4::I32 id,
                original_motion4::I32 priority,
@@ -105,6 +105,7 @@ private:
     maze::InputModeState& mode_;
     maze::DirectionalDebounce& debounce_;
     bool& pointer_sampled_;
+    retail::OriginalRetailRandom& rng_;
 };
 }
 
@@ -166,8 +167,8 @@ bool MazeDriver::initialize(int player_index,std::string& error) {
         // Source 0x0041A730 samples original CRT rand()%4 repeatedly for
         // each screen until every active package has a unique location.
         // The original executable uses the CRT's live PRNG state.
-        auto allocated=maze::allocate_source_boxes(difficulty_,[] {
-            return static_cast<unsigned>(std::rand());
+        auto allocated=maze::allocate_source_boxes(difficulty_,[this] {
+            return static_cast<unsigned>(random_stream().next_rand());
         });
         player_=std::move(p);
         boxes_=std::move(allocated);
@@ -385,7 +386,7 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
             }
         } else {
             MazePlayerPort io(input,out,player_,input_mode_,
-                              mouse_debounce_,pointer_sampled_);
+                              mouse_debounce_,pointer_sampled_,random_stream());
             original_motion4::update_maze_player(player_,io);
             // Original 0x0041B140 scans current screen's four boxes,
             // truncating player coordinates, radius strictly <46.
@@ -402,7 +403,7 @@ ActivityFrameOutput MazeDriver::advance(const ActivityFrameInput& input) {
         npc_.player_screen=player_.screen;
         npc_.packages=boxes_.screens;
         MazePlayerPort spud_io(input,out,player_,input_mode_,
-                               mouse_debounce_,pointer_sampled_);
+                               mouse_debounce_,pointer_sampled_,random_stream());
         original_motion4::update_maze_spud_npc(npc_,spud_io);
         boxes_.screens=npc_.packages;
     } catch(const std::exception& e) {

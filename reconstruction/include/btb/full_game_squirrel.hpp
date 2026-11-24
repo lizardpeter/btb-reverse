@@ -1,5 +1,6 @@
 #pragma once
 #include "btb/full_game_runtime.hpp"
+#include "btb/retail_crt_random.hpp"
 #include "btb/squirrel_data.hpp"
 #include "btb/squirrel_presentation.hpp"
 #include "btb/squirrel_runtime.hpp"
@@ -23,8 +24,9 @@ public:
         bool correct{};
         bool active{};
     };
-    explicit SquirrelDriver(std::filesystem::path root,int difficulty=0)
-        :root_(std::move(root)),difficulty_(difficulty) {}
+    explicit SquirrelDriver(std::filesystem::path root,int difficulty=0,
+                            retail::OriginalRetailRandom* shared_random=nullptr)
+        :root_(std::move(root)),difficulty_(difficulty),shared_random_(shared_random) {}
     void configure_menu_state(const RetailMenuState& menu) noexcept override;
     [[nodiscard]] bool initialize(int player,std::string& error) override;
     [[nodiscard]] ActivityFrameOutput advance(
@@ -41,6 +43,11 @@ private:
     [[nodiscard]] ActivityFrameOutput draw() const;
     std::filesystem::path root_;
     int difficulty_{};
+    retail::OriginalRetailRandom standalone_random_{};
+    retail::OriginalRetailRandom* shared_random_{};
+    [[nodiscard]] retail::OriginalRetailRandom& random_stream() noexcept {
+        return shared_random_?*shared_random_:standalone_random_;
+    }
     int player_{-1};
     std::unique_ptr<squirrel::Data> data_{};
     squirrel::RunPlan connectors_{};

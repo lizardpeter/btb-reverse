@@ -1,6 +1,7 @@
 #pragma once
 
 #include "btb/full_game_runtime.hpp"
+#include "btb/retail_crt_random.hpp"
 #include "btb/maze_data.hpp"
 #include "btb/maze_input.hpp"
 #include "btb/maze_box_layout.hpp"
@@ -20,8 +21,9 @@ namespace btb::full_game {
 // dropped-package generation remain unhosted; this is not retail parity.
 class MazeDriver final : public ActivityDriver {
 public:
-    MazeDriver(std::filesystem::path install_root,int difficulty=0)
-        :install_root_(std::move(install_root)),difficulty_(difficulty) {}
+    MazeDriver(std::filesystem::path install_root,int difficulty=0,
+               retail::OriginalRetailRandom* shared_random=nullptr)
+        :install_root_(std::move(install_root)),difficulty_(difficulty),shared_random_(shared_random) {}
 
     void configure_menu_state(const RetailMenuState& menu) noexcept override;
     [[nodiscard]] bool initialize(int player_index,std::string& error) override;
@@ -46,6 +48,11 @@ private:
 
     std::filesystem::path install_root_{};
     int difficulty_{};
+    retail::OriginalRetailRandom standalone_random_{};
+    retail::OriginalRetailRandom* shared_random_{};
+    [[nodiscard]] retail::OriginalRetailRandom& random_stream() noexcept {
+        return shared_random_?*shared_random_:standalone_random_;
+    }
     int player_index_{-1};
     std::unique_ptr<maze::Data> data_{};
     original_motion4::Player player_{};

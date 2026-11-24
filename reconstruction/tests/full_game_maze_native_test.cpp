@@ -89,12 +89,16 @@ END
 
     fg::GameRoot game;
     assert(game.select_profile(1));
-    auto driver=std::make_unique<fg::MazeDriver>(root,0);
+    btb::retail::OriginalRetailRandom rng{0x12345u};
+    btb::retail::OriginalRetailRandom reference{0x12345u};
+    const auto allocated=btb::maze::allocate_source_boxes(0,[&]{return static_cast<unsigned>(reference.next_rand());});
+    auto driver=std::make_unique<fg::MazeDriver>(root,0,&rng);
     auto* maze=driver.get();
     game.install(fg::ActivityId::Maze,std::move(driver));
     game.set_outer_state(State::MazeInit);
     auto frame=game.advance({});
     assert(frame.kind==fg::FrameKind::ActivityInitialized);
+    assert(rng.state()==reference.state());
     assert(game.globals().dispatcher.current_state==
            static_cast<int>(State::MazeRun));
     assert(maze->player());

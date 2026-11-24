@@ -88,10 +88,9 @@ struct Host {
     Win32HybridSpudSkateMovies* skate_movies{};
     std::unique_ptr<Win32HybridFireworksMovieBank> fireworks_bank{};
     FireworksDriver* fireworks_driver{};
-    // Native Herding consumes the original 0x42FFC4 MSVC rand stream.
-    // This state is owned by the host, not independently reseeded by
-    // any animal, level, or minigame. Other activity providers still
-    // need to migrate their host rand consumers onto this same stream.
+    // One process-owned 0x42FFC4 MSVC rand stream for source-backed
+    // activity initialization, movement and voice branches. Never
+    // independently reseed when switching levels or minigames.
     retail::OriginalRetailRandom original_game_random{};
     std::unique_ptr<Win32OriginalGameDevice> device{};
     GameRoot game{};
@@ -268,11 +267,11 @@ struct Host {
         game.install(ActivityId::Dinosaur,std::make_unique<DinoDriver>(root));
         game.install(ActivityId::Golf,std::make_unique<GolfDriver>(
             root/"Data"/"SubGameGolf",0));
-        game.install(ActivityId::Maze,std::make_unique<MazeDriver>(root,0));
+        game.install(ActivityId::Maze,std::make_unique<MazeDriver>(root,0,&original_game_random));
         game.install(ActivityId::SpudMaze,
-            std::make_unique<SpudMazeDriver>(root,0));
+            std::make_unique<SpudMazeDriver>(root,0,&original_game_random));
         game.install(ActivityId::Squirrel,
-            std::make_unique<SquirrelDriver>(root,0));
+            std::make_unique<SquirrelDriver>(root,0,&original_game_random));
         // The x64 host uses five native reconstructed Bink streams;
         // x86 retains the original DLL for comparison. Both require
         // actual decoded DD7 buffers (not fabricated frame numbers).

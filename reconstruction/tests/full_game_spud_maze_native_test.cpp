@@ -45,12 +45,16 @@ int main() {
     for(int difficulty=0;difficulty<3;++difficulty) {
         fg::GameRoot game;
         assert(game.select_profile(0));
-        auto driver=std::make_unique<fg::SpudMazeDriver>(root,difficulty);
+        btb::retail::OriginalRetailRandom rng{7};
+        btb::retail::OriginalRetailRandom reference{7};
+        static_cast<void>(reference.next_rand());
+        auto driver=std::make_unique<fg::SpudMazeDriver>(root,difficulty,&rng);
         auto* live=driver.get();
         game.install(fg::ActivityId::SpudMaze,std::move(driver));
         game.set_outer_state(State::SpudMazeInit);
         auto step=game.advance({});
         assert(step.kind==fg::FrameKind::ActivityInitialized);
+        assert(rng.state()==reference.state());
         assert(game.globals().dispatcher.current_state==
                static_cast<int>(State::SpudMazeRun));
         assert(live->bob());

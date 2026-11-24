@@ -1,6 +1,7 @@
 #pragma once
 
 #include "btb/full_game_runtime.hpp"
+#include "btb/retail_crt_random.hpp"
 #include "btb/original_motion4.hpp"
 #include "btb/spud_maze_data.hpp"
 #include "btb/spud_maze_runtime.hpp"
@@ -20,8 +21,9 @@ namespace btb::full_game {
 // original Mr Bentley narrator sequence still require their native host.
 class SpudMazeDriver final : public ActivityDriver {
 public:
-    explicit SpudMazeDriver(std::filesystem::path root,int difficulty=0)
-        :root_(std::move(root)),difficulty_(difficulty) {}
+    explicit SpudMazeDriver(std::filesystem::path root,int difficulty=0,
+                            retail::OriginalRetailRandom* shared_random=nullptr)
+        :root_(std::move(root)),difficulty_(difficulty),shared_random_(shared_random) {}
 
     void configure_menu_state(const RetailMenuState& menu) noexcept override;
     [[nodiscard]] bool initialize(int player,std::string& error) override;
@@ -48,6 +50,11 @@ private:
 
     std::filesystem::path root_;
     int difficulty_{};
+    retail::OriginalRetailRandom standalone_random_{};
+    retail::OriginalRetailRandom* shared_random_{};
+    [[nodiscard]] retail::OriginalRetailRandom& random_stream() noexcept {
+        return shared_random_?*shared_random_:standalone_random_;
+    }
     int player_{-1};
     std::unique_ptr<spud_maze::Data> data_{};
     original_motion4::Player bob_{};

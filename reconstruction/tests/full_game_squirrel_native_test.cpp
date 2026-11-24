@@ -39,16 +39,18 @@ int main() {
         f<<"7\n105 79\n1 2 2 3\n70\n";
         f<<"110 0 234 146 384 177 362 203 172 0\n";
     }
-    std::srand(7);
+    btb::retail::OriginalRetailRandom rng{7};
     for(int difficulty=0;difficulty<3;++difficulty) {
         fg::GameRoot game;
         assert(game.select_profile(2));
-        auto activity=std::make_unique<fg::SquirrelDriver>(root,difficulty);
+        const auto before_rng=rng.state();
+        auto activity=std::make_unique<fg::SquirrelDriver>(root,difficulty,&rng);
         auto* driver=activity.get();
         game.install(fg::ActivityId::Squirrel,std::move(activity));
         game.set_outer_state(State::SquirrelInit);
         auto frame=game.advance({});
         assert(frame.kind==fg::FrameKind::ActivityInitialized);
+        assert(rng.state()!=before_rng);
         assert(game.globals().dispatcher.current_state==
                static_cast<int>(State::SquirrelRun));
         assert(driver->level()==0);
