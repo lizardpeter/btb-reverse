@@ -1,4 +1,6 @@
+#define near // Legacy Win32 minwindef.h compatibility macro.
 #include "btb/herding_source_wrong_home.hpp"
+#undef near
 #include <cassert>
 
 int main() {

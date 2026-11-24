@@ -44,18 +44,18 @@ original_herding_wrong_home_step(EntityType type,Vec2i anchor,
     RetailWrongHomeStep result{.next=before};
     const int skip=static_cast<int>(type)-1;
     int index=0;
-    int near=0;
+    int near_count=0;
     for(int pass=0;pass<2;++pass) {
         ++index;
         if(index==skip)++index;
         if(retail_home_within(anchor,points[static_cast<std::size_t>(index)],200)) {
-            ++near;
+            ++near_count;
             if(!result.next.latched[static_cast<std::size_t>(index)])
                 result.requested_sound_ids[result.count++]=index==3?0x3a9:0x3a9+index;
             result.next.latched[static_cast<std::size_t>(index)]=true;
         }
     }
-    if(near==0)result.next.latched[static_cast<std::size_t>(index)]=false;
+    if(near_count==0)result.next.latched[static_cast<std::size_t>(index)]=false;
     return result;
 }
 } // namespace btb::herding
