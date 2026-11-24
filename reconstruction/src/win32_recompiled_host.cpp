@@ -183,6 +183,9 @@ struct Host {
         }
         if(!game.configure_completion_movies(completion_movies,out_error))
             return false;
+        std::ifstream help_info(loaddata/"helpinfo.txt");
+        if(!help_info){out_error="original loaddata/helpinfo.txt missing";return false;}
+        if(!game.configure_contextual_help(help_info,out_error))return false;
 
         // Original address 0042A2C0 state 04: screen 1 is the activity
         // selection hit-area table, and bitmap source slot 2 is the authored

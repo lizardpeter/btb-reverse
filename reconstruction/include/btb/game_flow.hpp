@@ -203,6 +203,7 @@ enum class Intercept {
     GlobalMovieMode13,
     GlobalMovieMode14,
     InvalidState,
+    ContextualHelp,
 };
 
 struct DispatcherInput {

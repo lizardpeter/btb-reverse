@@ -309,7 +309,98 @@ void GameRoot::consume_pregame_action(
     }
 }
 
+bool GameRoot::configure_contextual_help(std::istream& source,std::string& error) {
+    try {
+        help::State candidate{};
+        help::load_original_help_info(candidate,source);
+        contextual_help_=candidate;
+        help_configured_=true;
+        help_background_.clear();
+        help_hover_=false;help_exit_delay_=0;
+        error.clear();return true;
+    } catch(const std::exception& e){error=e.what();return false;}
+}
+
 GameFrame GameRoot::advance(const ActivityFrameInput& sample) {
+    // 00401700 operates on a captured surface and freezes gameplay.
+    // Draw-command capture is equivalent for bitmap-only activity scenes.
+    // Movie-backed states and dynamic object-specific regions still require
+    // their separate native surface/geometry providers.
+    if(contextual_help_.active){
+        GameFrame result;
+        result.kind=FrameKind::Intercept;
+        result.dispatch.intercept=game_flow::Intercept::ContextualHelp;
+        result.dispatch.current_state=globals_.dispatcher.current_state;
+        result.dispatch.generic_screen_mode=globals_.dispatcher.generic_screen_mode;
+        result.effects.draws=help_background_;
+        if(!sample.pointer_position_valid)return result;
+        const int context=contextual_help_.context;
+        const auto voice=[&](int id){
+            result.effects.audio.push_back({AudioOperation::StopManagedSounds});
+            result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},id,50,2});
+        };
+        if(context>=0&&context<static_cast<int>(contextual_help_.regions.size())){
+            const auto count=contextual_help_.counts[context];
+            for(int i=0;i<count;++i){
+                const auto& region=contextual_help_.regions[context][i];
+                if(!help::cursor_inside_region_strict(region,sample.pointer_x,sample.pointer_y))continue;
+                if(i==0&&sample.pointer_release_pulse){
+                    contextual_help_.active=0;contextual_help_.last_region=0;
+                    help_exit_delay_=help::kHelpExitCursorDelay;
+                    help_hover_=false;
+                    result.effects.audio.push_back({AudioOperation::StopManagedSounds});
+                    help_background_.clear();
+                    return result;
+                }
+                if(i==contextual_help_.last_region)continue;
+                if(context==static_cast<int>(help::Context::ParkDesigner)&&initialized_activity_&&
+                   !drivers_[static_cast<std::size_t>(*initialized_activity_)]->static_help_region_allowed(i))
+                    continue;
+                voice(region.sound_id);
+                contextual_help_.last_region=i;
+            }
+        }
+        result.effects.draws.push_back({"Data/ui/help cursor.bmp",
+            sample.pointer_x,sample.pointer_y,{},true});
+        return result;
+    }
+    if(help_exit_delay_>0)--help_exit_delay_;
+    ActivityFrameInput input=sample;
+    // 004282C0 only enables help with a normal cursor and releases the
+    // button before entering. Exclude the movie-backed Spud Skate scene
+    // until the native device has a captured-surface overlay provider.
+    const bool can_help=help_configured_&&initialized_activity_&&
+        *initialized_activity_!=ActivityId::SpudSkate&&
+        sample.pointer_position_valid&&help_exit_delay_==0&&
+        !globals_.dispatcher.generic_yes_no_active&&!globals_.dispatcher.leave_activity_active&&
+        !globals_.dispatcher.options_active&&!globals_.dispatcher.progress_screen_active&&
+        drivers_[static_cast<std::size_t>(*initialized_activity_)]->shared_back_available();
+    const bool over=can_help&&sample.pointer_x>20&&sample.pointer_x<65&&
+        sample.pointer_y>420&&sample.pointer_y<465;
+    if(over){input.click_pulse=false;input.pointer_release_pulse=false;}
+    auto result=advance_impl(input);
+    if(over&&result.kind==FrameKind::ActivityUpdated&&!result.state_changed&&
+       !result.effects.open_leave_activity_confirmation&&!result.effects.open_yes_no_confirmation&&
+       !result.effects.retain_original_global_movie_pixels&&!result.effects.draws.empty()){
+        result.effects.draws.push_back({sample.pointer_button_held?
+            "Data/ui/helpreddep.bmp":"Data/ui/helpred.bmp",14,418,{},true});
+        if(!help_hover_)result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},455,50,2});
+        if(sample.pointer_release_pulse){
+            const auto decision=help::enter_decision(globals_.dispatcher.current_state,false,false);
+            if(decision.active){
+                help_background_=result.effects.draws;
+                contextual_help_.active=1;contextual_help_.context=decision.context;
+                contextual_help_.last_region=0;
+                result.effects.audio.push_back({AudioOperation::StopManagedSounds});
+                result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},help::kHelpIntroSoundId,50,2});
+            }
+        }
+    }
+    help_hover_=over;
+    return result;
+}
+
+GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
     GameFrame result;
     ActivityFrameInput input=sample;
     if(pending_modal_choice_){

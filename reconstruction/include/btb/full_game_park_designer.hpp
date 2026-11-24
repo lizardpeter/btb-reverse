@@ -51,6 +51,16 @@ public:
 
     bool request_confirmed_leave() noexcept override {request_exit(true);return true;}
     bool redraw_confirmation_background(ActivityFrameOutput&,std::string&) override;
+    bool static_help_region_allowed(int region) const noexcept override {
+        // 00401700 context 9: View replaces the editing palette help.
+        const int mode=static_cast<int>(state_.save.state(
+            park_designer::TrailingStateIndex::ActiveEditorMode));
+        if(mode<0||mode>3)return false;
+        if(mode==3)return region!=6&&region!=7&&region!=9;
+        if(region>=10)return false;
+        if(region==9)return state_.save.state(park_designer::kMaxPageStateByEditorMode[mode])!=0;
+        return true;
+    }
     void request_exit(bool shutdown = false) noexcept {
         state_.exit_requested=!shutdown;
         state_.shutdown_requested=shutdown;

@@ -296,6 +296,7 @@ public:
     // 004084B0 only sets generic back/help bits for the normal cursor.
     virtual bool shared_back_available() const noexcept {return true;}
     virtual bool shared_back_starts_replay() const noexcept {return false;}
+    virtual bool static_help_region_allowed(int) const noexcept {return true;}
     virtual bool redraw_confirmation_background(ActivityFrameOutput&,std::string&) {return false;}
 };
 
@@ -378,6 +379,7 @@ public:
     // Non-retail --skip-bink mode: skip the intro sequence, not profile setup.
     void skip_startup_video_sequence() noexcept;
     [[nodiscard]] bool configure_completion_movies(std::istream&,std::string&);
+    [[nodiscard]] bool configure_contextual_help(std::istream&,std::string&);
     [[nodiscard]] bool load_profile_files(
         const std::filesystem::path& directory,
         std::string& error);
@@ -411,6 +413,11 @@ private:
     int modal_hover_{-1},modal_armed_{-1};
     bool shared_back_hover_{};
     bool pending_confirmed_leave_{};
+    [[nodiscard]] GameFrame advance_impl(const ActivityFrameInput&);
+    help::State contextual_help_{};
+    bool help_configured_{},help_hover_{};
+    int help_exit_delay_{};
+    std::vector<Draw> help_background_{};
     void consume_menu_action(
         game_flow::State update,
         GameFrame& result) noexcept;
