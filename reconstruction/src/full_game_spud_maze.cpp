@@ -24,8 +24,8 @@ public:
         const auto bits=input_.directional_input_bits;
         return {
             (bits&0x02U)?1:(bits&0x01U)?-1:0,
-            // 0x004211A0: bit 8 is UP (-Y); bit 4 is DOWN (+Y).
-            (bits&0x08U)?-1:(bits&0x04U)?1:0,
+            // 004211A0 emits +1 on bit 4; 00421360 subtracts Y.
+            (bits&0x08U)?1:(bits&0x04U)?-1:0,
             input_.pointer_button_held,input_.click_pulse
         };
     }
