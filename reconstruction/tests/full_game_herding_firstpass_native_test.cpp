@@ -328,6 +328,70 @@ int main() {
         assert(native.unload(error));
     }
 
+    // Run the actual simulation bridge with native movement and a
+    // deliberately crowded initial population. A forged pair count
+    // must fail atomically and leave the native RNG/source state intact.
+    {
+        struct CrowdedSource final : fg::OriginalHerdingMotionSource {
+            fg::NativePicklesMotionSource native;
+            bool corrupt{};
+            fg::HerdingObservedFrame last{};
+            explicit CrowdedSource(btb::retail::OriginalRetailRandom& rng):native(rng){}
+            bool begin_frame(std::string& e) override {return native.begin_frame(e);}
+            void commit_frame() noexcept override {native.commit_frame();}
+            void rollback_frame() noexcept override {native.rollback_frame();}
+            bool initialize(const btb::herding::Data& data,int difficulty,
+                std::vector<btb::herding::RetailEntityRecord32>& records,
+                std::string& e) override {
+                if(!native.initialize(data,difficulty,records,e))return false;
+                records[0].x=150;records[0].y=300;
+                records[0].x_float=150;records[0].y_float=300;
+                records[1].x=610;records[1].y=550;
+                records[1].x_float=610;records[1].y_float=550;
+                records[2].x=600;records[2].y=550;
+                records[2].x_float=600;records[2].y_float=550;
+                return true;
+            }
+            bool advance(const btb::herding::Data& data,const fg::ActivityFrameInput& input,
+                const btb::herding::PicklesKeyboardMotion& motion,
+                const std::vector<btb::herding::RetailEntityRecord32>& records,
+                fg::HerdingObservedFrame& observed,std::string& e) override {
+                if(!native.advance(data,input,motion,records,observed,e))return false;
+                last=observed;
+                if(corrupt && !observed.pair_scan_evidence.empty())
+                    ++observed.pair_scan_evidence.front().separated_count;
+                return true;
+            }
+            bool unload(std::string& e) override {return native.unload(e);}
+        };
+        std::ifstream input(root/"Data"/"SubGame1"/"herd.txt");
+        auto data=btb::herding::parse_data(input);
+        btb::retail::OriginalRetailRandom rng{12345};
+        auto source=std::make_unique<CrowdedSource>(rng);
+        auto* probe=source.get();
+        fg::HerdingEventSimulation simulation(std::move(source));
+        std::string error;
+        assert(simulation.initialize(data,0,error));
+        fg::HerdingScene scene{};
+        int remaining=-1;
+        std::vector<fg::Audio> audio;
+        auto seed=rng.state();
+        probe->corrupt=true;
+        assert(!simulation.advance({}, {},scene,remaining,audio,error));
+        assert(!probe->last.pair_scan_evidence.empty());
+        assert(error.find("pair scan count")!=std::string::npos);
+        assert(scene.entities.empty() && remaining==-1 && audio.empty());
+        assert(rng.state()==seed);
+        const auto expected=probe->last.motion_records;
+        probe->corrupt=false;
+        assert(simulation.advance({}, {},scene,remaining,audio,error));
+        assert(remaining==9);
+        assert(scene.entities[1].x_float==expected[1].x_float);
+        assert(scene.entities[2].x_float==expected[2].x_float);
+        assert(scene.entities[2].movement_active==1);
+        assert(simulation.unload(error));
+    }
+
     // Recovered x86 0x417603 follower-slot geometry and source
     // speed response: slot 0 holds at 15 source units; beyond that
     // it steers into Pickles' own facing-dependent orbit.
