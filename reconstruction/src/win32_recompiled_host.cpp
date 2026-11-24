@@ -214,21 +214,21 @@ struct Host {
             }
         }
 
-        // Four source-confirmed subgame choice screens and three replay
-        // screens use different bitmap-table offsets from their UI enum IDs.
-        // Preserve the original names and never substitute a generic menu.
+        // Four subgame chooser states load bitmap-table offsets; three
+        // replay setup states instead load literal, keyed art at 0042A2C0.
+        // The obsolete table entries 19/20/21 do not exist on the disc.
         struct MenuBackdrop {
             game_flow::State setup;
-            std::size_t background;
+            std::optional<std::size_t> background;
         };
         constexpr std::array<MenuBackdrop,7> menu_backdrops{{
             {game_flow::State::DinoChooserSetup,8},
             {game_flow::State::MusicChooserSetup,22},
             {game_flow::State::SpudChooserSetup,9},
             {game_flow::State::AdventureChooserSetup,12},
-            {game_flow::State::PlayAgainYesNoSetup,19},
-            {game_flow::State::PlayAgainDifficultySetup,20},
-            {game_flow::State::FireworksReplayChoiceSetup,21},
+            {game_flow::State::PlayAgainYesNoSetup,std::nullopt},
+            {game_flow::State::PlayAgainDifficultySetup,std::nullopt},
+            {game_flow::State::FireworksReplayChoiceSetup,std::nullopt},
         }};
         for(const auto& mapping:menu_backdrops){
             const auto* spec=generic_front_end_pair_for_state(
@@ -240,7 +240,10 @@ struct Host {
             const auto index=static_cast<std::size_t>(spec->screen);
             auto driver=std::make_unique<GenericUiScreenDriver>(
                 catalog,spec->screen,std::vector<int>(catalog.counts[index],0));
-            if(!driver->configure_backdrop(bitmaps,mapping.background) ||
+            const bool backdrop_ok=mapping.background
+                ? driver->configure_backdrop(bitmaps,*mapping.background)
+                : driver->configure_retail_replay_backdrop(mapping.setup);
+            if(!backdrop_ok ||
                !game.install_generic_front_end_pair(
                    mapping.setup,std::move(driver))){
                 out_error="original chooser bitmap mapping failed";
