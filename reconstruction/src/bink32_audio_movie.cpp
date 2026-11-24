@@ -3,6 +3,7 @@
 #include "btb/bink32_audio_stream.hpp"
 #include "btb/bink32_container.hpp"
 #include "btb/bink32_packet_decode.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -108,5 +109,25 @@ decode_bink1_movie_audio(std::span<const std::uint8_t> original_bik,
     }
     error.clear();
     return result;
+}
+bool validate_bink1_silent_movie_audio(
+    std::span<const std::uint8_t> original_bik,std::string& error) {
+    const auto index=parse_container_index(original_bik);
+    if(!index||index->header.magic!=Magic::SJPi||
+       !index->header.frame_count) {
+        error="invalid SJPi movie for silence validation";
+        return false;
+    }
+    for(std::size_t i=0;i<index->tracks.size();++i) {
+        const auto pcm=decode_bink1_movie_audio(original_bik,i,error);
+        if(!pcm)return false;
+        if(std::any_of(pcm->samples.begin(),pcm->samples.end(),
+                       [](std::int16_t s){return s!=0;})) {
+            error="video-only bank contains audible Bink track "+
+                  std::to_string(i);
+            return false;
+        }
+    }
+    error.clear();return true;
 }
 } // namespace btb::bink32_recovered

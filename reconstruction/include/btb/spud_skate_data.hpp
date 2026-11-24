@@ -5,8 +5,25 @@
 #include <cstdint>
 #include <istream>
 #include <optional>
+#include <string_view>
 
 namespace btb::spud_skate {
+
+// Retail Windows paths are case-insensitive; the supplied disc has OK.bik.
+inline constexpr std::array<std::string_view,5> kOriginalSkateMovieNames{
+    "bad.bik","normal.bik","ok.bik","good.bik","end.bik"};
+[[nodiscard]] constexpr bool original_skate_movie_name_matches(
+    std::size_t index,std::string_view filename) noexcept {
+    if(index>=kOriginalSkateMovieNames.size())return false;
+    const auto expected=kOriginalSkateMovieNames[index];
+    if(filename.size()!=expected.size())return false;
+    for(std::size_t i=0;i<filename.size();++i) {
+        const char ch=filename[i];
+        if((ch>='A'&&ch<='Z'?char(ch-'A'+'a'):ch)!=expected[i])
+            return false;
+    }
+    return true;
+}
 
 inline constexpr std::size_t kStuntCount = 8;
 inline constexpr std::size_t kQualityCount = 4;

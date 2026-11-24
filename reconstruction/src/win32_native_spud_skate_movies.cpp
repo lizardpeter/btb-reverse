@@ -1,6 +1,7 @@
 #include "btb/win32_native_spud_skate_movies.hpp"
 #if defined(_WIN32)
 #include "btb/bink32_container.hpp"
+#include "btb/spud_skate_data.hpp"
 #include "btb/win32_native_bink_surface.hpp"
 #include <fstream>
 #include <thread>
@@ -14,12 +15,10 @@ Win32NativeSpudSkateMovies::~Win32NativeSpudSkateMovies(){
 bool Win32NativeSpudSkateMovies::open(
  const std::array<std::filesystem::path,5>& paths,std::string& error){
  if(active_){error="native Spud Skate bank already open";return false;}
- static constexpr std::array<const char*,5> names={
-  "bad.bik","normal.bik","ok.bik","good.bik","end.bik"};
  for(std::size_t i=0;i<5;++i){
   std::ifstream f(paths[i],std::ios::binary|std::ios::ate);
   const auto n=f?f.tellg():std::streampos(-1);
-  if(paths[i].filename().string()!=names[i]||n<=0||n>7000000){
+  if(!spud_skate::original_skate_movie_name_matches(i,paths[i].filename().string())||n<=0||n>7000000){
    error="missing or oversized original Spud Skate Bink: "+paths[i].string();
    std::string ignored;(void)close(ignored);return false;
   }

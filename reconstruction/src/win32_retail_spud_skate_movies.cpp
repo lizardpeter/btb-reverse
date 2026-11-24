@@ -1,4 +1,5 @@
 #include "btb/win32_retail_spud_skate_movies.hpp"
+#include "btb/spud_skate_data.hpp"
 
 #if defined(_WIN32)
 #include <algorithm>
@@ -97,14 +98,11 @@ bool Win32RetailSpudSkateMovies::open(
     const auto open=dll_function<Open>(exports_,"BinkOpen");
     if(!open) {error="original BinkOpen missing";return false;}
 
-    const std::array<std::string,5> expected{{
-        "bad.bik","normal.bik","ok.bik","good.bik","end.bik"
-    }};
     std::error_code ec;
     for(std::size_t i=0;i<handles_.size();++i) {
-        if(original_binks[i].filename().string()!=expected[i] ||
+        if(!spud_skate::original_skate_movie_name_matches(i,original_binks[i].filename().string()) ||
            !std::filesystem::is_regular_file(original_binks[i],ec) || ec) {
-            error="Spud Skate requires original "+expected[i]+
+            error="Spud Skate requires original "+std::string(spud_skate::kOriginalSkateMovieNames[i])+
                   " (not an arbitrary substituted Bink)";
             std::string ignored;(void)close(ignored);
             return false;

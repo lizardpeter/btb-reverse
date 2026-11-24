@@ -27,10 +27,10 @@ struct Bits {
 void put32(std::vector<std::uint8_t>& x,std::size_t p,std::uint32_t n) {
     for(unsigned i=0;i<4;++i)x[p+i]=std::uint8_t(n>>(i*8));
 }
-std::vector<std::uint8_t> encoded_pcm(const Bink1AudioLayout& layout) {
+std::vector<std::uint8_t> encoded_pcm(const Bink1AudioLayout& layout,bool silent=false) {
     Bits w;
     w.put(0,2); // DCT source header
-    w.put(18,5);w.put(32768,23);w.put(0,1);
+    w.put(silent?0:18,5);w.put(silent?0:32768,23);w.put(0,1);
     w.put(0,5);w.put(0,23);w.put(0,1);
     for(std::size_t j=1;j<layout.band_starts.size();++j)w.put(0,8);
     for(unsigned j=2;j<layout.frame_length;j+=8) {
@@ -116,5 +116,13 @@ int main() {
     CHECK(!decode_bink1_movie_audio(corrupt,0,error));
     CHECK(error.find("frame 3")!=std::string::npos);
     CHECK(!decode_bink1_movie_audio({},0,error));
+    CHECK(!validate_bink1_silent_movie_audio(bytes,error));
+    CHECK(error.find("audible")!=std::string::npos);
+    const auto silent_block=encoded_pcm(*layout,true);
+    const auto silent=synthetic_movie(silent_block);
+    CHECK(validate_bink1_silent_movie_audio(silent,error)&&error.empty());
+    CHECK(!validate_bink1_silent_movie_audio(
+        synthetic_movie(silent_block,true),error));
+    CHECK(!validate_bink1_silent_movie_audio({},error));
     return 0;
 }

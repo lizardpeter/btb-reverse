@@ -37,4 +37,9 @@ struct Bink1MoviePcm16 {
 [[nodiscard]] std::optional<Bink1MoviePcm16>
 decode_bink1_movie_audio(std::span<const std::uint8_t> original_bik,
                          std::size_t track_index,std::string& error);
+// Validate all declared tracks before a video-only activity can omit audio.
+// Accept no-track or completely silent PCM16 movies; reject corruption and
+// any nonzero sample, rather than silently discarding audible content.
+[[nodiscard]] bool validate_bink1_silent_movie_audio(
+    std::span<const std::uint8_t> original_bik,std::string& error);
 } // namespace btb::bink32_recovered

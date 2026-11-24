@@ -5,6 +5,12 @@
 
 using namespace btb::spud_skate;
 
+static_assert(original_skate_movie_name_matches(2,"OK.bik"));
+static_assert(original_skate_movie_name_matches(2,"ok.BIK"));
+static_assert(!original_skate_movie_name_matches(1,"OK.bik"));
+static_assert(!original_skate_movie_name_matches(5,"end.bik"));
+static_assert(!original_skate_movie_name_matches(2,"x/ok.bik"));
+
 int main() {
     std::istringstream timing(R"(
 8

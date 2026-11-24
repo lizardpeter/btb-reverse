@@ -13,6 +13,28 @@ results do not certify every movie in the installed game or end-to-end
 native playback. FFmpeg is a separate diagnostic reference only, never a
 runtime decoder dependency.
 
+## Original disc media evidence (2026-11-24)
+
+The 61 identified originals across Data/movies (33), Data/subgamespudskate
+(5), and Data/SubGameFirework/graph (23) were decoded with the native
+video/audio audit tools from main checkpoint 6c6fcf2 (diagnostics artifact
+14899730650). All 12,732 video frames matched independent FFmpeg YUVA/YUV
+references exactly; all 44 declared audio tracks had matching sample counts
+and maximum PCM16 error at most one LSB. The 22 Fireworks audio tracks decoded
+to exact zero, including all overlap samples; the remaining Fireworks clip
+has no track. The native Fireworks bank now validates decoded silence rather
+than rejecting a declared track. Audible or corrupt replacements fail closed.
+The disc's uppercase OK.bik also revealed a case-sensitive Spud Skate name
+check; both native and x86 comparison providers now follow retail Windows
+case-insensitive naming.
+
+Reference FFmpeg 7.1.5 received a temporary copy with SJPi magic translated
+to BIKi, never modified original assets. The native video executable was
+unmodified; the audio audit executable required a local ELF compatibility
+adjustment to its sqrtf GLIBC symbol version (2.43 to 2.2.5), not a change to
+decoder instructions. These results are codec differential evidence on
+Linux, not original RAD DLL parity or Windows device playback certification.
+
 ## Audit every installed movie
 
 Build the two portable original-format audit executables:

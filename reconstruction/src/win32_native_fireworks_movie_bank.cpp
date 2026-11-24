@@ -1,6 +1,7 @@
 #include "btb/win32_native_fireworks_movie_bank.hpp"
 #if defined(_WIN32)
 #include "btb/bink32_container.hpp"
+#include "btb/bink32_audio_movie.hpp"
 #include "btb/fireworks_movie_bank_manifest.hpp"
 #include "btb/win32_native_bink_surface.hpp"
 #include <fstream>
@@ -35,9 +36,13 @@ bool Win32NativeFireworksMovieBank::open(
      index->header.width==0||index->header.height==0||
      index->header.width>static_cast<std::uint32_t>(size.width)||
      index->header.height>static_cast<std::uint32_t>(size.height)||
-     index->header.frame_count==0||!index->tracks.empty())
-   return fail("native Fireworks requires a valid silent SJPi clip: "+
+     index->header.frame_count==0)
+   return fail("native Fireworks requires a valid SJPi clip: "+
                paths[i].string());
+  // Retail has 22 encoded-silent tracks and one trackless clip.
+  // Decode and verify silence; never discard an audible replacement track.
+  if(!btb::bink32_recovered::validate_bink1_silent_movie_audio(bytes,error))
+   return fail("native Fireworks audio validation: "+paths[i].string()+": "+error);
   streams_[i]=btb::bink32_recovered::BinkNativeVideoStream::open(
       std::move(bytes));
   if(!streams_[i])
