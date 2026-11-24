@@ -76,9 +76,9 @@ int main() {
             catalog,front_end::Screen::MusicChooser,std::vector<int>(5,0))));
     std::ostringstream source_bitmaps;
     for (int i=0; i<22; ++i) {
-        source_bitmaps << "Data/ui/backdrop" << i << ".bmp\\n";
+        source_bitmaps << "Data/ui/backdrop" << i << ".bmp\n";
     }
-    source_bitmaps << "Data/ui/subact/music.bmp\\nEND.bmp\\n";
+    source_bitmaps << "Data/ui/subact/music.bmp\nEND.bmp\n";
     std::istringstream names(source_bitmaps.str());
     OriginalUiBitmapCatalog backdrop_table;
     assert(backdrop_table.read(names,err));
@@ -127,7 +127,7 @@ int main() {
         std::make_unique<GenericUiScreenDriver>(
             catalog,front_end::Screen::PlayAgainYesNo,
             std::vector<int>(2,0))));
-    root.globals().menu.replay_class = 1; // Original Golf/Band exit
+    root.globals().menu.replay_class = 1; // Original Golf exit
     root.globals().dispatcher.saved_state = 0x36; // Golf initializer
     root.set_outer_state(State::PlayAgainYesNoSetup);
     setup=root.advance({});
