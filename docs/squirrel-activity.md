@@ -694,3 +694,21 @@ Current source coverage includes:
 - exact +/-2 / <=3-snap movement rule;
 - verified startup and placement sound groups;
 - exact three-stage completion gate and final Wendy sound range.
+
+## Native packed backdrop, conveyor cycle and cursor correction
+
+The live driver now selects the original difficulty-specific level1/2/3.bmp
+once and crops its authored 620x480 panel at the 480-pixel stride. On a
+nonfinal level completion, the 00425780 normal-speed scroll moves the
+viewport two pixels per update (240 updates), with the existing and next
+connector anchors shifted along the same geometry. The 00427320 conveyor
+recycle moves old choices offscreen, regenerates at -420, then returns to
+zero using five-pixel steps and the three original belt frames. Clicks
+are gated while scrolling/refilling and the hit test uses the retail
+strict interior bounds. The selected-choice latch now clears at assembly
+completion so the common Back/Help cursor is not permanently disabled.
+The 664..667 final-level cue is emitted before the existing outer final
+Wendy line. Full source-specific Lofty fetch/decoy-return choreography,
+its separate large-motion animation, exact overlap of belt refill with
+placement, and differential visual timing remain unfinished. These
+changes do not modify original artwork or claim physical parity.
