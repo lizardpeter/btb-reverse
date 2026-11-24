@@ -685,6 +685,9 @@ add_library(btb_full_game_root_source
     src/full_game_runtime.cpp
     src/full_game_profiles.cpp
     src/full_game_profile_name_entry.cpp
+    src/original_help2.cpp
+    src/full_game_original_help.cpp
+    src/original_asset_resolver.cpp
 )
 target_include_directories(btb_full_game_root_source PUBLIC include)
 btb_require_cpp26(btb_full_game_root_source PUBLIC)
@@ -1084,8 +1087,6 @@ add_library(btb_recompiled_core STATIC
     src/original_locale7_validation.cpp
     src/original_runtime15.cpp
     src/original_runtime15_validation.cpp
-    src/original_help2.cpp
-    src/full_game_original_help.cpp
     src/original_exception9.cpp
     src/original_startup11.cpp
     src/original_startup11_validation.cpp
@@ -1157,7 +1158,6 @@ add_library(btb_recompiled_core STATIC
     src/full_game_walkthrough_catalog.cpp
     src/full_game_ui_bitmaps.cpp
     src/full_game_pregame_resources.cpp
-    src/original_asset_resolver.cpp
     src/bobs_band.cpp
     src/bobs_band_activity.cpp
     src/bobs_band_data.cpp
