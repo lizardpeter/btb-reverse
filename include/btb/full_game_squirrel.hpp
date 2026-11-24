@@ -39,6 +39,8 @@ public:
     [[nodiscard]] int placed_count() const noexcept {return placed_count_;}
     [[nodiscard]] bool animating() const noexcept {return animating_;}
     bool shared_back_available() const noexcept override {return selected_choice_<0;}
+    [[nodiscard]] bool transitioning() const noexcept {return level_scroll_!=0;}
+    [[nodiscard]] bool conveyor_cycling() const noexcept {return conveyor_phase_!=0;}
 private:
     [[nodiscard]] bool generate_choices(std::string& error);
     [[nodiscard]] ActivityFrameOutput draw() const;
@@ -63,5 +65,14 @@ private:
     bool complete_{};
     int completion_stage_{};
     int intro_stage_{};
+    // Original 00425780 increments source X by 10/5 per tick.
+    int level_scroll_{};
+    // Original 00427320: outgoing, refill offscreen, incoming.
+    int conveyor_phase_{};
+    int conveyor_offset_{};
+    int conveyor_frame_{};
+    int conveyor_wait_{};
+    void begin_conveyor_cycle() noexcept;
+    void advance_conveyor_cycle(ActivityFrameOutput&);
 };
 } // namespace btb::full_game

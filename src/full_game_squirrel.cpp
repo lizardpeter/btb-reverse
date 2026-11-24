@@ -57,6 +57,8 @@ bool SquirrelDriver::initialize(int player,std::string& error) {
         animating_=false;complete_=false;
         completion_stage_=0;
         intro_stage_=0;
+        level_scroll_=0;
+        conveyor_phase_=conveyor_offset_=conveyor_frame_=conveyor_wait_=0;
         player_=player;
         if(!generate_choices(error)) {
             data_.reset();
@@ -133,19 +135,27 @@ ActivityFrameOutput SquirrelDriver::draw() const {
     ActivityFrameOutput out;
     if(!data_)return out;
     const auto base=std::string(kSubgame);
+    // 00425160 selects ONE packed bitmap by difficulty. 004267B0
+    // crops the 620x480 source viewport at level*480, not an entire
+    // differently named image for every level. 00425780 advances the
+    // same rectangle during the inter-level slide.
+    const int scroll=level_scroll_?level_scroll_-1:0;
+    const int left=level_*squirrel::kBackgroundPanelStride+scroll;
     out.draws.push_back({
-        base+"level"+std::to_string(level_+1)+".bmp",0,0,
-        std::nullopt,false
+        base+"level"+std::to_string(difficulty_+1)+".bmp",
+        level_scroll_?10:0,0,
+        Rect{left,0,left+squirrel::kBackgroundViewportWidth,
+             squirrel::kBackgroundViewportHeight},false
     });
     sprite(out,"conveyor.bmp",0,417,
-        Rect{0,0,640,44});
+        Rect{conveyor_frame_*640,0,(conveyor_frame_+1)*640,44});
     sprite(out,"body_01.bmp",
-        squirrel::kLoftyBodyX,squirrel::kLoftyBodyY);
-    sprite(out,"eyes.bmp",squirrel::kLoftyEyesX,
+        squirrel::kLoftyBodyX-scroll,squirrel::kLoftyBodyY);
+    sprite(out,"eyes.bmp",squirrel::kLoftyEyesX-scroll,
         squirrel::kLoftyEyesY,
         Rect{0,0,squirrel::kEyesFrameWidth,
                   squirrel::kEyesFrameHeight});
-    sprite(out,"mouth.bmp",squirrel::kLoftyMouthX,
+    sprite(out,"mouth.bmp",squirrel::kLoftyMouthX-scroll,
         squirrel::kLoftyMouthY,
         Rect{0,0,squirrel::kMouthFrameWidth,
                   squirrel::kMouthFrameHeight});
@@ -166,8 +176,19 @@ ActivityFrameOutput SquirrelDriver::draw() const {
         const int id=squirrel::kConnectorPieceIds[
             static_cast<std::size_t>(connector)];
         const auto& dest=squirrel::kConnectorDestinations[i];
-        sprite(out,"all.bmp",dest.x,dest.y,
+        sprite(out,"all.bmp",dest.x-scroll,dest.y,
             Rect{id*89,0,(id+1)*89,133});
+    }
+    // 004267B0 overlays the next three connector anchors as the
+    // shared edge of the two panels scrolls across the playfield.
+    if(level_scroll_&&level_<difficulty_) {
+        for(std::size_t i=1;i<squirrel::kConnectorDestinations.size();++i) {
+            const auto connector=connectors_[static_cast<std::size_t>(level_+1)][i];
+            const auto id=squirrel::kConnectorPieceIds[static_cast<std::size_t>(connector)];
+            const auto& dest=squirrel::kConnectorDestinations[i];
+            sprite(out,"all.bmp",dest.x+squirrel::kBackgroundPanelStride-scroll,dest.y,
+                Rect{id*89,0,(id+1)*89,133});
+        }
     }
     if(level_==difficulty_) {
         if(const auto nut=squirrel::nut_pile_destination(
@@ -180,14 +201,14 @@ ActivityFrameOutput SquirrelDriver::draw() const {
             static_cast<std::size_t>(i)];
         const auto& dest=squirrel::kCompletedRunPieceDestinations[
             static_cast<std::size_t>(i)];
-        sprite(out,"all.bmp",dest.x,dest.y,
+        sprite(out,"all.bmp",dest.x-scroll,dest.y,
             as_rect(squirrel::run_piece_source_rect(id)));
     }
     for(std::size_t i=0;i<choices_.size();++i) {
         const auto& choice=choices_[i];
         if(!choice.active)continue;
         const auto& xy=squirrel::kConveyorItemOrigins[i];
-        sprite(out,"allconveyor.bmp",xy.x,xy.y,
+        sprite(out,"allconveyor.bmp",xy.x+conveyor_offset_,xy.y,
             as_rect(squirrel::run_piece_source_rect(choice.piece_id)));
     }
     // This is the actual 8772x92 original Squirrel sprite sheet.
@@ -199,7 +220,7 @@ ActivityFrameOutput SquirrelDriver::draw() const {
         const int frame=animating_?assembly_.sprite_frame:0;
         if(const auto rect=squirrel::source_squirrel_frame_rect(frame))
             sprite(out,"squriel_1_86.bmp",
-                origin->x+assembly_.x,origin->y+assembly_.y,
+                origin->x+assembly_.x-scroll,origin->y+assembly_.y,
                 Rect{rect->left,rect->top,rect->right,rect->bottom});
     }
     if(animating_) {
@@ -233,6 +254,26 @@ ActivityFrameOutput SquirrelDriver::advance(
     return out;
 }
 
+void SquirrelDriver::begin_conveyor_cycle() noexcept {
+    conveyor_phase_=1;conveyor_offset_=0;
+}
+
+void SquirrelDriver::advance_conveyor_cycle(ActivityFrameOutput& out) {
+    // 00427320 normal-speed branch: five pixels per tick, three belt
+    // frames on a two-tick counter. Refill while the items are offscreen.
+    if(--conveyor_wait_<1) {
+        conveyor_wait_=2;conveyor_frame_=(conveyor_frame_+1)%3;
+    }
+    conveyor_offset_+=5;
+    if(conveyor_phase_==1&&conveyor_offset_>500) {
+        conveyor_offset_=-420;conveyor_phase_=2;
+        std::string error;
+        if(!generate_choices(error))out.fatal_error=error;
+    } else if(conveyor_phase_==2&&conveyor_offset_>=0) {
+        conveyor_offset_=0;conveyor_phase_=0;
+    }
+}
+
 ActivityFrameOutput SquirrelDriver::advance_gameplay(
     const ActivityFrameInput& input) {
     auto out=draw();
@@ -263,23 +304,43 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         }
         return out;
     }
+    if(level_scroll_) {
+        // The original 10/5 slide moves 480 pixels in 240 updates.
+        // The last frame becomes the next steady viewport.
+        level_scroll_+=2;
+        if(level_scroll_>squirrel::kBackgroundPanelStride) {
+            ++level_;placed_count_=0;level_scroll_=0;
+            assembly_={};
+            begin_conveyor_cycle();
+        }
+        return draw();
+    }
+    if(conveyor_phase_) {
+        advance_conveyor_cycle(out);
+        auto frame=draw();frame.fatal_error=std::move(out.fatal_error);
+        return frame;
+    }
     if(animating_) {
         const auto update=squirrel::tick_run_assembly_animation(
             assembly_,*data_);
         if(update.cycle_completed) {
             animating_=false;
+            // The selected item no longer owns the cursor after placement.
+            // Previously this latch survived every successful choice.
+            selected_choice_=-1;
             ++placed_count_;
             if(placed_count_>=3) {
                 if(level_==difficulty_) {
                     complete_=true;
                     completion_stage_=0;
+                    out.audio.push_back({AudioOperation::StopManagedSounds});
+                    out.audio.push_back({AudioOperation::ManagedSoundId,{},
+                        664+(random_stream().next_rand()%4),50,1});
                 } else {
-                    ++level_;placed_count_=0;
+                    level_scroll_=1;
                 }
-            }
-            if(!complete_) {
-                std::string error;
-                if(!generate_choices(error))out.fatal_error=error;
+            } else {
+                begin_conveyor_cycle();
             }
         }
         {auto frame=draw();frame.audio=std::move(out.audio);frame.fatal_error=std::move(out.fatal_error);return frame;}
@@ -287,9 +348,9 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
     if(!input.click_pulse)return out;
     for(std::size_t i=0;i<choices_.size();++i) {
         const auto& target=squirrel::kConveyorItemOrigins[i];
-        if(input.pointer_x<target.x ||
+        if(input.pointer_x<=target.x ||
            input.pointer_x>=target.x+squirrel::kConveyorHitWidth ||
-           input.pointer_y<target.y ||
+           input.pointer_y<=target.y ||
            input.pointer_y>=target.y+squirrel::kConveyorHitHeight)
             continue;
         auto& chosen=choices_[i];
@@ -338,6 +399,8 @@ bool SquirrelDriver::unload(std::string& error) {
     animating_=false;complete_=false;
     completion_stage_=0;
     intro_stage_=0;
+    level_scroll_=0;
+    conveyor_phase_=conveyor_offset_=conveyor_frame_=conveyor_wait_=0;
     error.clear();
     return true;
 }

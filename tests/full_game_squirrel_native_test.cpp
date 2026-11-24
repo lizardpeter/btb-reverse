@@ -57,6 +57,11 @@ int main() {
         auto rendered=game.advance({});
         assert(rendered.kind==fg::FrameKind::ActivityUpdated);
         assert(rendered.effects.audio.size()==2);
+        assert(rendered.effects.draws[0].source_asset==
+            "Data\\SubGameSquirrel\\level"+std::to_string(difficulty+1)+".bmp");
+        assert(rendered.effects.draws[0].source_rectangle);
+        assert(rendered.effects.draws[0].source_rectangle->left==0);
+        assert(rendered.effects.draws[0].source_rectangle->right==620);
         assert(rendered.effects.audio[0].source_asset=="Data/music/squirrelrun.wav");
         assert(rendered.effects.audio[1].sound_id==643 && rendered.effects.audio[1].input_interruptible);
         auto waiting=game.advance({.managed_sound_playing=true});
@@ -130,12 +135,17 @@ int main() {
             }
             const auto point=sq::kConveyorItemOrigins[
                 static_cast<std::size_t>(chosen)];
+            // Original uses strict interior hit bounds.
+            frame=game.advance({.pointer_x=point.x,.pointer_y=point.y+2,.click_pulse=true});
+            assert(!driver->animating());
+            assert(driver->shared_back_available());
             frame=game.advance({
                 .pointer_x=point.x+2,.pointer_y=point.y+2,
                 .click_pulse=true
             });
             assert(frame.kind==fg::FrameKind::ActivityUpdated);
             assert(driver->animating());
+            assert(!driver->shared_back_available());
             int ticks=0;
             while(driver->animating()&&ticks<150) {
                 frame=game.advance({});
@@ -145,7 +155,40 @@ int main() {
             // 14 seven-tick substeps with three overlapping boundaries.
             assert(ticks==95);
             assert(!driver->animating());
+            assert(driver->shared_back_available());
             assert(frame.effects.progress_writes.empty());
+            int slide_ticks=0;
+            while(driver->transitioning()&&slide_ticks<250) {
+                frame=game.advance({.pointer_x=point.x+2,.pointer_y=point.y+2,.click_pulse=true});
+                ++slide_ticks;
+                assert(!driver->animating());
+                const auto& bg=frame.effects.draws.front();
+                assert(bg.source_asset==
+                    "Data\\SubGameSquirrel\\level"+std::to_string(difficulty+1)+".bmp");
+                assert(bg.source_rectangle);
+                assert(bg.source_rectangle->left==level*480+slide_ticks*2);
+                assert(bg.source_rectangle->right==bg.source_rectangle->left+620);
+            }
+            if((selected%3)==2&&level<difficulty)assert(slide_ticks==240);
+            else assert(slide_ticks==0);
+            int belt_ticks=0;
+            bool belt_animation=false;
+            while(driver->conveyor_cycling()&&belt_ticks<200) {
+                frame=game.advance({.pointer_x=point.x+2,.pointer_y=point.y+2,.click_pulse=true});
+                ++belt_ticks;
+                assert(!driver->animating());
+                for(const auto& d:frame.effects.draws)
+                    if(d.source_asset=="Data\\SubGameSquirrel\\conveyor.bmp"&&
+                       d.source_rectangle&&d.source_rectangle->left>0)belt_animation=true;
+            }
+            if(selected+1<3*(difficulty+1)) {
+                assert(belt_ticks==185);
+                assert(belt_animation);
+            } else {
+                assert(belt_ticks==0);
+                assert(frame.effects.audio.size()==2);
+                assert(frame.effects.audio.back().sound_id>=664&&frame.effects.audio.back().sound_id<=667);
+            }
         }
         frame=game.advance({}); // Wendy final line
         assert(frame.kind==fg::FrameKind::ActivityUpdated);
