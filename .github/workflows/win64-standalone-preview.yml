@@ -1,0 +1,45 @@
+name: Windows x64 standalone preview
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - release/win64-standalone-preview
+    paths:
+      - '.github/workflows/win64-standalone-preview.yml'
+      - 'tools/verify_win64_preview.py'
+      - 'reconstruction/**'
+permissions:
+  contents: read
+concurrency:
+  group: win64-standalone-preview-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  standalone-win64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate reviewed original function registry
+        run: |
+          python tools/build_reconstruction_index.py
+          python tools/build_remaining_architecture.py
+      - name: Configure native x64 with static MSVC runtime
+        run: cmake -S reconstruction -B build/win64-standalone -G "Visual Studio 18 2026" -A x64 -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+      - name: Build game only
+        run: cmake --build build/win64-standalone --config Release --target btb_game --parallel
+      - name: Run executable's native linked-core smoke
+        run: ctest --test-dir build/win64-standalone -C Release --output-on-failure -R '^recompiled_game_executable_link$' --no-tests=error
+      - name: Verify PE architecture and runtime imports
+        run: |
+          python -m pip install pefile==2024.8.26
+          python tools/verify_win64_preview.py build/win64-standalone/Release/btb_game.exe --out build/win64-standalone/Release/build-verification.json --require-static-crt
+      - name: Package verified source-only executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: btb-game-win64-standalone-preview
+          path: |
+            build/win64-standalone/Release/btb_game.exe
+            build/win64-standalone/Release/build-verification.json
+          if-no-files-found: error
