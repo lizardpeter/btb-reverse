@@ -63,9 +63,29 @@ int main() {
     const auto timing = make_timing();
     const auto sounds = make_sounds();
 
+    // Exercise every observed frame, not a hand-picked sequence that can
+    // silently omit the duplicate retail award at frame 665.
+    RuntimeState continuous;
+    int awards = 0;
+    for (int pass=0; pass<2; ++pass) {
+        const int first=pass==0?1:44;
+        const int last=pass==0?679:660;
+        for (int frame=first; frame<=last; ++frame) {
+            bool press=false;
+            for (const auto& window : timing.windows)
+                press |= frame==window.good_start;
+            const auto tick=update_synchronized_run(continuous,timing,sounds,
+                {frame,press,frame==679});
+            if(tick.score_delta) ++awards;
+            if(frame==679) assert(tick.resync_quality_streams && tick.resync_frame==44);
+        }
+    }
+    assert(awards==16 && continuous.score==48);
+    assert(continuous.loop_marker_hits==2 && continuous.phase==PlaybackPhase::EndMovie);
+
     static_assert(kRetailPlaybackPasses == 2);
-    static_assert(kRetailScoringOpportunities == 15);
-    static_assert(kRetailMaximumScore == 45);
+    static_assert(kRetailScoringOpportunities == 16);
+    static_assert(kRetailMaximumScore == 48);
     // The source Bink decoder must copy frame Frames before reporting
     // EOS; never skip the terminal image or call BinkNextFrame beyond
     // the real end. A second observation reports end, not a replay
@@ -80,7 +100,7 @@ int main() {
     static_assert(!original_end_bink_decode_decision(31,30,false).decode_frame);
     static_assert(!original_end_bink_decode_decision(0,30,false).report_finished);
 
-    static_assert(kMaximumScore == 45);
+    static_assert(kMaximumScore == 48);
 
     static_assert(kMovieScreenX == 20);
     static_assert(kMovieScreenY == 20);
@@ -198,6 +218,13 @@ int main() {
     assert(!step.start_end_movie);
     assert(perfect.phase == PlaybackPhase::SynchronizedRun);
 
+    // The ordinary frame-665 trigger still executes on pass one: the
+    // original special 660 branch neither clears quality nor skips 665.
+    step = update_synchronized_run(perfect, timing, sounds, {665, false});
+    assert(step.sound_request && step.sound_request->stunt == 7);
+    assert(!step.sound_request->first_pass_final_stunt_special);
+    assert(step.score_delta == 3 && perfect.score == 27);
+
     // Reaching the actual end of the synchronized quality Binks rewinds all
     // four streams to exact timing-file frame 44.
     step = update_synchronized_run(
@@ -223,7 +250,7 @@ int main() {
             {timing.return_to_bad_frames[stunt], false});
         assert(step.returned_stunt == stunt);
     }
-    assert(perfect.score == 45);
+    assert(perfect.score == 48);
 
     // The second observation of frame 660 enters end.bik immediately. There
     // is no second special score for stunt 7.
@@ -234,7 +261,7 @@ int main() {
     assert(step.start_end_movie);
     assert(!step.first_pass_final_stunt_scored);
     assert(step.score_delta == 0);
-    assert(perfect.score == 45);
+    assert(perfect.score == 48);
     assert(perfect.phase == PlaybackPhase::EndMovie);
 
     // Exact result-voice fallthrough behavior.

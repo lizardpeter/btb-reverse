@@ -100,10 +100,11 @@ SoundData parse_sound_info(std::istream& in);
     return sounds.sound_ids[stunt][static_cast<std::size_t>(quality)][random_slot];
 }
 
-// The synchronized run reaches the 660 marker twice. Pass one scores all
-// eight stunt areas (the eighth via a special marker branch); pass two scores
-// the first seven before entering end.bik at the second 660 marker.
-inline constexpr std::int32_t kScoringOpportunityCount = 15;
+// Retail 0x00424690 scores eight ordinary trigger frames on pass one,
+// plus the special frame-660 award. Frame 665 still triggers the eighth
+// ordinary award before frame 679 rewinds. Pass two scores seven ordinary
+// triggers before frame 660 enters end.bik: 8 + 1 + 7 = 16 awards.
+inline constexpr std::int32_t kScoringOpportunityCount = 16;
 inline constexpr std::int32_t kMaximumScore =
     kScoringOpportunityCount *
     static_cast<std::int32_t>(StuntQuality::Good);
