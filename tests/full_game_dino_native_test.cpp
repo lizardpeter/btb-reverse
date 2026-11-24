@@ -94,7 +94,9 @@ int main() {
             "Data/SubGameDino/Dino/Raptor/Easy/background.bmp"));
         assert(draw_has(frame.effects,"Data/SubGameDino/Bob.bmp"));
         assert(draw_has(frame.effects,"Data/SubGameDino/ellis.bmp"));
-        assert(!frame.effects.audio.empty()); // original startup 188
+        assert(frame.effects.audio.size()>=2);
+        assert(frame.effects.audio[0].source_asset=="Data/music/dinosaur.wav");
+        assert(frame.effects.audio[1].sound_id==188 && frame.effects.audio[1].input_interruptible);
 
         // Mouse release is not a drop event in original 0x00409E00.
         frame=game.advance({.pointer_x=200,.pointer_y=200,
