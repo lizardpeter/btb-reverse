@@ -364,6 +364,10 @@ int main() {
         assert(missing.failure);
         assert(missing.failure->stage==
                PhysicalPresentationStage::AssetResolve);
+        assert(missing.failure->message.find("Data/ui/original.bmp")!=
+               std::string::npos);
+        assert(missing.failure->message.find("Unresolved bitmap/WAV counts: 1/0")!=
+               std::string::npos);
         assert(device.draw_count == 1);
     }
     // Fireworks state 15: the Bink service has already decoded a frame

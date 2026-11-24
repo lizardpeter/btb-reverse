@@ -241,8 +241,36 @@ NativeSessionFrame NativeGameSession::tick(
     if (!frame.prepared.resources.ready_for_submission() ||
         frame.prepared.missing_catalog_ids ||
         frame.prepared.audio_policy.invalid_requests) {
-        fail(frame,PhysicalPresentationStage::AssetResolve,
-             "original frame requires missing bitmap, WAV or sound ID");
+        // Report the actual request, not a generic fatal dialog. This
+        // remains fail-closed; no unresolved draw/audio is submitted.
+        const auto& resources=frame.prepared.resources;
+        const auto& audio=frame.prepared.audio_policy;
+        std::string detail="original frame asset resolution failed";
+        for(const auto& draw:resources.draws) {
+            if(!draw.source.found()) {
+                detail += "\nBitmap: "+draw.original.source_asset+
+                          " ("+draw.source.error+")";
+                break;
+            }
+        }
+        for(const auto& sound:resources.sound) {
+            if(sound.source && !sound.source->found()) {
+                detail += "\nWAV: "+sound.original.filename+
+                          " ("+sound.source->error+")";
+                break;
+            }
+        }
+        if(!audio.missing_catalog_sound_ids.empty()) {
+            detail += "\nMissing sound ID: "+
+                std::to_string(audio.missing_catalog_sound_ids.front());
+        }
+        if(audio.invalid_requests)
+            detail += "\nInvalid audio requests: "+
+                      std::to_string(audio.invalid_requests);
+        detail += "\nUnresolved bitmap/WAV counts: "+
+                  std::to_string(resources.unresolved_draws)+"/"+
+                  std::to_string(resources.unresolved_audio_assets);
+        fail(frame,PhysicalPresentationStage::AssetResolve,std::move(detail));
         return frame;
     }
 
