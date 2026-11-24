@@ -142,7 +142,8 @@ int main(){
  {
   Host io;Npc s{};s.screen=0;s.player_screen=0;s.spawn_wait=1;s.difficulty=0;
   auto a=node(0,0,0);a.links={1,-1,-1,-1};
-  s.graphs[0].nodes={a,node(1,0,-2)};
+  auto b=node(1,0,-2);b.links={-1,-1,0,-1};
+  s.graphs[0].nodes={a,b};
   s.packages[0][0]={1,1};
   update_maze_spud_npc(s,io);
   assert(s.phase==btb::maze::SpudNpcPhase::SelectPackage&&s.spawn_wait==0);
@@ -152,6 +153,7 @@ int main(){
   update_maze_spud_npc(s,io);
   assert(s.phase==btb::maze::SpudNpcPhase::ChooseReturnRoute);
   assert(s.packages[0][0].status==2&&io.sounds.back()==0x59);
+  assert(s.current_node==1); // route begins from reached package, not spawn
   update_maze_spud_npc(s,io);
   assert(s.phase==btb::maze::SpudNpcPhase::TravelCarryingPackage);
   s.player_screen=1;s.offscreen_wait=2;
