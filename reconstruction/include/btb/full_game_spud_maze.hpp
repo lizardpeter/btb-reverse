@@ -3,6 +3,7 @@
 #include "btb/full_game_runtime.hpp"
 #include "btb/retail_crt_random.hpp"
 #include "btb/original_motion4.hpp"
+#include "btb/maze_input.hpp"
 #include "btb/spud_maze_data.hpp"
 #include "btb/spud_maze_runtime.hpp"
 #include "btb/spud_maze_pilchard_native.hpp"
@@ -58,6 +59,8 @@ private:
     int player_{-1};
     std::unique_ptr<spud_maze::Data> data_{};
     original_motion4::Player bob_{};
+    maze::InputModeState input_mode_{};
+    bool pointer_sampled_{};
     spud_maze::PilchardNative pilchard_{};
     maze_spud_batch::CollisionState hammer_{};
     int total_repairs_{};

@@ -45,7 +45,8 @@ public:
         // Mode switches become active for the following call only.
         player_.mouse_mode=resolved.path==maze::InputPath::Mouse;
         return {
-            resolved.intent.x,resolved.intent.y,
+            // 0041AF60 returns +1 for up; 0041B140 subtracts Y.
+            resolved.intent.x,-resolved.intent.y,
             input_.pointer_button_held,input_.click_pulse
         };
     }

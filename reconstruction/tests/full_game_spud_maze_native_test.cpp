@@ -1,5 +1,6 @@
 #include "btb/full_game_spud_maze.hpp"
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #undef assert
@@ -19,10 +20,22 @@ int main() {
         "btb_spud_maze_native_source_fixture";
     fs::remove_all(root);
     fs::create_directories(root/"loaddata");
+    fs::create_directories(root/"Data/SubGameSpudMaze");
+    // Metadata-only synthetic repair surfaces, no shipped artwork.
+    for(int screen=0;screen<5;++screen){
+        for(std::size_t i=0;i<btb::spud_maze::kRepairPointCounts[screen];++i){
+            std::array<unsigned char,26> bmp{};bmp[0]='B';bmp[1]='M';
+            bmp[14]=40;bmp[18]=2;bmp[22]=20;
+            std::ofstream image(root/"Data/SubGameSpudMaze"/
+                (std::to_string(screen+1)+"-"+std::to_string(i+1)+".bmp"),std::ios::binary);
+            image.write(reinterpret_cast<const char*>(bmp.data()),bmp.size());
+        }
+    }
     {
         std::ofstream f(root/"loaddata"/"spudmaze_nodes.txt");
         f<<"WestScreen_NODE_NUM_X_Y_DIR_TYPE_LINKS\n"
-         <<"start 2 76 386 7 0 -1 -1 -1 -1\n"
+         <<"start 2 76 386 7 0 4 -1 -1 -1\n"
+         <<"upper 4 76 300 4 0 -1 -1 2 -1\n"
          <<"NEXT_2nd Screen\n"
          <<"middle 0 606 300 8 256 -1 -1 -1 -1\n"
          <<"NEXT_3rdScreen\n"
@@ -64,6 +77,7 @@ int main() {
         assert(live->bob()->y==375.f);
         assert(live->bob()->speed==4.f); // source overwrites file's 2.0
         assert(live->bob()->repair_tool_engaged);
+        assert(live->bob()->repairs[0][0].width==2&&live->bob()->repairs[0][0].height==20);
         assert(live->remaining_repairs()>=4);
         assert(live->remaining_repairs()<=11);
         assert(live->timer()==500-difficulty*100);
@@ -95,12 +109,12 @@ int main() {
                btb::spud_maze::kStartupVoiceSoundId);
         assert(step.effects.progress_writes.empty());
         step=game.advance({.elapsed_centiseconds=105,
-                           .directional_input_bits=0x08});
-        assert(step.kind==fg::FrameKind::ActivityUpdated);
-        assert(live->bob()->y==371.f); // original Up scan code
-        step=game.advance({.elapsed_centiseconds=110,
                            .directional_input_bits=0x04});
-        assert(live->bob()->y==375.f); // original Down scan code
+        assert(step.kind==fg::FrameKind::ActivityUpdated);
+        assert(std::abs(live->bob()->y-371.f)<0.02f); // original Up scan code
+        step=game.advance({.elapsed_centiseconds=110,
+                           .directional_input_bits=0x08});
+        assert(std::abs(live->bob()->y-375.f)<0.02f); // original Down scan code
 
         step=game.advance({.elapsed_centiseconds=10100});
         assert(live->timer()==400-difficulty*100);

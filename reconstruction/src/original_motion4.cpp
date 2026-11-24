@@ -1,4 +1,5 @@
 #include "btb/original_motion4.hpp"
+#include "btb/maze_input.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -13,31 +14,14 @@ void sound(IO& io,I32 id,I32 prio=10){io.sound(id,prio,1);}
 void advance_direction(Player& p,IO& io,const Input& in,bool spud){
  if(in.dx>1||in.dx< -1||in.dy>1||in.dy< -1)
   throw std::invalid_argument("invalid original keyboard axis");
- if((in.dx!=0)&&(in.dy!=0)){
-  // Original ComputeMazePlayerInputDirection prioritizes x in keyboard
-  // mode; do not synthesize a diagonal that was not source-connected.
- }
- const I32 dx=in.dx,dy=dx==0?in.dy:0;
- if(dx==0&&dy==0)return;
+ const I32 dx=in.dx,dy=in.dy;
  const auto& graph=p.graphs[static_cast<std::size_t>(p.screen)];
- const auto& node=get_node(graph,p.node);
- const auto direction=dx>0?maze::Right:dx<0?maze::Left:dy>0?maze::Down:maze::Up;
- if(!node.allows(direction))return;
  const I32 ix=static_cast<I32>(p.x),iy=static_cast<I32>(p.y);
+ // 0041B140/00421360 scan even on idle and blocked input.
  const auto scan=maze::scan_player_navigation_nodes(graph,{ix,iy},p.mouse_mode,
-     {p.node,p.last_captured_node});
+     {p.node,p.last_captured_node},spud?20.0L:30.0L,spud?6.0L:30.0L);
  p.last_captured_node=scan.state.last_captured_node;
  if(scan.captured_node>=0)p.node=scan.captured_node;
- if(scan.repeated_current_capture)p.movement_latch|=1;
- if(!p.can_move_x&&dx!=0)return;
- const auto step=(p.speed>0&&std::isfinite(p.speed))?p.speed:0.f;
- p.x+=step*static_cast<float>(dx);
- p.y+=step*static_cast<float>(dy);
- p.facing=dx>0?1:dx<0?3:dy>0?2:0;
- p.movement_mask=dx!=0?10:5;
- p.movement_latch=p.movement_mask;
- ++p.input_ticks;
- if(spud)p.animation+=1;
  // Original node flag priority: 0x80 first, 0x100 next, 0x200 last.
  // A portal changes the game screen only if node capture occurred.
  if(scan.captured_node>=0){
@@ -76,7 +60,70 @@ void advance_direction(Player& p,IO& io,const Input& in,bool spud){
    p.last_captured_node=-1;
    p.transition=1;p.movement_mask=10;
    if(spud)io.spud_spawn_delay_reset();
+   p.movement_latch=10;
+   return;
   }
+  p.movement_mask=captured.direction_bits;
+ }
+ const auto& current=get_node(graph,p.node);
+ const auto step=(p.speed>0&&std::isfinite(p.speed))?p.speed:0.f;
+ // 0041B4EA/00421733: keyboard attraction to a nearby turn
+ // corrects the perpendicular coordinate, with tolerance 1.9.
+ if(scan.attraction_node>=0 && (dx==0)!=(dy==0)) {
+  const auto& a=get_node(graph,scan.attraction_node);
+  const auto dir=dx>0?maze::Right:dx<0?maze::Left:dy<0?maze::Up:maze::Down;
+  if(a.linked_node(dir)>=0){
+   auto& v=dx!=0?p.y:p.x;
+   const float target=static_cast<float>(dx!=0?a.retail_position.y:a.retail_position.x);
+   if(std::fabs(v-target)>1.9f&&(!spud||p.can_move_x))
+    v+=v<target?step:-step;
+  }
+ }
+ const auto allowed=[&](maze::Direction d){return (p.movement_mask&d)!=0;};
+ const auto horizontal=[&](){
+  if(dx==0||!allowed(dx>0?maze::Right:maze::Left))return false;
+  if(!spud||p.can_move_x)p.x+=step*static_cast<float>(dx);
+  p.facing=dx>0?1:3;p.movement_mask=10;p.movement_latch=10;
+  return true;
+ };
+ const auto vertical=[&](){
+  if(dy==0||!allowed(dy<0?maze::Up:maze::Down))return false;
+  const auto dir=dy<0?maze::Up:maze::Down;
+  const auto link=current.linked_node(dir);
+  // Vertical corridors are not always axis-aligned in the original
+  // maps. Use the source integer heading and separate float stores.
+  const auto* target=&current;
+  if(link>=0){
+   const auto& linked=get_node(graph,link);
+   if((dy<0&&p.y>=linked.retail_position.y)||
+      (dy>0&&p.y<=linked.retail_position.y))target=&linked;
+  }else if((dy<0&&p.y<=current.retail_position.y)||
+           (dy>0&&p.y>=current.retail_position.y))return false;
+  if(!spud||p.can_move_x){
+   const maze::Vec2i from{static_cast<I32>(p.x),static_cast<I32>(p.y)};
+   const auto to=target->retail_position;
+   if(std::hypot(double(from.x)-to.x,double(from.y)-to.y)<=2.0)
+    p.y+=step*static_cast<float>(dy);
+   else{
+    const auto degrees=maze::angle_between_integer_points_degrees(from,to);
+    const long double rad=degrees*static_cast<long double>(0.017453530803322792f);
+    p.y=static_cast<float>(p.y-std::cos(rad)*step);
+    p.x=static_cast<float>(p.x+std::sin(rad)*step);
+   }
+  }
+  p.facing=dy<0?0:2;p.movement_mask=5;p.movement_latch=5;
+  return true;
+ };
+ const bool vertical_first=scan.repeated_current_capture?
+    (p.movement_latch&1)!=0:(p.movement_latch&2)!=0;
+ const bool moved=vertical_first?(vertical()||horizontal()):(horizontal()||vertical());
+ if(moved){++p.input_ticks;if(spud)++p.animation;}
+ // 0041BD09/004220D0: one-pixel orthogonal correction inside 8 units.
+ if(std::hypot(double(static_cast<I32>(p.x))-current.retail_position.x,
+               double(static_cast<I32>(p.y))-current.retail_position.y)<8.0){
+  auto& v=(p.movement_latch&1)?p.x:p.y;
+  const float target=static_cast<float>((p.movement_latch&1)?current.retail_position.x:current.retail_position.y);
+  if(std::abs(static_cast<I32>(v-target))>1)v+=v<target?1.f:-1.f;
  }
 }
 void update_player(Player& p,IO& io,bool spud){
@@ -95,14 +142,25 @@ void update_player(Player& p,IO& io,bool spud){
   for(std::size_t i=0;i<repairs.size();++i){
    auto& r=repairs[i];
    if(r.counter<=0)continue;
-   const float cx=static_cast<float>(r.x),cy=static_cast<float>(r.y+r.height/2+20);
-   const auto delta=io.actor_distance(p.x,p.y,cx,cy);
-   if(delta>=20.f||std::fabs(cx-p.x)>=15.f||!input.action_pressed)continue;
+   // Original 004221A? reads the individual sprite width/height:
+   // center X, bottom Y plus 20; 0043B4B0 contains float32 40.
+   const I32 cx=r.x+r.width/2,cy=r.y+r.height+20;
+   const I32 px=static_cast<I32>(p.x),py=static_cast<I32>(p.y);
+   const auto delta=io.actor_distance(static_cast<float>(px),static_cast<float>(py),
+                                     static_cast<float>(cx),static_cast<float>(cy));
+   if(delta>=40.f||std::abs(cx-px)>=15||!input.action_pressed)continue;
    if(!p.repair_tool_engaged){
     const I32 voice=0x2c5 + static_cast<I32>(io.random32()%2);
     sound(io,voice,50);
    }else{
-    const I32 voice=0x2be + static_cast<I32>(io.random32()%7);
+    I32 voice=0x2be+static_cast<I32>(io.random32()%7);
+    // Source rejects the previous repair voice (0051453C).
+    // Guard a broken random provider without inventing a substitute.
+    for(int retry=0;voice==p.repair_sound;++retry){
+     if(retry>=4096)throw std::runtime_error("original repair voice RNG exhausted");
+     voice=0x2be+static_cast<I32>(io.random32()%7);
+    }
+    p.repair_sound=voice;
     sound(io,voice,50);
     r.counter=0;p.repair_hit_count+=1;p.animation=9;p.hazard_lock=true;
     io.spud_repair_completed(p.screen,static_cast<I32>(i));

@@ -52,6 +52,24 @@ struct Host final:IO {
 };
 int main(){
  {
+  // Capturing a reached node must precede testing its permissions.
+  Host io;Player p{};p.speed=2;p.x=20;p.y=0;
+  auto a=node(0,0,0,2);a.links={-1,1,-1,-1};
+  auto b=node(1,20,0,9);b.links={2,-1,-1,0};
+  auto c=node(2,30,-80,4);c.links={-1,-1,1,-1};
+  p.graphs[0].nodes={a,b,c};
+  update_maze_player(p,io);
+  assert(p.node==1&&p.movement_mask==9);
+  io.in={0,-1,false,false};
+  for(int frame=0;frame<30;++frame)update_maze_player(p,io);
+  assert(p.x>20&&p.y< -50&&p.movement_mask==5);
+  for(int frame=0;frame<20&&p.node!=2;++frame)update_maze_player(p,io);
+  assert(p.node==2);
+  auto y=p.y;
+  for(int frame=0;frame<10;++frame)update_maze_player(p,io);
+  assert(p.y==y);
+ }
+ {
   Host io;Player p{};p.screen=0;p.node=0;p.x=10;p.y=0;p.speed=2;
   auto a=node(0,0,0);a.links={-1,1,-1,-1};
   p.graphs[0].nodes={a,node(1,20,0)};
@@ -107,7 +125,7 @@ int main(){
  {
   Host io;Player p{};p.screen=0;p.node=0;p.x=0;p.y=0;
   p.graphs[0].nodes={node(0,0,0)};
-  p.repairs[0].push_back({1,-30,40,1});
+  p.repairs[0].push_back({-10,-70,20,1,22}); // center 1, bottom+20=-30; original <40
   p.repair_tool_engaged=true;
   io.in={0,0,false,true};
   update_spud_maze_bob(p,io);

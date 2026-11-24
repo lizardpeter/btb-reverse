@@ -35,7 +35,8 @@ PlayerNodeScanResult scan_player_navigation_nodes(
     const ScreenGraph& graph,
     Vec2i player_integer,
     bool mouse_mode,
-    PlayerNodeScanState state) {
+    PlayerNodeScanState state,long double attraction_radius,
+    long double latch_reset_radius) {
 
     PlayerNodeScanResult result;
     result.state = state;
@@ -45,7 +46,7 @@ PlayerNodeScanResult scan_player_navigation_nodes(
     const auto current_distance =
         distance(player_integer, current.retail_position);
 
-    if (current_distance < kNodeAttractionRadius &&
+    if (current_distance < attraction_radius &&
         current_distance > static_cast<long double>(kNodeCaptureRadius) &&
         !mouse_mode) {
         result.attraction_node = current.id;
@@ -66,7 +67,7 @@ PlayerNodeScanResult scan_player_navigation_nodes(
     }
 
     // Retail only clears the capture latch when strictly outside 30.
-    if (current_distance > kNodeAttractionRadius) {
+    if (current_distance > latch_reset_radius) {
         result.state.last_captured_node = -1;
     }
 
@@ -89,7 +90,7 @@ PlayerNodeScanResult scan_player_navigation_nodes(
             return result;
         }
 
-        if (linked_distance < kNodeAttractionRadius &&
+        if (linked_distance < attraction_radius &&
             !mouse_mode) {
             // Deliberately overwrite: retail keeps the last qualifying link,
             // not the nearest one.

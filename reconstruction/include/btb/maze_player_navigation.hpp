@@ -43,6 +43,8 @@ struct PlayerNodeScanResult {
     const ScreenGraph& graph,
     Vec2i player_integer,
     bool mouse_mode,
-    PlayerNodeScanState state);
+    PlayerNodeScanState state,
+    long double attraction_radius=kNodeAttractionRadius,
+    long double latch_reset_radius=kNodeAttractionRadius);
 
 } // namespace btb::maze
