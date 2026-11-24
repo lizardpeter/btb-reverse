@@ -87,14 +87,20 @@ See `docs/initial-analysis.md` for the first verified anchors.
 The `reconstruction` CMake project builds `btb_game` and the
 native Windows C++26 host, with a shared game-flow dispatcher and drivers
 registered for **all ten activities**. That does not imply all ten have
-completed a real on-device playthrough: Spud Skate still needs the
-five-stream movie backend and native Bink playback is being integrated.
+completed a real on-device playthrough: the five-stream Spud Skate backend, native Fireworks bank and global/movie
+walkthrough providers now have source-reconstructed paths, but still require
+whole-installation media and live-device certification.
 The compiled-source milestone is complete; runtime certification is not.
 
 Build/run instructions and current scope: [Integrated C++26 executable](docs/integrated-cpp26-build.md).
 
-Successful GitHub Actions Windows runs publish the source-only
-`btb-game-win64-preview` artifact.
+Successful GitHub Actions Windows runs publish the compiled, asset-free
+`btb-game-win64-preview` executable artifact. Use the original installed game
+data with `btb_game.exe --native-original <root>`; the x64 movie path is native
+and fail-closed, not a fallback to the retail DLL.
+
+Run the [whole-installation Bink audit](docs/bink32-main-codec-integration.md)
+to identify media that fails native decoding before running the full game.
 
 ## Ongoing full-game source recovery
 
@@ -124,10 +130,9 @@ parent Back targets, first-run difficulty writes, special Spud Skate
 start branch, original BMP background slots, ten Bink walkthroughs,
 and the four separately opened global intro movies.
 
-The next native-host work is still substantial: original Bink/DirectDraw
-presentation, real sound output, screen-specific help and transition
-timing, and the remaining eight activity adapters. Do not treat these
-source changes or deferred regression files as a finished game.
+The remaining native-host work is runtime validation of original assets,
+all ten activity flows, movie presentation/timing, audio, and screen-specific
+behavior. The registered adapters are not proof of complete playthroughs.
 
 See [full pregame reverse-engineering evidence](docs/full-game-pregame.md)
 and [full-game integration gate](docs/full-game-integration.md).

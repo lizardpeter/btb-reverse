@@ -1,5 +1,46 @@
-# Native Bink1 codec on current game main
+# Native Bink1 codec and whole-installation audit
 
-The portable original-format SJPi Bink1 decoder is compiled and tested here **without replacing the modern Windows movie host**. The independent video, RGB surface conversion, audio packet/FFT, PCM16, sample clocks and original BIK diagnostic utilities live in the reconstruction library, not in a game-specific shell. No proprietary game assets or original DLL are embedded in this change.
+The portable reconstructed Bink1 decoder is integrated with the x64 native
+Windows movie host for global movies, walkthroughs, the five Spud Skate
+streams and Fireworks movie banks. See
+[native provider selection and limits](bink32-native-windows-optin.md).
+No original game media or original DLL is embedded. Real-device playback
+certification remains outstanding.
 
-Prior source-branch CI verified 33 retail movie video streams (8,505 frames) against FFmpeg, and eight synthetic audio formats (DCT/RDFT, mono/stereo, quiet/loud) within one PCM16 LSB. Main CI must revalidate the library in this new integration context. The production game continues to use the original Bink DLL for audio-bearing movies. Experimental native DirectSound movie playback remains in PR #133 and is not part of this PR.
+Prior source-branch CI verified 33 retail video streams (8,505 frames) against
+FFmpeg and eight synthetic audio formats within one PCM16 LSB. Those earlier
+results do not certify every movie in the installed game or end-to-end
+native playback. FFmpeg is a separate diagnostic reference only, never a
+runtime decoder dependency.
+
+## Audit every installed movie
+
+Build the two portable original-format audit executables:
+
+```sh
+cmake --build build/reconstruction --target btb_bink32_retail_video_audit btb_bink32_native_audio_audit --parallel
+python tools/audit_retail_bink.py /path/to/BTB-BBP \
+  --video-tool build/reconstruction/btb_bink32_retail_video_audit \
+  --audio-tool build/reconstruction/btb_bink32_native_audio_audit \
+  --out analysis/generated/native-bink-audit.json
+```
+
+On Windows use the equivalent Release executables with `.exe` suffix.
+The diagnostic workflow publishes the Linux tools as well.
+
+The script recursively discovers case-insensitive .bik paths, validates
+metadata and frame offsets, reports identical-file aliases, decodes every
+video frame and every declared audio track, and records each native tool's
+exit status and output tail. Missing tools and limited-frame runs are
+explicitly partial; any rejected header, failed decode or timeout fails the
+audit. The report must be outside the original directory.
+
+Use `--max-frames 20` for a video prefix probe or omit both decoder tools
+for inventory only. Neither is a full decode result. The script writes no
+game files and requires no FFmpeg or RAD library to decode. An independently
+obtained raw YUVA reference can be supplied directly to the video audit
+executable with `--reference-yuva` for pixel comparison.
+
+A successful complete audit establishes native file/stream decoding, not
+identical PCM or pixels, real-device rendering, synchronization or end-to-end
+gameplay. Those are separate certification gates.

@@ -1,7 +1,7 @@
 # Explicit native video-skip gameplay mode
 
-The default C++26 `btb_game.exe` still requires its authentic original Bink
-provider and movies. **No video frames are synthesized and no playback completion
+The default x64 C++26 `btb_game.exe` uses the source-reconstructed native
+Bink provider and requires authentic original movies. **No video frames are synthesized and no playback completion
 is invented in the normal mode.**
 
 For native gameplay development while the Bink codec is being reconstructed:
@@ -30,12 +30,13 @@ to resolve from the original installed game.
 
 ## Scope and limits
 
-- Video skip does **not** substitute for the other agent's native Bink decoder.
+- Video skip does **not** test the native Bink decoder.
 - Skipped movies are never reported as decoded, rendered, heard or verified.
-- This makes the previously registered non-video gameplay paths reachable.
-- Six currently unregistered native activity adapters **still cannot run**.
-- A registered activity may still require other missing original providers.
-- The profile-selection screen and five-profile persistence are separate work.
+- All ten activity adapters are registered; this mode makes their non-video
+  paths easier to exercise.
+- Specialized movie-backed activity mechanics may still require their native
+  providers. Profile selection and five-profile persistence are implemented
+  but require real-installation validation.
 - Retail visual, audio and full-playthrough equivalence remain unverified.
 
 The Release-safe `full_game_native_session_source` regression includes video-free

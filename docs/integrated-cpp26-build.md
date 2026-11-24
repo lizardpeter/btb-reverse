@@ -1,93 +1,79 @@
-# First integrated C++26 executable (experimental)
+# Integrated C++26 Windows executable (experimental)
 
-The reconstruction now has a real application target, `btb_game`, instead
-of only isolated library/test targets. This is the **first playable host**, not
-a recompilation of the whole retail executable.
+The default Windows executable now hosts the reconstructed original 68-state
+game flow. All ten activity drivers are registered. The native host uses the
+installed retail data, DirectDraw/DirectSound providers, reconstructed profile
+persistence, input, and native movie integration. This is not a claim of
+finished retail-equivalent playthroughs.
 
-## Building
+## Build
 
-Requirements: CMake 3.25+ and a C++26-capable compiler.
-
-On Windows with Visual Studio 2022:
+Use a C++26-capable toolchain. The Windows CI builds both architectures using
+Visual Studio 2026; Linux CI uses GCC 14.
 
 ```powershell
-cmake -S reconstruction -B build/reconstruction-win -G "Visual Studio 17 2022" -A x64
+cmake -S reconstruction -B build/reconstruction-win -G "Visual Studio 18 2026" -A x64
 cmake --build build/reconstruction-win --config Release --target btb_game
-.\build\reconstruction-win\Release\btb_game.exe
+.\build\reconstruction-win\Release\btb_game.exe --native-original "C:\Games\BTB-BBP"
 ```
 
-On Linux, the same game-session code is built with GCC 14:
+Or download the compiled, asset-free `btb-game-win64-preview` artifact from
+a successful [repo-checks](https://github.com/lizardpeter/btb-reverse/actions/workflows/ci.yml)
+run. Extract the executable and point it at your installed original game
+directory, not at the launcher executable. No original game binaries or assets
+are shipped in the artifact.
+
+The x86 comparison build is configured with `-A Win32` in a separate build
+directory. See [native Bink provider selection](bink32-native-windows-optin.md):
+x64 selects the recovered codec by default, while x86 retains the retail
+movie provider as a comparison mode.
+
+## Running the reconstructed game
+
+```powershell
+.\btb_game.exe --native-original "C:\Games\BTB-BBP"
+.\btb_game.exe --native-original "C:\Games\BTB-BBP" --skip-bink
+.\btb_game.exe --recompiled-smoke
+```
+
+The optional `--skip-bink` development mode skips specific global movies and
+walkthrough transitions; it is not normal retail playback. Native movie
+failures are explicit in normal mode. `--profile-slot 1..5` selects an original
+profile slot. The earlier standalone Dino preview is available only through
+`--legacy-dino-preview`; it is not the normal full-game host.
+
+The original-data directory must contain the retail resource tree. Preserve
+its structure and use a backup when evaluating the preview, particularly
+for original saved profiles. No on-device full-game certification is implied
+by successful automated tests.
+
+## Tests
 
 ```sh
 CXX=g++-14 cmake -S reconstruction -B build/reconstruction
-cmake --build build/reconstruction --target btb_game btb_game_session_tests
-ctest --test-dir build/reconstruction -R 'game_session|game_executable_smoke' --output-on-failure
-./build/reconstruction/btb_game --smoke
-./build/reconstruction/btb_game --dino-level "/path/to/original/dino.txt"
+cmake --build build/reconstruction --parallel
+ctest --test-dir build/reconstruction --output-on-failure
+./build/reconstruction/btb_game --recompiled-smoke
 ```
 
-The Linux application is **headless** at this stage. The graphical host is
-Windows-only. CI also builds a Windows x64 preview and, on a successful run,
-uploads `btb-game-win64-preview` as a downloadable workflow artifact. The
-artifact does not contain retail copyrighted assets.
+Linux runs the portable/headless game and source contracts; the graphical
+host is Windows-only. For focused source regressions:
 
-## Running the Windows preview
+```sh
+cmake --build build/reconstruction --target btb_herding_source_regressions btb_full_game_source_regressions --parallel
+ctest --test-dir build/reconstruction --output-on-failure -R 'herding_|full_game_'
+```
 
-1. Copy/use your legally obtained original game's installed `Data` files.
-   No retail resources are included in this repository.
-2. Launch `btb_game.exe`. The interface is a fixed 640x480 logical canvas,
-   rescaled with the client window.
-3. Use **1/2/3** for Raptor/Triceratops/T-Rex and **Q/W/E** for
-   Easy/Medium/Hard.
-4. Press **O** or click **Open original Dino level** and choose that
-   species/difficulty's **dino.txt** file.
-5. Click to pick up loose bones; move the cursor to a target and release the
-   mouse button. An invalid release keeps the piece carried. **Esc** returns
-   to the activity selection screen; Esc again exits the game.
+## Remaining certification work
 
-The host loads `piece<ID>.bmp` images adjacent to the selected `dino.txt`,
-reads their **actual dimensions** into the reconstructed Dino hit-testing
-runtime and draws them with the original magenta transparency key. The original
-retail Dino data parser validates the piece permutation and starting/target
-positions. If the BMPs cannot be found, the host shows **obvious placeholders**
-so that wiring and input can still be exercised; placeholder hitbox dimensions
-are not retail-exact.
+- Complete each activity on actual original resources, through its native
+  setup, instruction, gameplay, completion, and replay/return transition.
+- Exercise all five profile slots and progress persistence across sessions.
+- Audit every installed Bink stream, including audio-bearing globals,
+  separate walkthrough narration, Spud Skate and Fireworks banks.
+- Verify real DirectDraw/DirectSound output and input on Windows.
+- Differentially compare behavior against the original PE32. The 615/615
+  compile-stage function inventory is not a retail equivalence metric.
 
-The graphical wrapper consumes the real `compose_dino_frame` draw-command
-ordering and runs the original Dino puzzle-mode controller for selection,
-rejected/accepted drops, finalization, scoring, and completion. The high-level
-outer-state dispatch comes from the recovered 68-state `game_flow` table. The
-application keeps `DinoRun` as its outer state when a puzzle is complete,
-matching the original engine's completion-phase ownership.
-
-## Boundaries / work still outstanding
-
-- **Retail UI images, all hover areas, click audio, background scene, Bob/Ellis
-  animation textures, and certificate presentation** are not yet wired to the
-  Windows shell. The placeholder host UI is intentionally not advertised as
-  an accurate recreation.
-- Runtime audio is not playing yet; the session exposes the recovered retail
-  sound IDs for integration with the sound manager. The completion event does
-  not currently persist the retail profile/progress-slot write.
-- This is not the original DirectDraw/DirectInput/DirectSound frame loop.
-  GDI is a temporary platform bootstrap. The reconstructed application-frame
-  policies remain available in `application_runtime.hpp`.
-- Other activities have compiled reconstruction modules and tests but are
-  **not available** in the new executable until their complete runtime and
-  presentation dependencies are hosted.
-- The source installer/CD layouts can have additional asset directory nesting.
-  Only BMPs placed adjacent to the chosen `dino.txt` are currently searched
-  for each piece.
-
-## Milestone definition
-
-This stage is considered successful when:
-
-- `btb_game` and `btb_game_session_tests` compile;
-- Linux smoke/session tests pass;
-- Windows CI builds the executable and uploads the artifact;
-- a Windows manual run opens an original Dino level and permits a full puzzle
-  from start to completion without the original executable.
-
-**No milestone is claimed as visually faithful or complete merely because
-the source code compiles.**
+The [full-game integration gate](full-game-integration.md) and individual
+activity evidence document the lower-level source contracts.
