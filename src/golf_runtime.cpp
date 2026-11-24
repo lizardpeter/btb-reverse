@@ -49,14 +49,43 @@ Vec2f velocity_for(
     std::int32_t angle_degrees,
     std::int32_t speed) noexcept {
 
-    constexpr double pi = 3.14159265358979323846;
-    const double radians = static_cast<double>(angle_degrees) * (pi / 180.0);
-    const auto magnitude = static_cast<float>(speed / 80);
+    // Exact double from original PE address 0043B388, consumed by
+    // 00414A30. Multiply before the final float store as on x87.
+    constexpr double radians_per_degree = 0.017453529976437735;
+    const double radians = static_cast<double>(angle_degrees) * radians_per_degree;
+    const auto magnitude = static_cast<double>(speed / 80);
 
     return {
-        static_cast<float>(std::cos(radians)) * magnitude,
-        static_cast<float>(std::sin(radians)) * magnitude,
+        static_cast<float>(std::cos(radians) * magnitude),
+        static_cast<float>(std::sin(radians) * magnitude),
     };
+}
+
+void launch_ball_bounce(BallMotion& ball, int power) noexcept {
+    ball.height = 0;
+    ball.bounce_impulse = ((500 + std::clamp(power,0,1000)/2)*16)/1000;
+    ball.bounce_remaining = ball.bounce_impulse;
+    ball.ascending = true;
+}
+
+void advance_ball_bounce(BallMotion& ball) noexcept {
+    if(ball.height<=0 && ball.bounce_remaining<=0)return;
+    const int step=std::min(8,ball.bounce_remaining);
+    if(ball.ascending) {
+        ball.height+=step;
+        if(--ball.bounce_remaining==0) {
+            ball.ascending=false;
+            ball.bounce_remaining=ball.bounce_impulse;
+        }
+    } else {
+        ball.height-=step;
+        if(ball.height<=0) {
+            ball.height=0;
+            ball.ascending=true;
+            ball.bounce_impulse-=ball.bounce_impulse/3;
+            ball.bounce_remaining=ball.bounce_impulse>2?ball.bounce_impulse:0;
+        }
+    }
 }
 
 void advance_ball(BallMotion& ball) noexcept {
@@ -79,6 +108,7 @@ void advance_ball(BallMotion& ball) noexcept {
     if (ball.speed < kBallStopThreshold) {
         ball.speed = 0;
     }
+    advance_ball_bounce(ball);
 }
 
 float distance(Vec2f a, Vec2f b) noexcept {

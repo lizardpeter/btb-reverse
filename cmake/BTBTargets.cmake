@@ -1,5 +1,11 @@
 get_filename_component(BTB_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
+# Ship a single native executable without a separate MSVC redistributable.
+# Set before target creation, and allow an explicit toolchain override.
+if(MSVC AND NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 # CMake does not yet expose cxx_std_26 for every MSVC revision,
 # even when the compiler accepts preview C++26 features via /std:c++latest.
 # Avoid silently compiling under an older MSVC language mode.

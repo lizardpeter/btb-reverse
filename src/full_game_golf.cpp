@@ -38,6 +38,9 @@ bool GolfDriver::initialize(int player_index, std::string& error) {
         swing_animation_ticks_=0;
         feedback_voice_started_=false;
         intro_stage_=0;
+        spectator_frames_={}; spectator_countdowns_={5,7};
+        flag_idle_frame_=flag_idle_ticks_=0;
+        target_hit_frames_={}; target_hit_ticks_={};
         error.clear();
         return true;
     } catch (const std::exception& exception) {
@@ -47,7 +50,7 @@ bool GolfDriver::initialize(int player_index, std::string& error) {
 }
 
 ActivityFrameOutput GolfDriver::compose_frame(
-    const golf::RoundFrame& state) const {
+    const golf::RoundFrame& state) {
 
     ActivityFrameOutput out;
     if (!round_) {
@@ -66,7 +69,7 @@ ActivityFrameOutput GolfDriver::compose_frame(
     const auto digit=[&](int value,int x) {
         const int column=(value+9)%10;
         out.draws.push_back({"Data\\SubGameGolf\\golfnumbers.bmp",x,426,
-            Rect{column*15,0,(column+1)*15,32},true});
+            Rect{column*15,0,(column+1)*15,31},true});
     };
     if(state.score>=10)digit(state.score/10,510);
     digit(state.score%10,535);
@@ -75,68 +78,75 @@ ActivityFrameOutput GolfDriver::compose_frame(
             "Data\\SubGameGolf\\toolbar ball.bmp",373+i*20,437,
             std::nullopt,true
         });
-    if(state.attempts_remaining>0) {
-        const int ball_x=static_cast<int>(state.ball.position.x);
-        const int ball_y=static_cast<int>(state.ball.position.y);
-        if(state.state==golf::RoundState::Aim) {
-            // 00414A60 projects a 140-pixel aiming marker at aim minus 2.
-            constexpr double rad=3.14159265358979323846/180.0;
-            const double angle=(state.aim-2)*rad;
-            out.draws.push_back({"Data\\SubGameGolf\\marker.bmp",
-                static_cast<int>(state.ball.position.x+140*std::cos(angle)),
-                static_cast<int>(state.ball.position.y-140*std::sin(angle)),
-                std::nullopt,true});
-        }
-        // Native DrawGolfActivity checks the current float ball location
-        // before submitting the magenta-keyed shadow and stopped-ball
-        // sprites. The original asset resolver keeps both physical BMPs.
-        out.draws.push_back({
-            "Data\\SubGameGolf\\shadow.bmp",ball_x,ball_y,
-            std::nullopt,true
-        });
-        out.draws.push_back({
-            state.ball.speed>0
-                ? "Data\\SubGameGolf\\golfballgo.bmp"
-                : "Data\\SubGameGolf\\golfballstop.bmp",
-            ball_x,ball_y,std::nullopt,true
-        });
+    // Exact retail draw sequence at 00414B24..0041501B.
+    if(state.attempts_remaining>0 && state.state==golf::RoundState::Aim) {
+        const auto v=golf::velocity_for(state.aim-2,140*80);
+        out.draws.push_back({"Data\\SubGameGolf\\marker.bmp",
+            static_cast<int>(static_cast<double>(state.ball.position.x)+v.x-22),
+            static_cast<int>(static_cast<double>(state.ball.position.y)-v.y-22),
+            std::nullopt,true});
     }
-    for (const auto& target : course.course_objects) {
-        out.draws.push_back({
-            target.sprite_path,
-            target.position.x,target.position.y,
-            target.frame_size.x > 0 && target.frame_size.y > 0
-                ? std::optional<Rect>{
-                    Rect{0,0,target.frame_size.x,target.frame_size.y}
-                  }
-                : std::nullopt,
-            true
-        });
+    if(state.attempts_remaining>0 && state.ball.position.y>45.0f) {
+        out.draws.push_back({"Data\\SubGameGolf\\shadow.bmp",
+            static_cast<int>(static_cast<double>(state.ball.position.x)+4),
+            static_cast<int>(static_cast<double>(state.ball.position.y)+8),
+            std::nullopt,true});
+        // Retail uses the same stop BMP even during flight; the vertical
+        // bounce changes only the ball Y, not the shadow or ground point.
+        out.draws.push_back({"Data\\SubGameGolf\\golfballstop.bmp",
+            static_cast<int>(state.ball.position.x),
+            static_cast<int>(static_cast<double>(state.ball.position.y)-state.ball.height),
+            std::nullopt,true});
     }
-    for (const auto& spectator : course.spectators) {
-        out.draws.push_back({
-            spectator.sprite_path,
-            spectator.position.x,spectator.position.y,
-            spectator.frame_size.x > 0 && spectator.frame_size.y > 0
-                ? std::optional<Rect>{
-                    Rect{0,0,spectator.frame_size.x,spectator.frame_size.y}
-                  }
-                : std::nullopt,
-            true
-        });
-    }
-    // 00414A60/00415080: 45 aim rows, 16 swing columns; the actual
-    // shipped 2128x7830 sheet uses 133x174 cells.
     const int w=course.bob_frame_size_retail.x;
     const int h=course.bob_frame_size_retail.y;
     const int col=std::clamp(swing_animation_ticks_/9,0,
         std::max(0,std::min(16,course.bob_frame_count)-1));
-    const int row=std::clamp(state.aim/2,0,
+    const int row=std::clamp((88-state.aim)/2,0,
         std::max(0,std::min(45,course.bob_rotation_count)-1));
     out.draws.push_back({
         course.bob_sprite_path,course.bob_position.x,course.bob_position.y,
         Rect{col*w,row*h,(col+1)*w,(row+1)*h},true
     });
+    // 00414D6D: only the first two parsed spectators are blitted.
+    // Idle banks are 20 frames each, countdowns initially 5 and 7.
+    // Hit-reaction RNG banks remain an explicit fidelity follow-up.
+    for(std::size_t i=0;i<2;++i) {
+        const auto& spectator=course.spectators[i];
+        if(--spectator_countdowns_[i]<=0) {
+            spectator_countdowns_[i]=5;
+            spectator_frames_[i]=(spectator_frames_[i]+1)%
+                std::max(1,std::min(20,spectator.frame_count));
+        }
+        const int left=spectator_frames_[i]*spectator.frame_size.x;
+        out.draws.push_back({spectator.sprite_path,spectator.position.x,
+            spectator.position.y,Rect{left+(i==0?1:0),0,
+                left+spectator.frame_size.x,spectator.frame_size.y},true});
+    }
+    for(std::size_t i=0;i<course.course_objects.size();++i) {
+        const auto& target=course.course_objects[i];
+        const bool hit=state.matched_target==static_cast<int>(i);
+        if(hit && i==0) {
+            const int left=target_hit_frames_[i]*198;
+            out.draws.push_back({"Data\\SubGameGolf\\flag01.bmp",
+                target.position.x-35,target.position.y+2,
+                Rect{left,0,left+198,165},true});
+        } else {
+            if(!hit && i==0 && ++flag_idle_ticks_>3) {
+                flag_idle_ticks_=0;
+                flag_idle_frame_=(flag_idle_frame_+1)%std::max(1,target.frame_count);
+            }
+            const int f=hit?target_hit_frames_[i]:(i==0?flag_idle_frame_:0);
+            const int left=f*target.frame_size.x;
+            out.draws.push_back({target.sprite_path,target.position.x,target.position.y,
+                Rect{left,0,left+target.frame_size.x,target.frame_size.y},true});
+        }
+        if(hit && ++target_hit_ticks_[i]>3) {
+            target_hit_ticks_[i]=0;
+            target_hit_frames_[i]=(target_hit_frames_[i]+1)%
+                (i==0?19:std::max(1,target.frame_count));
+        }
+    }
 
     // 0x00414A60 submits the real powerbar at (0x53,0x1A0).
     // The source-width is trunc(power * 0x101 / 1000), height 0x35.
@@ -149,8 +159,8 @@ ActivityFrameOutput GolfDriver::compose_frame(
                 Rect{0,0,width,53},true
             });
     }
-    // Exact airborne bounce height, spectator reactions and target-specific
-    // animation banks remain separate from this recovered presentation.
+    // The two spectators' randomized hit-reaction banks still require
+    // exact shared-RNG scheduling. All ordinary frames use retail assets.
     return out;
 }
 

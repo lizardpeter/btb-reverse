@@ -84,13 +84,13 @@ data\subgamegolf\wendy.bmp
     // Retail DrawGolfActivity draws five toolbar balls, physical ball
     // and shadow BMPs, then the authored course/characters, not merely
     // eight neutral backdrop/actor sprites.
-    assert(step.effects.draws.size()==17);
+    assert(step.effects.draws.size()==16);
     assert(step.effects.draws[0].source_asset=="Data\\SubGameGolf\\golfbg.bmp");
     const auto& digit=step.effects.draws[1];
     assert(digit.source_asset=="Data\\SubGameGolf\\golfnumbers.bmp");
     assert(digit.color_keyed && digit.x==535 && digit.y==426);
     assert(digit.source_rectangle->left==135 && digit.source_rectangle->right==150);
-    assert(digit.source_rectangle->bottom==32);
+    assert(digit.source_rectangle->bottom==31);
     assert(step.effects.draws[2].source_asset=="Data\\SubGameGolf\\toolbar ball.bmp");
     assert(step.effects.draws[2].color_keyed && step.effects.draws[2].x==373);
     assert(step.effects.draws[6].x==453);
@@ -98,8 +98,13 @@ data\subgamegolf\wendy.bmp
     assert(step.effects.draws[8].source_asset=="Data\\SubGameGolf\\shadow.bmp");
     assert(step.effects.draws[9].source_asset=="Data\\SubGameGolf\\golfballstop.bmp");
     assert(step.effects.draws[9].x==187 && step.effects.draws[9].y==330);
-    assert(step.effects.draws[10].source_asset=="data\\subgamegolf\\flag.bmp");
-    assert(step.effects.draws.back().source_rectangle->top==44*174);
+    assert(step.effects.draws[8].x==191 && step.effects.draws[8].y==338);
+    assert(step.effects.draws[10].source_asset=="data\\subgamegolf\\golfsprite_8bit.bmp");
+    assert(step.effects.draws[10].source_rectangle->top==0);
+    assert(step.effects.draws[11].source_rectangle->left==1);
+    assert(step.effects.draws[13].source_asset=="data\\subgamegolf\\flag.bmp");
+    // Aim 88 uses the top Bob row and the centered marker.
+    assert(step.effects.draws[7].x==174 && step.effects.draws[7].y==168);
     assert(step.effects.audio.size()==2);
     assert(step.effects.audio[0].source_asset=="Data/music/golf.wav");
     assert(step.effects.audio[1].sound_id==123 && step.effects.audio[1].input_interruptible);
@@ -214,10 +219,10 @@ data\subgamegolf\wendy.bmp
     assert(step.kind==FrameKind::ActivityInitialized);
     // Mouse X maps through the retail 88 - (x/7) aiming equation.
     step=native.advance({.pointer_x=616});
-    assert(step.effects.draws.back().source_rectangle->top==0);
+    assert(step.effects.draws[10].source_rectangle->top==44*174);
     assert(live->round()->state()==btb::golf::RoundState::Aim);
     step=native.advance({.pointer_x=0});
-    assert(step.effects.draws.back().source_rectangle->top==44*174);
+    assert(step.effects.draws[10].source_rectangle->top==0);
     assert(step.effects.audio.size()==1 && step.effects.audio[0].sound_id==101);
     assert(step.kind==FrameKind::ActivityUpdated);
     step=native.advance({.pointer_x=0,.directional_input_bits=0x02});
@@ -242,10 +247,19 @@ data\subgamegolf\wendy.bmp
         step=native.advance({});
         assert(live->round()->state()==btb::golf::RoundState::BallFlight);
         int physics_frames=0;
+        bool observed_airborne=false;
         while(live->round()->state()==btb::golf::RoundState::BallFlight &&
-              physics_frames++<300)
+              physics_frames++<300) {
             step=native.advance({});
-        assert(physics_frames<300);
+            const auto b=live->round()->ball();
+            if(b.height>0 && b.position.y>45) {
+                observed_airborne=true;
+                for(const auto& draw:step.effects.draws)
+                    if(draw.source_asset=="Data\\SubGameGolf\\golfballstop.bmp")
+                        assert(draw.y==static_cast<int>(static_cast<double>(b.position.y)-b.height));
+            }
+        }
+        assert(observed_airborne && physics_frames<300);
         step=native.advance({}); // ResolveLanding -> ScoreAndFeedback
         assert(live->round()->state()==btb::golf::RoundState::ScoreAndFeedback);
         step=native.advance({}); // managed voice submitted

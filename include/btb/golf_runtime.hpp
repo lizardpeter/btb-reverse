@@ -36,6 +36,13 @@ struct BallMotion {
     std::int32_t angle_degrees{};
     std::int32_t speed{};
 
+    // Original 004151C0/004153A3: vertical bounce is independent of
+    // the planar position and speed.
+    int height{};
+    int bounce_impulse{};
+    int bounce_remaining{};
+    bool ascending{true};
+
     [[nodiscard]] bool stopped() const noexcept { return speed == 0; }
 };
 
@@ -66,6 +73,8 @@ void advance_power_meter(
     std::int32_t angle_degrees,
     std::int32_t speed) noexcept;
 
+void launch_ball_bounce(BallMotion& ball, int power) noexcept;
+void advance_ball_bounce(BallMotion& ball) noexcept;
 void advance_ball(BallMotion& ball) noexcept;
 
 [[nodiscard]] float distance(Vec2f a, Vec2f b) noexcept;

@@ -49,7 +49,7 @@ public:
 
 private:
     [[nodiscard]] ActivityFrameOutput compose_frame(
-        const golf::RoundFrame& state) const;
+        const golf::RoundFrame& state);
 
     std::filesystem::path golf_data_dir_{};
     int difficulty_{};
@@ -61,6 +61,10 @@ private:
     int swing_animation_ticks_{};
     bool feedback_voice_started_{};
     int intro_stage_{};
+    std::array<int,2> spectator_frames_{};
+    std::array<int,2> spectator_countdowns_{{5,7}};
+    int flag_idle_frame_{}, flag_idle_ticks_{};
+    std::array<int,3> target_hit_frames_{}, target_hit_ticks_{};
 };
 
 } // namespace btb::full_game

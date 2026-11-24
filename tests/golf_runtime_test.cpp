@@ -53,6 +53,23 @@ int main() {
     // floor(800 * .012) = 9, but retail enforces a minimum deceleration of 10.
     assert(ball.speed == 790);
 
+    // Binary-derived vertical trajectory, independent of planar motion.
+    BallMotion bounce{};
+    launch_ball_bounce(bounce,0);
+    assert(bounce.bounce_impulse==8);
+    for(int tick=0;tick<8;++tick)advance_ball_bounce(bounce);
+    assert(bounce.height==36 && !bounce.ascending && bounce.bounce_remaining==8);
+    for(int tick=0;tick<5;++tick)advance_ball_bounce(bounce);
+    assert(bounce.height==0 && bounce.ascending && bounce.bounce_impulse==6);
+    launch_ball_bounce(bounce,1000);
+    assert(bounce.bounce_impulse==16);
+    for(int tick=0;tick<16;++tick)advance_ball_bounce(bounce);
+    assert(bounce.height==100 && !bounce.ascending);
+    for(int tick=0;tick<13;++tick)advance_ball_bounce(bounce);
+    assert(bounce.height==0 && bounce.bounce_impulse==11);
+    for(int tick=0;tick<500;++tick)advance_ball_bounce(bounce);
+    assert(bounce.height==0 && bounce.bounce_remaining==0);
+
     AnimatedCourseObject flag;
     flag.position = {330, 178};
     flag.hot_area_position = {99, 160};

@@ -51,6 +51,7 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
         const auto shot = make_shot(aim_,power_);
         ball_.angle_degrees = shot.angle_degrees;
         ball_.speed = shot.speed;
+        launch_ball_bounce(ball_,shot.power);
         state_ = RoundState::SwingAnimationDelay;
         break;
     }
@@ -70,12 +71,12 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
         // independently on both frames.
         if((flight_tick_++ & 1U)==0U)break;
         advance_ball(ball_);
-        // The source checks all target hot areas during flight as well
-        // as during landing; the ball must not pass through a hole.
-        if(ball_.stopped() || std::any_of(data_.course_objects.begin(),
+        // 004153F4 only tests a target when the ball touches ground.
+        // State 4 still resolves the terminal position after speed stops.
+        if(ball_.stopped() || (ball_.height==0 && std::any_of(data_.course_objects.begin(),
             data_.course_objects.end(),[&](const auto& target){
                 return ball_reaches_target(ball_.position,target);
-            })) {
+            }))) {
             ball_.speed=0;
             state_=RoundState::ResolveLanding;
         }
