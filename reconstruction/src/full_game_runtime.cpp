@@ -367,10 +367,11 @@ GameFrame GameRoot::advance(const ActivityFrameInput& sample) {
             }
             const char* backdrop=nullptr;
             if(leave)backdrop="Data/ui/main/quitmain.bmp";
-            else if(globals_.ui_context==1)backdrop="Data/ui/deletegame.bmp";
-            else if(globals_.ui_context==2)backdrop="Data/ui/Deletebricks.bmp";
-            else if(globals_.ui_context==3)backdrop="Data/ui/Deleteallobjects.bmp";
-            else if(globals_.ui_context==4)backdrop="Data/ui/DeleteFireworks.bmp";
+            // Adapter context numbers are not unique. Select by activity.
+            else if(initialized_activity_==ActivityId::ParkDesigner)backdrop="Data/ui/Deleteallobjects.bmp";
+            else if(initialized_activity_==ActivityId::BobsBand)backdrop="Data/ui/Deletebricks.bmp";
+            else if(initialized_activity_==ActivityId::Fireworks)backdrop="Data/ui/DeleteFireworks.bmp";
+            else if(globals_.dispatcher.current_state==1)backdrop="Data/ui/deletegame.bmp";
             if(!backdrop){result.kind=FrameKind::ActivityFailed;result.error="unmapped original confirmation context";return result;}
             result.effects.draws.push_back({backdrop,0,0,{},true});
             const int x=input.pointer_x,y=input.pointer_y;

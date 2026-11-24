@@ -4,6 +4,17 @@
 #include <cstdint>
 using namespace btb::full_game;
 int main() {
+    {
+        btb::full_game::NativeHostInput mouse;
+        mouse.press_mouse();mouse.release_mouse();
+        const auto pulse=mouse.sample(220,260,0);
+        assert(pulse.pointer_release_pulse&&!pulse.pointer_button_held);
+        assert(!mouse.sample(220,260,1).pointer_release_pulse);
+        mouse.release_mouse();
+        assert(!mouse.sample(220,260,2).pointer_release_pulse);
+        mouse.press_mouse();mouse.lose_focus();
+        assert(!mouse.sample(220,260,3).pointer_release_pulse);
+    }
  NativeHostInput native{};
  auto initial=native.sample(320,240,0xffffff00U);
  assert(initial.pointer_x==320&&initial.pointer_y==240);
