@@ -112,6 +112,7 @@ private:
     std::vector<front_end::ReplacementRuntimeState> replacements_{};
     front_end::GenericUiRuntimeState ui_state_{};
     bool initialized_{};
+    int secondary_delay_{};
     std::optional<Draw> backdrop_{};
     std::optional<game_flow::State> pregame_setup_{};
     std::optional<OriginalUiBitmapCatalog> pregame_bitmaps_{};

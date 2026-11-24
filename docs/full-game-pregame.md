@@ -48,8 +48,11 @@ The six-entry input jump tables use **`action+6`** for values
   the dedicated generic UI system's responsibility.
 - **-5**: enter that activity's exact init state.
 - **-4/-3/-2**: write difficulty 2/1/0 to global `0x51C284` and
-  remain in the instruction update state, except for Spud Skate's
-  special -2 branch.
+  remain in the instruction update state on difficulty-selection screens.
+  On all four no-difficulty screens, -2 directly starts the activity.
+  Fireworks 0x42BFF3, Bob's Band 0x42C668 and Park Designer 0x42C8E3
+  store zero and fall through into their -5 handlers (verified directly
+  against the original PE32 instructions).
 - **Spud Skate -2** jumps **straight to 0x1A**, resets difficulty
   to zero and sets start latch `0x51C32C = 1`. This matches the
   real `0x42B6AD` branch, not a guessed no-difficulty-screen convention.
@@ -123,8 +126,8 @@ and global movie-mode14 requirement. It does not synthesize art or sound.
   foreground/hover/depressed artwork and proper clipping/draw ordering.
 - Real global Bink and looping walkthrough Bink startup, frame updates,
   timing, and CloseWalkthroughMovie teardown.
-- Full instruction-screen Help, narrated audio and the retail deferred
-  sequence that can issue -5 after no-difficulty selection -2.
+- Full instruction-screen Help and narrated audio; no-difficulty Start
+  is directly routed by -2, not by a synthetic deferred -5.
 - Binding real asset configuration and presentation to every normal
   game path, not just source-level driver instances.
 - Cross-activity visual, audio, save and input validation against the

@@ -85,6 +85,7 @@ bool GenericUiScreenDriver::initialize(
             finale_gate,record);
         ui_state_.fireworks_finale_locked = finale_gate.locked;
     }
+    secondary_delay_=0;
     replacements_.clear();
     replacements_.reserve(table.size());
     for (std::size_t i=0; i<table.size(); ++i) {
@@ -163,7 +164,8 @@ ActivityFrameOutput GenericUiScreenDriver::advance(
         input.pointer_x,input.pointer_y);
     const auto current = hovered
         ? static_cast<int>(*hovered + 1) : 0;
-    if (current != ui_state_.selected_area_one_based) {
+    const auto prior=ui_state_.selected_area_one_based;
+    if (current != prior) {
         if (!hovered) {
             static_cast<void>(front_end::leave_generic_ui_area(ui_state_));
         } else {
@@ -183,11 +185,14 @@ ActivityFrameOutput GenericUiScreenDriver::advance(
         }
     }
 
-    if (hovered) {
+    if (hovered && current==prior) {
         static_cast<void>(front_end::update_hover_animation(
             records[*hovered],replacements_[*hovered]));
     }
 
+    append_generic_ui_art(result.draws,records,replacements_,
+                          hovered,input.pointer_button_held,secondary_delay_,
+                          current==prior);
     if (input.click_pulse && hovered) {
         const auto armed = front_end::arm_generic_ui_click(
             ui_state_,records[*hovered],static_cast<int>(*hovered));

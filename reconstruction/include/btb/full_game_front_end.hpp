@@ -31,6 +31,16 @@ struct GenericUiCatalog {
     const front_end::HotAreaScreen& screen,
     int mouse_x, int mouse_y) noexcept;
 
+// 00429150 names frame zero base.bmp, later frames baseN.bmp.
+// 00428600 draws hover/pressed at x,y, idle at secondary_x/y;
+// optional hover adornments alone use the magenta transparency key.
+void append_generic_ui_art(
+    std::vector<Draw>& draws,
+    const std::vector<front_end::ReplacementRecord>& records,
+    std::vector<front_end::ReplacementRuntimeState>& runtime,
+    std::optional<std::size_t> hovered,bool held,int& secondary_delay,
+    bool draw_hover = true);
+
 // The native 0x04/0x05 Activity Select pair, with deferred audio click
 // resolution and the progress-gated Firework Finale action 0x22.
 // Rendering/hover surface loads are still handled by the common UI compositor;
@@ -79,6 +89,7 @@ private:
     std::vector<front_end::ReplacementRuntimeState> replacement_runtime_{};
     front_end::GenericUiRuntimeState ui_state_{};
     bool initialized_{};
+    int secondary_delay_{};
     std::optional<Draw> backdrop_{};
 };
 

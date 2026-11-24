@@ -36,12 +36,11 @@ int main() {
             assert(choice.difficulty == level);
             assert(choice.persistent_herding_difficulty ==
                 (pair.update == State::HerdingPregameUpdate));
-            if (pair.update == State::SpudSkatePregameUpdate && level == 0) {
-                // Unlike the other nine instruction handlers, source
-                // 0x42B6AD jumps straight to game init 0x1A.
-                assert(choice.skate_immediate_start);
+            if (!pair.selected_difficulty && level == 0) {
+                assert(choice.skate_immediate_start ==
+                    (pair.update == State::SpudSkatePregameUpdate));
                 assert(choice.start_activity);
-                assert(choice.next_state == State::SpudSkateInit);
+                assert(choice.next_state == pair.activity_init);
             } else {
                 assert(!choice.next_state);
                 assert(!choice.start_activity);

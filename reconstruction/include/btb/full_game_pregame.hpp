@@ -185,12 +185,14 @@ struct RetailPregameAction {
         result.start_activity = true;
         return result;
     case -2:
-        // Retail 0x42B6AD: Skate's no-difficulty Start button jumps
-        // directly to 0x1A while setting its per-activity start latch.
-        if (update == game_flow::State::SpudSkatePregameUpdate) {
+        // All four shipped no-difficulty screens encode Start as -2.
+        // PE32 42BFF3, 42C668, 42C8E3 fall through to their -5 handler
+        // after storing difficulty zero; 42B6AD also sets Skate's latch.
+        if (!pair->selected_difficulty) {
             result.next_state = pair->activity_init;
             result.difficulty = 0;
-            result.skate_immediate_start = true;
+            result.skate_immediate_start =
+                update == game_flow::State::SpudSkatePregameUpdate;
             result.start_activity = true;
             return result;
         }
@@ -200,10 +202,6 @@ struct RetailPregameAction {
         result.difficulty = -2 - action;
         result.persistent_herding_difficulty =
             update == game_flow::State::HerdingPregameUpdate;
-        // Other no-difficulty menus (Band/Park/Fireworks) STILL write
-        // a 0/1/2 difficulty value and stay in the instruction update
-        // state for -2; do not make up a direct launch that retail
-        // does not perform.
         return result;
     }
     return {};

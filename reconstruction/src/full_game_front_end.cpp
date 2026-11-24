@@ -97,6 +97,50 @@ std::optional<std::size_t> activity_select_hit(
     return std::nullopt;
 }
 
+namespace {
+std::string animation_path(const std::string& base,int frame) {
+    if(base.empty()||base=="NULL")return {};
+    return base+(frame>0?std::to_string(frame):std::string{})+".bmp";
+}
+void add_ui_art(std::vector<Draw>& draws,std::string path,int x,int y,
+                bool keyed=false) {
+    if(!path.empty()&&path!="NULL")
+        draws.push_back({std::move(path),x,y,std::nullopt,keyed});
+}
+}
+
+void append_generic_ui_art(
+    std::vector<Draw>& draws,
+    const std::vector<front_end::ReplacementRecord>& records,
+    std::vector<front_end::ReplacementRuntimeState>& runtime,
+    std::optional<std::size_t> hovered,bool held,int& secondary_delay,
+    bool draw_hover) {
+    if(runtime.size()!=records.size())return;
+    // The source counter counts down from five through zero, then wraps.
+    const bool idle_step=--secondary_delay<0;
+    if(idle_step)secondary_delay=5;
+    if(hovered&&*hovered<records.size()&&draw_hover) {
+        const auto& row=records[*hovered];
+        const auto& state=runtime[*hovered];
+        if(row.hover_frame_count>0)
+            add_ui_art(draws,animation_path(row.hover_bitmap_base,
+                state.hover_animation_frame),row.x,row.y);
+        add_ui_art(draws,row.optional_surface,row.secondary_x,
+                   row.secondary_y,true);
+        if(held)add_ui_art(draws,row.pressed_bitmap,row.x,row.y);
+    }
+    for(std::size_t i=0;i<records.size();++i) {
+        if(hovered&&*hovered==i)continue;
+        const auto& row=records[i];
+        auto& state=runtime[i];
+        if(row.secondary_frame_count<=0)continue;
+        if(idle_step)state.secondary_animation_frame=
+            (state.secondary_animation_frame+1)%row.secondary_frame_count;
+        add_ui_art(draws,animation_path(row.secondary_bitmap_base,
+            state.secondary_animation_frame),row.secondary_x,row.secondary_y);
+    }
+}
+
 bool ActivitySelectDriver::initialize(
     const progress::Record& record,
     progress::FinaleGate& finale_gate,
@@ -120,6 +164,7 @@ bool ActivitySelectDriver::initialize(
         finale_gate, record);
     ui_state_ = {};
     ui_state_.fireworks_finale_locked = finale_gate.locked;
+    secondary_delay_=0;
     replacement_runtime_.clear();
     replacement_runtime_.reserve(records.size());
     for (std::size_t i = 0; i < records.size(); ++i) {
@@ -218,12 +263,15 @@ ActivityFrameOutput ActivitySelectDriver::advance(
         }
     }
 
-    if (hovered) {
+    if (hovered && current==prior) {
         const auto i = *hovered;
         static_cast<void>(front_end::update_hover_animation(
             records[i], replacement_runtime_[i]));
     }
 
+    append_generic_ui_art(out.draws,records,replacement_runtime_,
+                          hovered,input.pointer_button_held,secondary_delay_,
+                          current==prior);
     if (input.click_pulse && hovered) {
         const auto i = *hovered;
         const auto armed = front_end::arm_generic_ui_click(
