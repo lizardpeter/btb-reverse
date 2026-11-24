@@ -97,7 +97,9 @@ std::optional<PickHit> find_topmost_object(
             if(type==7||(type>=100&&type<=199)||
                object.record_index==selected_bandstand)continue;
         } else if(picking_mode==1) {
-            if(type<101||type>199)continue;
+            // 0040D2E0 excludes the auxiliary water segments in delete
+            // mode; the primary pond, fountain, and decor remain pickable.
+            if(type>=101&&type<=199)continue;
         }
         if(!is_on_screen(mouse_x,mouse_y,record_rectangle(object)))continue;
 

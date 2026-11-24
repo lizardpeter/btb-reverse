@@ -6,6 +6,7 @@
 #include "btb/park_designer_scene.hpp"
 #include "btb/retail_crt_random.hpp"
 
+#include <algorithm>
 #include <array>
 #include <limits>
 #include <optional>
@@ -85,6 +86,45 @@ inline constexpr std::array<ViewToolbarBitmap,4> kRetailViewToolbarSheets{{
     {"Data/SubGameDYP/print.bmp","Data/SubGameDYP/printred.bmp","Data/SubGameDYP/printdep.bmp"},
     {"Data/SubGameDYP/deleteall.bmp","Data/SubGameDYP/deleteallred.bmp","Data/SubGameDYP/deletealldep.bmp"}
 }};
+
+// Exact retail 00441844/58/94, including the source's hard 2053
+// pixel crop cap. Segmented water draws each layer at the SAME position.
+inline constexpr std::array<I32,5> kRetailPondSegmentCounts{{4,2,2,3,3}};
+inline constexpr std::array<I32,5> kRetailPondSegmentWidths{{198,164,221,257,173}};
+inline constexpr std::array<I32,5> kRetailPondSegmentHeights{{109,103,130,138,117}};
+inline constexpr std::array<SeasonalBitmap,5> kRetailPondSheets{{
+    {"Data/SubGameDYP/roundsquqre_01.bmp","Data/SubGameDYP/SNOW/roundsquqre_01.bmp"},
+    {"Data/SubGameDYP/round_pond.bmp","Data/SubGameDYP/SNOW/round_pond.bmp"},
+    {"Data/SubGameDYP/square.bmp","Data/SubGameDYP/SNOW/square.bmp"},
+    {"Data/SubGameDYP/2xsquare.bmp","Data/SubGameDYP/SNOW/2xsquare.bmp"},
+    {"Data/SubGameDYP/roundround.bmp","Data/SubGameDYP/SNOW/roundround.bmp"}
+}};
+inline constexpr SeasonalBitmap kRetailFountainSheet{
+    "Data/SubGameDYP/fountains_1-5_square.bmp","Data/SubGameDYP/SNOW/fountains_1-5_square.bmp"};
+inline constexpr std::array<SeasonalBitmap,8> kRetailPrimaryObjects{{
+    kRetailParkBackground,
+    {"Data/SubGameDYP/lilly.bmp","Data/SubGameDYP/SNOW/lilly.bmp"},
+    {"Data/SubGameDYP/reeds_01.bmp","Data/SubGameDYP/SNOW/reeds_01.bmp"},
+    {"Data/SubGameDYP/reed_02.bmp","Data/SubGameDYP/SNOW/reed_02.bmp"},
+    {"Data/SubGameDYP/rock_02.bmp","Data/SubGameDYP/SNOW/rock_02.bmp"},
+    {"Data/SubGameDYP/rock_01.bmp","Data/SubGameDYP/SNOW/rock_01.bmp"},
+    {"Data/SubGameDYP/lilly.bmp","Data/SubGameDYP/lilly.bmp"},
+    kRetailFountainSheet
+}};
+[[nodiscard]] constexpr std::optional<Rect> retail_pond_segment_rect(
+    I32 variant,I32 segment) noexcept {
+    if(variant<0||variant>=5||segment<0||segment>20)return std::nullopt;
+    const auto i=static_cast<std::size_t>(variant);
+    const I32 left=segment*kRetailPondSegmentWidths[i];
+    const I32 right=std::min((segment+1)*kRetailPondSegmentWidths[i],0x805);
+    if(left>=right)return std::nullopt;
+    return Rect{left,0,right,kRetailPondSegmentHeights[i]};
+}
+[[nodiscard]] constexpr std::optional<Rect> retail_primary_pond_rect(
+    I32 variant,I32 frame) noexcept {
+    if(variant<0||variant>=5||frame<0||frame>12)return std::nullopt;
+    return retail_pond_segment_rect(variant,frame>0?frame+kRetailPondSegmentCounts[static_cast<std::size_t>(variant)]:frame);
+}
 
 struct RetailSprite {std::string_view bitmap;Rect source;};
 [[nodiscard]] constexpr std::optional<RetailSprite> retail_park_sprite(

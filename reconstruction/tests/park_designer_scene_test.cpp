@@ -81,7 +81,7 @@ int main() {
     hit=find_topmost_object(state,polygons,sorted,15,15,0,-1,0,0);
     assert(!hit);
     hit=find_topmost_object(state,polygons,sorted,15,15,1,-1,1,0);
-    assert(!hit); // mode 1 only accepts object codes 101..199.
+    assert(hit&&hit->record_slot==1); // delete mode excludes 101..199, not ordinary objects.
     hit=find_topmost_object(state,polygons,sorted,48,48,0,-1,1,0);
     assert(!hit); // within coarse rectangle, outside authored polygon.
     state.objects[1].object_code=7;
@@ -91,7 +91,7 @@ int main() {
     state.objects[1].record_index=150;
     polygons[1][0][0].vertices=polygons[0][0][0].vertices;
     hit=find_topmost_object(state,polygons,sorted,15,15,1,-1,1,0);
-    assert(hit&&hit->record_slot==1);
+    assert(hit&&hit->record_slot==0); // auxiliary pond surface cannot be deleted independently.
 
     // 0040DFF0: real placement logic, original nine-sample collision
     // and mandatory code-100 pond footprint.

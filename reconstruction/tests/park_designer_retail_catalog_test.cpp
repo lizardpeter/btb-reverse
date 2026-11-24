@@ -69,6 +69,19 @@ int main(){
     }
     assert(!retail_park_sprite(EditorMode::Bandstand,Season::Summer,3,0));
     assert(!retail_park_sprite(EditorMode::Decorate,static_cast<Season>(5),0,0));
+    for(I32 i=0;i<5;++i){
+        auto first=retail_primary_pond_rect(i,0);
+        auto animated=retail_primary_pond_rect(i,1);
+        assert(first&&animated);
+        assert(first->left==0&&first->right==kRetailPondSegmentWidths[i]);
+        assert(animated->left==(1+kRetailPondSegmentCounts[i])*kRetailPondSegmentWidths[i]);
+        assert(kRetailPondSheets[i].winter.find("/SNOW/")!=std::string_view::npos);
+        for(I32 j=1;j<=kRetailPondSegmentCounts[i];++j)
+            assert(retail_pond_segment_rect(i,j));
+    }
+    assert(!retail_pond_segment_rect(5,0));
+    assert(!retail_pond_segment_rect(0,-1));
+    assert(!retail_primary_pond_rect(0,-1));
     auto data=empty_park();
     data.state(TrailingStateIndex::NextDecorateRecord)=398;
     btb::retail::OriginalRetailRandom rng{1};

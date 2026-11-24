@@ -37,6 +37,8 @@ struct PickHit {
 };
 // 0040D2E0: input list is the original 400-entry qsort result, not a list
 // already sorted by this function. Polygon status 0 means INSIDE (retail).
+// Mode 0 excludes fountain, all pond surfaces and selected bandstand;
+// mode 1 excludes ONLY auxiliary pond surfaces (101..199).
 // Nullopt indicates no hit. Invalid polygon-index records are ignored rather
 // than reading outside the verified 60-polygon native array.
 [[nodiscard]] std::optional<PickHit> find_topmost_object(
