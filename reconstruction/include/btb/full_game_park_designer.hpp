@@ -25,6 +25,7 @@ public:
     virtual void begin_session() noexcept {}
     virtual void cancel_drag(park_designer::SaveData&) noexcept {}
     virtual bool native_intro() const noexcept {return false;}
+    virtual bool normal_cursor() const noexcept {return true;}
     virtual std::optional<std::pair<int,int>> take_queued_voice() noexcept {return {};}
     // Native translation of the recovered editor branches at 0x0040E440.
     virtual bool update_editor(
@@ -49,6 +50,7 @@ public:
     [[nodiscard]] ActivityFrameOutput advance(const ActivityFrameInput& input) override;
     [[nodiscard]] bool unload(std::string& error) override;
 
+    bool shared_back_available() const noexcept override {return service_&&service_->normal_cursor();}
     bool request_confirmed_leave() noexcept override {request_exit(true);return true;}
     bool redraw_confirmation_background(ActivityFrameOutput&,std::string&) override;
     bool static_help_region_allowed(int region) const noexcept override {

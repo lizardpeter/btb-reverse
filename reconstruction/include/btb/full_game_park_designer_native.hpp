@@ -13,6 +13,7 @@ public:
     void begin_session() noexcept override;
     void cancel_drag(park_designer::SaveData&) noexcept override;
     bool native_intro() const noexcept override {return true;}
+    bool normal_cursor() const noexcept override {return !selection_&&controls_.cursor_mode==0;}
     std::optional<std::pair<int,int>> take_queued_voice() noexcept override;
     bool render(park_designer::SaveData&,const park_designer::BoundAreas&,ActivityFrameOutput&,std::string&) override;
     bool update_editor(park_designer::SaveData&,const park_designer::BoundAreas&,const ActivityFrameInput&,ActivityFrameOutput&,std::string&) override;

@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <sstream>
 
 namespace p=btb::park_designer;
 namespace fs=std::filesystem;
@@ -83,6 +84,17 @@ int main(){
     assert(d.unload(error));
     auto game=std::make_unique<GameRoot>();
     assert(game->select_profile(0));
+    std::stringstream help_table;
+    for(int g=0;g<9;++g)help_table<<"fixture_"<<g<<"\n-1 -1 -1 -1 -1\n";
+    // Preserve original Park Designer index ordering, including its
+    // view-only and palette-only voice regions.
+    help_table<<"park_9\n"
+        <<"579 420 625 465 482\n68 419 119 471 255\n478 416 532 471 256\n"
+        <<"178 419 229 471 257\n123 419 174 471 254\n535 426 571 462 251\n"
+        <<"234 400 424 467 250\n10 0 630 380 262\n433 408 469 459 253\n"
+        <<"275 419 323 468 258\n332 419 382 468 259\n391 419 442 468 260\n"
+        <<"535 426 571 462 261\n-1 -1 -1 -1 -1\nEND\n";
+    assert(game->configure_contextual_help(help_table,error));
     auto service=std::make_shared<RetailParkDesignerNativeService>(rng);
     auto driver=std::make_unique<ParkDesignerDriver>(root,root/"modal-saves",service,&rng);
     auto* live=driver.get();
@@ -99,7 +111,32 @@ int main(){
     frame();frame();frame();
     frame(200,440,true);frame(263,435,true);frame(350,180,true);
     assert(live->save().objects[300].object_code==400);
-    frame(500,440,true);frame(550,440,true);
+    // Help is modal: preserve the live editor scene and do not edit or
+    // advance it while the physical help cursor explores original regions.
+    auto has_voice=[](const ActivityFrameOutput& o,int id){
+        return std::any_of(o.audio.begin(),o.audio.end(),[&](const Audio& a){
+            return a.operation==AudioOperation::ManagedSoundId&&a.sound_id==id;
+        });
+    };
+    frame(40,440,true,false,true);
+    auto entered=frame(40,440,false,true);
+    assert(has_voice(entered.effects,476));
+    auto helping=frame(200,440);
+    assert(helping.kind==FrameKind::Intercept&&has_voice(helping.effects,257));
+    assert(asset(helping.effects,"Data/ui/help cursor.bmp"));
+    assert(!has_voice(frame(200,440).effects,257));
+    assert(has_voice(frame(300,200).effects,262));
+    assert(frame(40,440,false,true).kind==FrameKind::Intercept);
+    assert(frame(0,0).kind==FrameKind::ActivityUpdated);
+    assert(live->save().objects[300].object_code==400);
+    for(int i=0;i<50;++i)frame();
+    frame(500,440,true);
+    frame(40,440,true,false,true);frame(40,440,false,true);
+    assert(!has_voice(frame(240,440).effects,250)); // palette not in View mode
+    assert(has_voice(frame(350,440).effects,259)); // winter control
+    frame(40,440,false,true);
+    assert(frame().kind==FrameKind::ActivityUpdated);
+    frame(550,440,true);
     auto modal=frame(250,280);
     assert(modal.kind==FrameKind::Intercept&&asset(modal.effects,"Data/ui/Deleteallobjects.bmp"));
     modal=frame(250,280,true,false,true);
