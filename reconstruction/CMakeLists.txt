@@ -300,6 +300,7 @@ foreach(test_name IN ITEMS
     herding_retail_rect_contact_source
     herding_source_animal_chatter_source
     herding_source_pair_separation_source
+    herding_source_pickles_controls_source
     herding_source_follower_approach_source
     herding_source_heading_source
     herding_source_home_arrival_source
