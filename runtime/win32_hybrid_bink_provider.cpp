@@ -63,7 +63,7 @@ bool Win32HybridBinkProvider::service(
 
 bool Win32HybridBinkProvider::open_walkthrough(
     const std::filesystem::path& movie,
-    const std::filesystem::path& help_wav,std::string& error) {
+    std::string& error) {
     std::string close_error;
     if(!native_.close_walkthrough(close_error)||
        !retail_.close_walkthrough(close_error)) {
@@ -72,7 +72,7 @@ bool Win32HybridBinkProvider::open_walkthrough(
     }
     walkthrough_=Backend::none;
     std::string native_error;
-    if(native_enabled_ && native_.open_walkthrough(movie,help_wav,native_error)) {
+    if(native_enabled_ && native_.open_walkthrough(movie,native_error)) {
         walkthrough_=Backend::native;
         error.clear();
         return true;
@@ -82,7 +82,7 @@ bool Win32HybridBinkProvider::open_walkthrough(
         return false;
     }
     std::string retail_error;
-    if(retail_.open_walkthrough(movie,help_wav,retail_error)) {
+    if(retail_.open_walkthrough(movie,retail_error)) {
         walkthrough_=Backend::retail;
         error.clear();
         return true;

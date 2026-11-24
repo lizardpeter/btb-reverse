@@ -146,7 +146,7 @@ int main() {
         if(movies->open_global(missing,error) ||
            !error.starts_with("native-only x64 Bink global: "))return 41;
         error.clear();
-        if(movies->open_walkthrough(missing,missing,error) ||
+        if(movies->open_walkthrough(missing,error) ||
            !error.starts_with("native-only x64 Bink walkthrough: "))return 42;
         auto skate=std::make_unique<Win32HybridSpudSkateMovies>(
             invalid_display,missing,false);

@@ -10,9 +10,9 @@
 namespace btb::full_game {
 
 // Data comes from the installed loaddata/binkwalk.txt, parsed by the retail
-// bulk-table loader. Ten primary walkthrough movies have one spoken-help
-// WAV each. The last three table rows have a literal NULL movie and an
-// additional spoken-help WAV; they must NOT create three phantom movies.
+// bulk-table loader. Preserve both columns, including legacy help names.
+// 004281D0 consumes only the movie column; 0042A2C0 uses managed sound
+// IDs for narration. The final three NULL rows are not playable movies.
 inline constexpr std::size_t kRetailWalkthroughCount = 10;
 inline constexpr std::size_t kRetailSubHelpCount = 3;
 

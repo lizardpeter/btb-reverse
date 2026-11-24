@@ -162,4 +162,4 @@ The external data tables make the generic movie uses easy to classify:
 - `loaddata/videoseq.txt` — THQ/BBC/logo/intro sequence
 - `loaddata/startupmovie.txt` — per-activity startup movies
 - `loaddata/completedmovie.txt` — completion movies
-- `loaddata/binkwalk.txt` — walkthrough movie + spoken-help WAV mapping
+- `loaddata/binkwalk.txt` — walkthrough movie paths plus legacy help WAV names (the latter are not required by the retail movie-open path).

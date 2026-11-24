@@ -27,9 +27,8 @@ bool Win32OriginalGameDevice::close_global_movie(std::string& error) {
 
 bool Win32OriginalGameDevice::open_walkthrough_movie(
     const std::filesystem::path& movie,
-    const std::filesystem::path& help_wav,
     std::string& error) {
-    return bink_.open_walkthrough(movie,help_wav,error);
+    return bink_.open_walkthrough(movie,error);
 }
 
 bool Win32OriginalGameDevice::close_walkthrough_movie(

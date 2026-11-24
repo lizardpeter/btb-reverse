@@ -242,15 +242,13 @@ void Win32RetailBinkProvider::release_walkthrough() noexcept {
     walkthrough_bytes_.clear();
     walkthrough_has_frame_=false;
     walkthrough_last_decoded_=0;
-    walkthrough_help_wav_.clear();
 }
 
 bool Win32RetailBinkProvider::open_walkthrough(
     const std::filesystem::path& movie,
-    const std::filesystem::path& help_wav,
     std::string& error) {
 #if defined(_WIN64)
-    (void)movie;(void)help_wav;
+    (void)movie;
     return ensure_original_dll(error);
 #else
     if(!ensure_original_dll(error))return false;
@@ -260,9 +258,8 @@ bool Win32RetailBinkProvider::open_walkthrough(
     // Keeping this buffer alive is mandatory until BinkClose.
     release_walkthrough();
     std::error_code ec;
-    if(!std::filesystem::is_regular_file(movie,ec)||ec ||
-       !std::filesystem::is_regular_file(help_wav,ec)||ec) {
-        error="original walkthrough Bink or accompanying speech asset missing";
+    if(!std::filesystem::is_regular_file(movie,ec)||ec) {
+        error="original walkthrough Bink asset missing";
         return false;
     }
     std::ifstream source(movie,std::ios::binary|std::ios::ate);
@@ -315,7 +312,6 @@ bool Win32RetailBinkProvider::open_walkthrough(
         error="original in-memory walkthrough Bink header invalid";
         return false;
     }
-    walkthrough_help_wav_=help_wav;
     walkthrough_has_frame_=false;
     walkthrough_last_decoded_=0;
     error.clear();

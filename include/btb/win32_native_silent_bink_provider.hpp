@@ -31,7 +31,6 @@ public:
         bool& global_finished,std::string& error) override;
     [[nodiscard]] bool open_walkthrough(
         const std::filesystem::path& movie,
-        const std::filesystem::path& help_wav,
         std::string& error) override;
     [[nodiscard]] bool close_walkthrough(std::string& error) override;
     [[nodiscard]] bool render_walkthrough_overlay(

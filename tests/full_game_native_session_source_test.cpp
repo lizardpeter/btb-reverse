@@ -82,7 +82,6 @@ public:
     bool fail_draw{};
     bool fail_present{};
     std::string last_movie{};
-    std::string last_help{};
     std::vector<Draw> received_draws{};
 
     bool observe(PhysicalFrameObservation& out,
@@ -99,11 +98,10 @@ public:
         ++global_close;error.clear();return true;
     }
     bool open_walkthrough_movie(
-        const fs::path& movie,const fs::path& help,
+        const fs::path& movie,
         std::string& error) override {
         ++walk_open;
         last_movie=movie.generic_string();
-        last_help=help.generic_string();
         error.clear(); return true;
     }
     bool close_walkthrough_movie(std::string& error) override {
@@ -262,9 +260,7 @@ int main() {
         "btb_original_native_session_source";
     fs::remove_all(directory);
     touch(directory,"data/movies/bink_5.bik");
-    touch(directory,"data/sound/help_5.wav");
     touch(directory,"data/movies/bink_0.bik");
-    touch(directory,"data/sound/help_0.wav");
     touch(directory,"Data/movies/start_0.bik");
     touch(directory,"Data/ui/original.bmp");
     touch(directory,"Data/ui/replay.bmp");
@@ -325,7 +321,9 @@ int main() {
         assert(!initialized.global_movie_opened);
         assert(device.walk_open == 1);
         assert(device.last_movie.find("bink_5.bik") != std::string::npos);
-        assert(device.last_help.find("help_5.wav") != std::string::npos);
+        // The retail table names obsolete help WAVs, but 004281D0
+        // never opens them. This fixture deliberately has no such WAVs.
+        assert(!fs::exists(directory/"data/sound/help_5.wav"));
 
         const auto instruction=session.tick({},false,false);
         assert(!instruction.failure);
@@ -636,7 +634,6 @@ int main() {
     // It must not call decoder APIs, invent audio, or claim movie playback.
     // The normal mode above continues to exercise genuine movie contracts.
     fs::remove(directory/"data/movies/bink_5.bik");
-    fs::remove(directory/"data/sound/help_5.wav");
     {
         GameRoot game;
         assert(game.select_profile(0));
@@ -708,6 +705,8 @@ int main() {
         const auto blocked=session.tick({},false,false);
         assert(blocked.failure);
         assert(blocked.failure->stage==PhysicalPresentationStage::MovieResolve);
+        assert(blocked.failure->message.find("bink_5.bik")!=std::string::npos);
+        assert(device.walk_open==0);
         assert(!blocked.submitted);
     }
     // Retail state 0 runs each original videoseq.txt Bink in order, keeps

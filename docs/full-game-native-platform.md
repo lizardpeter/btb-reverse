@@ -19,7 +19,7 @@ original per-frame dataflow:
    modes 13/14 remain blocked until Bink actually completes; the original
    click pulse is cleared on the completion frame.
 3. On a pregame setup, resolve the **real installed/CD** source movie
-   and help WAV from `binkwalk.txt`, open the independent walkthrough;
+   from `binkwalk.txt` and open the independent walkthrough;
    for the four intro-gated games, also resolve/open their separate
    `startupmovie.txt` global Bink.
 4. On pregame Back/Start, close the independent walkthrough. Difficulty
@@ -124,7 +124,7 @@ separately verified binary-compatible 64-bit decoder will be required.
 A new **source-only** regression
 `full_game_native_session_source_test.cpp` covers:
 
-- pregame Bink and spoken-help path resolution and physical-open requests;
+- pregame Bink path resolution and physical-open requests, with no legacy help WAV dependency;
 - real deferred teardown on Start, not on difficulty selection;
 - global Bink mode14 waiting and same-frame cleared click;
 - prevention of a blank draw over decoded global Bink frames;

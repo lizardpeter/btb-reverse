@@ -161,11 +161,9 @@ void Win32NativeSilentBinkProvider::release_walkthrough() noexcept {
 
 bool Win32NativeSilentBinkProvider::open_walkthrough(
     const std::filesystem::path& movie,
-    const std::filesystem::path& help_wav,
     std::string& error) {
-    // Narration is a separate original managed-sound WAV; it is NOT
-    // a reason to fabricate compressed audio in the BIK decoder.
-    (void)help_wav;
+    // 004281D0 opens the BIK alone. Managed narration is dispatched
+    // independently by the retail pregame update (0042A2C0).
     auto opened=bink32_recovered::BinkNativeSilentMovie::open_file(
         movie,error);
     if(!opened)return false;

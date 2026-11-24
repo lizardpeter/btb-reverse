@@ -42,7 +42,6 @@ public:
     }
     [[nodiscard]] bool open_walkthrough(
         const std::filesystem::path& movie,
-        const std::filesystem::path& help_wav,
         std::string& error) override;
     [[nodiscard]] bool close_walkthrough(std::string& error) override;
     // Fireworks pre-show state 15 uses the same retail Bink disk player.
@@ -70,7 +69,6 @@ private:
     void* walkthrough_{};
     bool walkthrough_has_frame_{};
     std::uint32_t walkthrough_last_decoded_{};
-    std::filesystem::path walkthrough_help_wav_{};
 
 };
 

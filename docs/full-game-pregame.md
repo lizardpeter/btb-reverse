@@ -85,6 +85,15 @@ dismissed a movie. The coordinator now clears this host-side click too.
 
 ## Original backdrop and walkthrough resources
 
+`OpenWalkthroughMovie` (004281D0) reads only the BIK path at
+`0048E6F0 + index * 0x104`. The second column of `binkwalk.txt` is retained
+as source metadata, not a required playback asset. The actual narration
+comes from the independent managed-sound IDs in `RunMainGameFlow`
+(0042A2C0), already dispatched by `GenericUiFrontEnd`. For example,
+Maze uses ID 488 and Golf uses ID 489. The retail media tree contains
+those numbered catalog assets, not the obsolete walkthrough-help WAVs.
+A missing actual BIK or required managed sound still fails normally.
+
 The installed `loaddata/uiBitmapName.txt` is 23 bitmap names plus
 `END.bmp`. Disassembly confirms that the instruction setup
 passes a **256-byte-per-name** pointer from the loaded table at base

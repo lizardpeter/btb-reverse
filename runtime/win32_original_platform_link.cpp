@@ -24,7 +24,7 @@ public:
         return true;
     }
     bool open_walkthrough(const std::filesystem::path&,
-        const std::filesystem::path&,std::string& err) override {
+        std::string& err) override {
         err="original compatible Bink decoder not initialized";return false;
     }
     bool close_walkthrough(std::string& err) override {

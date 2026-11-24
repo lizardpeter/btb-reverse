@@ -21,8 +21,8 @@ The native session continues to use the retail 68-state `GameRoot` and actual
 DirectDraw/DirectSound commands, but skips `open_walkthrough_movie` and
 `open_global_movie` requests. If the source dispatcher enters intercepted
 movie mode 13 or 14, the next frame acknowledges that movie transition so
-the associated non-video setup/update path can proceed. No original `.bik`
-or spoken help WAV is required for that transition in this mode.
+the associated non-video setup/update path can proceed. No original `.bik` is required for that transition in this mode.
+Legacy `binkwalk.txt` help WAV names are not required in either mode.
 
 The source frontend menus, user-selected difficulty and input routing are not
 replaced with a custom menu. Ordinary UI bitmap and sound references still have

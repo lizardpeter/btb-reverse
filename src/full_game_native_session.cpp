@@ -121,7 +121,7 @@ NativeSessionFrame NativeGameSession::tick(
         -> std::optional<std::filesystem::path> {
         auto resolved=effects_.assets().resolve(original);
         if (!resolved.found()) {
-            error="retail movie/help asset could not be resolved: "+original+
+            error="retail movie asset could not be resolved: "+original+
                 " ("+resolved.error+")";
             return std::nullopt;
         }
@@ -144,8 +144,9 @@ NativeSessionFrame NativeGameSession::tick(
             return frame;
         }
         auto movie=resolve_movie(entry->movie);
-        auto help=resolve_movie(entry->spoken_help);
-        if (!movie || !help) {
+        // 004281D0 reads only the BIK. 0042A2C0 dispatches narration
+        // separately through the numbered managed-sound catalog.
+        if (!movie) {
             fail(frame,PhysicalPresentationStage::MovieResolve,error);
             return frame;
         }
@@ -158,7 +159,7 @@ NativeSessionFrame NativeGameSession::tick(
             frame.walkthrough_closed = true;
             walkthrough_open_ = false;
         }
-        if (!device_.open_walkthrough_movie(*movie,*help,error)) {
+        if (!device_.open_walkthrough_movie(*movie,error)) {
             fail(frame,PhysicalPresentationStage::MovieOpen,error);
             return frame;
         }

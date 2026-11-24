@@ -31,7 +31,6 @@ public:
     [[nodiscard]] virtual bool close_global(std::string& error) = 0;
     [[nodiscard]] virtual bool open_walkthrough(
         const std::filesystem::path& movie,
-        const std::filesystem::path& help_wav,
         std::string& error) = 0;
     [[nodiscard]] virtual bool close_walkthrough(
         std::string& error) = 0;
@@ -60,7 +59,6 @@ public:
     [[nodiscard]] bool close_global_movie(std::string& error) override;
     [[nodiscard]] bool open_walkthrough_movie(
         const std::filesystem::path& movie,
-        const std::filesystem::path& spoken_help_wav,
         std::string& error) override;
     [[nodiscard]] bool close_walkthrough_movie(
         std::string& error) override;
