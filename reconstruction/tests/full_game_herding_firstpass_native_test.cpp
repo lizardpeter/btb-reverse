@@ -32,6 +32,14 @@ int main() {
     namespace fs=std::filesystem;
     namespace fg=btb::full_game;
     using btb::game_flow::State;
+    {
+        fg::HerdingDriver replay_driver({},nullptr);
+        fg::RetailMenuState menu{};
+        menu.variant_selection_origin=State::PlayAgainDifficultyUpdate;
+        menu.source_variant=2;
+        replay_driver.configure_menu_state(menu);
+        assert(replay_driver.difficulty()==2);
+    }
     const auto root=fs::temp_directory_path()/
         "btb_native_herding_firstpass_source";
     fs::remove_all(root);

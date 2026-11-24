@@ -8,6 +8,22 @@ using btb::front_end::Screen;
 
 int main() {
     assert(kRetailPregamePairs.size() == 10);
+    constexpr int first_voices[]={501,496,506,488,498,503,500,497,489,505};
+    for(std::size_t i=0;i<kRetailPregamePairs.size();++i) {
+        auto setup=kRetailPregamePairs[i].setup;
+        int stage=initial_retail_pregame_narration_stage(setup);
+        assert(advance_retail_pregame_narration(setup,stage,false)==first_voices[i]);
+        if(setup==State::FireworksPregameSetup) {
+            assert(stage==3);
+            assert(!advance_retail_pregame_narration(setup,stage,true));
+            assert(stage==3);
+            assert(!advance_retail_pregame_narration(setup,stage,false));
+            assert(stage==1);
+            assert(advance_retail_pregame_narration(setup,stage,false)==499);
+        }
+        assert(stage==0);
+        assert(!advance_retail_pregame_narration(setup,stage,false));
+    }
 
     for (const auto& pair : kRetailPregamePairs) {
         assert(retail_pregame_for_state(pair.setup) == &pair);

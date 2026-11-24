@@ -119,6 +119,7 @@ private:
     std::optional<std::size_t> captured_area_{};
     std::optional<Draw> backdrop_{};
     std::optional<game_flow::State> pregame_setup_{};
+    int pregame_narration_stage_{};
     std::optional<OriginalUiBitmapCatalog> pregame_bitmaps_{};
 };
 

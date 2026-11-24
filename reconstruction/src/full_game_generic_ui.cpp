@@ -80,6 +80,8 @@ bool GenericUiScreenDriver::initialize(
     }
 
     ui_state_ = {};
+    pregame_narration_stage_=pregame_setup_
+        ? initial_retail_pregame_narration_stage(*pregame_setup_) : 0;
     if (screen_ == front_end::Screen::ActivitySelect) {
         finale_gate = progress::update_finale_gate_from_progress(
             finale_gate,record);
@@ -118,6 +120,13 @@ ActivityFrameOutput GenericUiScreenDriver::advance(
     // The caller supplies the real 23-entry source index for this state.
     if (backdrop_) {
         result.draws.push_back(*backdrop_);
+    }
+    if(pregame_setup_) {
+        if(const auto voice=advance_retail_pregame_narration(
+                *pregame_setup_,pregame_narration_stage_,input.managed_sound_playing)) {
+            result.audio.push_back({AudioOperation::StopManagedSounds});
+            result.audio.push_back({AudioOperation::ManagedSoundId,{},*voice,90,1,true});
+        }
     }
     const auto index = static_cast<std::size_t>(screen_);
     const auto& records = catalog_.replacements[index].records;

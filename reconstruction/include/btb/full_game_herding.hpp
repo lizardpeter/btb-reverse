@@ -47,8 +47,10 @@ public:
 
     void configure_menu_state(
         const RetailMenuState& menu) noexcept override {
-        if (menu.variant_selection_origin ==
-                game_flow::State::HerdingPregameUpdate &&
+        if ((menu.variant_selection_origin ==
+                game_flow::State::HerdingPregameUpdate ||
+             menu.variant_selection_origin ==
+                game_flow::State::PlayAgainDifficultyUpdate) &&
             menu.source_variant >= 0 && menu.source_variant <= 2) {
             difficulty_ = menu.source_variant;
         }
