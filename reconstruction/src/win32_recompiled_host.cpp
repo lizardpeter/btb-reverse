@@ -176,6 +176,14 @@ struct Host {
                video_sequence.entries(),out_error))
             return false;
 
+        std::ifstream completion_movies(loaddata/"completedmovie.txt");
+        if(!completion_movies) {
+            out_error="original loaddata/completedmovie.txt missing";
+            return false;
+        }
+        if(!game.configure_completion_movies(completion_movies,out_error))
+            return false;
+
         // Original address 0042A2C0 state 04: screen 1 is the activity
         // selection hit-area table, and bitmap source slot 2 is the authored
         // activity-select background (separate 23-entry bitmap namespace).

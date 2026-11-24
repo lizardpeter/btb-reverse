@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <istream>
 #include <memory>
 #include <optional>
 #include <span>
@@ -204,6 +205,8 @@ struct ActivityFrameInput {
     // Original UpdateGlobalBinkMovie checks three separate input pulses when
     // the current sequence/scene-set mode allows a user to dismiss the clip.
     bool original_global_movie_skip_pulse{};
+    // Explicit development-only bypass, never a physical EOS observation.
+    bool skip_shared_completion_video{};
     // Source IsSoundIdPlaying(349) from the exact managed-slot map AND
     // actual DirectSound GetStatus; not inferred from any-playing.
     bool fireworks_crowd_end_sound_playing{};
@@ -287,7 +290,8 @@ struct GameGlobals {
     profiles::ProfileTable profile_metadata{};
     std::optional<int> active_profile{};
     progress::FinaleGate finale_gate{};
-    int shared_completion_code{-1};
+    int shared_completion_code{-1}; // 0x00446F38: -1 idle, -2 playing
+    int shared_movie_return_state{-1}; // independent 0x00446CE8
     RetailMenuState menu{};
     std::int32_t retained_herding_difficulty{}; // 0x51C340
     bool spud_skate_start_latch{}; // 0x51C32C
@@ -324,6 +328,7 @@ struct GameFrame {
     // Retail 0x0042A240 opens sceneset.bik by path, outside startupmovie.txt.
     std::optional<std::string> original_scene_set_movie_path{};
     std::optional<std::string> original_startup_sequence_movie_path{};
+    std::optional<std::string> original_completion_movie_path{};
     bool close_original_global_movie{};
     std::optional<ReplayPreparationPlan> replay_preparation{};
     std::string error{};
@@ -357,6 +362,7 @@ public:
         std::string& error);
     // Non-retail --skip-bink mode: skip the intro sequence, not profile setup.
     void skip_startup_video_sequence() noexcept;
+    [[nodiscard]] bool configure_completion_movies(std::istream&,std::string&);
     [[nodiscard]] bool load_profile_files(
         const std::filesystem::path& directory,
         std::string& error);
@@ -410,6 +416,8 @@ private:
     int name_entry_blink_{};
     // Open only once on state 0x41, then wait for real native Bink EOS.
     bool scene_set_movie_opened_{};
+    std::vector<std::string> completion_movies_{};
+    bool shared_movie_opened_{};
     std::vector<OriginalVideoSequenceEntry> startup_video_sequence_{};
     std::size_t startup_video_index_{};
     bool startup_video_opened_{};

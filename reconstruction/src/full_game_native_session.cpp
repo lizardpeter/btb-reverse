@@ -59,9 +59,9 @@ NativeSessionFrame NativeGameSession::tick(
             physical.managed.playing);
     // Explicit non-retail --skip-bink routing. Retail 0x41 plays the
     // scene-set clip after a newly created profile and then enters 0x04.
-    // Do NOT skip 0x40 by guessing its destination: that shared movie uses
-    // the distinct original 0x00446CE8 return-state global, which this
-    // source GameRoot has not modeled. Keep 0x40 fail-closed.
+    // State 0x40 owns its distinct 00446CE8 return-state global.
+    // Explicit video-free mode follows that state without inventing EOS.
+    input.skip_shared_completion_video=skip_video_;
     if (skip_video_ &&
         root_.globals().dispatcher.current_state ==
             static_cast<int>(game_flow::State::StartupMoviesThenProfileSetup)) {
@@ -173,6 +173,20 @@ NativeSessionFrame NativeGameSession::tick(
     // The decoder's physical end-of-stream observation advances the index.
     if (!skip_video_ && game.original_startup_sequence_movie_path) {
         auto movie=resolve_movie(*game.original_startup_sequence_movie_path);
+        if (!movie) {
+            fail(frame,PhysicalPresentationStage::MovieResolve,error);
+            return frame;
+        }
+        if (!device_.open_global_movie(*movie,error)) {
+            fail(frame,PhysicalPresentationStage::MovieOpen,error);
+            return frame;
+        }
+        frame.global_movie_opened=true;
+    }
+
+    // State 0x40 reads the separate original completedmovie.txt table.
+    if (!skip_video_ && game.original_completion_movie_path) {
+        auto movie=resolve_movie(*game.original_completion_movie_path);
         if (!movie) {
             fail(frame,PhysicalPresentationStage::MovieResolve,error);
             return frame;

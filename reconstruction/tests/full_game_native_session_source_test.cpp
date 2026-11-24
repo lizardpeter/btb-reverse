@@ -861,23 +861,80 @@ int main() {
         assert(missing.failure->stage==PhysicalPresentationStage::MovieResolve);
         assert(device.global_open==0);
     }
-    {
-        // Source shared movie state 0x40 resumes the independent
-        // 0x00446CE8 return state; without that state available, even
-        // --skip-bink must not redirect replay to Activity Select.
+    // Original case 0x40: no queued movie, independent return state.
+    for(int destination:{-1,0x1c}) {
         GameRoot game;
         assert(game.select_profile(2));
-        game.install_activity_select(std::make_unique<Instruction>());
+        game.globals().shared_movie_return_state=destination;
+        game.globals().dispatcher.saved_state=0x36; // replay, NOT return
         Device device;
         auto session_storage=std::make_unique<NativeGameSession>(
             game,device,OriginalAssetResolver{directory},
-            startup_fixture(),walkthrough_fixture(),true
-        );
+            startup_fixture(),walkthrough_fixture());
         auto& session=*session_storage;
         game.set_outer_state(State::SharedMovieTransition);
+        auto frame=session.tick({},false,false);
+        assert(frame.submitted && !frame.failure);
+        assert(game.globals().dispatcher.current_state==
+               (destination==-1?4:destination));
+        assert(game.globals().shared_movie_return_state==-1);
+        assert(game.globals().dispatcher.saved_state==0x36);
+        assert(device.global_open==0);
+    }
+    // Source catalog index, physical movie EOS, one open, one transition.
+    for(bool skip:{false,true}) {
+        touch(directory,"Data/movies/completion_0.bik");
+        touch(directory,"Data/movies/completion_1.bik");
+        GameRoot game;
+        assert(game.select_profile(2));
+        std::string error;
+        std::istringstream source(
+            "Data/movies/completion_0.bik\nData/movies/completion_1.bik\n");
+        assert(game.configure_completion_movies(source,error));
+        game.globals().shared_completion_code=1;
+        game.globals().shared_movie_return_state=0x10;
+        game.set_outer_state(State::SharedMovieTransition);
+        Device device;
+        auto session_storage=std::make_unique<NativeGameSession>(
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture(),skip);
+        auto& session=*session_storage;
+        auto first=session.tick({},false,false);
+        assert(first.submitted && !first.failure);
+        if(!skip) {
+            assert(first.global_movie_opened && device.global_open==1);
+            assert(device.last_movie.find("completion_1.bik")!=std::string::npos);
+            assert(game.globals().shared_completion_code==-2);
+            assert(device.draw_count==0);
+            auto waiting=session.tick({},false,false);
+            assert(waiting.submitted && !waiting.failure);
+            assert(device.global_open==1 && device.draw_count==0);
+            assert(game.globals().dispatcher.current_state==0x40);
+            device.sample.global_movie_finished=true;
+            auto finished=session.tick({},false,false);
+            assert(finished.submitted && !finished.failure);
+            assert(device.draw_count==0);
+        } else {
+            assert(device.global_open==0 && !first.global_movie_opened);
+        }
+        assert(game.globals().dispatcher.current_state==0x10);
+        assert(game.globals().shared_movie_return_state==-1);
+        assert(game.globals().shared_completion_code==-1);
+    }
+    {
+        GameRoot game;
+        assert(game.select_profile(2));
+        game.globals().shared_completion_code=9;
+        game.set_outer_state(State::SharedMovieTransition);
+        Device device;
+        auto session_storage=std::make_unique<NativeGameSession>(
+            game,device,OriginalAssetResolver{directory},
+            startup_fixture(),walkthrough_fixture());
+        auto& session=*session_storage;
         const auto blocked=session.tick({},false,false);
         assert(blocked.failure);
         assert(blocked.failure->stage==PhysicalPresentationStage::GameAdvance);
+        assert(device.global_open==0);
     }
     fs::remove_all(directory);
 }

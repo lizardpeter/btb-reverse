@@ -161,6 +161,28 @@ void GameRoot::skip_startup_video_sequence() noexcept {
     set_outer_state(game_flow::State::PlayerProfileAndNameEntry);
 }
 
+bool GameRoot::configure_completion_movies(std::istream& source,
+                                            std::string& error) {
+    // 00407870 loads up to twelve 0x100-byte path slots at 0048DAF0.
+    // Keep the file order; never infer a filename from an activity name.
+    std::vector<std::string> candidate;
+    std::string path;
+    while(source >> path) {
+        if(path.size()>=0x100U || candidate.size()>=12) {
+            error="completedmovie.txt exceeds original path slot or table capacity";
+            return false;
+        }
+        candidate.push_back(std::move(path));
+    }
+    if(source.bad() || !source.eof() || candidate.empty()) {
+        error="completedmovie.txt is empty or unreadable";
+        return false;
+    }
+    completion_movies_=std::move(candidate);
+    error.clear();
+    return true;
+}
+
 bool GameRoot::unload_current(std::string& error) {
     if (!initialized_activity_) {
         return true;
@@ -366,6 +388,55 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
         // frame. Never clear it with an empty profile/UI draw list.
         result.effects.retain_original_global_movie_pixels = true;
         result.kind = FrameKind::FrontEndUpdated;
+        return result;
+    }
+    if (state.state == game_flow::State::SharedMovieTransition) {
+        // RunMainGameFlow case 0x40 (0042CCEA). The movie index and
+        // return state are NOT the saved replay initializer at 0051B418.
+        const int code=globals_.shared_completion_code;
+        const int destination=globals_.shared_movie_return_state==-1
+            ? static_cast<int>(game_flow::State::ActivitySelectSetup)
+            : globals_.shared_movie_return_state;
+        if(!game_flow::valid_state_value(destination) ||
+           destination==static_cast<int>(game_flow::State::SharedMovieTransition)) {
+            result.kind=FrameKind::FrontEndFailed;
+            result.error="invalid original shared-movie return state";
+            return result;
+        }
+        if(code < -2 || (code==-2 && !shared_movie_opened_)) {
+            result.kind=FrameKind::FrontEndFailed;
+            result.error="invalid original shared-movie lifecycle";
+            return result;
+        }
+        const auto finish=[&] {
+            globals_.shared_completion_code=-1;
+            globals_.shared_movie_return_state=-1;
+            shared_movie_opened_=false;
+            set_outer_state(static_cast<game_flow::State>(destination));
+            result.state_changed=true;
+        };
+        if(code==-1) {
+            finish();
+        } else if(effective_input.skip_shared_completion_video) {
+            result.close_original_global_movie=shared_movie_opened_;
+            finish();
+        } else if(code>=0) {
+            if(static_cast<std::size_t>(code)>=completion_movies_.size() ||
+               completion_movies_[static_cast<std::size_t>(code)]=="NULL") {
+                result.kind=FrameKind::FrontEndFailed;
+                result.error="original completedmovie.txt index unavailable";
+                return result;
+            }
+            result.original_completion_movie_path=
+                completion_movies_[static_cast<std::size_t>(code)];
+            globals_.shared_completion_code=-2;
+            shared_movie_opened_=true;
+        } else if(effective_input.original_global_movie_finished) {
+            finish();
+        }
+        // The original handler submits no ordinary bitmap draw here.
+        result.effects.retain_original_global_movie_pixels=true;
+        result.kind=FrameKind::FrontEndUpdated;
         return result;
     }
     if (state.state == game_flow::State::SceneSetMovieTransition) {
@@ -583,6 +654,19 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
                 }
                 globals_.dispatcher.generic_screen_mode =
                     static_cast<int>(pregame->screen);
+                // These exact setup cases clear 00446F38 in 0042A2C0.
+                switch(pregame->setup) {
+                case game_flow::State::DinoPregameSetup:
+                case game_flow::State::SpudSkatePregameSetup:
+                case game_flow::State::MazePregameSetup:
+                case game_flow::State::SquirrelPregameSetup:
+                case game_flow::State::BobsBandPregameSetup:
+                case game_flow::State::GolfPregameSetup:
+                case game_flow::State::SpudMazePregameSetup:
+                    globals_.shared_completion_code=-1;
+                    break;
+                default: break;
+                }
                 if (pregame->setup ==
                     game_flow::State::HerdingPregameSetup) {
                     globals_.menu.source_variant =
@@ -683,6 +767,12 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
             return result;
         }
         initialized_activity_ = activity->id;
+        // 00411C80 and 0040B7E0 initialize the completion return to 4.
+        if(activity->id==ActivityId::Fireworks ||
+           activity->id==ActivityId::ParkDesigner) {
+            globals_.shared_movie_return_state=4;
+            globals_.shared_completion_code=-1;
+        }
         // Retail InitializeFireworksActivity (0x00411CE0) sets slot 63
         // in the *selected* player's 400-byte progress record at init,
         // not after a show, certificate, or teardown. This is the sole
@@ -749,6 +839,23 @@ GameFrame GameRoot::advance(const ActivityFrameInput& input) {
         if (!unload_current(result.error)) {
             result.kind = FrameKind::ActivityFailed;
             return result;
+        }
+    }
+    if(result.effects.save_and_unload &&
+       result.effects.next_outer_state==
+           static_cast<int>(game_flow::State::PlayAgainYesNoSetup)) {
+        // Distinct return globals from original activity exit handlers:
+        // 00409E00, 00424D10, 00423F40, 0041D4D0, 00415830,
+        // 004182B0 and 004279F0. Do not overwrite with replay init state.
+        switch(activity->id) {
+        case ActivityId::Dinosaur: globals_.shared_movie_return_state=0x10; break;
+        case ActivityId::SpudSkate:
+        case ActivityId::SpudMaze: globals_.shared_movie_return_state=0x16; break;
+        case ActivityId::Maze:
+        case ActivityId::Golf: globals_.shared_movie_return_state=0x1c; break;
+        case ActivityId::Herding:
+        case ActivityId::Squirrel: globals_.shared_movie_return_state=-1; break;
+        default: break;
         }
     }
     apply_effects(result.effects);
