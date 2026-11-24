@@ -174,6 +174,7 @@ bool NativePicklesMotionSource::advance(
     }
     observed={};
     observed.require_native_event_proofs=true;
+    observed.source_ordered_food_and_tracking=true;
     observed.motion_records=source;
     // 004182B0 at the 00418ECE frame boundary clears +0x48 for
     // EVERY entity before the animal/dog loop. It is a per-update
@@ -231,10 +232,17 @@ bool NativePicklesMotionSource::advance(
             // per follower. The event bridge validates and commits
             // the exact 200-frame wander target/clear transition.
             event.follower_release_random.resize(source.size());
-            for(const auto index:follower_indices_.slots()) {
+            const auto held=follower_indices_.slots();
+            for(const auto index:held) {
                 if(index<0)continue;
-                event.follower_release_random[static_cast<std::size_t>(index)]={
-                    retail_next_random()%400,retail_next_random()%400};
+                const auto slot=static_cast<std::size_t>(index);
+                auto& random=event.follower_release_random[slot];
+                random={retail_next_random()%400,retail_next_random()%400};
+                // 004182B0 writes +58/+5C/+60 BEFORE UpdateHerdingAnimal.
+                // Apply to the provisional source record now, not next frame.
+                static_cast<void>(herding::release_follower_for_food_change(
+                    observed.motion_records[slot],follower_indices_,index,
+                    random.x_mod_400,random.y_mod_400));
             }
             observed.events.push_back(std::move(event));
             follower_indices_=herding::FollowerList{};
@@ -278,7 +286,13 @@ bool NativePicklesMotionSource::advance(
             // priority over food attraction, following and free roam.
             // This state is set when Pickles changes food, and must
             // actually move the released animal in subsequent frames.
-            if(before.temporary_target_timer>0) {
+            // Nonzero home/delivered state dispatch precedes the
+            // temporary escape branch; only its countdown is decremented.
+            if(before.behavior_state!=0 && before.temporary_target_timer>0) {
+                --before.temporary_target_timer;
+                observed.motion_records[i]=before;
+            }
+            if(before.behavior_state==0 && before.temporary_target_timer>0) {
                 const auto recovery=
                     herding::original_herding_temporary_target_update(before);
                 if(!recovery) {
@@ -409,6 +423,7 @@ bool NativePicklesMotionSource::advance(
                     herding::RetailTrackedAdmissionStatus::Inserted) {
                     // The retail registration branch returns from
                     // this entity update; first approach is next tick.
+                    observed.tracked_admission_evidence.push_back({i,before});
                     continue;
                 }
                 if(admission.status==

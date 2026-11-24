@@ -326,7 +326,7 @@ int main() {
     assert(!followers.contains(7));
     assert(distracted.temporary_target_timer == 200);
     assert(distracted.target_x == 409);
-    assert(distracted.target_y == 330);
+    assert(distracted.target_y == 650);
     assert(!apply_scruffty_distraction(distracted, followers, 7, 123));
 
     assert(followers.add(9));

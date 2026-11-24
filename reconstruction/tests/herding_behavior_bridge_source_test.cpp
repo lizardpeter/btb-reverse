@@ -91,6 +91,12 @@ int main() {
     assert(scruffty.accepted);
     assert(easy.followers().count()==0);
     assert(easy.entities()[4].target_x==286);
+    assert(easy.entities()[4].target_y==650);
+    // A separately tracked animal can arrive after changing food has
+    // emptied the ordinary table. Bare unverified arrival is rejected.
+    assert(!easy.confirm_home_route_trigger(1,true));
+    assert(easy.confirm_home_route_trigger(1,true,true));
+    assert(easy.entities()[1].behavior_state==1);
     assert(easy.entities()[4].temporary_target_timer==200);
     assert(!easy.scruffty_distraction(4,399,true).accepted);
 

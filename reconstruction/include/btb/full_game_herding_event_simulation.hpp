@@ -13,6 +13,7 @@
 #include "btb/herding_source_far_boundary_recovery.hpp"
 #include "btb/herding_source_follower_approach.hpp"
 #include "btb/herding_source_registration_point.hpp"
+#include "btb/herding_source_tracked_targets.hpp"
 #include "btb/herding_source_home_motion.hpp"
 #include "btb/herding_source_delivered_animation.hpp"
 #include "btb/herding_source_ordinary_following.hpp"
@@ -130,6 +131,11 @@ struct HerdingOrdinaryFollowerEvidence {
 // <30 registration-point approach. The state-one arrival is emitted
 // as an event after movement import, never forged as a source-state
 // mutation. This before/after proof is checked transactionally.
+struct HerdingTrackedAdmissionEvidence {
+    std::size_t entity_index{};
+    herding::RetailEntityRecord32 before{};
+};
+
 struct HerdingTrackedApproachEvidence {
     std::size_t entity_index{};
     herding::RetailEntityRecord32 before{};
@@ -179,6 +185,10 @@ struct HerdingObservedFrame {
     // every state-changing contact. Forbid accepting bare asserted
     // events; deterministic scripted-source tests may opt out.
     bool require_native_event_proofs{};
+    // Native dispatch uses a separate tracked-slot ledger and applies
+    // food release before any animal update. Legacy scripted fixtures
+    // do not claim this full frame-order contract.
+    bool source_ordered_food_and_tracking{};
     std::optional<HerdingPicklesBoundaryEvidence> pickles_boundary_evidence{};
     // Optional, branch-specific probes for native 0x416C45/0x416DCE
     // steering. These are not manufactured for unrelated AI branches.
@@ -187,6 +197,7 @@ struct HerdingObservedFrame {
     std::vector<HerdingFarRoamEvidence> far_roam_evidence{};
     std::vector<HerdingFarBoundaryEvidence> far_boundary_evidence{};
     std::vector<HerdingOrdinaryFollowerEvidence> ordinary_follower_evidence{};
+    std::vector<HerdingTrackedAdmissionEvidence> tracked_admission_evidence{};
     std::vector<HerdingTrackedApproachEvidence> tracked_approach_evidence{};
     std::vector<HerdingHomeMotionEvidence> home_motion_evidence{};
     std::vector<HerdingDeliveredAnimationEvidence> delivered_animation_evidence{};
@@ -263,6 +274,9 @@ private:
     std::unique_ptr<OriginalHerdingMotionSource> motion_{};
     std::unique_ptr<herding::HerdingRecoveredBehavior> state_{};
     herding::Data data_{};
+    // Independent validator mirror of original 0050AF78 and 0050B31C.
+    herding::RetailTrackedTargetSlots tracked_slots_{};
+    int registration_counter_{};
     // Original global 0x443B20 lives in process .data. Unlike the
     // waypoint index it is not reset by InitializeHerdingActivity.
     herding::RetailScrufftyPatrolState scruffty_patrol_state_{};

@@ -106,13 +106,15 @@ bool HerdingRecoveredBehavior::synchronize_render_counters(
 
 bool HerdingRecoveredBehavior::confirm_home_route_trigger(
     std::size_t index,
-    bool original_trigger_confirmed) noexcept {
+    bool original_trigger_confirmed,
+    bool independent_tracked_membership) noexcept {
 
     auto* animal=entity(index);
     if (!valid_ || !animal || !original_trigger_confirmed ||
         animal->behavior_state!=0 ||
         !is_herd_animal(animal->entity_type()) ||
-        !followers_.contains(static_cast<int>(index))) {
+        (!independent_tracked_membership &&
+         !followers_.contains(static_cast<int>(index)))) {
         return false;
     }
     animal->behavior_state=1;

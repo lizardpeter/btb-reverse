@@ -23,7 +23,8 @@ bool apply_confirmed_event(
     herding::HerdingRecoveredBehavior& staged,
     const HerdingObservedEvent& event,
     std::vector<Audio>& sounds,
-    std::string& error) {
+    std::string& error,
+    bool independent_tracked_membership=false) {
 
     if (!event.retail_trigger_confirmed) {
         error="Herding source event has no original collision/trigger evidence";
@@ -98,9 +99,9 @@ bool apply_confirmed_event(
         // Retail 0x417314 writes behavior_state=1 and returns from
         // this entity update. The route counter/state 10+N allocation
         // happens on a LATER UpdateHerdingAnimal dispatch.
-        if (!staged.confirm_home_route_trigger(event.entity_index,true)) {
-            error="source tracked arrival requires an ordinary follower "
-                  "in state zero";
+        if (!staged.confirm_home_route_trigger(event.entity_index,true,
+                                               independent_tracked_membership)) {
+            error="source tracked arrival requires a registered animal in state zero";
             return false;
         }
         step.accepted=true;
@@ -199,6 +200,8 @@ bool HerdingEventSimulation::initialize(
         return false;
     }
     data_=original_data;
+    tracked_slots_=herding::RetailTrackedTargetSlots{};
+    registration_counter_=0;
     // The original initializer resets 0x51076C to waypoint zero,
     // but does NOT reset 0x443B20, the process-global sprite latch.
     scruffty_patrol_state_.waypoint_index=0;
@@ -282,6 +285,53 @@ bool HerdingEventSimulation::advance(
             return false;
         }
     }
+    std::vector<Audio> sounds{};
+    auto staged_tracked=tracked_slots_;
+    int staged_registration_counter=registration_counter_;
+    bool food_applied=false;
+    if(observed.source_ordered_food_and_tracking) {
+        if(!observed.require_native_event_proofs ||
+           !candidate.apply_source_motion(0,observed.motion_records.front())) {
+            error="native ordered-food dispatch requires verified hero motion";
+            return false;
+        }
+        // Food selection is before the entire animal loop in 004182B0.
+        // Validate it on the staged copy before comparing motion proofs.
+        for(const auto& event:observed.events) {
+            if(event.kind!=HerdingObservedKind::PickUpFood)continue;
+            if(food_applied || !apply_confirmed_event(candidate,event,sounds,error)) {
+                if(error.empty())error="multiple native food changes in one frame";
+                return false;
+            }
+            food_applied=true;
+        }
+        for(const auto& probe:observed.tracked_admission_evidence) {
+            if(probe.entity_index==0 || probe.entity_index>=candidate.entities().size()) {
+                error="invalid native tracked admission entity";
+                return false;
+            }
+            const auto& prior=candidate.entities()[probe.entity_index];
+            const auto target=herding::original_herding_species_registration_point(prior.entity_type());
+            const auto anchor=herding::original_herding_animal_tracking_anchor(prior);
+            const auto& actual=observed.motion_records[probe.entity_index];
+            if(!target || !anchor || prior.behavior_state!=0 ||
+               prior.temporary_target_timer>1 ||
+               prior.entity_id!=probe.before.entity_id ||
+               prior.x!=probe.before.x || prior.y!=probe.before.y ||
+               actual.x!=prior.x || actual.y!=prior.y ||
+               actual.x_float!=prior.x_float || actual.y_float!=prior.y_float) {
+                error="native tracked admission lacks original stationary prestate";
+                return false;
+            }
+            const auto admission=staged_tracked.admit_from_follower(
+                static_cast<int>(probe.entity_index),*anchor,*target,
+                candidate.followers(),staged_registration_counter);
+            if(admission.status!=herding::RetailTrackedAdmissionStatus::Inserted) {
+                error="native tracked admission violates the 150-unit or first-vacant rule";
+                return false;
+            }
+        }
+    }
     for (const auto& probe : observed.temporary_target_evidence) {
         if (probe.entity_index>=observed.motion_records.size() ||
             probe.before.entity_id !=
@@ -291,6 +341,15 @@ bool HerdingEventSimulation::advance(
             probe.before.temporary_target_timer<=0) {
             error="invalid original positive temporary-target branch evidence";
             return false;
+        }
+        if(observed.source_ordered_food_and_tracking) {
+            const auto& prior=candidate.entities()[probe.entity_index];
+            if(prior.temporary_target_timer!=probe.before.temporary_target_timer ||
+               prior.target_x!=probe.before.target_x || prior.target_y!=probe.before.target_y ||
+               prior.x_float!=probe.before.x_float || prior.y_float!=probe.before.y_float) {
+                error="native escape target did not originate in prior state or ordered food release";
+                return false;
+            }
         }
         const auto expected=
             herding::original_herding_temporary_target_update(probe.before);
@@ -564,8 +623,9 @@ bool HerdingEventSimulation::advance(
            prior.x_float!=probe.before.x_float ||
            prior.y_float!=probe.before.y_float ||
            prior.behavior_state!=0 ||
-           !candidate.followers().contains(
-                static_cast<int>(probe.entity_index))) {
+           !(observed.source_ordered_food_and_tracking
+             ? tracked_slots_.contains(static_cast<int>(probe.entity_index))
+             : candidate.followers().contains(static_cast<int>(probe.entity_index)))) {
             error="tracked home original anchor, point or follower prestate invalid";
             return false;
         }
@@ -855,10 +915,10 @@ bool HerdingEventSimulation::advance(
             return false;
         }
     }
-    std::vector<Audio> sounds{};
     std::vector<bool> arrived_at_tracked_point_this_update(
         candidate.entities().size(),false);
     for (const auto& event : observed.events) {
+        if(food_applied && event.kind==HerdingObservedKind::PickUpFood)continue;
         if(observed.require_native_event_proofs) {
             // A caller-supplied confirmed=true assertion is NOT proof
             // that an animal physically reached the original contact.
@@ -927,7 +987,16 @@ bool HerdingEventSimulation::advance(
                   "animal update";
             return false;
         }
-        if (!apply_confirmed_event(candidate,event,sounds,error)) {
+        bool independent_tracked_membership=false;
+        if(observed.source_ordered_food_and_tracking &&
+           event.kind==HerdingObservedKind::TrackedTargetArrived) {
+            independent_tracked_membership=staged_tracked.remove(static_cast<int>(event.entity_index));
+            if(!independent_tracked_membership) {
+                error="native tracked arrival missing independent registration slot";
+                return false;
+            }
+        }
+        if (!apply_confirmed_event(candidate,event,sounds,error,independent_tracked_membership)) {
             return false;
         }
         if (event.kind==HerdingObservedKind::TrackedTargetArrived) {
@@ -949,6 +1018,8 @@ bool HerdingEventSimulation::advance(
         std::make_move_iterator(sounds.begin()),
         std::make_move_iterator(sounds.end()));
     *state_=std::move(candidate);
+    tracked_slots_=staged_tracked;
+    registration_counter_=staged_registration_counter;
     scruffty_patrol_state_=staged_scruffty_state;
     provisional.accept();
     error.clear();
@@ -961,6 +1032,8 @@ bool HerdingEventSimulation::unload(std::string& error) {
     }
     state_.reset();
     data_={};
+    tracked_slots_=herding::RetailTrackedTargetSlots{};
+    registration_counter_=0;
     error.clear();
     return true;
 }

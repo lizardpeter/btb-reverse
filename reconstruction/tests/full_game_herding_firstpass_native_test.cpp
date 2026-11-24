@@ -443,6 +443,9 @@ int main() {
                registered_point->y==183);
         assert(native.advance(data,{}, {},animals,observation,error));
         assert(observation.tracked_approach_evidence.empty());
+        assert(std::any_of(observation.tracked_admission_evidence.begin(),
+            observation.tracked_admission_evidence.end(),
+            [](const auto& proof){return proof.entity_index==1;}));
         animals=observation.motion_records;
         const auto tracked_before=animals[1];
         assert(native.advance(data,{}, {},animals,observation,error));
@@ -457,6 +460,23 @@ int main() {
         assert(observation.motion_records[1].x_float==
                expected_approach->updated.x_float);
         animals=observation.motion_records;
+        // A food switch releases ordinary followers immediately, but
+        // never erases the independent tracked-target list. Verify that
+        // the tracked sheep executes its newly assigned escape branch
+        // in the SAME update, then can resume its prior tracked route.
+        animals[0].x=365;animals[0].y=354;
+        animals[0].x_float=365.f;animals[0].y_float=354.f;
+        assert(native.advance(data,{}, {},animals,observation,error));
+        const auto release=std::find_if(observation.temporary_target_evidence.begin(),
+            observation.temporary_target_evidence.end(),
+            [](const auto& proof){return proof.entity_index==1;});
+        assert(release!=observation.temporary_target_evidence.end());
+        assert(release->before.temporary_target_timer==200);
+        assert(observation.motion_records[1].temporary_target_timer<200);
+        animals=observation.motion_records;
+        animals[1].temporary_target_timer=0;
+        animals[0].x=500;animals[0].y=520;
+        animals[0].x_float=500.f;animals[0].y_float=520.f;
         // Place the actor at the actual source target, correcting for
         // the signed original half-sprite X/Y anchor.
         animals[1].x=736+(animals[1].source_right-
@@ -488,13 +508,13 @@ int main() {
         assert(entered_route);
         animals=observation.motion_records;
         animals[1].behavior_state=0; // other fixture checks food release
-        animals[0].x=365;animals[0].y=354;
-        animals[0].x_float=365.f;animals[0].y_float=354.f;
+        animals[0].x=240;animals[0].y=414;
+        animals[0].x_float=240.f;animals[0].y_float=414.f;
         assert(native.advance(data,{}, {},animals,observation,error));
         bool released_on_food_change=false;
         for(const auto& e:observation.events) {
             if(e.kind!=fg::HerdingObservedKind::PickUpFood ||
-               e.food!=FoodType::RabbitFood)continue;
+               e.food!=FoodType::SheepFood)continue;
             released_on_food_change=true;
             assert(e.follower_release_random.size()==animals.size());
             assert(e.follower_release_random[1].x_mod_400>=0);
@@ -503,10 +523,7 @@ int main() {
             assert(e.follower_release_random[1].y_mod_400<400);
         }
         assert(released_on_food_change);
-        // The recovered event machine sets a 200-tick escape target
-        // on the released sheep. Feed that genuine record transition
-        // back to the native source on its next frame: do not pretend
-        // a food-change itself moves the animal immediately.
+        // Independent direct-source fixture for continued escape steering.
         animals=observation.motion_records;
         animals[1].temporary_target_timer=200;
         animals[1].target_x=1000;

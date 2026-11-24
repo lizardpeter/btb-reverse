@@ -88,8 +88,8 @@ bool apply_scruffty_distraction(
     animal.temporary_target_timer = 200;
     animal.target_x = 286 + random_mod_400;
 
-    const auto height = animal.source_bottom - animal.source_top;
-    animal.target_y = animal.y + height / 2;
+    // 00417A43..00417AF7 writes immediate 0x28A to +0x60.
+    animal.target_y = 650;
     return true;
 }
 

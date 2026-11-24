@@ -58,12 +58,13 @@ public:
     [[nodiscard]] bool synchronize_render_counters(
         const std::vector<RetailEntityRecord32>& previous_drawn_frame) noexcept;
 
-    // Source 0->1 home trigger requires an externally verified home
-    // collision, and the animal must actually be following Pickles.
+    // Source 0->1 requires verified tracked membership. The separate
+    // ordinary table may have been cleared by a food change.
     // This method never invents a distance/collision threshold.
     [[nodiscard]] bool confirm_home_route_trigger(
         std::size_t entity_index,
-        bool original_trigger_confirmed) noexcept;
+        bool original_trigger_confirmed,
+        bool independent_tracked_membership=false) noexcept;
 
     [[nodiscard]] HerdingBehaviorEvent select_food(
         FoodType food,int pickles_x,int pickles_y,int random_mod_2,
