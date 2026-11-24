@@ -84,6 +84,27 @@ public:
         return backdrop_.has_value();
     }
 
+    // PE32 0042A2C0 states 3c/3e/42 use literal color-keyed art,
+    // NOT uiBitmapName.txt slots 19/20/21 (obsolete retail filenames).
+    [[nodiscard]] bool configure_retail_replay_backdrop(
+        game_flow::State setup) {
+        using game_flow::State;
+        const char* path=nullptr;
+        switch(setup) {
+        case State::PlayAgainYesNoSetup:
+            path="Data/ui/playagain/playagainnodiff.bmp";break;
+        case State::PlayAgainDifficultySetup:
+            path="Data/ui/playagain/playagain3.bmp";break;
+        case State::FireworksReplayChoiceSetup:
+            path="Data/ui/editplay/Fireworkplayagain.bmp";break;
+        default:return false;
+        }
+        const auto* pair=generic_front_end_pair_for_state(setup);
+        if(!pair || pair->screen!=screen_)return false;
+        backdrop_=Draw{path,0,0,std::nullopt,true};
+        return true;
+    }
+
 private:
     GenericUiCatalog catalog_{};
     front_end::Screen screen_{};

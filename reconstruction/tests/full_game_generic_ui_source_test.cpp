@@ -1,5 +1,6 @@
 #include "btb/full_game_generic_ui.hpp"
 
+#include <array>
 #include <cassert>
 #include <memory>
 #include <sstream>
@@ -118,6 +119,29 @@ int main() {
     auto routed=root.advance(click);
     assert(routed.effects.next_outer_state == 0x2c);
     assert(root.globals().dispatcher.current_state == 0x2c);
+
+    // The literal paths in original state 3c/3e/42 must win over
+    // the unrelated obsolete catalog entries 19/20/21.
+    struct ReplayCase {State state; const char* path;};
+    for(const auto& example:std::array<ReplayCase,3>{{
+        {State::PlayAgainYesNoSetup,"Data/ui/playagain/playagainnodiff.bmp"},
+        {State::PlayAgainDifficultySetup,"Data/ui/playagain/playagain3.bmp"},
+        {State::FireworksReplayChoiceSetup,"Data/ui/editplay/Fireworkplayagain.bmp"},
+    }}) {
+        const auto* pair=generic_front_end_pair_for_state(example.state);
+        assert(pair);
+        GenericUiScreenDriver replay(catalog,pair->screen,
+            std::vector<int>(catalog.counts[static_cast<std::size_t>(pair->screen)],0));
+        assert(!replay.configure_retail_replay_backdrop(State::MusicChooserSetup));
+        assert(replay.configure_retail_replay_backdrop(example.state));
+        progress::Record record{};
+        progress::FinaleGate gate{};
+        assert(replay.initialize(record,gate,err));
+        const auto frame=replay.advance({});
+        assert(!frame.draws.empty());
+        assert(frame.draws.front().source_asset==example.path);
+        assert(frame.draws.front().color_keyed);
+    }
 
     // The Yes/No replay screen emits negative action codes. These are NOT
     // negative indices into the 68-state table, and the original enclosing
