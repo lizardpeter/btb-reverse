@@ -87,7 +87,7 @@ HerdingComposedFrame compose_original_herding_frame(
     for (const auto index : order) {
         auto& e=scene.entities[index];
         const auto type=e.entity_type();
-        if (type == herding::EntityType::Inactive) continue;
+        if (type == herding::EntityType::Inactive || e.direction==-1) continue;
 
         std::optional<herding::RenderRect> source{};
         herding::Vec2i position{e.x,e.y};
@@ -99,8 +99,6 @@ HerdingComposedFrame compose_original_herding_frame(
             surface=herding::HerdingSurface::Pickles;
         } else if (is_animating_animal(type) ||
                    type == herding::EntityType::Scruffty) {
-            source=herding::directional_source_rect(
-                type,e.direction,e.animation_frame);
             surface=herding::animal_surface(type);
             if (is_animating_animal(type)) {
                 const auto next=
@@ -110,7 +108,10 @@ HerdingComposedFrame compose_original_herding_frame(
                         e.movement_speed,e.behavior_state);
                 e.animation_frame=next.frame;
                 e.animation_frame_countdown=next.countdown;
+                if(next.frame_advanced)e.unused_54=1;
             }
+            // 00416370 advances animation before computing the sprite rectangle.
+            source=herding::directional_source_rect(type,e.direction,e.animation_frame);
         } else if (const auto plan=
                        herding::static_entity_render_plan(
                            type,e.animation_frame,position)) {
@@ -135,11 +136,17 @@ HerdingComposedFrame compose_original_herding_frame(
                     e.animation_frame,e.animation_frame_countdown);
                 e.animation_frame=next.frame;
                 e.animation_frame_countdown=next.countdown;
+                source=herding::travis_cab_source_rect(e.animation_frame);
             } else if (herding::is_gate(type)) {
                 const auto next=herding::advance_gate_render_animation(
                     e.animation_frame,e.animation_frame_countdown);
                 e.animation_frame=next.frame;
                 e.animation_frame_countdown=next.countdown;
+                source=herding::gate_source_rect(e.animation_frame);
+            }
+            if(plan->force_world_position) {
+                e.x=position.x;
+                e.y=position.y;
             }
         } else {
             ++frame.rejected_unknown_entities;
@@ -150,6 +157,11 @@ HerdingComposedFrame compose_original_herding_frame(
             ++frame.rejected_unknown_entities;
             continue;
         }
+        // Retail writes +34..+40 into the live entity, not only the draw request.
+        e.source_left=source->left;
+        e.source_top=source->top;
+        e.source_right=source->right;
+        e.source_bottom=source->bottom;
         add_asset(frame.draws,surface,
             herding::kWorldViewportDestX+
                 position.x-frame.camera.camera_x,

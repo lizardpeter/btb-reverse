@@ -100,6 +100,19 @@ bool HerdingRecoveredBehavior::synchronize_render_counters(
         entities_[i].animation_frame=rendered[i].animation_frame;
         entities_[i].animation_frame_countdown=
             rendered[i].animation_frame_countdown;
+        // DrawHerdingActivity updates the source rectangle in the actual
+        // entity record. The following AI pass must see those dimensions.
+        entities_[i].source_left=rendered[i].source_left;
+        entities_[i].source_top=rendered[i].source_top;
+        entities_[i].source_right=rendered[i].source_right;
+        entities_[i].source_bottom=rendered[i].source_bottom;
+        entities_[i].unused_54=rendered[i].unused_54;
+        const auto type=entities_[i].entity_type();
+        if(type==EntityType::Trailer2 || type==EntityType::GateLeft ||
+           type==EntityType::GateRight) {
+            entities_[i].x=rendered[i].x;
+            entities_[i].y=rendered[i].y;
+        }
     }
     return true;
 }

@@ -580,7 +580,7 @@ struct RetailEntityRecord32 {
     std::int32_t movement_active{};      // +0x48 (retail writes 0/1)
     float movement_speed{};              // +0x4C
     std::int32_t behavior_state{};        // +0x50
-    std::int32_t unused_54{};            // +0x54 (no retail references)
+    std::int32_t unused_54{};            // +0x54 (set to 1 by DrawHerdingActivity on frame advance)
     std::int32_t temporary_target_timer{};// +0x58
     std::int32_t target_x{};              // +0x5C
     std::int32_t target_y{};              // +0x60

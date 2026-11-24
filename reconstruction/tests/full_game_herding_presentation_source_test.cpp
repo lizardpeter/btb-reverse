@@ -66,6 +66,13 @@ int main() {
     assert(frame.draws[3].source_rectangle->left==(39+2)*128);
     assert(frame.draws[3].source_rectangle->top==0);
     assert(scene.entities[1].animation_frame==7);
+    assert(frame.draws[2].source_rectangle);
+    assert(*frame.draws[2].source_rectangle == (Rect{2646,0,2744,103}));
+    assert(scene.entities[1].source_left==2646);
+    assert(scene.entities[1].source_right==2744);
+    assert(scene.entities[1].unused_54==1);
+    assert(scene.entities[0].source_right-scene.entities[0].source_left==128);
+    assert(scene.entities[2].x==717 && scene.entities[2].y==162);
     assert(scene.entities[1].animation_frame_countdown==100);
     assert(scene.entities[2].animation_frame_countdown==49);
 

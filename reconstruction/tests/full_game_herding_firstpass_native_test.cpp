@@ -535,7 +535,9 @@ int main() {
         assert(predicted && predicted->branch_taken);
         assert(!predicted->early_return);
         assert(native.advance(data,{}, {},animals,observation,error));
-        assert(observation.temporary_target_evidence.size()==1);
+        assert(std::any_of(observation.temporary_target_evidence.begin(),
+            observation.temporary_target_evidence.end(),
+            [](const auto& proof){return proof.entity_index==1;}));
         const auto& escape=observation.motion_records[1];
         assert(escape.x==predicted->moved.x &&
                escape.y==predicted->moved.y);
@@ -553,7 +555,9 @@ int main() {
         animals[1].temporary_target_timer=1;
         assert(native.advance(data,{}, {},animals,observation,error));
         assert(observation.motion_records[1].temporary_target_timer==0);
-        assert(observation.temporary_target_evidence.empty());
+        assert(std::none_of(observation.temporary_target_evidence.begin(),
+            observation.temporary_target_evidence.end(),
+            [](const auto& proof){return proof.entity_index==1;}));
         // The source may execute a legitimate far-roaming movement
         // after timer expiration. Integer positions can still be
         // unchanged for subpixel steps; do not mistake that for a
@@ -567,8 +571,9 @@ int main() {
         animals[1].target_x=animals[1].x+30;
         animals[1].target_y=animals[1].y+30;
         assert(native.advance(data,{}, {},animals,observation,error));
-        assert(observation.temporary_target_evidence.size()==1);
-        assert(observation.temporary_target_evidence.front().source_returned_early);
+        assert(std::any_of(observation.temporary_target_evidence.begin(),
+            observation.temporary_target_evidence.end(),
+            [](const auto& proof){return proof.entity_index==1 && proof.source_returned_early;}));
         assert(observation.motion_records[1].temporary_target_timer==0);
         assert(native.unload(error));
     }
