@@ -33,6 +33,7 @@ constexpr std::string_view presence_for_state(int state) noexcept {
     if(state==0)return "Starting the game";
     return "Choosing an activity";
 }
+inline constexpr std::string_view default_discord_id="1575184336305782894";
 constexpr bool valid_discord_id(std::string_view id) noexcept {
     if(id.size()<17||id.size()>20)return false;
     for(char c:id)if(c<'0'||c>'9')return false;

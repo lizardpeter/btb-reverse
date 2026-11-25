@@ -1,6 +1,7 @@
 #include "presentation_policy.hpp"
 using namespace btb::enhanced;
 int main(){
+    static_assert(default_discord_id=="1575184336305782894"&&valid_discord_id(default_discord_id));
     constexpr auto a=viewport(3840,2160,true);
     static_assert(a.width==2560&&a.height==1920&&a.x==640&&a.y==120);
     constexpr auto b=viewport(2560,1440,true);

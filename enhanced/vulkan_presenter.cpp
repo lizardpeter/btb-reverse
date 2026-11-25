@@ -3,6 +3,7 @@
 #include "discord_presence.hpp"
 #include "vulkan_sprite_batch.hpp"
 #include "frame_pacing.hpp"
+#include "presentation_activity.hpp"
 #include "cursor_runs.hpp"
 #include "sprite_motion.hpp"
 #include <chrono>
@@ -62,7 +63,13 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
     display::PackedFrameSnapshot latest_{};
     unsigned long long submitted_frames_{},source_updates_{},stats_presents_{},stats_updates_{};
     std::uint64_t stats_ns_{};
-    FramePacer pacer_{parse_fps(env_text(L"BTB_MAX_FPS"))};
+    FramePacer pacer_{configured_fps(env_text(L"BTB_MAX_FPS"))};
+    PresentationActivity activity_;
+    bool continuous_{env_flag(L"BTB_CONTINUOUS_PRESENT")};
+    bool cursor_image_initialized_{};
+    CursorStamp scratch_cursor_{};
+    std::uint64_t cursor_revision_{};
+    unsigned long long base_uploads_{},stats_uploads_{};
     bool show_fps_{env_flag(L"BTB_SHOW_FPS")};
     bool late_cursor_enabled_{!env_flag(L"BTB_DISABLE_LATE_CURSOR")},latest_cursor_{};
     CursorPixels cursor_pixels_{};
@@ -138,7 +145,8 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
         if(source_memory_)vkFreeMemory(device_,source_memory_,nullptr);
         if(chain_)vkDestroySwapchainKHR(device_,chain_,nullptr);
         source_=VK_NULL_HANDLE;source_memory_=VK_NULL_HANDLE;chain_=VK_NULL_HANDLE;
-        source_initialized_=false;extent_={};
+        source_initialized_=false;cursor_image_initialized_=false;scratch_cursor_={};extent_={};
+        activity_.request_repaint();
     }
     bool create_image(VkImage& image,VkDeviceMemory& memory,std::string& error){
         VkImageCreateInfo im{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
@@ -240,7 +248,7 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
         const int rows=GetDIBits(dc,bmp.h,0,19,cursor_pixels_.data(),&info,DIB_RGB_COLORS);
         ReleaseDC(nullptr,dc);if(rows!=19)return false;
         for(auto& pixel:cursor_pixels_)pixel=cursor_format(pixel,true); // BGRX -> RGBA
-        cursor_runs_=cursor_runs(cursor_pixels_);cursor_path_=path;return true;
+        cursor_runs_=cursor_runs(cursor_pixels_);cursor_path_=path;++cursor_revision_;return true;
     }
     bool sample_cursor(int& x,int& y){
         POINT p{};RECT rect{};
@@ -248,15 +256,29 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
         x=p.x;y=p.y;map_pointer(x,y,rect.right,rect.bottom);
         return cursor_position(x,y);
     }
+    CursorStamp live_cursor(){
+        int x=0,y=0;
+        if(!cursor_runs_.empty()&&sample_cursor(x,y))return {x,y,cursor_revision_};
+        return {};
+    }
+    void set_base(const display::PackedFrameSnapshot& frame){
+        // Byte-exact comparison. Never discard an upload that is still pending.
+        if(!same_frame(latest_,frame)){latest_=frame;upload_pending_=true;activity_.quiet=false;}
+        // Interpolation can leave an intermediate image in source_. Always
+        // submit the next source sample when this optional mode is active.
+        if(interpolate_){upload_pending_=true;activity_.quiet=false;}
+        ++source_updates_;
+    }
     void update_stats(std::uint64_t now){
         if(!show_fps_)return;
-        if(!stats_ns_){stats_ns_=now;stats_presents_=submitted_frames_;stats_updates_=source_updates_;return;}
+        if(!stats_ns_){stats_ns_=now;stats_presents_=submitted_frames_;stats_updates_=source_updates_;stats_uploads_=base_uploads_;return;}
         if(now-stats_ns_<1000000000ULL)return;
         const double seconds=double(now-stats_ns_)/1e9;
         const auto fps=static_cast<unsigned>((submitted_frames_-stats_presents_)/seconds+0.5);
         const auto updates=static_cast<unsigned>((source_updates_-stats_updates_)/seconds+0.5);
-        const auto title=L"Bob Builds a Park Enhanced | "+std::to_wstring(fps)+L" presents/s | "+std::to_wstring(updates)+L" source updates/s";
-        SetWindowTextW(hwnd_,title.c_str());stats_ns_=now;stats_presents_=submitted_frames_;stats_updates_=source_updates_;
+        const auto uploads=static_cast<unsigned>((base_uploads_-stats_uploads_)/seconds+0.5);
+        const auto title=L"Bob Builds a Park Enhanced | "+std::to_wstring(fps)+L" presents/s | "+std::to_wstring(updates)+L" source/s | "+std::to_wstring(uploads)+L" uploads/s";
+        SetWindowTextW(hwnd_,title.c_str());stats_ns_=now;stats_presents_=submitted_frames_;stats_updates_=source_updates_;stats_uploads_=base_uploads_;
     }
 public:
     ~VulkanPresenter() override{shutdown();}
@@ -318,7 +340,7 @@ public:
     bool present(const display::PackedFrameSnapshot& frame,std::string& error) override {
         if(!frame.valid()||frame.width!=640||frame.height!=480){error="Invalid composed game frame";return false;}
         motion_.reset();interpolation_needs_upload_=false;latest_layers_.clear();
-        latest_=frame;upload_pending_=true;latest_bitmap_frame_=false;latest_draws_.clear();latest_video_.clear();latest_cursor_=false;++source_updates_;
+        set_base(frame);latest_bitmap_frame_=false;latest_draws_.clear();latest_video_.clear();latest_cursor_=false;
         return draw_latest(error);
     }
     bool supports_bitmap_frames() const noexcept override{return sprites_enabled_;}
@@ -328,21 +350,21 @@ public:
         // Only cursorless ordinary-cursor scenes are eligible: carried
         // objects and activity-specific cursors must track their source tick.
         motion_.reset();interpolation_needs_upload_=false;latest_layers_.clear();
-        latest_=frame;upload_pending_=true;latest_bitmap_frame_=true;latest_draws_=draws;latest_video_.clear();latest_cursor_=false;++source_updates_;
+        set_base(frame);latest_bitmap_frame_=true;latest_draws_=draws;latest_video_.clear();latest_cursor_=false;
         return draw_latest(error);
     }
     bool supports_opaque_video() const noexcept override{return video_enabled_;}
     bool present_opaque_video(const display::PackedFrameSnapshot& frame,const full_game::OpaqueGlobalVideo& video,std::string& error) override {
         if(!frame.valid()||frame.width!=640||frame.height!=480||!video.valid()){error="Invalid native opaque video frame";return false;}
         motion_.reset();interpolation_needs_upload_=false;latest_layers_.clear();
-        latest_=frame;latest_video_=video;latest_bitmap_frame_=false;latest_draws_.clear();upload_pending_=true;latest_cursor_=false;++source_updates_;
+        set_base(frame);latest_video_=video;latest_bitmap_frame_=false;latest_draws_.clear();latest_cursor_=false;
         return draw_latest(error);
     }
     bool supports_late_cursor() const noexcept override{return late_cursor_enabled_;}
     bool present_cursor_frame(const display::PackedFrameSnapshot& composed,const display::PackedFrameSnapshot& base,
         const full_game::ResolvedDraw& cursor,const std::vector<full_game::ResolvedDraw>* draws,std::string& error) override {
         if(!base.valid()||base.width!=640||base.height!=480||!load_cursor(cursor.source.absolute_path))return present(composed,error);
-        latest_layers_.clear();latest_=base;latest_cursor_=true;upload_pending_=true;latest_video_.clear();latest_draws_.clear();latest_bitmap_frame_=false;++source_updates_;
+        latest_layers_.clear();set_base(base);latest_cursor_=true;latest_video_.clear();latest_draws_.clear();latest_bitmap_frame_=false;
         // The DD7 command stream includes the cursor as its final draw.
         // GPU-compose the base without that cursor; render it separately at present time.
         if(draws&&!draws->empty()&&draws->back().original.source_asset==cursor.original.source_asset){
@@ -360,17 +382,18 @@ public:
         if(!composed.valid()||composed.width!=640||composed.height!=480)return present(composed,error);
         motion_.reset();interpolation_needs_upload_=false;latest_layers_=layers;
         latest_cursor_=false;latest_bitmap_frame_=false;latest_video_.clear();latest_draws_.clear();
-        latest_=composed;
+        const display::PackedFrameSnapshot* next=&composed;
         if(base&&cursor&&base->valid()&&base->width==640&&base->height==480&&!latest_layers_.empty()&&load_cursor(cursor->source.absolute_path)){
             const auto* last=std::get_if<full_game::ResolvedDraw>(&latest_layers_.back());
             if(last&&last->source.absolute_path==cursor->source.absolute_path){
-                latest_layers_.pop_back();latest_=*base;latest_cursor_=true;
+                latest_layers_.pop_back();next=base;latest_cursor_=true;
             }
         }
-        upload_pending_=true;++source_updates_;return draw_latest(error);
+        set_base(*next);return draw_latest(error);
     }
     bool wants_idle_present() const noexcept override {return true;}
-    unsigned idle_wait_us() const noexcept override {return pacer_.wait_us(now_ns());}
+    unsigned idle_wait_us() const noexcept override {return activity_.wait_us(pacer_.wait_us(now_ns()),latest_cursor_);}
+    void request_redraw() noexcept override{activity_.request_repaint();}
     bool idle_present(std::string& error) override {
         if(!latest_.valid()){error.clear();return true;}
         return draw_latest(error);
@@ -381,8 +404,15 @@ public:
         if(!pacer_.due(now)){error.clear();return true;}
         RECT rect{};GetClientRect(hwnd_,&rect);
         if(IsIconic(hwnd_)||rect.right<=rect.left||rect.bottom<=rect.top){error.clear();return true;}
-        if(dirty_||extent_.width!=uint32_t(rect.right-rect.left)||extent_.height!=uint32_t(rect.bottom-rect.top))
-            if(!rebuild(error))return false;
+        const bool resized=dirty_||extent_.width!=uint32_t(rect.right-rect.left)||extent_.height!=uint32_t(rect.bottom-rect.top);
+        // Retain interpolation work until it is actually uploaded, even when
+        // acquire is unavailable. Check before acquiring any swapchain image.
+        if(interpolate_&&motion_.sample(now))interpolation_needs_upload_=true;
+        auto cursor=live_cursor();
+        if(!activity_.needs_frame(continuous_,upload_pending_||!source_initialized_||interpolation_needs_upload_,resized,cursor)){
+            error.clear();return true;
+        }
+        if(resized)if(!rebuild(error))return false;
         if(!chain_){error.clear();return true;}
         // Do not block the recovered game timer on a busy GPU. A later
         // presentation attempt uploads the most recent complete source frame.
@@ -395,9 +425,6 @@ public:
         if(result==VK_NOT_READY||result==VK_TIMEOUT){error.clear();return true;}
         if(result==VK_SUBOPTIMAL_KHR)dirty_=true;
         else if(!vk_ok(result,"acquire swapchain image",error))return false;
-        // Sample only after successful acquire/fence checks, so an ignored
-        // present cannot consume the interpolation's final exact sample.
-        if(interpolate_&&motion_.sample(now))interpolation_needs_upload_=true;
         const bool upload=upload_pending_||!source_initialized_||interpolation_needs_upload_;
         const auto* sample=motion_.current_sample();
         const auto& render_draws=sample?*sample:latest_draws_;
@@ -429,41 +456,59 @@ public:
         barrier(source_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_TRANSFER_READ_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
         }
-        // Late-sample the live OS pointer after preparing the base commands.
-        // Copy the unchanged base on-device and overlay only opaque cursor runs.
-        // No full-frame CPU upload is needed for cursor-only refreshes.
+        // Late sample again before recording the pointer overlay. The
+        // scratch image retains the base between presents. On cursor-only
+        // motion restore just the previous 19x19 patch, not 307200 pixels.
+        cursor=live_cursor();
         VkImage picture=source_;
-        int cursor_x=0,cursor_y=0;
-        if(cursor_image_&&!cursor_runs_.empty()&&sample_cursor(cursor_x,cursor_y)){
-            auto* dst=static_cast<std::uint8_t*>(mapped_)+kBytes;
-            for(std::size_t i=0;i<cursor_pixels_.size();++i){const auto c=cursor_format(cursor_pixels_[i],bgra);std::memcpy(dst+4*i,&c,4);}
-            barrier(cursor_image_,VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,0,VK_ACCESS_TRANSFER_WRITE_BIT,VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
-            VkImageCopy base{};base.srcSubresource=layers_;base.dstSubresource=layers_;base.extent={640,480,1};
-            vkCmdCopyImage(cmd_,source_,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,cursor_image_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&base);
-            barrier(cursor_image_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_TRANSFER_WRITE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
-            cursor_copies_.clear();
-            for(const auto& run:cursor_runs_){
-                VkBufferImageCopy copy{};copy.bufferOffset=kBytes+4*(run.y*cursor_size+run.x);
-                copy.imageSubresource=layers_;copy.imageOffset={cursor_x+int(run.x),cursor_y+int(run.y),0};copy.imageExtent={run.length,1,1};
-                cursor_copies_.push_back(copy);
+        if(upload)cursor_image_initialized_=false;
+        if(cursor_image_&&cursor.visible()){
+            if(!cursor_image_initialized_||scratch_cursor_!=cursor){
+                auto* dst=static_cast<std::uint8_t*>(mapped_)+kBytes;
+                for(std::size_t i=0;i<cursor_pixels_.size();++i){const auto c=cursor_format(cursor_pixels_[i],bgra);std::memcpy(dst+4*i,&c,4);}
+                const bool patch=cursor_image_initialized_&&scratch_cursor_.visible();
+                barrier(cursor_image_,patch?VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,patch?VK_ACCESS_TRANSFER_READ_BIT:0,VK_ACCESS_TRANSFER_WRITE_BIT,
+                    patch?VK_PIPELINE_STAGE_TRANSFER_BIT:VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
+                VkImageCopy base{};base.srcSubresource=layers_;base.dstSubresource=layers_;
+                if(patch){
+                    base.srcOffset=base.dstOffset={scratch_cursor_.x,scratch_cursor_.y,0};
+                    base.extent={cursor_size,cursor_size,1};
+                }else base.extent={640,480,1};
+                vkCmdCopyImage(cmd_,source_,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,cursor_image_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&base);
+                barrier(cursor_image_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_TRANSFER_WRITE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
+                cursor_copies_.clear();
+                for(const auto& run:cursor_runs_){
+                    VkBufferImageCopy copy{};copy.bufferOffset=kBytes+4*(run.y*cursor_size+run.x);
+                    copy.imageSubresource=layers_;copy.imageOffset={cursor.x+int(run.x),cursor.y+int(run.y),0};copy.imageExtent={run.length,1,1};
+                    cursor_copies_.push_back(copy);
+                }
+                vkCmdCopyBufferToImage(cmd_,staging_,cursor_image_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,static_cast<uint32_t>(cursor_copies_.size()),cursor_copies_.data());
+                barrier(cursor_image_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_TRANSFER_READ_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
+                scratch_cursor_=cursor;cursor_image_initialized_=true;
             }
-            vkCmdCopyBufferToImage(cmd_,staging_,cursor_image_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,static_cast<uint32_t>(cursor_copies_.size()),cursor_copies_.data());
-            barrier(cursor_image_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_TRANSFER_READ_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
             picture=cursor_image_;
         }
         auto dest=images_[index];
         barrier(dest,VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,0,VK_ACCESS_TRANSFER_WRITE_BIT,
             VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
-        VkClearColorValue black{};black.float32[3]=1.f;
-        vkCmdClearColorImage(cmd_,dest,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,&black,1,&range_);
-        // Order the clear and blit: both write the same destination image.
-        barrier(dest,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_TRANSFER_WRITE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
         const auto v=viewport(int(extent_.width),int(extent_.height),integer_);
-        VkImageBlit blit{};blit.srcSubresource=layers_;blit.dstSubresource=layers_;
-        blit.srcOffsets[1]={640,480,1};blit.dstOffsets[0]={v.x,v.y,0};blit.dstOffsets[1]={v.x+v.width,v.y+v.height,1};
-        vkCmdBlitImage(cmd_,picture,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,dest,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            1,&blit,linear_?VK_FILTER_LINEAR:VK_FILTER_NEAREST);
+        if(v.x||v.y||uint32_t(v.width)!=extent_.width||uint32_t(v.height)!=extent_.height){
+            VkClearColorValue black{};black.float32[3]=1.f;
+            vkCmdClearColorImage(cmd_,dest,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,&black,1,&range_);
+            barrier(dest,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_TRANSFER_WRITE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
+        }
+        if(v.width==640&&v.height==480){
+            VkImageCopy copy{};copy.srcSubresource=layers_;copy.dstSubresource=layers_;
+            copy.dstOffset={v.x,v.y,0};copy.extent={640,480,1};
+            vkCmdCopyImage(cmd_,picture,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,dest,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&copy);
+        }else{
+            VkImageBlit blit{};blit.srcSubresource=layers_;blit.dstSubresource=layers_;
+            blit.srcOffsets[1]={640,480,1};blit.dstOffsets[0]={v.x,v.y,0};blit.dstOffsets[1]={v.x+v.width,v.y+v.height,1};
+            vkCmdBlitImage(cmd_,picture,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,dest,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                1,&blit,linear_?VK_FILTER_LINEAR:VK_FILTER_NEAREST);
+        }
         barrier(dest,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,VK_ACCESS_TRANSFER_WRITE_BIT,0,
             VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
         if(!vk_ok(vkEndCommandBuffer(cmd_),"end Vulkan frame",error)||
@@ -473,13 +518,13 @@ public:
         submit.waitSemaphoreCount=1;submit.pWaitSemaphores=&acquired_;submit.pWaitDstStageMask=&wait;
         submit.commandBufferCount=1;submit.pCommandBuffers=&cmd_;submit.signalSemaphoreCount=1;submit.pSignalSemaphores=&ready_[index];
         if(!vk_ok(vkQueueSubmit(queue_,1,&submit,fence_),"submit Vulkan frame",error))return false;
-        source_initialized_=true;upload_pending_=false;interpolation_needs_upload_=false;
+        source_initialized_=true;upload_pending_=false;interpolation_needs_upload_=false;if(upload)++base_uploads_;
         VkPresentInfoKHR p{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
         p.waitSemaphoreCount=1;p.pWaitSemaphores=&ready_[index];p.swapchainCount=1;p.pSwapchains=&chain_;p.pImageIndices=&index;
         result=vkQueuePresentKHR(queue_,&p);
         if(result==VK_ERROR_OUT_OF_DATE_KHR||result==VK_SUBOPTIMAL_KHR)dirty_=true;
         else if(!vk_ok(result,"present Vulkan frame",error))return false;
-        if(result==VK_SUCCESS||result==VK_SUBOPTIMAL_KHR){++submitted_frames_;pacer_.submitted(now_ns());}
+        if(result==VK_SUCCESS||result==VK_SUBOPTIMAL_KHR){++submitted_frames_;pacer_.submitted(now_ns());activity_.presented(cursor);}
         error.clear();return true;
     }
     void state_changed(int state) noexcept override {presence_.update(state);motion_.state_changed(state);}

@@ -105,3 +105,8 @@ add_executable(btb_enhanced_packed_scene_tests ${BTB_ROOT}/enhanced/packed_scene
 target_include_directories(btb_enhanced_packed_scene_tests PRIVATE ${BTB_ROOT}/include)
 btb_require_cpp26(btb_enhanced_packed_scene_tests PRIVATE)
 add_test(NAME enhanced_packed_scene COMMAND btb_enhanced_packed_scene_tests)
+
+add_executable(btb_enhanced_presentation_activity_tests ${BTB_ROOT}/enhanced/presentation_activity_test.cpp)
+target_include_directories(btb_enhanced_presentation_activity_tests PRIVATE ${BTB_ROOT}/include)
+btb_require_cpp26(btb_enhanced_presentation_activity_tests PRIVATE)
+add_test(NAME enhanced_presentation_activity COMMAND btb_enhanced_presentation_activity_tests)

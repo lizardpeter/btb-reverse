@@ -5,6 +5,8 @@
 
 int main(){
     using namespace btb;
+    SetEnvironmentVariableW(L"BTB_DISABLE_DISCORD",L"1");
+    SetEnvironmentVariableW(L"BTB_CONTINUOUS_PRESENT",L"0");
     const auto hwnd=CreateWindowExW(0,L"STATIC",L"BTB Vulkan 1.4 smoke",WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,CW_USEDEFAULT,800,600,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);
     if(!hwnd){std::cerr<<"No interactive Windows desktop\n";return 77;}
@@ -36,8 +38,18 @@ int main(){
         }
         error="Timed out without a successful Vulkan queue present";return false;
     };
-    bool ok=run(2);
-    if(ok){SetWindowPos(hwnd,nullptr,0,0,1024,768,SWP_NOMOVE|SWP_NOZORDER);ok=run(4);}
+    bool ok=run(1);
+    if(ok){
+        const auto previous=presenter->presented_frames();
+        for(int i=0;i<20&&ok;++i){
+            std::this_thread::sleep_for(std::chrono::milliseconds(8));
+            ok=presenter->present(frame,error)&&presenter->idle_present(error)&&presenter->presented_frames()==previous;
+        }
+        if(!ok&&error.empty())error="identical frames should not submit new GPU work";
+    }
+    if(ok){frame.pixels[0]^=1;ok=run(2);}
+    if(ok){SetWindowPos(hwnd,nullptr,0,0,1024,768,SWP_NOMOVE|SWP_NOZORDER);ok=run(3);}
+    if(ok){presenter->request_redraw();ok=run(4);}
     presenter->shutdown();DestroyWindow(hwnd);
     if(!ok){std::cerr<<error<<'\n';return 3;}
     std::cout<<"Vulkan 1.4 queue presentation and resized swapchain passed\n";

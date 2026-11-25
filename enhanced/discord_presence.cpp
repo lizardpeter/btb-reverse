@@ -74,8 +74,11 @@ std::string activity_json(std::string_view text,uint64_t start,uint64_t nonce,st
 }
 }
 void DiscordPresence::start(){
+    char disabled[4]{};
+    if(GetEnvironmentVariableA("BTB_DISABLE_DISCORD",disabled,4)==1&&disabled[0]=='1')return;
     char id[32]{};const auto len=GetEnvironmentVariableA("BTB_DISCORD_APP_ID",id,32);
-    if(!len||len>=32||!valid_discord_id({id,len}))return;
+    std::string app(default_discord_id);
+    if(len){if(len>=32||!valid_discord_id({id,len}))return;app.assign(id,len);}
     if(worker_.joinable())return;
     char image_key[128]{};const auto image_len=GetEnvironmentVariableA("BTB_DISCORD_LARGE_IMAGE",image_key,128);
     std::string image;
@@ -83,7 +86,7 @@ void DiscordPresence::start(){
         std::string_view candidate{image_key,image_len};
         if(std::all_of(candidate.begin(),candidate.end(),[](char c){return (c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='_'||c=='-';}))image=candidate;
     }
-    worker_=std::jthread([this,app=std::string(id,len),image=std::move(image)](std::stop_token stop){
+    worker_=std::jthread([this,app=std::move(app),image=std::move(image)](std::stop_token stop){
         try{
             const auto started=static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::seconds>(
                 std::chrono::system_clock::now().time_since_epoch()).count());

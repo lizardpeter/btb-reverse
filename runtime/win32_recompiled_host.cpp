@@ -582,6 +582,7 @@ LRESULT CALLBACK native_window_proc(
     }
     if(msg==WM_COMMAND&&host->frame_in_progress)return 0;
     if(host->output){
+        if(msg==WM_PAINT||msg==WM_SIZE||msg==WM_SHOWWINDOW||msg==WM_DISPLAYCHANGE)host->output->request_redraw();
         if(msg==WM_GETMINMAXINFO)return DefWindowProcW(hwnd,msg,wp,lp);
         if((msg==WM_KEYDOWN&&wp==VK_F11)||(msg==WM_COMMAND&&LOWORD(wp)==0x3eaU)){
             if(host->running&&!host->frame_in_progress&&(msg!=WM_KEYDOWN||!(lp&0x40000000)))host->output->toggle_borderless();
