@@ -1,6 +1,7 @@
 #include "vulkan_sprite_batch.hpp"
 #include "btb/bink32_surface_convert.hpp"
 #include <iostream>
+#include <algorithm>
 #include <fstream>
 #include <array>
 #include <random>
