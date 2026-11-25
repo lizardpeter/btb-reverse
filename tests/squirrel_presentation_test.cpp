@@ -113,15 +113,15 @@ int main() {
 
     constexpr auto nut0 = nut_pile_destination(0);
     static_assert(nut0);
-    static_assert(*nut0 == Vec2i{516,212});
+    static_assert(*nut0 == Vec2i{516,274});
 
     constexpr auto nut1 = nut_pile_destination(1);
     static_assert(nut1);
-    static_assert(*nut1 == Vec2i{516,198});
+    static_assert(*nut1 == Vec2i{516,244});
 
     constexpr auto nut2 = nut_pile_destination(2);
     static_assert(nut2);
-    static_assert(*nut2 == Vec2i{516,211});
+    static_assert(*nut2 == Vec2i{516,214});
 
     static_assert(!nut_pile_destination(-1));
     static_assert(!nut_pile_destination(3));

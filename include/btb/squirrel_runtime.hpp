@@ -305,6 +305,60 @@ struct RunAssemblyAnimationRuntime {
     RunAssemblyMotionKeys motion_keys{};
 };
 
+// Initialized PE table at 004467E8: fourteen pairs of atlas indices.
+// 004266C2 loads the FIRST word of each pair and adds the substep.
+inline constexpr std::array<int,14> kAssemblySpriteBases{
+    0,3,7,10,13,16,19,22,25,28,31,48,63,66
+};
+[[nodiscard]] constexpr int active_assembly_sprite_frame(
+    const RunAssemblyAnimationRuntime& s) noexcept {
+    const std::array<int,4> keys{s.motion_keys.a,s.motion_keys.b,
+                                s.motion_keys.c,s.motion_keys.d};
+    if(s.sprite_mode<0 || s.sprite_mode>=4)return -1;
+    const int key=keys[static_cast<std::size_t>(s.sprite_mode)];
+    if(key<0||key>=14||s.substep<0||s.substep>3)return -1;
+    return kAssemblySpriteBases[static_cast<std::size_t>(key)]+s.substep;
+}
+[[nodiscard]] constexpr bool special_assembly_idle_bank(int key) noexcept {
+    return key==3||key==4||key==13;
+}
+template<class NextRand>
+constexpr int tick_assembly_idle_sprite(RunAssemblyAnimationRuntime& s,
+    int delay,NextRand&& next_rand) noexcept {
+    if(--s.delay_remaining<1) {
+        s.delay_remaining=delay;
+        ++s.sprite_frame;
+        s.substep=0;
+        if(special_assembly_idle_bank(s.motion_keys.d)) {
+            // Inclusive 86 is original; no corresponding BMP cell exists.
+            if(s.sprite_frame<72||s.sprite_frame>86)s.sprite_frame=72;
+        } else {
+            if(s.sprite_frame<31)s.sprite_frame=31;
+            if(s.sprite_frame>62)s.sprite_frame=(next_rand()&3)==0?31:48;
+        }
+    }
+    return s.sprite_frame+s.substep;
+}
+[[nodiscard]] constexpr bool assembly_sprite_visible(
+    const RunAssemblyAnimationRuntime& s,int frame,
+    std::size_t level,const PlacedRunPieces& pieces) noexcept {
+    if(frame<0 || frame>=86)return false;
+    // 004266EA..00426735: odd sections suppress the sprite for raw
+    // piece ID 1. Keep the original storage-index arithmetic bounded.
+    const int section=s.run_section;
+    if(section!=0&&section!=2&&section!=4&&section!=6) {
+        int slot=section;
+        if(slot>=1)--slot;
+        if(slot>=3)--slot;
+        if(slot>=0&&level<kMaximumLevelCount) {
+            const auto index=level*4+static_cast<std::size_t>(slot);
+            if(index<pieces.size()&&pieces[index]==1)return false;
+        }
+    }
+    const int phase=static_cast<int>(s.state);
+    return !(phase>=4&&phase<=7&&frame>=63);
+}
+
 struct RunAssemblyAnimationTick {
     bool applied_motion{};
     Vec2i delta{};

@@ -126,9 +126,8 @@ inline constexpr std::array<Vec2i,4> kConnectorDestinations{{
     {516,194},
 }};
 
-// Local stack table in 0x004267B0 used to turn connector values 0..2 into
-// all.bmp sprite IDs. The final-target nut-pile Y offset reuses the same three
-// integer values directly.
+// Local stack table in 0x004267B0 turns connector values 0..2 into
+// all.bmp sprite IDs. Nut pile positioning uses a SEPARATE stack table.
 inline constexpr std::array<std::int32_t,3> kConnectorPieceIds{{
     18,4,17,
 }};
@@ -138,10 +137,11 @@ inline constexpr std::array<std::int32_t,3> kConnectorPieceIds{{
     if (connector < 0 || connector >= 3) {
         return std::nullopt;
     }
+    constexpr std::array<int,3> y_offsets{80,50,20};
     return Vec2i{
         kConnectorDestinations.back().x,
         kConnectorDestinations.back().y +
-            kConnectorPieceIds[static_cast<std::size_t>(connector)],
+            y_offsets[static_cast<std::size_t>(connector)],
     };
 }
 
@@ -278,6 +278,12 @@ inline constexpr std::int32_t kArmSwingFrameHeight = 192;
     };
 }
 
+// 00426A62 divides actor X by 30 for eye frames, 00426B8F
+// divides (X+28) by 21 for arm frames. The hook uses the original
+// 48x446 BMP with a variable top crop and a fixed exclusive bottom.
+[[nodiscard]] constexpr SourceRect lofty_hook_source_rect(int actor_y) noexcept {
+    return {0,436-actor_y,47,445};
+}
 inline constexpr std::int32_t kRunPieceFrameWidth = 89;
 inline constexpr std::int32_t kRunPieceFrameHeight = 133;
 

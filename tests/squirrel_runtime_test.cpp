@@ -6,6 +6,27 @@ using namespace btb::squirrel;
 
 int main() {
     static_assert(kMotionKeyCount == 14);
+    static_assert(kAssemblySpriteBases[0]==0 && kAssemblySpriteBases[11]==48);
+    static_assert(kAssemblySpriteBases[12]==63 && kAssemblySpriteBases[13]==66);
+    for(int key=0;key<14;++key)for(int phase=0;phase<4;++phase)for(int sub=0;sub<3;++sub) {
+        RunAssemblyAnimationRuntime s{};
+        s.motion_keys.a=s.motion_keys.b=s.motion_keys.c=s.motion_keys.d=key;
+        s.sprite_mode=phase;s.substep=sub;
+        assert(active_assembly_sprite_frame(s)==kAssemblySpriteBases[key]+sub);
+    }
+    for(int seed=0;seed<256;++seed) {
+        btb::retail::OriginalRetailRandom rng(seed),expected(seed);
+        RunAssemblyAnimationRuntime s{};
+        s.sprite_frame=62;s.delay_remaining=1;
+        const int first=(expected.next_rand()&3)==0?31:48;
+        assert(tick_assembly_idle_sprite(s,7,[&]{return rng.next_rand();})==first);
+        assert(rng.state()==expected.state());
+        s.motion_keys.d=13;s.sprite_frame=85;s.delay_remaining=1;
+        assert(tick_assembly_idle_sprite(s,7,[&]{return rng.next_rand();})==86);
+        s.delay_remaining=1;
+        assert(tick_assembly_idle_sprite(s,7,[&]{return rng.next_rand();})==72);
+        assert(rng.state()==expected.state());
+    }
     static_assert(kFirstMotionPhaseSubsteps == 3);
     static_assert(kSecondMotionPhaseFirstSubstep == 3);
     static_assert(kVerticalProfileByMotionKey[0] == 0);

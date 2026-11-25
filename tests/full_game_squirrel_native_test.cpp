@@ -71,7 +71,18 @@ int main() {
         int connector_art=0,nut_piles=0,conveyor_art=0,squirrel_art=0;
         int hook_layer=-1,first_choice=-1,squirrel_layer=-1,layer=0;
         for(const auto& draw:rendered.effects.draws) {
-            if(draw.source_asset=="Data\\SubGameSquirrel\\hook.bmp")hook_layer=layer;
+            if(draw.source_asset=="Data\\SubGameSquirrel\\hook.bmp") {
+                hook_layer=layer;
+                assert(draw.x==200 && draw.y==0 && draw.source_rectangle);
+                assert(draw.source_rectangle->top==436 && draw.source_rectangle->right==47);
+                assert(draw.source_rectangle->bottom==445);
+            }
+            if(draw.source_asset=="Data\\SubGameSquirrel\\eyes.bmp") {
+                assert(draw.source_rectangle && draw.source_rectangle->left==5*128);
+            }
+            if(draw.source_asset=="Data\\SubGameSquirrel\\mouth.bmp") {
+                assert(draw.source_rectangle && draw.source_rectangle->left==120);
+            }
             if(draw.source_asset=="Data\\SubGameSquirrel\\allconveyor.bmp" && first_choice<0)first_choice=layer;
             if(draw.source_asset=="Data\\SubGameSquirrel\\squriel_1_86.bmp")squirrel_layer=layer;
             ++layer;

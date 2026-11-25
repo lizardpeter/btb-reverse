@@ -55,7 +55,12 @@ bool SquirrelDriver::initialize(int player,std::string& error) {
         assembly_={};conveyor_={};
         assembly_.run_section=0;
         assembly_.x=-data_->initial_horizontal_alignment_offset;
-        level_=0;placed_count_=0;placement_={};placement_slot_=0;
+        level_=0;placed_count_=0;
+        placement_={squirrel::PlacementState::IdleSelect,placement_.position};
+        placement_slot_=0;
+        mouth_pose_=mouth_draw_frame_=1;
+        sprite_draw_frame_=0;sprite_draw_visible_=true;
+        previous_high_sprite_=false;
         temporary_decoy_=carried_piece_=-1;speech_={};
         animating_=false;complete_=false;
         completion_stage_=0;
@@ -83,6 +88,7 @@ bool SquirrelDriver::generate_choices(std::string& error) {
     const auto required=squirrel::required_connectors(
         connectors_,static_cast<std::size_t>(level_),
         static_cast<std::size_t>(placed_count_));
+    current_choice_connector_=required.to;
     const auto mix=squirrel::conveyor_mix(
         static_cast<squirrel::Difficulty>(difficulty_));
     // Retail 0x00426F30 generates two groups before randomly
@@ -141,6 +147,7 @@ bool SquirrelDriver::start_run_section(std::string& error) {
             std::to_string(assembly_.run_section);
         return false;
     }
+    landing_connector_=current_choice_connector_;
     squirrel::begin_run_assembly_animation(assembly_,*data_,*keys);
     animating_=true;
     return true;
@@ -161,11 +168,10 @@ ActivityFrameOutput SquirrelDriver::draw() const {
         squirrel::kLoftyBodyX,squirrel::kLoftyBodyY);
     sprite(out,"eyes.bmp",squirrel::kLoftyEyesX,
         squirrel::kLoftyEyesY,
-        Rect{0,0,squirrel::kEyesFrameWidth,
-                  squirrel::kEyesFrameHeight});
+        as_rect(squirrel::eyes_source_rect(placement_.position.x/30)));
     sprite(out,"mouth.bmp",squirrel::kLoftyMouthX,
         squirrel::kLoftyMouthY,
-        as_rect(squirrel::mouth_source_rect(std::max(0,speech_.mouth_frame))));
+        as_rect(squirrel::mouth_source_rect(mouth_draw_frame_)));
     sprite(out,"loftyarmswing_8bit.bmp",
         squirrel::kLoftyArmSwingX,squirrel::kLoftyArmSwingY,
         as_rect(squirrel::arm_swing_source_rect((placement_.position.x+28)/21)));
@@ -209,15 +215,16 @@ ActivityFrameOutput SquirrelDriver::draw() const {
     // original 102px horizontal cell layout, not the 89px conveyor atlas.
     if(const auto origin=squirrel::source_squirrel_start_position(
           connectors_[static_cast<std::size_t>(level_)][0])) {
-        const int frame=animating_?assembly_.sprite_frame:0;
-        if(const auto rect=squirrel::source_squirrel_frame_rect(frame))
+        if(const auto rect=squirrel::source_squirrel_frame_rect(sprite_draw_frame_);
+           sprite_draw_visible_ && rect)
             sprite(out,"squriel_1_86.bmp",
                 origin->x+assembly_.x,origin->y+assembly_.y,
                 Rect{rect->left,rect->top,rect->right,rect->bottom});
     }
     // The carried piece follows the original actor origin, not the
     // conveyor slot; the hook remains visible in the normal scene.
-    sprite(out,"hook.bmp",placement_.position.x+28,0);
+    sprite(out,"hook.bmp",placement_.position.x+28,0,
+        as_rect(squirrel::lofty_hook_source_rect(placement_.position.y)));
     if(placement_.carrying && carried_piece_>=0)
         sprite(out,"allconveyor.bmp",placement_.position.x,
             placement_.position.y-squirrel::kConveyorHitHeight,
@@ -279,12 +286,48 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
             }
         }
     }
-    if(speech_.sound_id!=-1) {
+    const bool speech_was_active=speech_.sound_id!=-1;
+    if(speech_was_active) {
         const auto index=static_cast<std::size_t>(speech_.sound_id-633);
         const bool playing=input.squirrel_lofty_voice_playing
             ?(*input.squirrel_lofty_voice_playing)[index]
             :input.managed_sound_playing;
         speech_.advance(playing,random_stream());
+    }
+    mouth_draw_frame_=speech_was_active?speech_.mouth_frame:mouth_pose_;
+
+    // 004267B0 updates the assembly before its live squirrel blit.
+    // Keep the active draw even when state becomes idle on this tick.
+    std::string animation_error;
+    if(!complete_ && !animating_ && assembly_.run_section<=placed_count_*2 &&
+       assembly_.run_section<=6) {
+        if(!start_run_section(animation_error)) {
+            ActivityFrameOutput failed;failed.fatal_error=animation_error;return failed;
+        }
+    }
+    if(animating_) {
+        const auto prior=assembly_.state;
+        const auto tick=squirrel::tick_run_assembly_animation(assembly_,*data_);
+        if((prior==squirrel::RunAssemblyAnimationState::SecondFirstThreeSubsteps ||
+            prior==squirrel::RunAssemblyAnimationState::RetainedTransition) &&
+            assembly_.state==squirrel::RunAssemblyAnimationState::SecondLastFourSubsteps &&
+            previous_high_sprite_ && landing_connector_>=0 && landing_connector_<3) {
+            // 004265C7..004265E9: high atlas transition restores absolute
+            // Y before the first D-profile delta.
+            constexpr std::array<int,3> target_y{237,205,173};
+            const auto origin=squirrel::source_squirrel_start_position(
+                connectors_[static_cast<std::size_t>(level_)][0]);
+            assembly_.y=target_y[static_cast<std::size_t>(landing_connector_)]-origin->y+tick.delta.y;
+        }
+        sprite_draw_frame_=squirrel::active_assembly_sprite_frame(assembly_);
+        previous_high_sprite_=sprite_draw_frame_>=63;
+        sprite_draw_visible_=squirrel::assembly_sprite_visible(assembly_,sprite_draw_frame_,
+            static_cast<std::size_t>(level_),placed_piece_ids_);
+        if(tick.cycle_completed)animating_=false;
+    } else {
+        sprite_draw_frame_=squirrel::tick_assembly_idle_sprite(assembly_,
+            data_->animation_step_delay,[&]{return random_stream().next_rand();});
+        sprite_draw_visible_=sprite_draw_frame_>=0&&sprite_draw_frame_<86;
     }
     auto out=draw();
     if(complete_) {
@@ -313,18 +356,10 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         }
         return out;
     }
-    // The draw routine owns run assembly. Each accepted piece
-    // advances the available-section threshold by two (004273F0).
-    if(!animating_ && assembly_.run_section<=placed_count_*2 &&
-       assembly_.run_section<=6) {
-        std::string error;
-        if(!start_run_section(error)){out.fatal_error=error;return out;}
-    }
-    if(animating_) {
-        const auto tick=squirrel::tick_run_assembly_animation(assembly_,*data_);
-        if(tick.cycle_completed)animating_=false;
-    }
     if(placement_.state!=squirrel::PlacementState::IdleSelect) {
+        if(placement_.state==squirrel::PlacementState::ReturnAfterDecoy ||
+           placement_.state==squirrel::PlacementState::ReturnDecoyToConveyor)
+            mouth_pose_=2;
         const int selected=placement_.selected;
         const auto event=squirrel::advance_placement_motion(placement_,placement_slot_);
         auto& choice=choices_[static_cast<std::size_t>(selected)];
@@ -332,6 +367,7 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         if(event==E::PickedUp) {
             carried_piece_=choice.piece_id;
         } else if(event==E::CorrectDropped) {
+            mouth_pose_=1;
             const auto storage=static_cast<std::size_t>(level_)*4+
                                static_cast<std::size_t>(placed_count_);
             placed_piece_ids_[storage]=carried_piece_;
@@ -387,7 +423,8 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
             const auto old_origin=squirrel::source_squirrel_start_position(
                 connectors_[static_cast<std::size_t>(level_)][0]);
             const int previous_y=old_origin->y+assembly_.y;
-            ++level_;placed_count_=0;assembly_={};
+            ++level_;placed_count_=0;
+            assembly_.state=squirrel::RunAssemblyAnimationState::Idle;
             const auto next_origin=squirrel::source_squirrel_start_position(
                 connectors_[static_cast<std::size_t>(level_)][0]);
             assembly_.x=46-next_origin->x;
@@ -408,6 +445,7 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         const auto& chosen=choices_[i];
         if(!chosen.active)return out;
         placement_slot_=placed_count_;
+        mouth_pose_=0;
         (void)squirrel::select_placement(placement_,static_cast<int>(i),chosen.correct);
         return out;
     }
@@ -418,7 +456,11 @@ bool SquirrelDriver::unload(std::string& error) {
     data_.reset();player_=-1;
     connectors_={};placed_piece_ids_={};
     choices_={};assembly_={};conveyor_={};
-    level_=0;placed_count_=0;placement_={};placement_slot_=0;
+    level_=0;placed_count_=0;
+    placement_={squirrel::PlacementState::IdleSelect,placement_.position};
+    placement_slot_=0;
+    mouth_pose_=mouth_draw_frame_=1;
+    sprite_draw_frame_=0;sprite_draw_visible_=true;previous_high_sprite_=false;
     temporary_decoy_=carried_piece_=-1;speech_={};
     animating_=false;complete_=false;
     completion_stage_=0;
