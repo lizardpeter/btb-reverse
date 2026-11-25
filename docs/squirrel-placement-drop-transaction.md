@@ -1,0 +1,7 @@
+# Original Squirrel placement-drop state
+
+Source 004273F0 writes distinct retained-piece and conveyor-choice words, advances the available section by two for the normal first three correct placements, starts the conveyor only while run section <5, and uses the source CRT random sequence for correct and decoy feedback. The original keeps a rejected piece in the raw retained bank even after retrieval, but no longer draws it once the actor retrieves it. The live driver now uses the common typed drop transaction, clears the choice word on drop, and restores it at retrieval.
+
+The original instruction-derived comparator tests 124,416 landed-hook transactions across all three levels, three normal placement slots, four choice indices, both correct/decoy paths, three required connectors, nine raw feedback comparison words, and 64 seeds. It captures managed audio submissions (not sound device execution) and compares 14 state words plus the four audio words. The local reconstructed model matched every case, producing FNV-1a64 12eebd7bdda884a6. The production-header fixture pins that fingerprint, with CI verification pending at commit time. The raw slot >=4 fallback is retained in the helper; the normal native scene deliberately bounds itself to three placements and prevents malformed timing files from starting a fourth conveyor cycle.
+
+No retail asset or executable is committed. Full physical input, audio and rendering equivalence remains unverified.

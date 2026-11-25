@@ -957,4 +957,62 @@ inline constexpr std::array<std::int32_t,3> kFinalWendyFeedback{
     return decoy_lofty_feedback_sound_id(random_index);
 }
 
+// Source 004273F0's state 3/4 side effects after the hook reaches
+// the drop point. Raw retained slot words are distinct from visible
+// completed-piece count, particularly during a rejected placement.
+struct PlacementDropState {
+    int actor_phase{3};
+    int conveyor_phase{};
+    int placed_slot{};
+    int available_section{};
+    int carry_slot{-1};
+    int mouth_pose{};
+    int retained_piece{-1};
+    int connector_marker{-1};
+    int temporary_decoy{-1};
+    int choice_piece{-1};
+    LoftySpeechAnimation speech{};
+    int level{};
+    int difficulty{};
+    int run_section{};
+    int transition_phase{};
+    int large_move_phase{};
+    int large_move_frame{};
+    bool completed{};
+};
+[[nodiscard]] constexpr std::optional<int> apply_placement_drop(
+    PlacementDropState& s,int required_from,int offered_raw,
+    retail::OriginalRetailRandom& random) noexcept {
+    if((s.actor_phase!=3&&s.actor_phase!=4)||
+       s.choice_piece<0||s.choice_piece>=36)return std::nullopt;
+    s.carry_slot=-1;
+    const int piece=s.choice_piece;
+    s.retained_piece=piece;
+    int sound{};
+    if(s.actor_phase==3) {
+        s.mouth_pose=1;
+        if(s.run_section<5)s.conveyor_phase=1;
+        if(s.connector_marker==piece%3)s.connector_marker=-1;
+        if(s.placed_slot<4||s.run_section<5) {
+            ++s.placed_slot;
+            s.available_section+=(s.placed_slot>=1&&s.placed_slot<=3)?2:1;
+        } else if(s.level<s.difficulty) {
+            s.transition_phase=1;s.large_move_phase=1;s.large_move_frame=0;
+        } else s.completed=true;
+        sound=correct_placement_feedback_sound_id(random.next_rand()%7);
+    } else {
+        s.temporary_decoy=piece;
+        const bool generic=random.next_rand()%5==0;
+        const int draw=random.next_rand();
+        if(generic||required_from==offered_raw)
+            sound=decoy_lofty_feedback_sound_id(draw%2);
+        else sound=decoy_direction_feedback_sound_id(required_from,offered_raw,
+                    draw%(required_from<offered_raw?3:4));
+    }
+    s.speech.begin(sound,random);
+    s.choice_piece=-1;
+    s.actor_phase+=2;
+    return sound;
+}
+
 } // namespace btb::squirrel

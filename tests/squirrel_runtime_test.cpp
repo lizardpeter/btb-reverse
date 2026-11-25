@@ -559,6 +559,53 @@ int main() {
         assert(rng.state()==42);
     }
 
+    // 004273F0 state 3/4 landed-hook trace. The original disassembly
+    // reference captures audio submissions at the managed-sound boundary.
+    // Every compared word is source state, not a fabricated expectation.
+    {
+        std::uint64_t hash=14695981039346656037ull,count=0;
+        auto mix=[&](std::uint32_t word) {
+            for(int byte=0;byte<4;++byte) {hash^=word&255u;hash*=1099511628211ull;word>>=8;}
+        };
+        for(int level=0;level<3;++level)for(int slot=0;slot<3;++slot)
+        for(int choice=0;choice<4;++choice)for(int correct=0;correct<2;++correct)
+        for(int from=0;from<3;++from)for(int offered=0;offered<9;++offered)
+        for(std::uint32_t i=0;i<64;++i) {
+            PlacementDropState s;
+            s.actor_phase=correct?3:4;s.placed_slot=slot;s.available_section=slot*2;
+            s.carry_slot=choice;s.level=level;s.difficulty=2;
+            s.run_section=slot*2+int(i&1);
+            s.choice_piece=(int(i)+offered*3+choice)%36;
+            s.connector_marker=(int(i)%4)-1;
+            btb::retail::OriginalRetailRandom rng(i*0x9e3779b9u+1234);
+            const auto sound=apply_placement_drop(s,from,offered,rng);
+            assert(sound);
+            for(auto word:std::array<std::uint32_t,14>{
+                std::uint32_t(s.actor_phase),std::uint32_t(s.conveyor_phase),
+                std::uint32_t(s.placed_slot),std::uint32_t(s.available_section),
+                std::uint32_t(s.carry_slot),std::uint32_t(s.mouth_pose),
+                std::uint32_t(s.retained_piece),std::uint32_t(s.connector_marker),
+                std::uint32_t(s.temporary_decoy),std::uint32_t(s.choice_piece),
+                std::uint32_t(s.speech.mouth_frame),std::uint32_t(s.speech.countdown),
+                std::uint32_t(s.speech.sound_id),rng.state()})mix(word);
+            for(auto word:std::array<int,4>{1,*sound,50,1})mix(std::uint32_t(word));
+            ++count;
+        }
+        assert(count==124416&&hash==0x12eebd7bdda884a6ull);
+        // Retained branch for raw slot >=4, never reached by the native
+        // three-placement scene. No incorrect threshold increment.
+        PlacementDropState s;
+        s.placed_slot=4;s.available_section=7;s.run_section=6;
+        s.choice_piece=10;s.level=1;s.difficulty=2;
+        btb::retail::OriginalRetailRandom rng(1);
+        assert(apply_placement_drop(s,0,1,rng));
+        assert(s.transition_phase==1&&s.large_move_phase==1&&!s.completed);
+        assert(s.placed_slot==4&&s.available_section==7);
+        s.actor_phase=3;s.choice_piece=11;s.level=2;s.transition_phase=0;
+        assert(apply_placement_drop(s,0,1,rng));
+        assert(s.completed&&s.transition_phase==0);
+    }
+
     constexpr auto final0 = completion_step(0, false, 0);
     static_assert(final0.stage == 1);
     static_assert(final0.action == CompletionAction::PlayFinalWendyLine);

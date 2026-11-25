@@ -347,47 +347,50 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         using E=squirrel::PlacementEvent;
         if(event==E::PickedUp) {
             carried_piece_=choice.piece_id;
-        } else if(event==E::CorrectDropped) {
-            mouth_pose_=1;
+        } else if(event==E::CorrectDropped || event==E::DecoyDropped) {
             const auto storage=static_cast<std::size_t>(level_)*4+
-                               static_cast<std::size_t>(placed_count_);
-            placed_piece_ids_[storage]=carried_piece_;
-            ++placed_count_;
-            // The next scene update starts the next available section.
-            choice.active=false;
-            carried_piece_=-1;
-            if(placed_count_<3)conveyor_.phase=1;
-            const int feedback=random_stream().next_rand()%7;
-            const int sound=squirrel::correct_placement_feedback_sound_id(feedback);
-            speech_.begin(sound,random_stream());
-            out.audio.push_back({AudioOperation::ManagedSoundId,{},sound,50,1});
-        } else if(event==E::DecoyDropped) {
-            temporary_decoy_=carried_piece_;
-            carried_piece_=-1;
-            choice.active=false;
-            // 004273F0 first draws rand()%5; every branch then draws its
-            // second random value. Preserve the raw decoy comparison word.
+                               static_cast<std::size_t>(placement_slot_);
+            squirrel::PlacementDropState drop;
+            drop.actor_phase=event==E::CorrectDropped?3:4;
+            drop.conveyor_phase=conveyor_.phase;
+            drop.placed_slot=placed_count_;
+            drop.available_section=placed_count_*2;
+            drop.carry_slot=selected;
+            drop.mouth_pose=mouth_pose_;
+            drop.retained_piece=placed_piece_ids_[storage];
+            drop.temporary_decoy=temporary_decoy_;
+            drop.choice_piece=carried_piece_;
+            drop.speech=speech_;
+            drop.level=level_;drop.difficulty=difficulty_;
+            drop.run_section=assembly_.run_section;
             const auto required=squirrel::required_connectors(
                 connectors_,static_cast<std::size_t>(level_),
                 static_cast<std::size_t>(placement_slot_));
-            const bool generic=random_stream().next_rand()%5==0;
-            const int random=random_stream().next_rand();
-            int sound=0;
-            if(generic || required.from==choice.feedback_comparison)
-                sound=squirrel::decoy_lofty_feedback_sound_id(random%2);
-            else
-                sound=squirrel::decoy_direction_feedback_sound_id(
-                    required.from,choice.feedback_comparison,
-                    random%(required.from<choice.feedback_comparison?3:4));
-            speech_.begin(sound,random_stream());
-            out.audio.push_back({AudioOperation::ManagedSoundId,{},sound,50,1});
+            const auto sound=squirrel::apply_placement_drop(drop,
+                required.from,choice.feedback_comparison,random_stream());
+            if(!sound) {
+                out.fatal_error="invalid original Squirrel drop state";return out;
+            }
+            placed_piece_ids_[storage]=drop.retained_piece;
+            placed_count_=drop.placed_slot;
+            mouth_pose_=drop.mouth_pose;
+            temporary_decoy_=drop.temporary_decoy;
+            speech_=drop.speech;
+            conveyor_.phase=drop.conveyor_phase;
+            choice.piece_id=drop.choice_piece;choice.active=false;
+            carried_piece_=-1;
+            // Source runs the conveyor on section <5. In the normal
+            // shipped cadence the third drop has already reached 5.
+            // A malformed/modified timing file must not index slot 3.
+            if(placed_count_>=3)conveyor_.phase=0;
+            out.audio.push_back({AudioOperation::ManagedSoundId,{},*sound,50,1});
         } else if(event==E::DecoyRetrieved) {
             carried_piece_=temporary_decoy_;
             temporary_decoy_=-1;
             // 004273F0 restores the conveyor slot when the hook retrieves
             // the piece, before moving it back. Its carried draw still
             // uses the hook position until the release event.
-            choice.active=true;
+            choice.piece_id=carried_piece_;choice.active=true;
         } else if(event==E::DecoyReturned) {
             choice.active=true;
             carried_piece_=-1;
