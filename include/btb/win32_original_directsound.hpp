@@ -45,6 +45,7 @@ public:
     [[nodiscard]] IDirectSound8* device_for_native_bink_pcm() const noexcept {
         return sound_;
     }
+    [[nodiscard]] bool set_original_volume(int percent,std::string& error);
     void shutdown() noexcept;
 
 private:
@@ -58,6 +59,7 @@ private:
     void reap_finished_samples() noexcept;
     void release_buffer(IDirectSoundBuffer*& buffer) noexcept;
 
+    LONG music_attenuation_{};
     IDirectSound8* sound_{};
     std::array<IDirectSoundBuffer*,sound::kManagedSlotCount> slots_{};
     IDirectSoundBuffer* backing_{};

@@ -257,6 +257,42 @@ int main() {
         assert(rng.state()==oracle.state());
     }
 
+    // 00429800 draws the preceding slider position before applying
+    // movement; only held input changes volume and OK waits for narration.
+    {
+        auto root=std::make_unique<GameRoot>();
+        std::istringstream options("0 0 250 417 299 462 340 417 389 466 208 222 410 242 122 86 480 350");
+        std::string error;
+        assert(root->configure_options(options,error));
+        root->globals().dispatcher.options_active=true;
+        ActivityFrameInput in{};
+        in.pointer_position_valid=true;in.pointer_x=309;in.pointer_y=160;
+        auto frame=root->advance(in);
+        assert(!frame.effects.original_volume_percent);
+        assert(frame.effects.draws.back().x==369);
+        in.pointer_button_held=true;
+        frame=root->advance(in);
+        assert(frame.effects.original_volume_percent==50);
+        assert(frame.effects.draws.back().x==369);
+        frame=root->advance(in);
+        assert(!frame.effects.original_volume_percent&&frame.effects.draws.back().x==309);
+        in.pointer_x=208;
+        assert(root->advance(in).effects.original_volume_percent==0);
+        in.pointer_x=410;
+        assert(root->advance(in).effects.original_volume_percent==100);
+        in.pointer_button_held=false;in.pointer_release_pulse=true;
+        in.pointer_x=300;in.pointer_y=280;
+        frame=root->advance(in);
+        assert(frame.effects.audio.back().sound_id==862);
+        assert(frame.effects.audio.back().input_interruptible);
+        in.pointer_release_pulse=false;in.managed_sound_playing=true;
+        frame=root->advance(in);
+        assert(root->globals().dispatcher.options_active);
+        in.managed_sound_playing=false;
+        frame=root->advance(in);
+        assert(!root->globals().dispatcher.options_active);
+    }
+
     // Quit cancellation and confirmation do not mutate or delete profiles.
     // Credits advance on clicks or the retail >4-second integer threshold.
     {

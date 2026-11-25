@@ -191,6 +191,8 @@ struct Host {
         }
         if(!game.configure_completion_movies(completion_movies,out_error))
             return false;
+        std::ifstream options(loaddata/"options.txt");
+        if(!game.configure_options(options,out_error))return false;
         std::ifstream credits(loaddata/"credits.txt");
         if(!game.configure_credits(credits,out_error))return false;
         std::ifstream help_info(loaddata/"helpinfo.txt");

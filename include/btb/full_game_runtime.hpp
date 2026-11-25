@@ -257,6 +257,7 @@ struct ActivityFrameOutput {
     bool open_progress_screen{};
     bool open_options_overlay{};
     bool open_whole_game_quit{};
+    std::optional<int> original_volume_percent{};
     std::optional<int> negative_ui_action{};
     std::optional<int> yes_no_context{};
     // Runtime provider failures must not silently submit a partially
@@ -410,6 +411,7 @@ public:
     void skip_startup_video_sequence() noexcept;
     [[nodiscard]] bool configure_completion_movies(std::istream&,std::string&);
     [[nodiscard]] bool configure_credits(std::istream&,std::string&);
+    [[nodiscard]] bool configure_options(std::istream&,std::string&);
     [[nodiscard]] bool configure_contextual_help(std::istream&,std::string&);
     [[nodiscard]] bool load_profile_files(
         const std::filesystem::path& directory,
@@ -446,7 +448,10 @@ private:
     bool pending_confirmed_leave_{};
     bool progress_intro_pending_{},progress_back_hover_{},progress_help_hover_{};
     int progress_hover_slot_{-1};
-    bool quit_voice_pending_{};
+    bool quit_voice_pending_{},options_voice_pending_{};
+    int options_x_{},options_y_{},slider_left_{},slider_right_{};
+    int volume_percent_{80};
+    bool options_configured_{};
     std::vector<Draw> last_presentable_draws_{};
     std::vector<std::string> credits_{};
     std::size_t credit_index_{};

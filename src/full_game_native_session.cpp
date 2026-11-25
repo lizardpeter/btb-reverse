@@ -295,6 +295,10 @@ NativeSessionFrame NativeGameSession::tick(
         return frame;
     }
 
+    if(frame.prepared.game.effects.original_volume_percent&&
+       !device_.set_original_volume(*frame.prepared.game.effects.original_volume_percent,error)){
+        fail(frame,PhysicalPresentationStage::SubmitAudio,error);return frame;
+    }
     for (const auto& command : frame.prepared.resources.sound) {
         if (!device_.apply_sound(command,error)) {
             fail(frame,PhysicalPresentationStage::SubmitAudio,error);

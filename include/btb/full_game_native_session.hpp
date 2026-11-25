@@ -55,6 +55,9 @@ public:
     [[nodiscard]] virtual bool apply_sound(
         const ResolvedSoundEffect& effect,
         std::string& error) = 0;
+    [[nodiscard]] virtual bool set_original_volume(int,std::string& error) {
+        error="native volume provider unavailable";return false;
+    }
     [[nodiscard]] virtual bool draw_ordered(
         const std::vector<ResolvedDraw>& draws,
         std::string& error) = 0;

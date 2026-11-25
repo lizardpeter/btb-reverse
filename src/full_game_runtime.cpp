@@ -202,6 +202,20 @@ bool GameRoot::configure_credits(std::istream& source,std::string& error) {
     error.clear();return true;
 }
 
+bool GameRoot::configure_options(std::istream& source,std::string& error) {
+    // 00407390 loads origin and four RECTs; the first two rectangles
+    // precede the slider. 00429800 overrides slider Y.
+    std::array<int,18> values{};
+    for(auto& value:values){
+        if(!(source>>value)){error="invalid original options.txt";return false;}
+        if(value < -4096 || value > 4096){error="options coordinate out of bounds";return false;}
+    }
+    if(values[10]>=values[12]){error="invalid original volume slider width";return false;}
+    options_x_=values[0];options_y_=values[1];
+    slider_left_=values[10];slider_right_=values[12];
+    options_configured_=true;error.clear();return true;
+}
+
 bool GameRoot::unload_current(std::string& error) {
     if (!initialized_activity_) {
         return true;
@@ -259,6 +273,8 @@ void GameRoot::apply_effects(
         globals_.dispatcher.whole_game_quit_active=true;
     }
     if (output.open_options_overlay) {
+        modal_background_=output.draws.empty()?last_presentable_draws_:output.draws;
+        options_voice_pending_=false;
         globals_.dispatcher.options_active = true;
     }
     if (output.open_yes_no_confirmation || output.open_leave_activity_confirmation) {
@@ -533,6 +549,40 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
             // The final host frame may retain the last slide until WM_CLOSE.
             const auto index=credit_index_<credits_.size()?credit_index_:credits_.size()-1;
             result.effects.draws.push_back({credits_[index],0,0});
+            return result;
+        }
+        if(dispatch.intercept==game_flow::Intercept::Options){
+            if(!options_configured_){
+                result.kind=FrameKind::FrontEndFailed;
+                result.error="original options.txt was not configured";return result;
+            }
+            result.effects.draws=modal_background_;
+            result.effects.draws.push_back({"Data/ui/options/optionsscreen.bmp",options_x_,options_y_,{},true});
+            const int width=slider_right_-slider_left_;
+            // Draw using the pre-update percentage, like 004298AE.
+            result.effects.draws.push_back({"Data/ui/options/pointer.bmp",
+                slider_left_+volume_percent_*width/100,150,{},true});
+            if(options_voice_pending_&&!input.managed_sound_playing){
+                options_voice_pending_=false;globals_.dispatcher.options_active=false;
+                return result;
+            }
+            if(!input.pointer_position_valid)return result;
+            const int x=input.pointer_x,y=input.pointer_y;
+            if(input.pointer_button_held&&x>=slider_left_&&x<=slider_right_&&y>=150&&y<=180){
+                const int updated=(x-slider_left_)*100/width;
+                if(updated!=volume_percent_){
+                    volume_percent_=updated;result.effects.original_volume_percent=updated;
+                }
+            }
+            if(x>276&&x<393&&y>253&&y<312){
+                result.effects.draws.push_back({input.pointer_button_held?
+                    "Data/ui/options/optokdep.bmp":"Data/ui/options/optoksel.bmp",276,253,{},false});
+                if(input.pointer_release_pulse&&!options_voice_pending_){
+                    options_voice_pending_=true;
+                    result.effects.audio.push_back({AudioOperation::StopManagedSounds});
+                    result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},862,90,1,true});
+                }
+            }
             return result;
         }
         if(dispatch.intercept==game_flow::Intercept::WholeGameQuit){

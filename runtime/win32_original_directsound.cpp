@@ -228,6 +228,21 @@ bool Win32OriginalDirectSound::create_wave_buffer(
     return true;
 }
 
+bool Win32OriginalDirectSound::set_original_volume(int percent,std::string& error) {
+    if(percent<0||percent>100){error="original volume percentage out of range";return false;}
+    // 004093C0 addresses music/activity groups, not all 80 speech slots.
+    const LONG attenuation=(percent-100)*42;
+    const auto apply=[&](IDirectSoundBuffer* buffer){
+        if(!buffer)return true;
+        const auto hr=buffer->SetVolume(attenuation);
+        if(FAILED(hr)){error=hr_error("SetVolume original activity WAV",hr);return false;}
+        return true;
+    };
+    if(!apply(backing_)||!apply(activity_loop_))return false;
+    for(auto* buffer:samples_)if(!apply(buffer))return false;
+    music_attenuation_=attenuation;error.clear();return true;
+}
+
 bool Win32OriginalDirectSound::play_once(
     IDirectSoundBuffer* buffer,bool loop,
     std::string& error) {
@@ -363,6 +378,8 @@ bool Win32OriginalDirectSound::apply(
         if (!create_wave_buffer(effect.source->absolute_path,backing_,error)) {
             return false;
         }
+        const auto gain=backing_->SetVolume(music_attenuation_);
+        if(FAILED(gain)){error=hr_error("SetVolume backing WAV",gain);return false;}
         return play_once(backing_,true,error);
     }
     if (kind==SoundEffectKind::EnsureActivityLoopWav) {
@@ -371,6 +388,8 @@ bool Win32OriginalDirectSound::apply(
             release_buffer(activity_loop_);
             activity_loop_file_.clear();
             if (!create_wave_buffer(file,activity_loop_,error))return false;
+            const auto gain=activity_loop_->SetVolume(music_attenuation_);
+            if(FAILED(gain)){error=hr_error("SetVolume activity loop",gain);return false;}
             activity_loop_file_=file;
         }
         DWORD status=0;
@@ -395,6 +414,8 @@ bool Win32OriginalDirectSound::apply(
         if (!create_wave_buffer(effect.source->absolute_path,sample,error)) {
             return false;
         }
+        const auto gain=sample->SetVolume(music_attenuation_);
+        if(FAILED(gain)){error=hr_error("SetVolume activity sample",gain);release_buffer(sample);return false;}
         if (!play_once(sample,false,error)) {
             release_buffer(sample);
             return false;

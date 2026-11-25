@@ -62,6 +62,10 @@ bool Win32OriginalGameDevice::draw_ordered(
     return bink_.render_walkthrough_overlay(error);
 }
 
+bool Win32OriginalGameDevice::set_original_volume(int percent,std::string& error) {
+    return audio_.set_original_volume(percent,error);
+}
+
 bool Win32OriginalGameDevice::capture_replay_underlay(std::string& error) {
     return draw_.capture_replay_underlay(error);
 }

@@ -8,3 +8,7 @@ Source identity: original 311296-byte PE32, SHA-256 c6e35972af53e972382f095ac3ea
 - The Windows input carries the same process RNG as the activity drivers; profile narration no longer relies on an uninitialized per-frame random number.
 
 The bitmap-only snapshot is represented by draw commands, not an actual captured DirectDraw surface. Credits and quit have source regressions; physical audio, display, and native window teardown remain to be verified in an interactive Windows run. No new function-coverage claims are made here.
+
+## Options and WAV volume
+
+00407390 and 00429800 supply the authored options origin and slider width; runtime overrides slider Y to 150..180 and uses strict OK bounds 276..393, 253..312. Draw the pointer at the preceding volume, then apply the held-pointer change; voice 862 gates dismissal. Native device dispatch applies (percent-100)*42 attenuation to music/activity WAV buffers, not managed speech. Existing and subsequently created music buffers use the new setting. The remaining 004093C0 stop/restart behavior and 00409210 Bink gain are separate work, as are cinematic-backed overlay snapshots and live gain validation. The source does not invent a new Options entry in the retail menu data.
