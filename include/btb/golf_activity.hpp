@@ -86,7 +86,7 @@ struct RoundFrame {
 //   0x00415830 UpdateGolfActivity — final audio / Play Again handoff
 //
 // The inner simulation uses the recovered exact helper equations from
-// golf_runtime. Physical key transitions, eight-by-eight swing sprite timing,
+// golf_runtime. Physical key transitions, nine-by-eight swing sprite timing,
 // and sound completion remain explicit events from the native host.
 // Advance never forges those events merely to move the model forward.
 class Round {

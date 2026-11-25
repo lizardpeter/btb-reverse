@@ -1,4 +1,5 @@
 #include "btb/golf_activity.hpp"
+#include "golf_retail_trace_fixture.hpp"
 
 #include <cassert>
 #include <sstream>
@@ -89,7 +90,7 @@ int main() {
     assert(frame.ball.speed == 506);
 
     // No invented animation countdown: physics remains gated until original
-    // host reports its eight-by-eight swing sequence completion.
+    // host reports its nine-by-eight swing sequence completion.
     for (int i=0; i<128; ++i) {
         frame = round.advance({});
         assert(frame.state == RoundState::SwingAnimationDelay);
@@ -253,6 +254,9 @@ int main() {
     a=max_power.advance({});
     assert(a.state==RoundState::SwingAnimationDelay&&a.bounce_height==0);
     assert(max_power.flight_counter()==prior_counter);
+
+    const auto trace_result=trace::run([](const auto&){},[](const auto&,int,const auto&){});
+    if(!trace_result.matches()) throw std::runtime_error("original Golf frame fingerprint mismatch");
 
     Round edge(data,0);
     a=edge.advance({.aim_delta=-1,.source_mouse_aim=100});

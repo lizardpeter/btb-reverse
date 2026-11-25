@@ -70,7 +70,7 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
     }
 
     case RoundState::SwingAnimationDelay:
-        // Original code contains an 8x8 nested Bob-swing timing counter.
+        // Original code contains an 9x8 nested Bob-swing timing counter.
         // The host's original-sprite animator must supply the completion
         // event; running physics prematurely is less faithful than waiting.
         if (input.swing_animation_finished) {

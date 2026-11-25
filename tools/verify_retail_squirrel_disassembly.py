@@ -16,7 +16,7 @@ SHA = 'c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05'
 REGS = set('eax ebx ecx edx esi edi ebp esp'.split())
 
 
-def translate(pe, name, start, end):
+def translate(pe, name, start, end, extra_instruction=None):
     asm = subprocess.check_output(['objdump', '-d', '-Mintel', '--no-show-raw-insn',
         f'--start-address={start:#x}', f'--stop-address={end:#x}', str(pe)], text=True)
 
@@ -46,7 +46,9 @@ def translate(pe, name, start, end):
             continue
         pc,mn,ops=match.groups()
         args=ops.split(',') if ops.strip() else []
-        if mn=='nop': body=';'
+        extra=extra_instruction(mn,args,op) if extra_instruction else None
+        if extra is not None: body=extra
+        elif mn=='nop': body=';'
         elif mn=='ret': body='return eax;'
         elif mn=='jmp': body=f'goto L{int(args[0],16):x};'
         elif mn in conds: body=f'if(comparison{conds[mn]}) goto L{int(args[0],16):x};'
