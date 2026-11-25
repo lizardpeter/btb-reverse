@@ -230,6 +230,9 @@ void GameRoot::apply_effects(
     }
     if (output.open_progress_screen) {
         globals_.dispatcher.progress_screen_active = true;
+        progress_intro_pending_=true;
+        progress_back_hover_=false;
+        progress_help_hover_=false;
     }
     if (output.open_options_overlay) {
         globals_.dispatcher.options_active = true;
@@ -482,6 +485,65 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
         // Original 00429C90/00429FE0 run before the outer state table.
         // Preserve explicit fixture-provided confirmation input; the live
         // Win32 path supplies physical pointer-down/release samples.
+        // Original 00427C30, UpdateProgressScreen. This overlay does not
+        // change the outer state or unload the Activity Select driver.
+        if(dispatch.intercept==game_flow::Intercept::ProgressScreen){
+            if(!globals_.active_profile){
+                result.kind=FrameKind::InactiveProfile;
+                result.error="original progress screen requires an active profile";
+                return result;
+            }
+            if(progress_intro_pending_&&!input.managed_sound_playing){
+                progress_intro_pending_=false;
+                result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},954,50,2,true});
+            }
+            result.effects.draws.push_back({"Data/ui/Progress-screen.bmp",0,0,{},false});
+            const auto& record=globals_.player_progress[
+                static_cast<std::size_t>(*globals_.active_profile)];
+            for(std::size_t slot=progress::kRetailProgressFirst;
+                slot<=progress::kRetailProgressLast;++slot){
+                if(record.values[slot]<=0)continue;
+                const auto pos=progress::progress_star_position(slot);
+                result.effects.draws.push_back({"Data/ui/star.bmp",pos.x,pos.y,{},true});
+            }
+            if(!input.pointer_position_valid)return result;
+            // Reuse recovered shared Back/Help hit regions. Star-hover
+            // rectangles are not yet recovered; do not invent them.
+            const bool back=input.pointer_x>572&&input.pointer_x<617&&
+                input.pointer_y>422&&input.pointer_y<467;
+            const bool help_button=input.pointer_x>20&&input.pointer_x<65&&
+                input.pointer_y>420&&input.pointer_y<465;
+            if(back){
+                result.effects.draws.push_back({input.pointer_button_held?
+                    "Data/ui/backreddep.bmp":"Data/ui/backred.bmp",574,418,{},true});
+                if(!progress_back_hover_)
+                    result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},456,50,2});
+                if(input.pointer_release_pulse){
+                    globals_.dispatcher.progress_screen_active=false;
+                    progress_intro_pending_=false;
+                }
+            }else if(help_button){
+                result.effects.draws.push_back({input.pointer_button_held?
+                    "Data/ui/helpreddep.bmp":"Data/ui/helpred.bmp",14,418,{},true});
+                if(!progress_help_hover_)
+                    result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},455,50,2});
+                if(help_configured_&&help_exit_delay_==0&&input.pointer_release_pulse){
+                    const auto decision=help::enter_decision(
+                        globals_.dispatcher.current_state,false,true);
+                    if(decision.active){
+                        help_background_=result.effects.draws;
+                        contextual_help_.active=1;
+                        contextual_help_.context=decision.context;
+                        contextual_help_.last_region=0;
+                        result.effects.audio.push_back({AudioOperation::StopManagedSounds});
+                        result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},help::kHelpIntroSoundId,50,2});
+                    }
+                }
+            }
+            progress_back_hover_=back;
+            progress_help_hover_=help_button;
+            return result;
+        }
         const bool generic=dispatch.intercept==game_flow::Intercept::GenericYesNo;
         const bool leave=dispatch.intercept==game_flow::Intercept::LeaveCurrentActivity;
         if((generic||leave)&&input.pointer_position_valid){

@@ -190,6 +190,41 @@ int main() {
     assert(game.globals().dispatcher.current_state ==
            static_cast<int>(State::ActivitySelectSetup));
 
+    // The locked Finale overlay must use the selected player's stars
+    // and preserve Activity Select on Back release.
+    {
+        auto root=std::make_unique<GameRoot>();
+        assert(root->select_profile(1));
+        root->set_outer_state(State::ActivitySelectUpdate);
+        root->globals().dispatcher.progress_screen_active=true;
+        root->globals().player_progress[0].set(btb::progress::Slot::Golf,1);
+        root->globals().player_progress[1].set(btb::progress::Slot::DinoRaptor,1);
+        root->globals().player_progress[1].set(btb::progress::Slot::PetsCorner,1);
+        auto frame=root->advance({});
+        assert(frame.kind==FrameKind::Intercept);
+        assert(frame.dispatch.intercept==btb::game_flow::Intercept::ProgressScreen);
+        assert(frame.effects.draws.size()==3);
+        assert(frame.effects.draws[0].source_asset=="Data/ui/Progress-screen.bmp");
+        assert(frame.effects.draws[1].source_asset=="Data/ui/star.bmp");
+        assert(frame.effects.draws[1].x==282&&frame.effects.draws[1].y==307);
+        assert(frame.effects.draws[2].x==282&&frame.effects.draws[2].y==184);
+        ActivityFrameInput pointer{};
+        pointer.pointer_position_valid=true;
+        pointer.pointer_x=572;pointer.pointer_y=445;
+        pointer.pointer_release_pulse=true;
+        frame=root->advance(pointer);
+        assert(root->globals().dispatcher.progress_screen_active);
+        pointer.pointer_x=600;
+        pointer.pointer_release_pulse=false;pointer.pointer_button_held=true;
+        frame=root->advance(pointer);
+        assert(root->globals().dispatcher.progress_screen_active);
+        pointer.pointer_button_held=false;pointer.pointer_release_pulse=true;
+        frame=root->advance(pointer);
+        assert(!root->globals().dispatcher.progress_screen_active);
+        assert(root->globals().dispatcher.current_state==static_cast<int>(State::ActivitySelectUpdate));
+        assert(root->globals().player_progress[1].get(btb::progress::Slot::FireworkFinaleStarted)==0);
+    }
+
     // Original InitializeFireworksActivity writes slot 63 BEFORE the
     // authored show and certificate. This applies to the active profile
     // only and never creates a nonexistent slot-64 completion flag.

@@ -105,6 +105,8 @@ struct Host {
     // Latch fatal presentation errors so queued timer messages cannot open
     // an unbounded stack of identical modal dialogs.
     bool fatal_dialog_shown{};
+    bool frame_in_progress{};
+    int exit_code{};
     bool skip_video{};
     int selected_profile{};
     original_win32::RetailWindowState retail_window{};
@@ -550,7 +552,13 @@ LRESULT CALLBACK native_window_proc(
                         MB_OK|MB_ICONERROR);
             return -1;
         }
-        SetTimer(hwnd,kNativeTimer,16,nullptr);
+        if(!SetTimer(hwnd,kNativeTimer,16,nullptr)){
+            host->running=false;
+            host->exit_code=3;
+            MessageBoxA(hwnd,"Cannot start the native game frame timer",
+                "Native game initialization failed",MB_OK|MB_ICONERROR);
+            return -1;
+        }
         return 0;
     }
     case WM_MOUSEMOVE:
@@ -577,12 +585,18 @@ LRESULT CALLBACK native_window_proc(
     case WM_KILLFOCUS:
         host->native_input.lose_focus();return 0;
     case WM_TIMER:
-        if(wp==kNativeTimer&&!host->fatal_dialog_shown&&!host->step()){
+        if(wp!=kNativeTimer||host->fatal_dialog_shown||host->frame_in_progress||!host->running)return 0;
+        host->frame_in_progress=true;
+        {
+        const bool stepped=host->step();
+        host->frame_in_progress=false;
+        if(!stepped){
             // Stop the 16 ms frame source BEFORE entering MessageBoxA.
             // MessageBoxA pumps a nested Win32 message loop; without this
             // latch, queued WM_TIMER messages recursively open more dialogs.
             host->fatal_dialog_shown=true;
             host->running=false;
+            host->exit_code=4;
             KillTimer(hwnd,kNativeTimer);
             const auto message=host->error.empty()
               ? "Native game could not submit a complete source frame"
@@ -591,6 +605,7 @@ LRESULT CALLBACK native_window_proc(
               "Reconstructed game stopped at unsupported native dependency",
               MB_OK|MB_ICONERROR);
             if(IsWindow(hwnd))DestroyWindow(hwnd);
+        }
         }
         return 0;
     case WM_PAINT:{
@@ -610,6 +625,7 @@ LRESULT CALLBACK native_window_proc(
         {
             std::string unload_error;
             if(!host->game.unload_current(unload_error)) {
+                if(!host->exit_code)host->exit_code=5;
                 const auto msg=unload_error.empty()
                   ? "Native activity could not save its original data"
                   : unload_error;
@@ -622,11 +638,12 @@ LRESULT CALLBACK native_window_proc(
             std::string save_error;
             if(!host->game.save_profile_files(
                    host->profile_directory,save_error)) {
+                if(!host->exit_code)host->exit_code=5;
                 MessageBoxA(hwnd,save_error.c_str(),
                     "Native profile save failed",MB_OK|MB_ICONERROR);
             }
         }
-        PostQuitMessage(0);
+        PostQuitMessage(host->exit_code);
         return 0;
     default:
         return DefWindowProcW(hwnd,msg,wp,lp);
@@ -657,10 +674,12 @@ int run_recompiled_native_game(
     ShowWindow(hwnd,show);
     UpdateWindow(hwnd);
     MSG msg{};
-    while(GetMessageW(&msg,nullptr,0,0)>0){
+    BOOL received{};
+    while((received=GetMessageW(&msg,nullptr,0,0))>0){
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
     }
+    if(received<0)return 6;
     return static_cast<int>(msg.wParam);
 }
 } // namespace btb::full_game

@@ -436,6 +436,7 @@ private:
     int modal_hover_{-1},modal_armed_{-1};
     bool shared_back_hover_{};
     bool pending_confirmed_leave_{};
+    bool progress_intro_pending_{},progress_back_hover_{},progress_help_hover_{};
     [[nodiscard]] GameFrame advance_impl(const ActivityFrameInput&);
     help::State contextual_help_{};
     bool help_configured_{},help_hover_{};
