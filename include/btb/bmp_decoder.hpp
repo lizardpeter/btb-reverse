@@ -20,6 +20,9 @@ namespace btb::display {
 
 struct DecodedBitmap {
     std::uint32_t width{}, height{};
+    std::uint16_t bits_per_pixel{};
+    std::uint32_t compression{};
+    bool top_down{};
     std::vector<std::uint8_t> bgra;
 };
 
@@ -164,7 +167,8 @@ inline bool decode_bmp(std::span<const std::uint8_t> bytes,
         return fail("invalid BMP pixel-data offset");
 
     DecodedBitmap decoded;
-    decoded.width=w;decoded.height=h;
+    decoded.width=w;decoded.height=h;decoded.bits_per_pixel=bpp;
+    decoded.compression=compression;decoded.top_down=top_down;
     decoded.bgra.resize(std::size_t(w)*h*4);
     const auto put=[&](std::uint32_t x,std::uint32_t y,std::uint8_t b,
                        std::uint8_t g,std::uint8_t r,std::uint8_t a) {

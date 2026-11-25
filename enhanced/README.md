@@ -112,3 +112,26 @@ Ordinary pointer artwork is now rendered by a native Windows alpha cursor by def
 ### DirectDraw-free enhanced binary
 
 The enhanced executable now links a separate `btb_enhanced_win32_platform` static library compiled with `BTB_ENHANCED_NO_DDRAW`. DirectDraw initialization and its factory import explicitly reject use in this variant; it neither links ddraw.lib nor loads ddraw.dll dynamically. The faithful executable retains its original platform target and DirectDraw linkage. Shared compatibility source still contains legacy COM types and unreachable legacy methods; the enhanced packed scene remains the active reference composition path. CI audits normal and delay-load PE imports for both the game and its enhanced Win32 packed-scene probe, and the probe verifies that attempting legacy initialization fails and no DirectDraw module is loaded during its synthetic scene test. This is independent of GPU utilization, and does not remove DirectSound or Win32 GDI.
+
+
+## Retail bitmap coverage audit
+
+The enhanced build includes a deterministic BMP decoder independent of GDI.
+It normalizes supported BMP data into top-down BGRA8 while preserving the
+retail magenta color-key convention. Supported inputs include indexed 1/4/8-bit,
+RGB555, RGB565/BITFIELDS, 24/32-bit RGB, explicit alpha bitfields, OS/2 CORE,
+and RLE4/RLE8. Unsupported compression, malformed masks, invalid palette
+references, truncated rows, and malformed RLE commands fail closed.
+
+Run the retail asset audit against the installed game's root (or its Data
+folder) after building:
+
+```powershell
+build/enhanced/Release/btb_enhanced_bmp_asset_audit.exe "C:\Games\Bob Builds a Park"
+```
+
+The tool recursively enumerates every `.bmp` file, decodes each one, and
+reports coverage by source bit depth and compression. It exits nonzero and
+prints every failing asset if any file cannot be decoded. This is the
+complete-file-format audit; it does not replace screenshot comparison of
+in-game draw output against the retail executable.
