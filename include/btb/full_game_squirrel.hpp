@@ -46,6 +46,7 @@ public:
     [[nodiscard]] int conveyor_offset() const noexcept {return conveyor_.position;}
     [[nodiscard]] const squirrel::PlacementMotion& placement() const noexcept {return placement_;}
     [[nodiscard]] bool complete() const noexcept {return complete_;}
+    [[nodiscard]] bool level_transition_pending() const noexcept {return level_transition_pending_;}
     [[nodiscard]] int run_section() const noexcept {return assembly_.run_section;}
     [[nodiscard]] squirrel::Vec2i squirrel_displacement() const noexcept {return {assembly_.x,assembly_.y};}
     bool shared_back_available() const noexcept override {
@@ -88,6 +89,7 @@ private:
     squirrel::LoftySpeechAnimation speech_{};
     bool animating_{};
     bool complete_{};
+    bool level_transition_pending_{};
     int completion_stage_{};
     int intro_stage_{};
 };

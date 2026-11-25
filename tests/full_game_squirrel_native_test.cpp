@@ -169,6 +169,7 @@ int main() {
             assert(driver->placed_count()==selected%3);
             bool committed=false,carried=false;
             int section_completions=0,outgoing=0,incoming=0;
+            bool observed_transition_latch=false;
             bool final=selected+1==3*(difficulty+1);
             for(int tick=0;tick<3000;++tick) {
                 const int prior_section=driver->run_section();
@@ -179,6 +180,10 @@ int main() {
                 carried|=driver->placement().carrying;
                 committed|=driver->placed_count()>selected%3;
                 if(driver->run_section()==prior_section+1)++section_completions;
+                if(driver->level_transition_pending()) {
+                    observed_transition_latch=true;
+                    assert(driver->level()==level && driver->run_section()==7);
+                }
                 if(prior_phase==1)++outgoing;
                 if(prior_phase==2)++incoming;
                 for(const auto& draw:frame.effects.draws)
@@ -198,6 +203,7 @@ int main() {
             assert(driver->shared_back_available());
             if(!final) {
                 assert(outgoing==101 && incoming==84);
+                assert(observed_transition_latch==(selected%3==2));
                 assert(driver->conveyor_phase()==0 && driver->conveyor_offset()==0);
             } else {
                 assert(driver->complete());

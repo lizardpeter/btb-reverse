@@ -14,7 +14,7 @@ Point round_point(float x,float y){return {static_cast<I32>(x),static_cast<I32>(
 void sound(GolfIO& io,I32 id){io.play_sound(id,0x32,1);}
 I32 golf_band(const Golf& g) {
  if(g.shot_angle<g.radius_a)return 0;
- return g.shot_angle<g.radius_b?1:2;
+ return g.shot_angle<g.radius_b?2:1;
 }
 I32 rebound_feedback(Golf& g,GolfIO& io) {
  if(g.remaining_shots==1)return g.score<5?0x87:0x85+sample(io.random32(),2);
@@ -26,19 +26,23 @@ I32 rebound_feedback(Golf& g,GolfIO& io) {
  const float dist=io.original_distance(
    {h.x+h.offset_x,h.y+h.offset_y},round_point(g.ball_x,g.ball_y));
  if(dist>=g.close_threshold) {
-  if(g.ball_x<static_cast<float>(h.x+h.offset_x))return 0x83+sample(io.random32(),2);
+  if(g.ball_x>static_cast<float>(h.x+h.offset_x))return 0x83+sample(io.random32(),2);
   return 0x81+sample(io.random32(),2);
  }
  return 0x77+sample(io.random32(),4);
 }
-void hit_golf_targets(Golf& s,GolfIO& io){
- for(std::size_t i=0;i<s.holes.size();++i) {
-  const auto& h=s.holes[i];
-  const float d=io.original_distance(round_point(s.ball_x,s.ball_y),{h.x+h.offset_x,h.y+h.offset_y});
-  if(d<s.goal_threshold) {
-   ++s.phase;++s.hits;s.velocity=0;
+I32 hit_golf_targets(Golf& s,GolfIO& io){
+ // 004153FC truncates the distance, tests <15, and increments the raw
+ // phase for EACH matching target; landing marks use a separate counter.
+ I32 result=0;
+ for(const auto& h:s.holes) {
+  result=static_cast<I32>(io.original_distance(round_point(s.ball_x,s.ball_y),
+      {h.x+h.offset_x,h.y+h.offset_y}));
+  if(result<15) {
+   ++s.phase;result=++s.hits;s.velocity=0;
   }
  }
+ return result;
 }
 std::size_t check_index(I32 idx,std::size_t cap,const char* reason){
  if(idx<0||static_cast<std::size_t>(idx)>=cap)throw std::out_of_range(reason);
@@ -52,7 +56,7 @@ bool inside_box(const HerdingAnimal& a,Box b,HerdingIO& io,I32 x,I32 y){
 I32 update_golf_gameplay(Golf& s,GolfIO& io) {
  switch(s.phase){
  case 0: {
-  if(s.mouse_confirm){s.phase=1;s.hole=-1;s.bounce_amount=-1;}
+  if(s.mouse_confirm){s.phase=1;s.hole=-1;s.spectator_reactions={-1,-1};}
   s.shot_angle=std::clamp(88-s.cursor_x/7,0,88);
   if((s.input_mask&10)!=0){
    const auto next=s.shot_angle-1;
@@ -78,10 +82,11 @@ I32 update_golf_gameplay(Golf& s,GolfIO& io) {
   if(s.power>1000){s.power=1000;s.power_step=-s.power_step;}
   else if(s.power<0){s.power=0;s.power_step=-s.power_step;}
   if(!s.mouse_down)return s.power_step;
-  s.bounce_amount=0;s.phase=2;
+  s.landing_mark_count=0;s.phase=2;
   return s.power_step;
  }
  case 2: {
+  s.bounce_amount=0;s.bounce=1;
   s.velocity=s.power/3+500;
   s.bounce_power=((s.power/2+500)*16)/1000;
   s.remaining_energy=s.bounce_power;
@@ -95,34 +100,35 @@ I32 update_golf_gameplay(Golf& s,GolfIO& io) {
   if(++s.ball_anim<8)return s.ball_anim;
   s.phase=3;return s.ball_anim;
  case 3:{
-  if(++s.delay_count>8){s.delay_count=0;s.ball_anim=(s.ball_anim+1)%std::max(1,s.ball_anim_max);}
+  if(++s.delay_count>8){s.delay_count=0;s.ball_anim=std::min(s.ball_anim+1,s.ball_anim_max-1);}
   const U32 event_index=static_cast<U32>(s.frame_counter++);
   if((s.mode==0?(event_index%2U==0U):(event_index%10U==0U)))
-   return s.frame_counter;
+   return s.mode==0?s.frame_counter:static_cast<I32>(event_index/10U);
   const Vec2 step=io.original_vector_from_degrees(s.landed_phase,s.velocity/80);
   s.ball_x+=step.x;s.ball_y-=step.y;
   const I32 energy_loss=io.original_energy_loss(s);
   s.velocity-=std::max(10,energy_loss);
-  if(s.velocity<20){s.velocity=0;s.phase=4;}
+  if(s.velocity<20){s.velocity=0;++s.phase;}
+  I32 result=s.remaining_energy;
   if(s.remaining_energy>0||s.bounce_amount>0){
    if(s.bounce!=1){
-    const I32 decrement=std::min(8,s.remaining_energy);
-    s.bounce_amount-=decrement;
-    if(s.bounce_amount<=0){
-     if(s.hits<static_cast<I32>(s.landing_marks.size()))
-      s.landing_marks[static_cast<std::size_t>(s.hits)] = round_point(s.ball_x,s.ball_y);
-     ++s.hits;
-     s.bounce_power-=s.bounce_power/3;
-     s.remaining_energy=0;s.bounce=1;
-     s.bounce_amount=s.bounce_power;
-    }
+    result=std::min(8,s.remaining_energy);
+    s.bounce_amount-=result;
+    if(s.bounce_amount>0)return result;
+    if(s.landing_mark_count>=0 && s.landing_mark_count<static_cast<I32>(s.landing_marks.size()))
+     s.landing_marks[static_cast<std::size_t>(s.landing_mark_count)]=round_point(s.ball_x,s.ball_y);
+    ++s.landing_mark_count;
+    s.bounce_power-=s.bounce_power/3;
+    s.bounce_amount=0;s.bounce=1;
+    s.remaining_energy=s.bounce_power>=3?s.bounce_power:0;
    }else{
     s.bounce_amount+=std::min(8,s.remaining_energy);
-    if(--s.remaining_energy<=0){s.bounce=-1;s.remaining_energy=s.bounce_power;}
+    result=--s.remaining_energy;
+    if(result==0){s.bounce=-1;s.remaining_energy=s.bounce_power;}
    }
   }
-  hit_golf_targets(s,io);
-  return s.velocity;
+  if(s.bounce_amount!=0)return result;
+  return hit_golf_targets(s,io);
  }
  case 4:{
   s.ball_anim=0;s.hole=-1;
@@ -139,7 +145,7 @@ I32 update_golf_gameplay(Golf& s,GolfIO& io) {
   if(s.hole>=0)s.score+=1+s.hole*2;
   const I32 voice=rebound_feedback(s,io);
   sound(io,voice);s.last_voice=voice;
-  s.bounce_amount=0;s.phase=6;return s.phase;
+  s.landing_mark_count=0;s.phase=6;return s.phase;
  }
  case 6:
   --s.remaining_shots;s.power=0;s.ball_x=static_cast<float>(s.start_x);

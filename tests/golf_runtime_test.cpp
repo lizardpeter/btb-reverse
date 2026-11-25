@@ -1,6 +1,7 @@
 #include "btb/golf_runtime.hpp"
 
 #include <cassert>
+#include <bit>
 #include <cmath>
 
 using namespace btb::golf;
@@ -41,6 +42,24 @@ int main() {
     const auto strong = make_shot(88, 1000);
     assert(strong.angle_degrees == 88);
     assert(strong.speed == 833);
+
+    // IEEE-754 bits independently reproduced using the retail x87
+    // instruction sequence, across the complete playable angle range.
+    static_assert(std::bit_cast<std::uint64_t>(kRetailGolfRadiansPerDegree)
+        ==0x3f91df5691cb5231ull);
+    for(const auto& row:std::array<std::array<std::uint32_t,4>,4>{{
+        {{34,7,0x40b9b412,0x407a857c}},
+        {{60,10,0x409ffefd,0x410a90b1}},
+        {{88,10,0x3eb29419,0x411fe714}},
+        {{45,140,0x42c5fcdf,0x42c5fdf5}}
+    }}) {
+        const auto v=vector_from_degrees_and_magnitude(int(row[0]),int(row[1]));
+        assert(std::bit_cast<std::uint32_t>(v.x)==row[2]);
+        assert(std::bit_cast<std::uint32_t>(v.y)==row[3]);
+    }
+    const auto marker=vector_from_degrees_and_magnitude(-2,140);
+    assert(std::bit_cast<std::uint32_t>(marker.x)==0x430bea2b);
+    assert(std::bit_cast<std::uint32_t>(marker.y)==0xc09c5a14);
 
     auto velocity = velocity_for(0, 800);
     assert(std::fabs(velocity.x - 10.0f) < 0.001f);

@@ -45,18 +45,17 @@ ShotParameters make_shot(
     };
 }
 
-Vec2f velocity_for(
-    std::int32_t angle_degrees,
-    std::int32_t speed) noexcept {
-
-    constexpr double pi = 3.14159265358979323846;
-    const double radians = static_cast<double>(angle_degrees) * (pi / 180.0);
-    const auto magnitude = static_cast<float>(speed / 80);
-
+Vec2f vector_from_degrees_and_magnitude(
+    std::int32_t angle_degrees, std::int32_t magnitude) noexcept {
+    const double radians=static_cast<double>(angle_degrees)*kRetailGolfRadiansPerDegree;
     return {
-        static_cast<float>(std::cos(radians)) * magnitude,
-        static_cast<float>(std::sin(radians)) * magnitude,
+        static_cast<float>(std::cos(radians)*magnitude),
+        static_cast<float>(std::sin(radians)*magnitude),
     };
+}
+
+Vec2f velocity_for(std::int32_t angle_degrees,std::int32_t speed) noexcept {
+    return vector_from_degrees_and_magnitude(angle_degrees,speed/80);
 }
 
 void advance_ball(BallMotion& ball) noexcept {

@@ -100,6 +100,29 @@ int main(){
   assert(host.voices.back()>=0x66&&host.voices.back()<=0x71);
  }
  {
+  // A grounded contact increments the hit count, not the bounce-mark count.
+  GolfHost host;Golf s{};s.phase=3;s.frame_counter=1;s.velocity=500;
+  s.bounce=1;s.bounce_power=8;s.remaining_energy=8;
+  s.holes[0]={6,0,0,0};s.holes[1]={2000,0,0,0};s.holes[2]={3000,0,0,0};
+  update_golf_gameplay(s,host);
+  assert(s.phase==3&&s.hits==0&&s.bounce_amount==8);
+  s.frame_counter=1;s.ball_x=0;s.ball_y=0;s.velocity=500;
+  s.bounce=-1;s.bounce_amount=4;s.remaining_energy=8;
+  update_golf_gameplay(s,host);
+  assert(s.phase==4&&s.hits==1&&s.landing_mark_count==1&&s.bounce_amount==0);
+  assert(s.landing_marks[0].x==6&&s.remaining_energy==6&&s.bounce==1);
+  // Raw source increments both on low velocity and grounded target hit.
+  s.phase=3;s.frame_counter=1;s.velocity=20;s.ball_x=6;s.ball_y=0;
+  s.remaining_energy=0;s.bounce_amount=0;
+  update_golf_gameplay(s,host);
+  assert(s.phase==5&&s.hits==2);
+  s.phase=5;s.hole=-1;s.remaining_shots=4;s.shot_angle=34;
+  s.holes[2]={10,0,0,0};s.ball_x=100;s.ball_y=0;host.next=0;
+  update_golf_gameplay(s,host);assert(host.voices.back()==131);
+  s.phase=5;s.shot_angle=60;s.holes[1]={200,0,0,0};s.ball_x=100;host.next=0;
+  update_golf_gameplay(s,host);assert(host.voices.back()==129);
+ }
+ {
   SquirrelHost host;SquirrelRun s;
   s.sprite_surface=9;s.sprite_width=32;s.sprite_height=48;
   s.cadence=1;s.countdown=1;s.reset_run=0;

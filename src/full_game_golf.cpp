@@ -81,11 +81,10 @@ ActivityFrameOutput GolfDriver::compose_frame(
         const int ball_x=static_cast<int>(state.ball.position.x);
         if(state.state==golf::RoundState::Aim) {
             // 00414A60 projects a 140-pixel aiming marker at aim minus 2.
-            constexpr double rad=3.14159265358979323846/180.0;
-            const double angle=(state.aim-2)*rad;
+            const auto offset=golf::vector_from_degrees_and_magnitude(state.aim-2,140);
             out.draws.push_back({"Data\\SubGameGolf\\marker.bmp",
-                static_cast<int>(state.ball.position.x+140*std::cos(angle)-22.0),
-                static_cast<int>(state.ball.position.y-140*std::sin(angle)-22.0),
+                static_cast<int>(static_cast<double>(state.ball.position.x)+offset.x-22.0),
+                static_cast<int>(static_cast<double>(state.ball.position.y)-offset.y-22.0),
                 std::nullopt,true});
         }
         // 00414B92..00414C16: the PE float constants at 0043B394,

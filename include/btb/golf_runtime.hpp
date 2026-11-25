@@ -46,6 +46,10 @@ inline constexpr std::int32_t kPowerMaximum = 1000;
 inline constexpr std::int32_t kRetailInitialAttempts = 5;
 inline constexpr float kTargetRadius = 15.0f;
 inline constexpr float kLargeLandingRadius = 50.0f;
+// 00414A30 multiplies by the binary64 word 0x3f91df5691cb5231
+// at 0043B388, NOT pi/180. The original fcos/fsin results are each
+// multiplied by integer magnitude before the float32 store.
+inline constexpr double kRetailGolfRadiansPerDegree=0x1.1df5691cb5231p-6;
 inline constexpr double kBallSpeedDecayFraction = 0.012;
 inline constexpr std::int32_t kBallSpeedMinimumDecay = 10;
 inline constexpr std::int32_t kBallStopThreshold = 20;
@@ -61,6 +65,9 @@ void advance_power_meter(
 [[nodiscard]] ShotParameters make_shot(
     std::int32_t aim,
     std::int32_t power) noexcept;
+
+[[nodiscard]] Vec2f vector_from_degrees_and_magnitude(
+    std::int32_t angle_degrees, std::int32_t magnitude) noexcept;
 
 [[nodiscard]] Vec2f velocity_for(
     std::int32_t angle_degrees,

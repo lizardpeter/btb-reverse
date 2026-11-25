@@ -13,13 +13,16 @@ struct Point {I32 x{},y{};};
 struct Box {I32 l{},t{},r{},b{};};
 struct GolfHole {I32 x{},y{},offset_x{},offset_y{};};
 struct Golf {
- I32 phase{},shot_angle{},angle_position{},power{0},power_step{1},remaining_shots{3},
-     shot_count{},delay_count{},ball_anim{},ball_anim_max{8},bump_delay{},
+ I32 phase{},shot_angle{},angle_position{},power{0},power_step{1},remaining_shots{5},
+     shot_count{},delay_count{},ball_anim{},ball_anim_max{16},bump_delay{},
      velocity{},bounce{1},bounce_power{},remaining_energy{},bounce_amount{},
      frame_counter{},frame_rate{},hits{},hole{-1},voice_quality{},
      target_band{},feedback_ticks{},score{},last_voice{-1},difficulty{},
      cursor_x{},input_mask{},start_x{},start_y{},mode{},landed_phase{};
- I32 radius_a{20},radius_b{52};float close_threshold{22},goal_threshold{15};
+ // Exact initialized constants in the retail PE: 004437D8/DC and 0043B3A4/A8.
+ I32 radius_a{24},radius_b{50};float close_threshold{50},goal_threshold{15};
+ I32 landing_mark_count{};
+ std::array<I32,2> spectator_reactions{{-1,-1}};
  float ball_x{},ball_y{},gravity_scale{1.0f};
  bool mouse_confirm{},mouse_down{},environment_enabled{};
  std::array<I32,3> band_angle{0,60,34};

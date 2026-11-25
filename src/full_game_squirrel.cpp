@@ -62,7 +62,7 @@ bool SquirrelDriver::initialize(int player,std::string& error) {
         sprite_draw_frame_=0;sprite_draw_visible_=true;
         previous_high_sprite_=false;
         temporary_decoy_=carried_piece_=-1;speech_={};
-        animating_=false;complete_=false;
+        animating_=false;complete_=false;level_transition_pending_=false;
         completion_stage_=0;
         intro_stage_=0;
         player_=player;
@@ -276,7 +276,25 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
     // 004279F0 calls 00427320 BEFORE scene composition and input.
     // The recovered normal-speed branch moves 5px per tick, regenerates
     // once when outgoing offset exceeds 500, and returns from -420.
-    if(!complete_ && conveyor_.phase!=0) {
+    const bool transition_frame=level_transition_pending_;
+    if(transition_frame) {
+        // 004273F0 writes the transition latch after the preceding draw.
+        // 004279F0 dispatches 00425780 on the NEXT frame, before the scene.
+        // 00446A44 is initialized to 1, selecting the direct transition.
+        const auto old_origin=squirrel::source_squirrel_start_position(
+            connectors_[static_cast<std::size_t>(level_)][0]);
+        const int previous_y=old_origin->y+assembly_.y;
+        ++level_;placed_count_=0;
+        assembly_.state=squirrel::RunAssemblyAnimationState::Idle;
+        const auto next_origin=squirrel::source_squirrel_start_position(
+            connectors_[static_cast<std::size_t>(level_)][0]);
+        assembly_.x=46-next_origin->x;
+        assembly_.y=previous_y-next_origin->y;
+        assembly_.run_section=1;
+        conveyor_.phase=1;
+        level_transition_pending_=false;
+    }
+    if(!transition_frame && !complete_ && conveyor_.phase!=0) {
         const int prior=conveyor_.phase;
         retail_activity::update_squirrel_conveyor(conveyor_,false,nullptr);
         if(prior==1 && conveyor_.phase==2) {
@@ -356,6 +374,7 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         }
         return out;
     }
+    if(transition_frame)return out; // source skips placement in transition branch
     if(placement_.state!=squirrel::PlacementState::IdleSelect) {
         if(placement_.state==squirrel::PlacementState::ReturnAfterDecoy ||
            placement_.state==squirrel::PlacementState::ReturnDecoyToConveyor)
@@ -417,20 +436,7 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
             out.audio.push_back({AudioOperation::ManagedSoundId,{},
                 squirrel::level_finished_feedback_sound_id(random_stream().next_rand()%4),50,1});
         } else {
-            // 00425160 sets 00446A44=1; 00425780 takes the direct
-            // transition branch, writes absolute X=46, retains Y, resets
-            // the section to 1, and starts the conveyor.
-            const auto old_origin=squirrel::source_squirrel_start_position(
-                connectors_[static_cast<std::size_t>(level_)][0]);
-            const int previous_y=old_origin->y+assembly_.y;
-            ++level_;placed_count_=0;
-            assembly_.state=squirrel::RunAssemblyAnimationState::Idle;
-            const auto next_origin=squirrel::source_squirrel_start_position(
-                connectors_[static_cast<std::size_t>(level_)][0]);
-            assembly_.x=46-next_origin->x;
-            assembly_.y=previous_y-next_origin->y;
-            assembly_.run_section=1;
-            conveyor_.phase=1;
+            level_transition_pending_=true;
         }
         return out;
     }
@@ -462,7 +468,7 @@ bool SquirrelDriver::unload(std::string& error) {
     mouth_pose_=mouth_draw_frame_=1;
     sprite_draw_frame_=0;sprite_draw_visible_=true;previous_high_sprite_=false;
     temporary_decoy_=carried_piece_=-1;speech_={};
-    animating_=false;complete_=false;
+    animating_=false;complete_=false;level_transition_pending_=false;
     completion_stage_=0;
     intro_stage_=0;
     error.clear();
