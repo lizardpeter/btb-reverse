@@ -116,6 +116,11 @@ target_include_directories(btb_enhanced_packed_scene_tests PRIVATE ${BTB_ROOT}/i
 btb_require_cpp26(btb_enhanced_packed_scene_tests PRIVATE)
 add_test(NAME enhanced_packed_scene COMMAND btb_enhanced_packed_scene_tests)
 
+add_executable(btb_enhanced_bmp_decoder_tests ${BTB_ROOT}/enhanced/bmp_decoder_test.cpp)
+target_include_directories(btb_enhanced_bmp_decoder_tests PRIVATE ${BTB_ROOT}/include)
+btb_require_cpp26(btb_enhanced_bmp_decoder_tests PRIVATE)
+add_test(NAME enhanced_bmp_decoder COMMAND btb_enhanced_bmp_decoder_tests)
+
 add_executable(btb_enhanced_presentation_activity_tests ${BTB_ROOT}/enhanced/presentation_activity_test.cpp)
 target_include_directories(btb_enhanced_presentation_activity_tests PRIVATE ${BTB_ROOT}/include)
 btb_require_cpp26(btb_enhanced_presentation_activity_tests PRIVATE)

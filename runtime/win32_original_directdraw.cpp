@@ -1,4 +1,5 @@
 #include "btb/win32_original_directdraw.hpp"
+#include "btb/bmp_decoder.hpp"
 #include "btb/original_display3.hpp"
 #include "btb/win32_original_imports3.hpp"
 #include <functional>
@@ -252,21 +253,14 @@ bool Win32OriginalDirectDraw::blit_packed_bitmap(const ResolvedDraw& requested,s
     const auto& path=requested.source.absolute_path;
     auto it=packed_bitmaps_.find(path);
     if(it==packed_bitmaps_.end()){
-        struct BitmapHandle{HBITMAP h{};~BitmapHandle(){if(h)DeleteObject(h);}};
-        BitmapHandle bmp{static_cast<HBITMAP>(LoadImageW(nullptr,path.c_str(),IMAGE_BITMAP,0,0,LR_LOADFROMFILE|LR_CREATEDIBSECTION))};
-        BITMAP data{};
-        if(!bmp.h||GetObjectW(bmp.h,sizeof(data),&data)!=sizeof(data)||data.bmWidth<=0||data.bmHeight<=0||data.bmWidth>8192||data.bmHeight>8192){error="packed bitmap load failed: "+path.string();return false;}
-        const auto bytes=std::uint64_t(data.bmWidth)*data.bmHeight*4;
+        display::DecodedBitmap decoded;
+        if(!display::decode_bmp_file(path,decoded,error))return false;
+        const auto bytes=decoded.bgra.size();
         constexpr std::size_t budget=64*1024*1024;
-        if(bytes>budget){error="packed bitmap exceeds cache budget";return false;}
-        PackedBitmap b{unsigned(data.bmWidth),unsigned(data.bmHeight),{}};b.pixels.resize(std::size_t(bytes));
-        BITMAPINFO info{};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);info.bmiHeader.biWidth=data.bmWidth;
-        info.bmiHeader.biHeight=-data.bmHeight;info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;info.bmiHeader.biCompression=BI_RGB;
-        HDC dc=GetDC(nullptr);if(!dc){error="packed bitmap device context unavailable";return false;}
-        const auto rows=GetDIBits(dc,bmp.h,0,data.bmHeight,b.pixels.data(),&info,DIB_RGB_COLORS);ReleaseDC(nullptr,dc);
-        if(rows!=data.bmHeight){error="packed bitmap conversion failed: "+path.string();return false;}
+        if(bytes>budget){error="packed bitmap exceeds cache budget: "+path.string();return false;}
+        PackedBitmap b{decoded.width,decoded.height,std::move(decoded.bgra)};
         if(packed_bitmap_bytes_+bytes>budget){packed_bitmaps_.clear();packed_bitmap_bytes_=0;}
-        packed_bitmap_bytes_+=std::size_t(bytes);it=packed_bitmaps_.emplace(path,std::move(b)).first;
+        packed_bitmap_bytes_+=bytes;it=packed_bitmaps_.emplace(path,std::move(b)).first;
     }
     const auto& b=it->second;
     if(!packed_scene_.blit(b.pixels,b.width,b.height,requested.original)){error="packed sprite rectangle invalid: "+requested.original.source_asset;return false;}
