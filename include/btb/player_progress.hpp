@@ -185,6 +185,19 @@ void write_record(std::ostream& out, const Record& record);
     return completed;
 }
 
+// 00427C30: the hover rectangle covers the star coordinates through +30,
+// inclusively, even when that star has not yet been earned. 63/64 have no
+// narration branch. The four multi-part activities report group completion.
+struct ProgressNarrationGroup { std::size_t first{}, count{}; };
+[[nodiscard]] constexpr ProgressNarrationGroup narration_group(std::size_t slot) noexcept {
+    if(slot==50||slot==51||slot==55)return {slot,1};
+    if(slot>=52&&slot<=54)return {52,3};
+    if(slot>=56&&slot<=58)return {56,3};
+    if(slot>=59&&slot<=60)return {59,2};
+    if(slot>=61&&slot<=62)return {61,2};
+    return {};
+}
+
 // Mr Bentley progress narration. Retail uses 955/956 as interchangeable
 // positive-completion lines and 957..959 for one/two/three items remaining.
 [[nodiscard]] constexpr std::int32_t progress_feedback_sound(

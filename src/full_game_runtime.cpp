@@ -184,6 +184,24 @@ bool GameRoot::configure_completion_movies(std::istream& source,
     return true;
 }
 
+bool GameRoot::configure_credits(std::istream& source,std::string& error) {
+    // 004069C0 reads into ten 128-byte filename slots; no embedded
+    // replacement slides. Commit the list only when the full parse succeeds.
+    std::vector<std::string> candidate;
+    std::string path;
+    while(source>>path){
+        if(path.size()>=128||candidate.size()>=10){
+            error="credits.txt exceeds original filename/table capacity";return false;
+        }
+        candidate.push_back(std::move(path));
+    }
+    if(source.bad()||!source.eof()||candidate.empty()){
+        error="credits.txt is empty or unreadable";return false;
+    }
+    credits_=std::move(candidate);
+    error.clear();return true;
+}
+
 bool GameRoot::unload_current(std::string& error) {
     if (!initialized_activity_) {
         return true;
@@ -233,6 +251,12 @@ void GameRoot::apply_effects(
         progress_intro_pending_=true;
         progress_back_hover_=false;
         progress_help_hover_=false;
+    }
+    if(output.open_whole_game_quit){
+        modal_background_=output.draws.empty()?last_presentable_draws_:output.draws;
+        modal_hover_=-1;
+        quit_voice_pending_=false;
+        globals_.dispatcher.whole_game_quit_active=true;
     }
     if (output.open_options_overlay) {
         globals_.dispatcher.options_active = true;
@@ -437,6 +461,8 @@ GameFrame GameRoot::advance(const ActivityFrameInput& sample) {
         }
     }
     help_hover_=over;
+    if(!result.effects.draws.empty()&&result.kind!=FrameKind::Intercept)
+        last_presentable_draws_=result.effects.draws;
     return result;
 }
 
@@ -482,6 +508,67 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
     }
     if (!dispatch.dispatch) {
         result.kind = FrameKind::Intercept;
+        if(dispatch.intercept==game_flow::Intercept::ShutdownOrCredits){
+            using application::ShutdownPhase;
+            auto& phase=globals_.dispatcher.shutdown_phase;
+            if(credits_.empty()){
+                result.kind=FrameKind::FrontEndFailed;
+                result.error="original credits.txt was not configured";return result;
+            }
+            if(phase==ShutdownPhase::BeginCredits){
+                if(!unload_current(result.error)){
+                    result.kind=FrameKind::FrontEndFailed;return result;
+                }
+                credit_index_=0;credit_start_cs_=input.elapsed_centiseconds;
+                phase=ShutdownPhase::CreditsPlaying;
+            }else if(phase==ShutdownPhase::CreditsPlaying){
+                // 00406AD0 advances on 004FBE54 or when the integer
+                // elapsed-seconds delta is strictly greater than four.
+                const auto elapsed=static_cast<long long>(input.elapsed_centiseconds)-credit_start_cs_;
+                if(input.click_pulse||elapsed>=500){
+                    ++credit_index_;credit_start_cs_=input.elapsed_centiseconds;
+                    if(credit_index_>=credits_.size())phase=ShutdownPhase::FinalTeardown;
+                }
+            }
+            // The final host frame may retain the last slide until WM_CLOSE.
+            const auto index=credit_index_<credits_.size()?credit_index_:credits_.size()-1;
+            result.effects.draws.push_back({credits_[index],0,0});
+            return result;
+        }
+        if(dispatch.intercept==game_flow::Intercept::WholeGameQuit){
+            // 00429AA0 is distinct from both delete and leave-activity.
+            result.effects.draws=modal_background_;
+            result.effects.draws.push_back({"Data/ui/main/quitmain.bmp",0,0,{},true});
+            if(quit_voice_pending_){
+                if(!input.managed_sound_playing){
+                    globals_.dispatcher.whole_game_quit_active=false;
+                    globals_.dispatcher.shutdown_phase=application::ShutdownPhase::BeginCredits;
+                }
+                return result;
+            }
+            if(!input.pointer_position_valid)return result;
+            const int x=input.pointer_x,y=input.pointer_y;
+            const int hit=y>260&&y<316?(x>220&&x<305?0:x>334&&x<420?1:-1):-1;
+            if(hit>=0){
+                const char* art=hit==0?(input.pointer_button_held?"Data/ui/playagain/payesdep.bmp":"Data/ui/playagain/payessel.bmp"):
+                    (input.pointer_button_held?"Data/ui/playagain/panodep.bmp":"Data/ui/playagain/panosel.bmp");
+                result.effects.draws.push_back({art,hit==0?220:334,260,{},false});
+                if(hit!=modal_hover_)
+                    result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},453+hit,50,2});
+                if(input.pointer_release_pulse){
+                    if(hit==1){
+                        globals_.dispatcher.whole_game_quit_active=false;
+                        profile_screen_state_.quit_overlay_active=false;
+                    }else{
+                        quit_voice_pending_=true;
+                        result.effects.audio.push_back({AudioOperation::StopManagedSounds});
+                        result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},626+(input.next_original_random()&3),90,1});
+                    }
+                }
+            }
+            modal_hover_=hit;
+            return result;
+        }
         // Original 00429C90/00429FE0 run before the outer state table.
         // Preserve explicit fixture-provided confirmation input; the live
         // Win32 path supplies physical pointer-down/release samples.
@@ -502,13 +589,23 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
                 static_cast<std::size_t>(*globals_.active_profile)];
             for(std::size_t slot=progress::kRetailProgressFirst;
                 slot<=progress::kRetailProgressLast;++slot){
-                if(record.values[slot]<=0)continue;
                 const auto pos=progress::progress_star_position(slot);
-                result.effects.draws.push_back({"Data/ui/star.bmp",pos.x,pos.y,{},true});
+                if(record.values[slot]>0)
+                    result.effects.draws.push_back({"Data/ui/star.bmp",pos.x,pos.y,{},true});
+                const auto group=progress::narration_group(slot);
+                if(group.count&&input.pointer_position_valid&&
+                   input.pointer_x>=pos.x&&input.pointer_x<=pos.x+30&&
+                   input.pointer_y>=pos.y&&input.pointer_y<=pos.y+30&&
+                   progress_hover_slot_!=static_cast<int>(slot)){
+                    progress_hover_slot_=static_cast<int>(slot);
+                    const auto count=progress::completed_count(record,group.first,group.count);
+                    const int bit=count==static_cast<int>(group.count)?input.next_original_random()&1:0;
+                    result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},
+                        progress::progress_feedback_sound(count,static_cast<int>(group.count),bit),50,2});
+                }
             }
             if(!input.pointer_position_valid)return result;
-            // Reuse recovered shared Back/Help hit regions. Star-hover
-            // rectangles are not yet recovered; do not invent them.
+            // Shared Back/Help hit regions are independent of the stars.
             const bool back=input.pointer_x>572&&input.pointer_x<617&&
                 input.pointer_y>422&&input.pointer_y<467;
             const bool help_button=input.pointer_x>20&&input.pointer_x<65&&
@@ -605,6 +702,19 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
     }
 
     const auto& state = *dispatch.dispatch;
+    if(state.state==game_flow::State::QuitTransitionSetup){
+        modal_background_=last_presentable_draws_;
+        result.effects.draws=modal_background_;
+        set_outer_state(game_flow::State::OpenWholeGameQuitConfirmation);
+        result.state_changed=true;result.kind=FrameKind::FrontEndUpdated;return result;
+    }
+    if(state.state==game_flow::State::OpenWholeGameQuitConfirmation){
+        result.effects.draws=modal_background_;
+        result.effects.open_whole_game_quit=true;
+        apply_effects(result.effects);
+        set_outer_state(game_flow::State::ActivitySelectSetup);
+        result.state_changed=true;result.kind=FrameKind::FrontEndUpdated;return result;
+    }
     if (state.state == game_flow::State::StartupMoviesThenProfileSetup) {
         if (startup_video_sequence_.empty()) {
             result.kind = FrameKind::FrontEndFailed;

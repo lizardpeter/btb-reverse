@@ -1,6 +1,7 @@
 #include "btb/full_game_runtime.hpp"
 
 #include <cassert>
+#include <sstream>
 #include <memory>
 #include <string>
 #include <utility>
@@ -223,6 +224,74 @@ int main() {
         assert(!root->globals().dispatcher.progress_screen_active);
         assert(root->globals().dispatcher.current_state==static_cast<int>(State::ActivitySelectUpdate));
         assert(root->globals().player_progress[1].get(btb::progress::Slot::FireworkFinaleStarted)==0);
+    }
+
+    // Direct 00427C30 hover rectangles, missing-star narration, and
+    // demand-driven shared CRT RNG. Leaving a star does not reset its latch.
+    {
+        auto root=std::make_unique<GameRoot>();
+        assert(root->select_profile(0));
+        root->set_outer_state(State::ActivitySelectUpdate);
+        root->globals().dispatcher.progress_screen_active=true;
+        auto& record=root->globals().player_progress[0];
+        record.set(btb::progress::Slot::PetsCorner,1);
+        btb::retail::OriginalRetailRandom rng(1),oracle(1);
+        ActivityFrameInput in{};
+        in.pointer_position_valid=true;in.original_random=&rng;
+        in.pointer_x=312;in.pointer_y=337; // inclusive Pets Corner edge
+        auto frame=root->advance(in);
+        assert(frame.effects.audio.size()==1);
+        assert(frame.effects.audio.back().sound_id==955+(oracle.next_rand()&1));
+        assert(rng.state()==oracle.state());
+        in.pointer_x=0;in.pointer_y=0;
+        assert(root->advance(in).effects.audio.empty());
+        in.pointer_x=282;in.pointer_y=307;
+        assert(root->advance(in).effects.audio.empty());
+        in.pointer_x=282;in.pointer_y=266; // unearned three-part Band
+        frame=root->advance(in);
+        assert(frame.effects.audio.size()==1&&frame.effects.audio.back().sound_id==959);
+        assert(rng.state()==oracle.state());
+        in.pointer_x=282;in.pointer_y=307;
+        frame=root->advance(in);
+        assert(frame.effects.audio.back().sound_id==955+(oracle.next_rand()&1));
+        assert(rng.state()==oracle.state());
+    }
+
+    // Quit cancellation and confirmation do not mutate or delete profiles.
+    // Credits advance on clicks or the retail >4-second integer threshold.
+    {
+        auto root=std::make_unique<GameRoot>();
+        std::istringstream credits("credits1.bmp credits2.bmp credits3.bmp");
+        std::string error;
+        assert(root->configure_credits(credits,error));
+        root->set_outer_state(State::PlayerProfileAndNameEntry);
+        root->globals().dispatcher.whole_game_quit_active=true;
+        ActivityFrameInput in{};
+        in.pointer_position_valid=true;in.pointer_x=350;in.pointer_y=275;
+        in.pointer_release_pulse=true;
+        auto frame=root->advance(in);
+        assert(!root->globals().dispatcher.whole_game_quit_active);
+        assert(frame.effects.draws.front().source_asset=="Data/ui/main/quitmain.bmp");
+        root->globals().dispatcher.whole_game_quit_active=true;
+        in.pointer_x=240;in.random_value=3;
+        frame=root->advance(in);
+        assert(frame.effects.audio.back().sound_id==629);
+        in.pointer_release_pulse=false;in.managed_sound_playing=true;
+        root->advance(in);
+        assert(root->globals().dispatcher.shutdown_phase==btb::application::ShutdownPhase::Running);
+        in.managed_sound_playing=false;
+        root->advance(in);
+        assert(root->globals().dispatcher.shutdown_phase==btb::application::ShutdownPhase::BeginCredits);
+        frame=root->advance(in);
+        assert(frame.effects.draws.front().source_asset=="credits1.bmp");
+        in.elapsed_centiseconds=499;
+        assert(root->advance(in).effects.draws.front().source_asset=="credits1.bmp");
+        in.elapsed_centiseconds=500;
+        assert(root->advance(in).effects.draws.front().source_asset=="credits2.bmp");
+        in.click_pulse=true;
+        assert(root->advance(in).effects.draws.front().source_asset=="credits3.bmp");
+        root->advance(in);
+        assert(root->globals().dispatcher.shutdown_phase==btb::application::ShutdownPhase::FinalTeardown);
     }
 
     // Original InitializeFireworksActivity writes slot 63 BEFORE the

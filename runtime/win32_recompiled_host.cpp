@@ -191,6 +191,8 @@ struct Host {
         }
         if(!game.configure_completion_movies(completion_movies,out_error))
             return false;
+        std::ifstream credits(loaddata/"credits.txt");
+        if(!game.configure_credits(credits,out_error))return false;
         std::ifstream help_info(loaddata/"helpinfo.txt");
         if(!help_info){out_error="original loaddata/helpinfo.txt missing";return false;}
         if(!game.configure_contextual_help(help_info,out_error))return false;
@@ -449,6 +451,7 @@ struct Host {
                 h.pointer_x,h.pointer_y,timeGetTime());
             input.pointer_position_valid=true;
             input.original_windowed_display=h.retail_window.windowed;
+            input.original_random=&h.original_game_random;
             const auto click=consume_native_click(h.native_input.click_pulse);
             input.click_pulse=click.activity_click;
             const auto entry_state=h.game.globals().dispatcher.current_state;
@@ -506,6 +509,8 @@ struct Host {
             running=false;
             return false;
         }
+        if(game.globals().dispatcher.shutdown_phase==application::ShutdownPhase::FinalTeardown)
+            PostMessageW(window,WM_CLOSE,0,0);
         return true; // idle-ms and recoverable DD7 frames must not quit
     }
 

@@ -133,7 +133,7 @@ bool NativeProfileScreenAdapter::sound_playing(int id) {
     return false;
 }
 unsigned NativeProfileScreenAdapter::next_random() {
-    return static_cast<unsigned>(input_.random_value);
+    return static_cast<unsigned>(input_.next_original_random());
 }
 void NativeProfileScreenAdapter::play_voice(
     int id,int priority,int arbitration_class) {
@@ -187,9 +187,8 @@ void NativeProfileScreenAdapter::draw_button(int button,bool pressed) {
     });
 }
 void NativeProfileScreenAdapter::restore_quit_snapshot() {
-    // The shared quit confirmation UI, rather than the profile screen,
-    // owns the modal. The GameRoot already has an original Yes/No gate.
-    output_->open_yes_no_confirmation=true;
+    // 00429AA0 is the whole-game quit modal, not the profile-delete gate.
+    output_->open_whole_game_quit=true;
 }
 void NativeProfileScreenAdapter::truncate_activity_file(
     const std::string& filename) {

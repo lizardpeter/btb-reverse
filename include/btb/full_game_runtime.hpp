@@ -7,6 +7,7 @@
 #include "btb/full_game_replay_transition.hpp"
 #include "btb/full_game_startup_movies.hpp"
 #include "btb/player_progress.hpp"
+#include "btb/retail_crt_random.hpp"
 #include "btb/player_profiles.hpp"
 #include "btb/profile_name_entry.hpp"
 #include "btb/original_profile_screen.hpp"
@@ -234,6 +235,11 @@ struct ActivityFrameInput {
     // Original DAT_0044DE0C; supplied by the physical Win32 host.
     // Source fixtures default to the fullscreen branch.
     bool original_windowed_display{};
+    // Shared process RNG: only advance when an original call site consumes rand().
+    retail::OriginalRetailRandom* original_random{};
+    [[nodiscard]] int next_original_random() const noexcept {
+        return original_random?original_random->next_rand():random_value;
+    }
 };
 
 struct ActivityFrameOutput {
@@ -250,6 +256,7 @@ struct ActivityFrameOutput {
     bool open_leave_activity_confirmation{};
     bool open_progress_screen{};
     bool open_options_overlay{};
+    bool open_whole_game_quit{};
     std::optional<int> negative_ui_action{};
     std::optional<int> yes_no_context{};
     // Runtime provider failures must not silently submit a partially
@@ -402,6 +409,7 @@ public:
     // Non-retail --skip-bink mode: skip the intro sequence, not profile setup.
     void skip_startup_video_sequence() noexcept;
     [[nodiscard]] bool configure_completion_movies(std::istream&,std::string&);
+    [[nodiscard]] bool configure_credits(std::istream&,std::string&);
     [[nodiscard]] bool configure_contextual_help(std::istream&,std::string&);
     [[nodiscard]] bool load_profile_files(
         const std::filesystem::path& directory,
@@ -437,6 +445,12 @@ private:
     bool shared_back_hover_{};
     bool pending_confirmed_leave_{};
     bool progress_intro_pending_{},progress_back_hover_{},progress_help_hover_{};
+    int progress_hover_slot_{-1};
+    bool quit_voice_pending_{};
+    std::vector<Draw> last_presentable_draws_{};
+    std::vector<std::string> credits_{};
+    std::size_t credit_index_{};
+    int credit_start_cs_{};
     [[nodiscard]] GameFrame advance_impl(const ActivityFrameInput&);
     help::State contextual_help_{};
     bool help_configured_{},help_hover_{};
