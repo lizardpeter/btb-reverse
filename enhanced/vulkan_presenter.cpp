@@ -278,7 +278,7 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
             if(x>=0&&x<640&&y>=0&&y<480){
                 if(native_cursor_ready_){if(GetCursor()!=native_cursor_.get())SetCursor(native_cursor_.get());}
                 else if(native_cursor_.get()&&GetCursor()==native_cursor_.get())SetCursor(nullptr);
-            }else if(native_cursor_.get()&&GetCursor()==native_cursor_.get())SetCursor(LoadCursorW(nullptr,IDC_ARROW));
+            }else if(native_cursor_.get()&&GetCursor()==native_cursor_.get())SetCursor(LoadCursorW(nullptr,MAKEINTRESOURCEW(32512)));
         }
     }
     CursorStamp live_cursor(){
