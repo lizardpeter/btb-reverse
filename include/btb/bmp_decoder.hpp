@@ -81,7 +81,8 @@ inline bool decode_bmp(std::span<const std::uint8_t> bytes,
     const std::uint32_t dib_size=u32(bytes,14);
     if(dib_size==12) {
         if(!range(14,12,limit))return fail("truncated OS/2 CORE header");
-    } else if(dib_size<40 || !range(14,dib_size,limit)) {
+    } else if((dib_size!=40 && dib_size!=52 && dib_size!=56 &&
+                dib_size!=108 && dib_size!=124) || !range(14,dib_size,limit)) {
         return fail("unsupported or truncated BMP DIB header");
     }
 
@@ -122,6 +123,10 @@ inline bool decode_bmp(std::span<const std::uint8_t> bytes,
         if(embedded) {
             red_mask=u32(bytes,54);green_mask=u32(bytes,58);blue_mask=u32(bytes,62);
             if(dib_size>=56)alpha_mask=u32(bytes,66);
+            else if(compression==kAlphaBitfields) {
+                if(!range(palette_offset,4,limit))return fail("truncated BMP alpha mask");
+                alpha_mask=u32(bytes,palette_offset);palette_offset+=4;
+            }
         } else {
             const std::size_t count=compression==kAlphaBitfields?4:3;
             if(!range(palette_offset,count*4,limit))return fail("truncated BMP channel masks");

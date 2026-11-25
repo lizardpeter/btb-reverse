@@ -97,12 +97,26 @@ int main(){
     auto delta=make(4,2,8,1,p4,{1,1,0,2,1,0,1,2,0,1},{},4);
     if(!decode_bmp(delta,out,error)||!pixel(out,0,1,255,0,0)||
        !pixel(out,1,1,0,0,0)||!pixel(out,2,1,0,255,0))return fail("RLE8 delta",error);
+    // RLE4 absolute mode packs alternating nibbles and WORD padding.
+    auto rle4_absolute=make(5,1,4,2,p4,{0,5,0x12,0x34,0x50,0,0,1},{},4);
+    if(!decode_bmp(rle4_absolute,out,error)||!pixel(out,0,0,255,0,0)||
+       !pixel(out,1,0,0,255,0)||!pixel(out,2,0,0,0,255)||
+       !pixel(out,3,0,0,0,0)||!pixel(out,4,0,255,0,0))return fail("RLE4 absolute",error);
     // OS/2 CORE header, 24-bit pixel row.
     std::vector<std::uint8_t> core(14+12+4);
     core[0]='B';core[1]='M';put32(core,2,std::uint32_t(core.size()));put32(core,10,26);
     put32(core,14,12);put16(core,18,1);put16(core,20,1);put16(core,22,1);put16(core,24,24);
     core[26]=0;core[27]=0;core[28]=255;core[29]=0;
     if(!decode_bmp(core,out,error)||!pixel(out,0,0,255,0,0))return fail("OS/2 CORE",error);
+    // BITMAPV2INFOHEADER RGB masks with an external BI_ALPHABITFIELDS alpha mask.
+    std::vector<std::uint8_t> v2(14+52+4+4);
+    v2[0]='B';v2[1]='M';put32(v2,2,std::uint32_t(v2.size()));put32(v2,10,70);
+    put32(v2,14,52);put32(v2,18,1);put32(v2,22,1);put16(v2,26,1);put16(v2,28,32);
+    put32(v2,30,6);put32(v2,34,4);put32(v2,54,0x00ff0000);put32(v2,58,0x0000ff00);
+    put32(v2,62,0x000000ff);put32(v2,66,0xff000000);
+    v2[70]=0x33;v2[71]=0x22;v2[72]=0x11;v2[73]=0x80;
+    if(!decode_bmp(v2,out,error)||!pixel(out,0,0,0x11,0x22,0x33,0x80))
+        return fail("V2 header external alpha mask",error);
     // Reject truncated data, bad palettes, malformed masks and unsupported compression.
     auto truncated=b24;truncated.pop_back();
     if(decode_bmp(truncated,out,error)||out.width)return fail("truncated BMP accepted");
@@ -112,6 +126,8 @@ int main(){
     if(decode_bmp(bad_masks,out,error))return fail("overlapping masks accepted");
     auto bad_compression=make(1,1,24,4,{}, {0,0,0,0});
     if(decode_bmp(bad_compression,out,error))return fail("unsupported compression accepted");
+    auto unsupported_header=b24;put32(unsupported_header,14,64);
+    if(decode_bmp(unsupported_header,out,error))return fail("unsupported OS/2 V2 header accepted");
     auto bad_offset=b24;put32(bad_offset,10,0xfffffff0u);
     if(decode_bmp(bad_offset,out,error))return fail("invalid pixel offset accepted");
     std::cout<<"PASS: BMP formats 1/4/8/16/24/32-bit, top-down, palettes, RGB555/565, alpha masks, RLE4/RLE8, OS/2 CORE, malformed-input guards\n";
