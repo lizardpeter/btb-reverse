@@ -306,5 +306,14 @@ int main() {
         assert(!frame.fatal_error&&driver.conveyor_state().window_counter==prior+1);
         assert(driver.unload(error));
     }
+#ifndef _WIN32
+    fs::rename(root/"Data"/"SubGameSquirrel",root/"Data"/"subgamesquirrel");
+    {
+        fg::SquirrelDriver mixed_case(root,0);
+        std::string error;
+        assert(mixed_case.initialize(0,error));
+        assert(mixed_case.unload(error));
+    }
+#endif
     fs::remove_all(root);
 }

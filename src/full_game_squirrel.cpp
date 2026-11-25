@@ -1,4 +1,5 @@
 #include "btb/full_game_squirrel.hpp"
+#include "btb/original_asset_resolver.hpp"
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
@@ -38,7 +39,9 @@ bool SquirrelDriver::initialize(int player,std::string& error) {
         error="invalid Squirrel Run profile or difficulty";
         return false;
     }
-    std::ifstream source(root_/"Data"/"SubGameSquirrel"/"sqdata.txt");
+    const auto source_path=OriginalAssetResolver(root_).resolve("Data/SubGameSquirrel/sqdata.txt");
+    if(!source_path.found()){error=source_path.error;return false;}
+    std::ifstream source(source_path.absolute_path);
     if(!source) {error="retail Data/SubGameSquirrel/sqdata.txt missing";return false;}
     try {
         auto candidate=std::make_unique<squirrel::Data>(

@@ -1384,6 +1384,11 @@ foreach(test_name IN ITEMS
     add_test(NAME ${test_name} COMMAND ${target_name})
     list(APPEND BTB_HERDING_INTEGRATED_TARGETS ${target_name})
 endforeach()
+# Compile installed-data diagnostics in CI; execute only with the real assets.
+add_executable(btb_retail_golf_squirrel_playthrough
+    ${BTB_ROOT}/tools/native/retail_golf_squirrel_playthrough.cpp)
+target_link_libraries(btb_retail_golf_squirrel_playthrough PRIVATE btb_recompiled_core)
+btb_require_cpp26(btb_retail_golf_squirrel_playthrough PRIVATE)
 add_custom_target(btb_herding_source_regressions DEPENDS
     ${BTB_HERDING_PURE_TARGETS} ${BTB_HERDING_INTEGRATED_TARGETS})
 
