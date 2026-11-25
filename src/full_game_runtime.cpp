@@ -743,6 +743,8 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
             result.kind=FrameKind::FrontEndRequiresAdapter;
             return result;
         }
+        if(profile_screen_state_.outer_state!=static_cast<int>(state.state))
+            profile_screen_state_={};
         if (!profile_screen_driver_->begin_frame(
                 effective_input,result.effects,result.error)) {
             result.kind=FrameKind::FrontEndFailed;
@@ -781,7 +783,14 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
         // Retail profile deletion truncates the activity files through
         // 0042E110; the shared metadata and visible progress must also be
         // flushed immediately, not left only in memory until a later game.
-        if (confirmed_profile_delete && !profile_directory_.empty()) {
+        if(confirmed_profile_delete&&globals_.active_profile==profile_screen_state_.deletion_profile){
+            globals_.active_profile.reset();
+            globals_.finale_gate={};
+            activity_select_initialized_=false;
+            generic_front_end_initialized_.fill(false);
+        }
+        if ((confirmed_profile_delete || globals_.dispatcher.current_state!=old_state) &&
+            !profile_directory_.empty()) {
             if (!save_profile_files(profile_directory_,result.error)) {
                 result.kind=FrameKind::FrontEndFailed;
                 return result;

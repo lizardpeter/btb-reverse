@@ -110,6 +110,21 @@ int main() {
         assert(game.globals().dispatcher.current_state==
                static_cast<int>(State::ActivitySelectSetup));
         assert(game.globals().player_progress[2].values[0]==1);
+        // Re-enter the same selector (no new driver) and choose every
+        // other player. The previous state=4 cannot suppress transitions.
+        for(int player:{4,0,1,3,2}){
+            auto& p=game.globals().profile_metadata[static_cast<std::size_t>(player)];
+            p.name_length=1;p.badge_index=player;p.name_glyph_codes[0]=32;
+            game.set_outer_state(State::PlayerProfileAndNameEntry);
+            const auto& rect=btb::profiles::kProfileHitRects[static_cast<std::size_t>(player)];
+            frame=game.advance({.pointer_x=(rect.left+rect.right)/2,
+                                .pointer_y=(rect.top+rect.bottom)/2,.click_pulse=true});
+            assert(!frame.state_changed);
+            frame=game.advance({});
+            assert(frame.state_changed);
+            assert(game.globals().active_profile==player);
+            assert(game.globals().dispatcher.current_state==static_cast<int>(State::ActivitySelectSetup));
+        }
     }
     {
         GameRoot game;

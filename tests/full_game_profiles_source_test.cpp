@@ -128,6 +128,38 @@ int main() {
         progress::Slot::BobsBandBob) == 0);
     assert(third.globals().player_progress[3].values[17] == 53);
 
+    // Invalid metadata must not truncate the prior on-disk generation.
+    third.globals().profile_metadata[0].name_length=10;
+    assert(!third.save_profile_files(path,error));
+    assert(!fs::exists(path/".btb-profile-write"));
+    fg::GameRoot intact;
+    assert(intact.load_profile_files(path,error));
+    assert(intact.globals().profile_metadata[0].name_length==0);
+    assert(intact.globals().player_progress[3].values[17]==53);
+    third.globals().profile_metadata[0].name_length=0;
+
+    // A late destination obstruction is detected before any file is moved.
+    fs::rename(path/"player5.txt",path/"player5.saved");
+    fs::create_directory(path/"player5.txt");
+    third.globals().player_progress[3].values[17]=999;
+    assert(!third.save_profile_files(path,error));
+    assert(!fs::exists(path/".btb-profile-write"));
+    fs::remove(path/"player5.txt");
+    fs::rename(path/"player5.saved",path/"player5.txt");
+    assert(intact.load_profile_files(path,error));
+    assert(intact.globals().player_progress[3].values[17]==53);
+
+    // An unfinished generation blocks both loading and replacing files.
+    fs::create_directory(path/".btb-profile-write");
+    assert(!third.save_profile_files(path,error));
+    assert(!intact.load_profile_files(path,error));
+    assert(intact.globals().player_progress[3].values[17]==53);
+    fs::remove(path/".btb-profile-write");
+    assert(third.save_profile_files(path,error));
+    assert(intact.load_profile_files(path,error));
+    assert(intact.globals().player_progress[3].values[17]==999);
+    third.globals().player_progress[3].values[17]=53;
+
     // Corrupt progress files must not partially replace a loaded session.
     {
         std::ofstream out(path / "player2.txt",std::ios::trunc);
