@@ -37,17 +37,18 @@ NativeSessionFrame NativeGameSession::tick(
     std::string error;
     // 0042A2C0 intercepts call 00409260 BEFORE the global movie
     // update. A stopped movie must not report decoder EOS behind a modal.
-    const bool pause=!skip_video_&&game_flow::dispatch_step(
+    const bool shutting_down=root_.globals().dispatcher.shutdown_phase!=application::ShutdownPhase::Running;
+    const bool pause=!skip_video_&&!shutting_down&&game_flow::dispatch_step(
         root_.globals().dispatcher).pause_global_movie;
     input.physical_help_snapshot_available=device_.supports_captured_underlays();
     // Restore the last submitted movie pixels on EVERY unpaused tick:
     // BinkWait can leave pixels untouched and fullscreen Flip swaps buffers.
     // The independent snapshot also restores the pre-modal movie image.
-    if(!pause&&global_snapshot_valid_&&
+    if(!shutting_down&&!pause&&global_snapshot_valid_&&
        !device_.draw_captured_underlay(CapturedUnderlay::GlobalMovie,{},error)){
         fail(frame,PhysicalPresentationStage::SubmitDraw,error);return frame;
     }
-    if(pause!=global_movie_paused_){
+    if(!shutting_down&&pause!=global_movie_paused_){
         if(!device_.set_global_movie_paused(pause,error)){
             fail(frame,PhysicalPresentationStage::ObserveDevice,error);return frame;
         }
@@ -59,6 +60,7 @@ NativeSessionFrame NativeGameSession::tick(
     }
 
     input.managed_sound_playing = physical.any_managed_voice_playing;
+    if(physical.backing_track_playing)input.backing_track_playing=*physical.backing_track_playing;
     // Profile selection uses IsSoundIdPlaying on particular IDs, not the
     // aggregate any-playing test. This keeps unrelated hover/narration
     // voices from preventing a new player from being selected.
@@ -156,6 +158,7 @@ NativeSessionFrame NativeGameSession::tick(
     };
 
     if (game.close_original_global_movie) {
+        global_snapshot_valid_=false;global_movie_paused_=false;
         if (!device_.close_global_movie(error)) {
             fail(frame,PhysicalPresentationStage::MovieClose,error);
             return frame;
@@ -262,8 +265,8 @@ NativeSessionFrame NativeGameSession::tick(
     // The retail instruction walkthrough is torn down when leaving its
     // pregame state for Back or Start. Difficulty/Help actions remain.
     if (walkthrough_open_ &&
-        game.pregame_action &&
-        game.pregame_action->next_state) {
+        ((game.pregame_action && game.pregame_action->next_state)||
+         game.dispatch.intercept==game_flow::Intercept::ShutdownOrCredits)) {
         if (!device_.close_walkthrough_movie(error)) {
             fail(frame,PhysicalPresentationStage::MovieClose,error);
             return frame;

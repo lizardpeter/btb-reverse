@@ -296,6 +296,32 @@ int main() {
         assert(!root->globals().dispatcher.options_active);
     }
 
+    // 004020D0's Options command is not contextual Help. It opens
+    // exactly once and plays 572; the Exit command preempts that modal.
+    {
+        auto root=std::make_unique<GameRoot>();
+        std::string error;
+        std::istringstream options("0 0 250 417 299 462 340 417 389 466 208 222 410 242 122 86 480 350");
+        std::istringstream credits("credits1.bmp credits2.bmp");
+        assert(root->configure_options(options,error));
+        assert(root->configure_credits(credits,error));
+        assert(root->request_window_options());
+        assert(!root->request_window_options());
+        auto frame=root->advance({});
+        assert(frame.dispatch.intercept==btb::game_flow::Intercept::Options);
+        assert(frame.effects.audio.size()==2);
+        assert(frame.effects.audio.back().sound_id==572);
+        assert(frame.effects.audio.back().arbitration_class==1);
+        assert(root->advance({}).effects.audio.empty());
+        root->request_window_credits();
+        assert(!root->request_window_options());
+        frame=root->advance({});
+        assert(frame.dispatch.intercept==btb::game_flow::Intercept::ShutdownOrCredits);
+        assert(frame.close_original_global_movie);
+        assert(frame.effects.audio.size()==3);
+        assert(frame.effects.draws.front().source_asset=="credits1.bmp");
+    }
+
     // Quit cancellation and confirmation do not mutate or delete profiles.
     // Credits advance on clicks or the retail >4-second integer threshold.
     {

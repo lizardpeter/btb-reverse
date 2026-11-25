@@ -18,6 +18,8 @@ struct PhysicalFrameObservation {
     ManagedSoundObservation managed{};
     bool any_managed_voice_playing{};
     bool global_movie_finished{};
+    // Absent only for stateless/source-only test devices.
+    std::optional<bool> backing_track_playing{};
 };
 
 enum class PhysicalPresentationStage {

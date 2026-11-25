@@ -419,6 +419,9 @@ public:
     [[nodiscard]] bool configure_credits(std::istream&,std::string&);
     [[nodiscard]] bool configure_options(std::istream&,std::string&);
     [[nodiscard]] bool configure_contextual_help(std::istream&,std::string&);
+    // Original window-menu commands 0x9c41 (Options) and 0x3e9 (Exit).
+    [[nodiscard]] bool request_window_options() noexcept;
+    void request_window_credits() noexcept;
     [[nodiscard]] bool load_profile_files(
         const std::filesystem::path& directory,
         std::string& error);
@@ -454,7 +457,7 @@ private:
     bool pending_confirmed_leave_{};
     bool progress_intro_pending_{},progress_back_hover_{},progress_help_hover_{};
     int progress_hover_slot_{-1};
-    bool quit_voice_pending_{},options_voice_pending_{};
+    bool quit_voice_pending_{},options_voice_pending_{},window_options_pending_{};
     int options_x_{},options_y_{},slider_left_{},slider_right_{};
     int volume_percent_{80};
     bool options_configured_{};

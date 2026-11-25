@@ -388,6 +388,30 @@ void GameRoot::consume_pregame_action(
     }
 }
 
+bool GameRoot::request_window_options() noexcept {
+    const auto& d=globals_.dispatcher;
+    // 004020D0 checks Options, quit and Help before setting 51C2BC.
+    // Also keep the native confirmation adapters from nesting modals.
+    if(!options_configured_||contextual_help_.active||d.options_active||
+       d.whole_game_quit_active||d.generic_yes_no_active||d.leave_activity_active||
+       d.progress_screen_active||d.play_again_overlay_active||
+       d.shutdown_phase!=application::ShutdownPhase::Running)return false;
+    globals_.dispatcher.options_active=true;
+    window_options_pending_=true;
+    options_voice_pending_=false;
+    return true;
+}
+
+void GameRoot::request_window_credits() noexcept {
+    if(globals_.dispatcher.shutdown_phase!=application::ShutdownPhase::Running)return;
+    globals_.dispatcher.shutdown_phase=application::ShutdownPhase::BeginCredits;
+    // Shutdown is the highest-precedence retail intercept. The shared
+    // Help controller lives outside dispatch in this host: release it too.
+    contextual_help_.active=0;help_background_.clear();
+    window_options_pending_=false;
+    globals_.dispatcher.options_active=false;
+}
+
 bool GameRoot::configure_contextual_help(std::istream& source,std::string& error) {
     try {
         help::State candidate{};
@@ -572,6 +596,12 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
                 if(!unload_current(result.error)){
                     result.kind=FrameKind::FrontEndFailed;return result;
                 }
+                // Close movie/loop providers before drawing credits; never
+                // composite a previous activity or walkthrough over a slide.
+                result.close_original_global_movie=true;
+                result.effects.audio.push_back({AudioOperation::StopManagedSounds});
+                result.effects.audio.push_back({AudioOperation::StopBackingTrack});
+                result.effects.audio.push_back({AudioOperation::StopActivityLoop});
                 credit_index_=0;credit_start_cs_=input.elapsed_centiseconds;
                 phase=ShutdownPhase::CreditsPlaying;
             }else if(phase==ShutdownPhase::CreditsPlaying){
@@ -592,6 +622,14 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
             if(!options_configured_){
                 result.kind=FrameKind::FrontEndFailed;
                 result.error="original options.txt was not configured";return result;
+            }
+            if(window_options_pending_){
+                modal_background_=last_presentable_draws_;
+                window_options_pending_=false;
+                // 004020D0 stops existing speech, then plays 0x23c
+                // at priority 50 / arbitration class 1.
+                result.effects.audio.push_back({AudioOperation::StopManagedSounds});
+                result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},572,50,1});
             }
             result.effects.draws=modal_background_;
             result.effects.original_modal_background_count=modal_background_.size();

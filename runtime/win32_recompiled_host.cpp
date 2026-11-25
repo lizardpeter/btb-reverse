@@ -106,6 +106,7 @@ struct Host {
     // an unbounded stack of identical modal dialogs.
     bool fatal_dialog_shown{};
     bool frame_in_progress{};
+    bool close_requested{},startup_completed{};
     int exit_code{};
     bool skip_video{};
     int selected_profile{};
@@ -435,6 +436,7 @@ struct Host {
             return false;
         }
         running=true;
+        startup_completed=true;
         out_error.clear();
         return true;
     }
@@ -544,11 +546,23 @@ LRESULT CALLBACK native_window_proc(
     if(!host)return DefWindowProcW(hwnd,msg,wp,lp);
     // Original 004020D0 is now on the genuine Win32 message path, before
     // application-specific game activity and mouse input handling.
+    // Native modal dialogs may pump messages during the game tick.
+    // Never reset/destroy the physical device while that tick owns it.
+    if(msg==WM_CLOSE&&host->frame_in_progress){
+        host->close_requested=true;return 0;
+    }
+    if(msg==WM_COMMAND&&host->frame_in_progress)return 0;
+    if(msg==WM_COMMAND&&LOWORD(wp)==0x9c41U){
+        if(host->running)(void)host->game.request_window_options();
+        return 0;
+    }
     const auto original_result=original_win32::main_window_proc_recompiled(
         hwnd,msg,wp,lp,host->retail_window,host->graphics,host->error);
     if(msg==0x212 || msg==0x232)
         host->original_frame.last_time_ms=
             host->retail_window.last_input_ms;
+    if(msg==WM_COMMAND&&LOWORD(wp)==0x3e9U&&host->running)
+        host->game.request_window_credits();
     if(original_result)return *original_result;
     switch(msg){
     case WM_CREATE:{
@@ -568,6 +582,9 @@ LRESULT CALLBACK native_window_proc(
         }
         return 0;
     }
+    case WM_SIZE:
+        if(!host->retail_window.accepting_input)host->native_input.lose_focus();
+        return DefWindowProcW(hwnd,msg,wp,lp);
     case WM_MOUSEMOVE:
         host->set_pointer(lp);return 0;
     case WM_LBUTTONDOWN:
@@ -609,6 +626,8 @@ LRESULT CALLBACK native_window_proc(
         return 0;
     case WM_TIMER:
         if(wp!=kNativeTimer||host->fatal_dialog_shown||host->frame_in_progress||!host->running)return 0;
+        if(!host->retail_window.accepting_input&&
+           host->game.globals().dispatcher.shutdown_phase==application::ShutdownPhase::Running)return 0;
         host->frame_in_progress=true;
         {
         const bool stepped=host->step();
@@ -628,6 +647,9 @@ LRESULT CALLBACK native_window_proc(
               "Reconstructed game stopped at unsupported native dependency",
               MB_OK|MB_ICONERROR);
             if(IsWindow(hwnd))DestroyWindow(hwnd);
+        }else if(host->close_requested&&IsWindow(hwnd)){
+            host->close_requested=false;
+            DestroyWindow(hwnd);
         }
         }
         return 0;
@@ -641,6 +663,7 @@ LRESULT CALLBACK native_window_proc(
     case WM_DESTROY:
         host->running=false;
         KillTimer(hwnd,kNativeTimer);
+        if(!host->startup_completed){PostQuitMessage(host->exit_code?host->exit_code:2);return 0;}
         // The original activity owns its per-player save file (Fireworks
         // firedataN, Park Designer dypdataN, Band compositions, etc).
         // Save/unload it BEFORE writing global profile records. Previously,
