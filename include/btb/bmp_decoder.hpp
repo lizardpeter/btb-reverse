@@ -185,15 +185,6 @@ inline bool decode_bmp(std::span<const std::uint8_t> bytes,
         std::size_t pos=pixel_offset;
         std::uint32_t x=0,y=0;
         bool ended=false;
-        const auto write_run=[&](std::uint32_t count,std::uint8_t value,bool absolute)->bool {
-            if(y>=h || count>w-x)return false;
-            for(std::uint32_t i=0;i<count;++i) {
-                const std::uint32_t index=compression==kRle8?value:
-                    (absolute?((i&1)?(value&15):(value>>4)):((i&1)?(value&15):(value>>4)));
-                if(!put_index(x++,y,index))return false;
-            }
-            return true;
-        };
         while(pos<end && !ended) {
             if(!range(pos,2,end))return fail("truncated BMP RLE command");
             const std::uint8_t count=bytes[pos++],value=bytes[pos++];

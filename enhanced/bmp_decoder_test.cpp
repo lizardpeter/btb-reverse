@@ -61,11 +61,11 @@ int main(){
         return fail("24-bit top-down",error);
     // Indexed 8-bit palette.
     const auto p4=pal({{0,0,0},{255,0,0},{0,255,0},{0,0,255}});
-    auto b8=make(3,1,8,0,p4,{1,2,3,0});
+    auto b8=make(3,1,8,0,p4,{1,2,3,0},{},4);
     if(!decode_bmp(b8,out,error)||!pixel(out,0,0,255,0,0)||
        !pixel(out,1,0,0,255,0)||!pixel(out,2,0,0,0,255))return fail("8-bit palette",error);
     // Packed high/low nibbles in 4-bit indexed data.
-    auto b4=make(3,1,4,0,p4,{0x12,0x30,0,0});
+    auto b4=make(3,1,4,0,p4,{0x12,0x30,0,0},{},4);
     if(!decode_bmp(b4,out,error)||!pixel(out,0,0,255,0,0)||
        !pixel(out,1,0,0,255,0)||!pixel(out,2,0,0,0,255))return fail("4-bit palette",error);
     // MSB-first 1-bit palette data.
@@ -85,16 +85,16 @@ int main(){
         {0x00ff0000,0x0000ff00,0x000000ff,0xff000000});
     if(!decode_bmp(ba,out,error)||!pixel(out,0,0,0x11,0x22,0x33,0x80))return fail("32-bit alpha bitfields",error);
     // RLE8 encoded run, EOL, then absolute palette indices.
-    auto rle8=make(4,2,8,1,p4,{4,1,0,0, 0,4,0,1,2,3,0,1});
+    auto rle8=make(4,2,8,1,p4,{4,1,0,0, 0,4,0,1,2,3,0,1},{},4);
     if(!decode_bmp(rle8,out,error)||!pixel(out,0,0,0,0,0)||
        !pixel(out,0,1,255,0,0)||!pixel(out,3,1,255,0,0))return fail("RLE8",error);
     // RLE4 encoded alternating nibbles, including an odd final pixel.
-    auto rle4=make(5,1,4,2,p4,{5,0x12,0,1});
+    auto rle4=make(5,1,4,2,p4,{5,0x12,0,1},{},4);
     if(!decode_bmp(rle4,out,error)||!pixel(out,0,0,255,0,0)||
        !pixel(out,1,0,0,255,0)||!pixel(out,2,0,255,0,0)||
        !pixel(out,3,0,0,255,0)||!pixel(out,4,0,255,0,0))return fail("RLE4",error);
     // RLE delta leaves untouched pixels at palette index zero.
-    auto delta=make(4,2,8,1,p4,{1,1,0,2,2,0,1,2,0,1});
+    auto delta=make(4,2,8,1,p4,{1,1,0,2,1,0,1,2,0,1},{},4);
     if(!decode_bmp(delta,out,error)||!pixel(out,0,1,255,0,0)||
        !pixel(out,1,1,0,0,0)||!pixel(out,2,1,0,255,0))return fail("RLE8 delta",error);
     // OS/2 CORE header, 24-bit pixel row.
@@ -106,7 +106,7 @@ int main(){
     // Reject truncated data, bad palettes, malformed masks and unsupported compression.
     auto truncated=b24;truncated.pop_back();
     if(decode_bmp(truncated,out,error)||out.width)return fail("truncated BMP accepted");
-    auto bad_palette=make(1,1,8,0,p4,{9,0,0,0});
+    auto bad_palette=make(1,1,8,0,p4,{9,0,0,0},{},4);
     if(decode_bmp(bad_palette,out,error))return fail("out-of-range palette accepted");
     auto bad_masks=make(1,1,16,3,{}, {0,0,0,0},{0xf800,0xf800,0x001f});
     if(decode_bmp(bad_masks,out,error))return fail("overlapping masks accepted");
