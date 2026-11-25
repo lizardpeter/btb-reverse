@@ -7,6 +7,9 @@
 namespace btb::enhanced {
 int run_enhanced(HINSTANCE instance,const std::filesystem::path& root,int show,bool skip,int profile){
 #if defined(BTB_HAS_VULKAN)
+    // Keep Win32 client coordinates and Vulkan swapchain pixels in the same
+    // coordinate system on high-DPI monitors (before any game HWND exists).
+    (void)SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     auto presenter=make_vulkan_presenter();
     return full_game::run_recompiled_native_game(instance,root,show,skip,profile,presenter.get());
 #else

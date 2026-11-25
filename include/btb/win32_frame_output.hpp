@@ -12,6 +12,9 @@ public:
     virtual bool initialize(HWND,std::string&)=0;
     virtual bool present(const display::PackedFrameSnapshot&,std::string&)=0;
     virtual void state_changed(int) noexcept {}
+    virtual bool wants_idle_present() const noexcept {return false;}
+    virtual bool idle_present(std::string&) {return true;}
+    virtual unsigned long long presented_frames() const noexcept {return 0;}
     virtual void map_pointer(int&,int&,int,int) const noexcept=0;
     virtual void toggle_borderless() noexcept=0;
     virtual void shutdown() noexcept=0;

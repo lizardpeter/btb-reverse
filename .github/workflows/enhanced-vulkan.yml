@@ -1,0 +1,56 @@
+name: enhanced-vulkan
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'enhanced/**'
+      - 'include/btb/win32_frame_output.hpp'
+      - 'include/btb/packed_frame_snapshot.hpp'
+      - 'runtime/win32_recompiled_host.cpp'
+      - 'runtime/win32_original_directdraw.cpp'
+      - '.github/workflows/enhanced-vulkan.yml'
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  vulkan-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Regenerate original function registries
+        run: |
+          python tools/build_reconstruction_index.py
+          python tools/build_remaining_architecture.py
+      - name: Install Vulkan SDK 1.4
+        uses: humbletim/install-vulkan-sdk@v1.1.1
+        with:
+          version: 1.4.341.1
+          cache: true
+      - name: Configure required Vulkan and Slang
+        run: cmake -S . -B build/enhanced-vulkan -G "Visual Studio 18 2026" -A x64 -DBTB_BUILD_ENHANCED=ON -DBTB_REQUIRE_VULKAN=ON -DBTB_REQUIRE_SLANG=ON
+      - name: Build enhanced executable, shaders, policy and Vulkan smoke
+        run: cmake --build build/enhanced-vulkan --config Release --target btb_game_enhanced btb_enhanced_policy_tests btb_enhanced_vulkan_tests
+      - name: Validate compiled SPIR-V
+        shell: pwsh
+        run: |
+          $shaders = @(Get-ChildItem build/enhanced-vulkan -Recurse -Filter *.spv)
+          if ($shaders.Count -lt 3) { throw "Expected all three compiled Slang entrypoints" }
+          foreach ($shader in $shaders) {
+            & spirv-val --target-env vulkan1.4 $shader.FullName
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - name: Run enhanced policy, source-link and actual Vulkan presentation smoke
+        run: ctest --test-dir build/enhanced-vulkan -C Release --output-on-failure -R "^enhanced_"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: btb-enhanced-vulkan-x64
+          path: |
+            build/enhanced-vulkan/**/btb_game_enhanced.exe
+            build/enhanced-vulkan/**/btb_enhanced_vulkan_tests.exe
+            build/enhanced-vulkan/**/*.spv
+          if-no-files-found: error

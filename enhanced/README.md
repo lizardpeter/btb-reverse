@@ -22,7 +22,8 @@ swapchain extent including 1440p and 4K displays. Environment settings:
 - BTB_FRACTIONAL_SCALE=1: use the largest aspect-correct picture.
 - BTB_LINEAR_FILTER=1: optional bilinear scaling.
 - BTB_UNCAPPED_PRESENT=1: request immediate or mailbox instead of FIFO when
-  supported (source game ticks are still on the existing 16 ms host timer).
+  supported (the independent idle presenter reuses the latest frame without running
+  gameplay again; source ticks stay on their existing 16 ms timer).
 - BTB_DISCORD_APP_ID: optional numeric Discord developer application ID.
   The local desktop client receives the currently active game activity and
   session start time. Missing ID/client never prevents gameplay. No player
@@ -37,8 +38,7 @@ hidden HWND; native Bink/movie/audio and original state logic are unchanged.
 This is Vulkan presentation, not yet a fully DirectDraw-free renderer.
 The rendered bitmap/video content remains 640x480, not newly authored 4K art.
 GPU sprite and Bink YUV shaders are initial Slang source with build rules,
-not yet dispatched by the presentation path. Independent uncapped render
-scheduling, texture atlas/batching, GPU movie plane upload, and fully native
+not yet dispatched by the presentation path. Texture atlas/batching, GPU movie plane upload, and fully native
 render targets remain subsequent milestones. No interactive parity or
 performance measurement is implied by source compilation.
 

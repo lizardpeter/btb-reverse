@@ -43,6 +43,9 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
     VkDeviceMemory staging_memory_{};
     void* mapped_{};
     bool source_initialized_{};
+    bool upload_pending_{};
+    display::PackedFrameSnapshot latest_{};
+    unsigned long long submitted_frames_{};
     bool dirty_{true},linear_{env_flag(L"BTB_LINEAR_FILTER")};
     bool integer_{!env_flag(L"BTB_FRACTIONAL_SCALE")};
     bool immediate_{env_flag(L"BTB_UNCAPPED_PRESENT")};
@@ -233,29 +236,47 @@ public:
     }
     bool present(const display::PackedFrameSnapshot& frame,std::string& error) override {
         if(!frame.valid()||frame.width!=640||frame.height!=480){error="Invalid composed game frame";return false;}
+        latest_=frame;upload_pending_=true;
+        return draw_latest(error);
+    }
+    bool wants_idle_present() const noexcept override {return immediate_;}
+    bool idle_present(std::string& error) override {
+        if(!latest_.valid()){error.clear();return true;}
+        return draw_latest(error);
+    }
+    unsigned long long presented_frames() const noexcept override {return submitted_frames_;}
+    bool draw_latest(std::string& error) {
         RECT rect{};GetClientRect(hwnd_,&rect);
         if(IsIconic(hwnd_)||rect.right<=rect.left||rect.bottom<=rect.top){error.clear();return true;}
         if(dirty_||extent_.width!=uint32_t(rect.right-rect.left)||extent_.height!=uint32_t(rect.bottom-rect.top))
             if(!rebuild(error))return false;
         if(!chain_){error.clear();return true;}
-        if(!vk_ok(vkWaitForFences(device_,1,&fence_,VK_TRUE,UINT64_MAX),"wait upload fence",error))return false;
+        // Do not block the recovered game timer on a busy GPU. A later
+        // presentation attempt uploads the most recent complete source frame.
+        const auto fence_status=vkGetFenceStatus(device_,fence_);
+        if(fence_status==VK_NOT_READY){error.clear();return true;}
+        if(!vk_ok(fence_status,"check upload fence",error))return false;
         uint32_t index=0;
         auto result=vkAcquireNextImageKHR(device_,chain_,0,acquired_,VK_NULL_HANDLE,&index);
         if(result==VK_ERROR_OUT_OF_DATE_KHR){dirty_=true;error.clear();return true;}
         if(result==VK_NOT_READY||result==VK_TIMEOUT){error.clear();return true;}
         if(result==VK_SUBOPTIMAL_KHR)dirty_=true;
         else if(!vk_ok(result,"acquire swapchain image",error))return false;
+        const bool upload=upload_pending_||!source_initialized_;
+        if(upload){
         const bool bgra=format_==VK_FORMAT_B8G8R8A8_UNORM||format_==VK_FORMAT_B8G8R8A8_SRGB;
         const display::PackedRgbFormat packed{4,bgra?0x00ff0000U:0x000000ffU,0x0000ff00U,bgra?0x000000ffU:0x00ff0000U};
-        if(!display::restore_packed_frame(frame,{static_cast<uint8_t*>(mapped_),size_t(kBytes)},640*4,packed)){
+        if(!display::restore_packed_frame(latest_,{static_cast<uint8_t*>(mapped_),size_t(kBytes)},640*4,packed)){
             error="Cannot convert composed RGB frame to Vulkan upload format";return false;
         }
         // Alpha is opaque, irrespective of unused high bits in DD7 XRGB.
         auto* bytes=static_cast<uint8_t*>(mapped_);
         for(size_t i=3;i<size_t(kBytes);i+=4)bytes[i]=255;
+        }
         if(!vk_ok(vkResetCommandBuffer(cmd_,0),"reset command buffer",error))return false;
         VkCommandBufferBeginInfo cb{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};cb.flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         if(!vk_ok(vkBeginCommandBuffer(cmd_,&cb),"begin Vulkan frame",error))return false;
+        if(upload){
         barrier(source_,source_initialized_?VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,source_initialized_?VK_ACCESS_TRANSFER_READ_BIT:0,
             VK_ACCESS_TRANSFER_WRITE_BIT,source_initialized_?VK_PIPELINE_STAGE_TRANSFER_BIT:VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
@@ -263,6 +284,7 @@ public:
         vkCmdCopyBufferToImage(cmd_,staging_,source_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&copy);
         barrier(source_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_TRANSFER_READ_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
+        }
         auto dest=images_[index];
         barrier(dest,VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,0,VK_ACCESS_TRANSFER_WRITE_BIT,
             VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
@@ -285,12 +307,13 @@ public:
         submit.waitSemaphoreCount=1;submit.pWaitSemaphores=&acquired_;submit.pWaitDstStageMask=&wait;
         submit.commandBufferCount=1;submit.pCommandBuffers=&cmd_;submit.signalSemaphoreCount=1;submit.pSignalSemaphores=&ready_[index];
         if(!vk_ok(vkQueueSubmit(queue_,1,&submit,fence_),"submit Vulkan frame",error))return false;
-        source_initialized_=true;
+        source_initialized_=true;upload_pending_=false;
         VkPresentInfoKHR p{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
         p.waitSemaphoreCount=1;p.pWaitSemaphores=&ready_[index];p.swapchainCount=1;p.pSwapchains=&chain_;p.pImageIndices=&index;
         result=vkQueuePresentKHR(queue_,&p);
         if(result==VK_ERROR_OUT_OF_DATE_KHR||result==VK_SUBOPTIMAL_KHR)dirty_=true;
         else if(!vk_ok(result,"present Vulkan frame",error))return false;
+        if(result==VK_SUCCESS||result==VK_SUBOPTIMAL_KHR)++submitted_frames_;
         error.clear();return true;
     }
     void state_changed(int state) noexcept override {presence_.update(state);}

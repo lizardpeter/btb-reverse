@@ -790,7 +790,30 @@ int run_recompiled_native_game(
     UpdateWindow(hwnd);
     MSG msg{};
     BOOL received{};
-    while((received=GetMessageW(&msg,nullptr,0,0))>0){
+    if(output&&output->wants_idle_present()){
+        // Run presentation independently of the source game timer. Never
+        // rerun a game tick just to redraw the most recent complete frame.
+        received=1;
+        for(;;){
+            while(PeekMessageW(&msg,nullptr,0,0,PM_REMOVE)){
+                if(msg.message==WM_QUIT){received=0;break;}
+                if(!TranslateAcceleratorW(hwnd,accelerators,&msg)){
+                    TranslateMessage(&msg);DispatchMessageW(&msg);
+                }
+            }
+            if(!received)break;
+            if(host.running&&!host.frame_in_progress&&!IsIconic(hwnd)){
+                try{if(!output->idle_present(host.error))throw std::runtime_error(host.error);}
+                catch(const std::exception& ex){
+                    host.running=false;host.exit_code=4;
+                    MessageBoxA(hwnd,ex.what(),"Enhanced presentation failed",MB_OK|MB_ICONERROR);
+                    if(IsWindow(hwnd))DestroyWindow(hwnd);
+                }
+            }
+            // Yield while no messages are queued; no 60Hz presentation cap.
+            MsgWaitForMultipleObjectsEx(0,nullptr,1,QS_ALLINPUT,MWMO_INPUTAVAILABLE);
+        }
+    }else while((received=GetMessageW(&msg,nullptr,0,0))>0){
         if(!TranslateAcceleratorW(hwnd,accelerators,&msg)){
             TranslateMessage(&msg);
             DispatchMessageW(&msg);

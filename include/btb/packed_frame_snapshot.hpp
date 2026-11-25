@@ -40,7 +40,7 @@ struct PackedFrameSnapshot {
 [[nodiscard]] inline bool packed_rect_valid(std::size_t width,std::size_t height,
     PackedRgbFormat format,std::size_t pitch,std::size_t size) noexcept {
     return format.valid()&&width&&height&&width<=640&&height<=480&&
-        pitch>=width*format.bytes&&pitch<=std::numeric_limits<std::size_t>::max()/height&&
+        pitch>=width*format.bytes&&pitch<=(std::numeric_limits<std::size_t>::max)()/height&&
         size>=(height-1)*pitch+width*format.bytes;
 }
 [[nodiscard]] inline bool capture_packed_frame(PackedFrameSnapshot& frame,
