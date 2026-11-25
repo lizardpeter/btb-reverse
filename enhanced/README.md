@@ -49,3 +49,7 @@ Vulkan synchronization and local RPC references:
 - https://docs.vulkan.org/refpages/latest/refpages/source/VkSwapchainCreateInfoKHR.html
 - https://docs.shader-slang.org/en/stable/first-slang-shader.html
 - https://github.com/discord/discord-api-docs/blob/main/developers/topics/rpc.mdx
+
+## Experimental GPU bitmap composition
+
+Set `BTB_GPU_SPRITES=1` to enable the Slang compute sprite compositor. Ordered bitmap-only frame commands are retained by the native renderer and supplied to the Vulkan presenter. The compositor batches clipped BMP sprites into one GPU dispatch using 32x32 tile lists in reverse painter order; color-keyed magenta is discarded and each output pixel has a single writer. A bounded CPU bitmap cache and per-frame storage-buffer atlas supply original artwork. Movie frames, captured-underlay frames, unusual packed pixel formats, and over-budget batches use the fully composed reference frame instead. DirectDraw composition still runs offscreen to support snapshots, printing and the legacy movie providers; this is an experimental second rendering path, not yet removal of DirectDraw or a measured performance improvement. The portable test verifies crop geometry, transparency, painter order, tile boundaries, channel order and malformed inputs. GPU execution requires the compiled shader next to the executable in its shaders directory.

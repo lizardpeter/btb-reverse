@@ -115,6 +115,8 @@ private:
     HWND hwnd_{};
     HWND dialog_owner_{};
     Win32FrameOutput* frame_output_{};
+    bool bitmap_frame_valid_{};
+    std::vector<ResolvedDraw> bitmap_frame_{};
     display::DisplayMode mode_{display::DisplayMode::Windowed};
     IDirectDraw7* draw_{};
     IDirectDrawSurface7* primary_{};

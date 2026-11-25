@@ -1,6 +1,7 @@
 #include "vulkan_presenter.hpp"
 #include "presentation_policy.hpp"
 #include "discord_presence.hpp"
+#include "vulkan_sprite_batch.hpp"
 #include <vulkan/vulkan.h>
 #include <algorithm>
 #include <array>
@@ -53,6 +54,10 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
     WINDOWPLACEMENT placement_{sizeof(WINDOWPLACEMENT)};
     LONG_PTR style_{};
     DiscordPresence presence_;
+    VulkanSpriteBatch sprite_batch_;
+    bool sprites_enabled_{env_flag(L"BTB_GPU_SPRITES")};
+    bool latest_bitmap_frame_{};
+    std::vector<full_game::ResolvedDraw> latest_draws_;
     static constexpr VkDeviceSize kBytes=640*480*4;
     static constexpr VkImageSubresourceRange range_{VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1};
     static constexpr VkImageSubresourceLayers layers_{VK_IMAGE_ASPECT_COLOR_BIT,0,0,1};
@@ -81,7 +86,8 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
             for(uint32_t i=0;i<n;++i){
                 VkBool32 present=VK_FALSE;
                 if(vkGetPhysicalDeviceSurfaceSupportKHR(p,i,surface_,&present)!=VK_SUCCESS||
-                   !present||!(families[i].queueFlags&VK_QUEUE_GRAPHICS_BIT))continue;
+                   !present||!(families[i].queueFlags&VK_QUEUE_GRAPHICS_BIT)||
+                   (sprites_enabled_&&!(families[i].queueFlags&VK_QUEUE_COMPUTE_BIT)))continue;
                 const int score=props.deviceType==VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU?3:
                     props.deviceType==VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU?2:1;
                 if(score>best){physical_=p;family_=i;best=score;}
@@ -231,12 +237,26 @@ public:
         if(!vk_ok(vkAllocateMemory(device_,&ma,nullptr,&staging_memory_),"allocate upload memory",error)||
            !vk_ok(vkBindBufferMemory(device_,staging_,staging_memory_,0),"bind upload memory",error)||
            !vk_ok(vkMapMemory(device_,staging_memory_,0,kBytes,0,&mapped_),"map upload memory",error))return false;
+        if(sprites_enabled_){
+            wchar_t exe[32768]{};
+            const auto n=GetModuleFileNameW(nullptr,exe,32768);
+            if(!n||n>=32768){error="Cannot locate enhanced shader directory";return false;}
+            const auto shader=std::filesystem::path(exe).parent_path()/L"shaders"/L"spriteBatch.spv";
+            if(!sprite_batch_.initialize(physical_,device_,shader,error))return false;
+        }
         presence_.start();
         error.clear();return true;
     }
     bool present(const display::PackedFrameSnapshot& frame,std::string& error) override {
         if(!frame.valid()||frame.width!=640||frame.height!=480){error="Invalid composed game frame";return false;}
-        latest_=frame;upload_pending_=true;
+        latest_=frame;upload_pending_=true;latest_bitmap_frame_=false;latest_draws_.clear();
+        return draw_latest(error);
+    }
+    bool supports_bitmap_frames() const noexcept override{return sprites_enabled_;}
+    bool present_bitmap_frame(const display::PackedFrameSnapshot& frame,
+        const std::vector<full_game::ResolvedDraw>& draws,std::string& error) override {
+        if(!frame.valid()||frame.width!=640||frame.height!=480){error="Invalid bitmap frame";return false;}
+        latest_=frame;upload_pending_=true;latest_bitmap_frame_=true;latest_draws_=draws;
         return draw_latest(error);
     }
     bool wants_idle_present() const noexcept override {return immediate_;}
@@ -263,8 +283,11 @@ public:
         if(result==VK_SUBOPTIMAL_KHR)dirty_=true;
         else if(!vk_ok(result,"acquire swapchain image",error))return false;
         const bool upload=upload_pending_||!source_initialized_;
-        if(upload){
         const bool bgra=format_==VK_FORMAT_B8G8R8A8_UNORM||format_==VK_FORMAT_B8G8R8A8_SRGB;
+        const bool gpu_sprites=upload&&sprites_enabled_&&latest_bitmap_frame_&&
+            latest_.format.bytes==4&&latest_.format.red==0xff0000U&&latest_.format.green==0xff00U&&
+            latest_.format.blue==0xffU&&sprite_batch_.prepare(latest_draws_);
+        if(upload&&!gpu_sprites){
         const display::PackedRgbFormat packed{4,bgra?0x00ff0000U:0x000000ffU,0x0000ff00U,bgra?0x000000ffU:0x00ff0000U};
         if(!display::restore_packed_frame(latest_,{static_cast<uint8_t*>(mapped_),size_t(kBytes)},640*4,packed)){
             error="Cannot convert composed RGB frame to Vulkan upload format";return false;
@@ -281,7 +304,8 @@ public:
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,source_initialized_?VK_ACCESS_TRANSFER_READ_BIT:0,
             VK_ACCESS_TRANSFER_WRITE_BIT,source_initialized_?VK_PIPELINE_STAGE_TRANSFER_BIT:VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
         VkBufferImageCopy copy{};copy.imageSubresource=layers_;copy.imageExtent={640,480,1};
-        vkCmdCopyBufferToImage(cmd_,staging_,source_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&copy);
+        if(gpu_sprites)sprite_batch_.record(cmd_,bgra);
+        vkCmdCopyBufferToImage(cmd_,gpu_sprites?sprite_batch_.pixels():staging_,source_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&copy);
         barrier(source_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_TRANSFER_READ_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
         }
@@ -337,6 +361,7 @@ public:
         if(device_){
             vkDeviceWaitIdle(device_);
             drop_chain();
+            sprite_batch_.shutdown();
             if(mapped_)vkUnmapMemory(device_,staging_memory_);
             if(staging_)vkDestroyBuffer(device_,staging_,nullptr);
             if(staging_memory_)vkFreeMemory(device_,staging_memory_,nullptr);
