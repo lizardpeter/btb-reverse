@@ -39,7 +39,14 @@ NativeSessionFrame NativeGameSession::tick(
     // update. A stopped movie must not report decoder EOS behind a modal.
     const bool pause=!skip_video_&&game_flow::dispatch_step(
         root_.globals().dispatcher).pause_global_movie;
+    input.physical_help_snapshot_available=device_.supports_captured_underlays();
     if(pause!=global_movie_paused_){
+        // Restore the last submitted movie pixels before the decoder
+        // advances or waits; fullscreen Flip may have swapped buffers.
+        if(!pause&&global_snapshot_valid_&&
+           !device_.draw_captured_underlay(CapturedUnderlay::GlobalMovie,{},error)){
+            fail(frame,PhysicalPresentationStage::SubmitDraw,error);return frame;
+        }
         if(!device_.set_global_movie_paused(pause,error)){
             fail(frame,PhysicalPresentationStage::ObserveDevice,error);return frame;
         }
@@ -321,13 +328,13 @@ NativeSessionFrame NativeGameSession::tick(
     // surface during device.observe(). If the original dispatcher is
     // intercepted waiting for that movie, do not clear the Bink pixels
     // with a synthetic empty gameplay/UI draw list before present.
-    const auto mode=root_.globals().dispatcher.generic_screen_mode;
+    const auto intercept=frame.prepared.game.dispatch.intercept;
     const bool global_movie_frame =
         !skip_video_ &&
         (frame.global_movie_opened ||
          (frame.prepared.game.kind == FrameKind::Intercept &&
-          !frame.prepared.game.dispatch.pause_global_movie &&
-          (mode == 13 || mode == 14)) ||
+          (intercept==game_flow::Intercept::GlobalMovieMode13 ||
+           intercept==game_flow::Intercept::GlobalMovieMode14)) ||
          frame.prepared.game.effects.retain_original_global_movie_pixels);
     const bool preparing_replay=frame.prepared.game.replay_preparation&&
         frame.prepared.game.replay_preparation->draw_replay_underlay;
@@ -338,7 +345,17 @@ NativeSessionFrame NativeGameSession::tick(
         // For an activity whose source has already unloaded the Bink
         // bank, do not replace its final visible scene with BMP-only art.
         bool drawn=false;
-        if(skate_replay)drawn=device_.draw_replay_ordered({},error);
+        const auto& effects=frame.prepared.game.effects;
+        const auto render_snapshot=[&](CapturedUnderlay kind,std::size_t prefix){
+            if(prefix>draws.size()){error="invalid captured overlay draw prefix";return false;}
+            return device_.draw_captured_underlay(kind,
+                std::vector<ResolvedDraw>(draws.begin()+prefix,draws.end()),error);
+        };
+        if(input.physical_help_snapshot_available&&effects.original_help_background_count)
+            drawn=render_snapshot(CapturedUnderlay::Help,*effects.original_help_background_count);
+        else if(global_movie_paused_&&global_snapshot_valid_&&effects.original_modal_background_count)
+            drawn=render_snapshot(CapturedUnderlay::GlobalMovie,*effects.original_modal_background_count);
+        else if(skate_replay)drawn=device_.draw_replay_ordered({},error);
         else if(replay_underlay)drawn=device_.draw_replay_ordered(draws,error);
         else if(preparing_replay&&draws.empty())drawn=true; // capture existing pixels
         else drawn=device_.draw_ordered(draws,error);
@@ -355,6 +372,18 @@ NativeSessionFrame NativeGameSession::tick(
             }
             if(entry_state==S::SpudSkateRun)skate_snapshot_valid_=true;
         }
+    }
+    if(input.physical_help_snapshot_available){
+        if(frame.prepared.game.effects.capture_original_help&&
+           !device_.capture_underlay(CapturedUnderlay::Help,error)){
+            fail(frame,PhysicalPresentationStage::SubmitDraw,error);return frame;
+        }
+        if(global_movie_frame){
+            if(!device_.capture_underlay(CapturedUnderlay::GlobalMovie,error)){
+                fail(frame,PhysicalPresentationStage::SubmitDraw,error);return frame;
+            }
+            global_snapshot_valid_=true;
+        }else if(!global_movie_paused_)global_snapshot_valid_=false;
     }
     if(frame.prepared.game.effects.request_original_frame_print &&
        !device_.print_current_frame(error)) {

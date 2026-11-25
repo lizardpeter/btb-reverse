@@ -78,6 +78,13 @@ public:
         return bink_.set_global_paused(paused,error);
     }
     [[nodiscard]] bool set_original_volume(int percent,std::string& error) override;
+    [[nodiscard]] bool supports_captured_underlays() const noexcept override {return true;}
+    [[nodiscard]] bool capture_underlay(CapturedUnderlay kind,std::string& error) override {
+        return draw_.capture_underlay(kind,error);
+    }
+    [[nodiscard]] bool draw_captured_underlay(CapturedUnderlay kind,const std::vector<ResolvedDraw>& draws,std::string& error) override {
+        return draw_.render_captured_underlay(kind,draws,error);
+    }
     [[nodiscard]] bool capture_replay_underlay(std::string& error) override;
     [[nodiscard]] bool draw_replay_ordered(
         const std::vector<ResolvedDraw>& draws,std::string& error) override;

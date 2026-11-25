@@ -183,6 +183,8 @@ inline constexpr std::array<int,5> kProfileGateSoundIds{{
     0x12f,0x130,0x131,0x136,0x137
 }};
 
+enum class CapturedUnderlay { Help, GlobalMovie };
+
 struct ActivityFrameInput {
     int pointer_x{};
     int pointer_y{};
@@ -236,6 +238,7 @@ struct ActivityFrameInput {
     // Source fixtures default to the fullscreen branch.
     bool original_windowed_display{};
     // Shared process RNG: only advance when an original call site consumes rand().
+    bool physical_help_snapshot_available{};
     retail::OriginalRetailRandom* original_random{};
     [[nodiscard]] int next_original_random() const noexcept {
         return original_random?original_random->next_rand():random_value;
@@ -257,6 +260,9 @@ struct ActivityFrameOutput {
     bool open_progress_screen{};
     bool open_options_overlay{};
     bool open_whole_game_quit{};
+    bool capture_original_help{};
+    std::optional<std::size_t> original_help_background_count{};
+    std::optional<std::size_t> original_modal_background_count{};
     std::optional<int> original_volume_percent{};
     std::optional<int> negative_ui_action{};
     std::optional<int> yes_no_context{};

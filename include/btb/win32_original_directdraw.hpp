@@ -44,6 +44,8 @@ public:
         const std::vector<ResolvedDraw>& draw_stream,
         std::string& error);
     [[nodiscard]] bool render_additional(const std::vector<ResolvedDraw>&,std::string& error);
+    [[nodiscard]] bool capture_underlay(CapturedUnderlay,std::string& error);
+    [[nodiscard]] bool render_captured_underlay(CapturedUnderlay,const std::vector<ResolvedDraw>&,std::string& error);
     [[nodiscard]] bool capture_replay_underlay(std::string& error);
     [[nodiscard]] bool render_replay_ordered(
         const std::vector<ResolvedDraw>& draw_stream,std::string& error);
@@ -92,9 +94,11 @@ private:
         OriginalSurface& out,std::string& error);
     [[nodiscard]] bool blit(
         const ResolvedDraw& draw,std::string& error);
+    enum class UnderlayKind { None, Replay, Help, GlobalMovie };
+    [[nodiscard]] bool capture_surface(IDirectDrawSurface7*&,std::string&);
     [[nodiscard]] bool render_ordered_with_underlay(
         const std::vector<ResolvedDraw>& stream,std::string& error,
-        bool replay);
+        UnderlayKind kind);
     [[nodiscard]] bool restore_lost_surfaces(std::string& error);
     void release_cached_bitmaps() noexcept;
 
@@ -110,7 +114,9 @@ private:
         std::make_unique<original_win32::NativeBitmapRegistry>()};
     std::vector<ResolvedDraw> previous_frame_{};
     IDirectDrawSurface7* replay_underlay_{};
-    bool previous_frame_replay_{};
+    IDirectDrawSurface7* help_underlay_{};
+    IDirectDrawSurface7* global_underlay_{};
+    UnderlayKind previous_frame_underlay_{UnderlayKind::None};
     bool surface_lost_during_draw_{};
 };
 

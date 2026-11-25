@@ -265,6 +265,7 @@ void GameRoot::apply_effects(
         progress_intro_pending_=true;
         progress_back_hover_=false;
         progress_help_hover_=false;
+        progress_hover_slot_=-1;
     }
     if(output.open_whole_game_quit){
         modal_background_=output.draws.empty()?last_presentable_draws_:output.draws;
@@ -411,6 +412,7 @@ GameFrame GameRoot::advance(const ActivityFrameInput& sample) {
         result.dispatch.current_state=globals_.dispatcher.current_state;
         result.dispatch.generic_screen_mode=globals_.dispatcher.generic_screen_mode;
         result.effects.draws=help_background_;
+        result.effects.original_help_background_count=help_background_.size();
         if(!sample.pointer_position_valid)return result;
         const int context=contextual_help_.context;
         const auto voice=[&](int id){
@@ -450,7 +452,7 @@ GameFrame GameRoot::advance(const ActivityFrameInput& sample) {
     const auto help_activity=activity_for_state(static_cast<game_flow::State>(globals_.dispatcher.current_state));
     const bool can_help=help_configured_&&initialized_activity_&&help_activity&&
         help_activity->id==*initialized_activity_&&
-        *initialized_activity_!=ActivityId::SpudSkate&&
+        (*initialized_activity_!=ActivityId::SpudSkate||sample.physical_help_snapshot_available)&&
         sample.pointer_position_valid&&help_exit_delay_==0&&
         !globals_.dispatcher.generic_yes_no_active&&!globals_.dispatcher.leave_activity_active&&
         !globals_.dispatcher.options_active&&!globals_.dispatcher.progress_screen_active&&
@@ -469,11 +471,29 @@ GameFrame GameRoot::advance(const ActivityFrameInput& sample) {
             const auto decision=help::enter_decision(globals_.dispatcher.current_state,false,false);
             if(decision.active){
                 help_background_=result.effects.draws;
+                result.effects.capture_original_help=true;
                 contextual_help_.active=1;contextual_help_.context=decision.context;
                 contextual_help_.last_region=0;
                 result.effects.audio.push_back({AudioOperation::StopManagedSounds});
                 result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},help::kHelpIntroSoundId,50,2});
             }
+        }
+    }
+    // Generic chooser and pregame routes previously exposed -6 without
+    // actually entering the recovered help controller. Capture their
+    // fully composed scene (including independent Bink walkthrough).
+    if(help_configured_&&help_exit_delay_==0&&!result.state_changed&&
+       !result.effects.draws.empty()&&
+       ((result.menu_action&&result.menu_action->request_contextual_help)||
+        (result.pregame_action&&result.pregame_action->help_retains_screen))){
+        const auto decision=help::enter_decision(globals_.dispatcher.current_state,false,false);
+        if(decision.active){
+            help_background_=result.effects.draws;
+            result.effects.capture_original_help=true;
+            contextual_help_.active=1;contextual_help_.context=decision.context;
+            contextual_help_.last_region=0;
+            result.effects.audio.push_back({AudioOperation::StopManagedSounds});
+            result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},help::kHelpIntroSoundId,50,2});
         }
     }
     help_hover_=over;
@@ -557,6 +577,7 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
                 result.error="original options.txt was not configured";return result;
             }
             result.effects.draws=modal_background_;
+            result.effects.original_modal_background_count=modal_background_.size();
             result.effects.draws.push_back({"Data/ui/options/optionsscreen.bmp",options_x_,options_y_,{},true});
             const int width=slider_right_-slider_left_;
             // Draw using the pre-update percentage, like 004298AE.
@@ -588,6 +609,7 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
         if(dispatch.intercept==game_flow::Intercept::WholeGameQuit){
             // 00429AA0 is distinct from both delete and leave-activity.
             result.effects.draws=modal_background_;
+            result.effects.original_modal_background_count=modal_background_.size();
             result.effects.draws.push_back({"Data/ui/main/quitmain.bmp",0,0,{},true});
             if(quit_voice_pending_){
                 if(!input.managed_sound_playing){
@@ -679,6 +701,7 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
                         globals_.dispatcher.current_state,false,true);
                     if(decision.active){
                         help_background_=result.effects.draws;
+                        result.effects.capture_original_help=true;
                         contextual_help_.active=1;
                         contextual_help_.context=decision.context;
                         contextual_help_.last_region=0;
@@ -702,6 +725,7 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
                 if(driver->redraw_confirmation_background(scene,error))result.effects.draws=std::move(scene.draws);
                 else if(!error.empty()){result.kind=FrameKind::ActivityFailed;result.error=std::move(error);return result;}
             }
+            result.effects.original_modal_background_count=result.effects.draws.size();
             const char* backdrop=nullptr;
             if(leave)backdrop="Data/ui/main/quitmain.bmp";
             // Adapter context numbers are not unique. Select by activity.

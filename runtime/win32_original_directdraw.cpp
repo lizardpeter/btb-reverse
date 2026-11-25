@@ -83,8 +83,10 @@ void Win32OriginalDirectDraw::release_cached_bitmaps() noexcept {
 void Win32OriginalDirectDraw::shutdown() noexcept {
     release_cached_bitmaps();
     previous_frame_.clear();
-    previous_frame_replay_=false;
+    previous_frame_underlay_=UnderlayKind::None;
     release_surface(replay_underlay_);
+    release_surface(help_underlay_);
+    release_surface(global_underlay_);
     if(extra_back_reference_ && backbuffer_)backbuffer_->Release();
     extra_back_reference_=false;
     release_surface(backbuffer_);
@@ -291,40 +293,53 @@ bool Win32OriginalDirectDraw::render_additional(
     error.clear();return true;
 }
 
-bool Win32OriginalDirectDraw::capture_replay_underlay(std::string& error) {
-    if(!initialized()) {error="replay capture requires live DirectDraw";return false;}
-    // This is real source-frame storage (51C298), never generated
-    // artwork. Keep it in system memory, not a flipping video surface.
-    if(!replay_underlay_ &&
-       !create_bink_offscreen_surface(640,480,replay_underlay_,error))return false;
+bool Win32OriginalDirectDraw::capture_surface(IDirectDrawSurface7*& target,std::string& error) {
+    if(!initialized()){error="snapshot requires live DirectDraw";return false;}
+    if(!target&&!create_bink_offscreen_surface(640,480,target,error))return false;
     RECT full{0,0,640,480};
-    auto hr=replay_underlay_->Blt(&full,backbuffer_,&full,DDBLT_WAIT,nullptr);
+    const auto hr=target->Blt(&full,backbuffer_,&full,DDBLT_WAIT,nullptr);
     if(FAILED(hr)){
-        release_surface(replay_underlay_);
-        error=hresult_description("capture original replay underlay",hr);return false;
+        release_surface(target);
+        error=hresult_description("capture original underlay",hr);return false;
     }
     error.clear();return true;
 }
 
+bool Win32OriginalDirectDraw::capture_replay_underlay(std::string& error) {
+    return capture_surface(replay_underlay_,error);
+}
+bool Win32OriginalDirectDraw::capture_underlay(CapturedUnderlay kind,std::string& error) {
+    return capture_surface(kind==CapturedUnderlay::Help?help_underlay_:global_underlay_,error);
+}
+bool Win32OriginalDirectDraw::render_captured_underlay(CapturedUnderlay kind,
+    const std::vector<ResolvedDraw>& stream,std::string& error) {
+    return render_ordered_with_underlay(stream,error,
+        kind==CapturedUnderlay::Help?UnderlayKind::Help:UnderlayKind::GlobalMovie);
+}
+
 bool Win32OriginalDirectDraw::render_ordered(
     const std::vector<ResolvedDraw>& stream,std::string& error) {
-    return render_ordered_with_underlay(stream,error,false);
+    return render_ordered_with_underlay(stream,error,UnderlayKind::None);
 }
 
 bool Win32OriginalDirectDraw::render_replay_ordered(
     const std::vector<ResolvedDraw>& stream,std::string& error) {
-    return render_ordered_with_underlay(stream,error,true);
+    return render_ordered_with_underlay(stream,error,UnderlayKind::Replay);
 }
 
 bool Win32OriginalDirectDraw::render_ordered_with_underlay(
-    const std::vector<ResolvedDraw>& stream,std::string& error,bool replay) {
+    const std::vector<ResolvedDraw>& stream,std::string& error,UnderlayKind kind) {
 
     if (!initialized()) {
         error="DirectDraw renderer has not created original primary/backbuffer";
         return false;
     }
-    if(replay&&(!replay_underlay_||replay_underlay_->IsLost()!=DD_OK)) {
-        error="original captured replay pixels unavailable";return false;
+    const bool replay=kind!=UnderlayKind::None;
+    auto* underlay=kind==UnderlayKind::Replay?replay_underlay_:
+        kind==UnderlayKind::Help?help_underlay_:
+        kind==UnderlayKind::GlobalMovie?global_underlay_:nullptr;
+    if(replay&&(!underlay||underlay->IsLost()!=DD_OK)){
+        error="original captured pixels unavailable";return false;
     }
     // Retry the ENTIRE ordered frame after losing a surface. A partial
     // retry would omit earlier blits whose pixels were lost on Restore.
@@ -333,7 +348,7 @@ bool Win32OriginalDirectDraw::render_ordered_with_underlay(
         // 00403540 issues the original native DDBLT_COLORFILL.
         RECT full{0,0,640,480};
         auto hr=replay
-            ? backbuffer_->BltFast(0,0,replay_underlay_,&full,DDBLTFAST_WAIT)
+            ? backbuffer_->BltFast(0,0,underlay,&full,DDBLTFAST_WAIT)
             : original_win32::clear_backbuffer(backbuffer_,0);
         // The original clear omits DDBLT_WAIT; the saved replay
         // snapshot instead uses the original blocking bitmap blit.
@@ -355,7 +370,7 @@ bool Win32OriginalDirectDraw::render_ordered_with_underlay(
             }
             if (valid) {
                 previous_frame_=stream;
-                previous_frame_replay_=replay;
+                previous_frame_underlay_=kind;
                 error.clear();
                 return true;
             }
@@ -459,7 +474,7 @@ bool Win32OriginalDirectDraw::present(std::string& error) {
             return false;
         }
         if(!render_ordered_with_underlay(previous_frame_,error,
-                                          previous_frame_replay_))return false;
+                                          previous_frame_underlay_))return false;
         bool lost_again=false;
         hr=try_present(lost_again);
         if(lost_again){

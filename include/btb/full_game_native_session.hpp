@@ -65,6 +65,13 @@ public:
     [[nodiscard]] virtual bool draw_ordered(
         const std::vector<ResolvedDraw>& draws,
         std::string& error) = 0;
+    [[nodiscard]] virtual bool supports_captured_underlays() const noexcept {return false;}
+    [[nodiscard]] virtual bool capture_underlay(CapturedUnderlay,std::string& error) {
+        error="captured source surface unavailable";return false;
+    }
+    [[nodiscard]] virtual bool draw_captured_underlay(CapturedUnderlay,const std::vector<ResolvedDraw>&,std::string& error) {
+        error="captured source surface rendering unavailable";return false;
+    }
     // 0042CFD0 captures the real 640x480 backbuffer into 51C298;
     // 00428E30 redraws that snapshot before the keyed replay art.
     [[nodiscard]] virtual bool capture_replay_underlay(std::string& error) {
@@ -157,6 +164,7 @@ private:
     bool skip_video_{};
     bool walkthrough_open_{};
     bool global_movie_paused_{};
+    bool global_snapshot_valid_{};
     // Spud Skate tears down its movie surfaces during GameRoot::advance.
     // Keep its last actually composed frame before that teardown.
     bool skate_snapshot_valid_{};
