@@ -52,7 +52,7 @@ bool SquirrelDriver::initialize(int player,std::string& error) {
         connectors_=squirrel::chain_run_plan(plan);
         data_=std::move(candidate);
         placed_piece_ids_.fill(-1);
-        assembly_={};
+        assembly_={};conveyor_={};
         level_=0;placed_count_=0;selected_choice_=-1;
         animating_=false;complete_=false;
         completion_stage_=0;
@@ -138,7 +138,8 @@ ActivityFrameOutput SquirrelDriver::draw() const {
         std::nullopt,false
     });
     sprite(out,"conveyor.bmp",0,417,
-        Rect{0,0,640,44});
+        Rect{conveyor_.animation_frame*640,0,
+             (conveyor_.animation_frame+1)*640,44});
     sprite(out,"body_01.bmp",
         squirrel::kLoftyBodyX,squirrel::kLoftyBodyY);
     sprite(out,"eyes.bmp",squirrel::kLoftyEyesX,
@@ -187,8 +188,14 @@ ActivityFrameOutput SquirrelDriver::draw() const {
         const auto& choice=choices_[i];
         if(!choice.active)continue;
         const auto& xy=squirrel::kConveyorItemOrigins[i];
-        sprite(out,"allconveyor.bmp",xy.x,xy.y,
-            as_rect(squirrel::run_piece_source_rect(choice.piece_id)));
+        const int x=xy.x+conveyor_.position;
+        const int left=std::max(x,0),right=std::min(x+89,640);
+        if(right<=left)continue;
+        auto rect=as_rect(squirrel::run_piece_source_rect(choice.piece_id));
+        if(!rect)continue;
+        rect->left+=left-x;
+        rect->right-=x+89-right;
+        sprite(out,"allconveyor.bmp",left,xy.y,rect);
     }
     // This is the actual 8772x92 original Squirrel sprite sheet.
     // Native assembly motion uses the recovered source x/y deltas
@@ -235,8 +242,21 @@ ActivityFrameOutput SquirrelDriver::advance(
 
 ActivityFrameOutput SquirrelDriver::advance_gameplay(
     const ActivityFrameInput& input) {
+    if(!data_)return {};
+    // 004279F0 calls 00427320 BEFORE scene composition and input.
+    // The recovered normal-speed branch moves 5px per tick, regenerates
+    // once when outgoing offset exceeds 500, and returns from -420.
+    if(!complete_ && conveyor_.phase!=0) {
+        const int prior=conveyor_.phase;
+        retail_activity::update_squirrel_conveyor(conveyor_,false,nullptr);
+        if(prior==1 && conveyor_.phase==2) {
+            std::string error;
+            if(!generate_choices(error)) {
+                ActivityFrameOutput failed;failed.fatal_error=error;return failed;
+            }
+        }
+    }
     auto out=draw();
-    if(!data_)return out;
     if(complete_) {
         const auto state=squirrel::completion_step(
             completion_stage_,input.managed_sound_playing,
@@ -268,6 +288,7 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
             assembly_,*data_);
         if(update.cycle_completed) {
             animating_=false;
+            selected_choice_=-1;
             ++placed_count_;
             if(placed_count_>=3) {
                 if(level_==difficulty_) {
@@ -277,19 +298,22 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
                     ++level_;placed_count_=0;
                 }
             }
-            if(!complete_) {
+            // The first two placements regenerate at the offscreen
+            // conveyor boundary, not during the visible assembly frame.
+            if(!complete_ && conveyor_.phase==0) {
                 std::string error;
                 if(!generate_choices(error))out.fatal_error=error;
             }
         }
         {auto frame=draw();frame.audio=std::move(out.audio);frame.fatal_error=std::move(out.fatal_error);return frame;}
     }
-    if(!input.click_pulse)return out;
+    if(conveyor_.phase!=0 || !input.click_pulse)return out;
     for(std::size_t i=0;i<choices_.size();++i) {
         const auto& target=squirrel::kConveyorItemOrigins[i];
-        if(input.pointer_x<target.x ||
+        // 004273F0 uses strict interior bounds, including left/top.
+        if(input.pointer_x<=target.x ||
            input.pointer_x>=target.x+squirrel::kConveyorHitWidth ||
-           input.pointer_y<target.y ||
+           input.pointer_y<=target.y ||
            input.pointer_y>=target.y+squirrel::kConveyorHitHeight)
             continue;
         auto& chosen=choices_[i];
@@ -320,6 +344,10 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         animating_=true;
         selected_choice_=static_cast<int>(i);
         chosen.active=false;
+        // Retail triggers the slide for the first two placements only.
+        // This host still combines the fetch and assembly entry, so begin
+        // at its existing accepted-placement boundary.
+        if(placed_count_<2)conveyor_.phase=1;
         out.audio.push_back({
             AudioOperation::ManagedSoundId,{},
             squirrel::correct_placement_feedback_sound_id(
@@ -333,7 +361,7 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
 bool SquirrelDriver::unload(std::string& error) {
     data_.reset();player_=-1;
     connectors_={};placed_piece_ids_={};
-    choices_={};assembly_={};
+    choices_={};assembly_={};conveyor_={};
     level_=0;placed_count_=0;selected_choice_=-1;
     animating_=false;complete_=false;
     completion_stage_=0;

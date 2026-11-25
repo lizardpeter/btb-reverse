@@ -1,6 +1,7 @@
 #pragma once
 #include "btb/full_game_runtime.hpp"
 #include "btb/retail_crt_random.hpp"
+#include "btb/retail_activity_closure.hpp"
 #include "btb/squirrel_data.hpp"
 #include "btb/squirrel_presentation.hpp"
 #include "btb/squirrel_runtime.hpp"
@@ -38,6 +39,8 @@ public:
     [[nodiscard]] int level() const noexcept {return level_;}
     [[nodiscard]] int placed_count() const noexcept {return placed_count_;}
     [[nodiscard]] bool animating() const noexcept {return animating_;}
+    [[nodiscard]] int conveyor_phase() const noexcept {return conveyor_.phase;}
+    [[nodiscard]] int conveyor_offset() const noexcept {return conveyor_.position;}
     bool shared_back_available() const noexcept override {return selected_choice_<0;}
 private:
     [[nodiscard]] bool generate_choices(std::string& error);
@@ -56,6 +59,7 @@ private:
     squirrel::PlacedRunPieces placed_piece_ids_{};
     squirrel::RunAssemblyAnimationRuntime assembly_{};
     std::array<Choice,4> choices_{};
+    retail_activity::SquirrelConveyor conveyor_{};
     int level_{};
     int placed_count_{};
     int selected_choice_{-1};

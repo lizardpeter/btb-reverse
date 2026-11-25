@@ -130,6 +130,9 @@ int main() {
             }
             const auto point=sq::kConveyorItemOrigins[
                 static_cast<std::size_t>(chosen)];
+            // Strict edge clicks must not select a piece.
+            frame=game.advance({.pointer_x=point.x,.pointer_y=point.y+2,.click_pulse=true});
+            assert(!driver->animating());
             frame=game.advance({
                 .pointer_x=point.x+2,.pointer_y=point.y+2,
                 .click_pulse=true
@@ -145,7 +148,33 @@ int main() {
             // 14 seven-tick substeps with three overlapping boundaries.
             assert(ticks==95);
             assert(!driver->animating());
+            assert(driver->shared_back_available()); // no permanent selection lock
             assert(frame.effects.progress_writes.empty());
+            if(selected%3<2) {
+                assert(driver->conveyor_phase()==1 && driver->conveyor_offset()==475);
+                // A click while the conveyor slides cannot choose a piece.
+                frame=game.advance({.pointer_x=point.x+2,.pointer_y=point.y+2,.click_pulse=true});
+                assert(!driver->animating());
+                const auto before_regeneration=rng.state();
+                for(int i=0;i<4;++i)frame=game.advance({});
+                assert(driver->conveyor_phase()==1 && driver->conveyor_offset()==500);
+                assert(rng.state()==before_regeneration);
+                frame=game.advance({});
+                assert(driver->conveyor_phase()==2 && driver->conveyor_offset()==-420);
+                assert(rng.state()!=before_regeneration);
+                for(const auto& draw:frame.effects.draws) {
+                    if(draw.source_asset=="Data\\SubGameSquirrel\\allconveyor.bmp") {
+                        assert(draw.x>=0 && draw.source_rectangle);
+                        assert(draw.x+draw.source_rectangle->right-draw.source_rectangle->left<=640);
+                    }
+                }
+                const auto generated=rng.state();
+                for(int i=0;i<83;++i)frame=game.advance({});
+                assert(driver->conveyor_phase()==2 && driver->conveyor_offset()==-5);
+                frame=game.advance({});
+                assert(driver->conveyor_phase()==0 && driver->conveyor_offset()==0);
+                assert(rng.state()==generated);
+            } else assert(driver->conveyor_phase()==0);
         }
         frame=game.advance({}); // Wendy final line
         assert(frame.kind==fg::FrameKind::ActivityUpdated);
