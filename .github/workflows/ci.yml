@@ -53,6 +53,10 @@ jobs:
         run: |
           cmake --build build/reconstruction --target btb_squirrel_runtime_tests btb_squirrel_data_tests btb_squirrel_presentation_tests --parallel
           ctest --test-dir build/reconstruction --output-on-failure -R '^squirrel_(runtime|data|presentation)$'
+      - name: Independently compare Golf vectors with retail x87 instructions
+        run: |
+          g++-14 -std=c++2c -O2 -Iinclude tools/verify_retail_golf_x87.cpp src/golf_runtime.cpp -o build/reconstruction/btb_golf_x87_diagnostic
+          build/reconstruction/btb_golf_x87_diagnostic
       - name: Build reconstruction
         run: cmake --build build/reconstruction --parallel
       - name: Independently compare native Bink1 PCM16 against FFmpeg

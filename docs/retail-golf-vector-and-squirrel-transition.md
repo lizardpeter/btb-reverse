@@ -12,3 +12,5 @@ The optional GNU/Clang x86-64 comparison is reproducible with:
 g++ -std=c++20 -O2 -Iinclude tools/verify_retail_golf_x87.cpp src/golf_runtime.cpp -o /tmp/btb-golf-x87
 /tmp/btb-golf-x87
 ```
+
+The Linux x86-64 CI job now builds and executes this optional diagnostic before the full reconstruction build, so any change to the production Golf vector calculation that changes the original float32 result will fail the regression. The Windows native tests retain the portable bit-exact fixtures; no x87 inline assembly is required in the production Windows game.
