@@ -1266,6 +1266,20 @@ int main() {
     // actual composed image, then Alt+X closes both media providers
     // before observation and submits only credits, not stale overlays.
     {
+        // Isolate this positive-path fixture from the preceding deliberate
+        // missing-bink_5 regression. Never depend on its deleted asset.
+        const auto directory=fs::temp_directory_path()/"btb_native_options_credits_fixture";
+        fs::remove_all(directory);
+        touch(directory,"data/movies/bink_5.bik");
+        touch(directory,"Data/ui/original.bmp");
+        touch(directory,"Data/ui/options/optionsscreen.bmp");
+        touch(directory,"Data/ui/options/pointer.bmp");
+        const auto checked=[](NativeSessionFrame frame){
+            if(frame.failure)std::fprintf(stderr,"Options/credits stage %d: %s\n",
+                static_cast<int>(frame.failure->stage),frame.failure->message.c_str());
+            assert(frame.submitted&&!frame.failure);
+            return frame;
+        };
         touch(directory,"Data/ui/credits1.bmp");
         touch(directory,"Data/ui/credits2.bmp");
         touch(directory,"Data/sound/options_intro.wav");
@@ -1284,21 +1298,21 @@ int main() {
             OriginalAssetResolver{directory},startup_fixture(),walkthrough_fixture());
         std::istringstream sounds("options_intro.wav 572\n");
         assert(session->load_sound_catalog(sounds).success);
-        assert(session->tick({},false,false).submitted);
+        checked(session->tick({},false,false));
+        checked(session->tick({},false,false)); // present the instruction artwork too
         assert(session->has_walkthrough());
         assert(game->request_window_options());
         device.movie_operations.clear();
-        auto frame=session->tick({},false,false);
-        assert(frame.submitted&&!frame.failure);
+        auto frame=checked(session->tick({},false,false));
         assert(device.underlay_captures[2]==1&&device.underlay_draws[2]==1);
         assert(device.overlay_draws.size()==2);
         assert(session->has_walkthrough());
-        assert(session->tick({},false,false).submitted);
+        checked(session->tick({},false,false));
         assert(device.underlay_captures[2]==1&&device.underlay_draws[2]==2);
         game->request_window_credits();
         device.movie_operations.clear();
-        frame=session->tick({},false,false);
-        assert(frame.submitted&&!frame.failure&&frame.walkthrough_closed);
+        frame=checked(session->tick({},false,false));
+        assert(frame.walkthrough_closed);
         assert(!session->has_walkthrough());
         assert(device.global_close==1&&device.walk_close==1);
         assert(device.movie_operations==std::vector<std::string>({"close global","close walkthrough","observe"}));
@@ -1309,6 +1323,60 @@ int main() {
         frame=session->tick({.click_pulse=true},true,false);
         assert(frame.submitted&&game->globals().dispatcher.shutdown_phase==btb::application::ShutdownPhase::FinalTeardown);
         assert(device.global_close==1&&device.walk_close==1);
+        fs::remove_all(directory);
+    }
+    // A live Spud Skate frame owns the replay capture. Help and Options
+    // must never overwrite that surface with their overlay pixels.
+    {
+        const auto directory=fs::temp_directory_path()/"btb_native_skate_snapshot_fixture";
+        fs::remove_all(directory);
+        for(const auto* asset:{"Data/ui/original.bmp","Data/ui/helpred.bmp",
+            "Data/ui/help cursor.bmp","Data/ui/options/optionsscreen.bmp",
+            "Data/ui/options/pointer.bmp","Data/sound/help_intro.wav",
+            "Data/sound/help_hover.wav","Data/sound/options_intro.wav"})
+            touch(directory,asset);
+        auto game=std::make_unique<GameRoot>();
+        assert(game->select_profile(0));
+        game->install(ActivityId::SpudSkate,std::make_unique<SourcePrintActivity>());
+        std::string error;
+        std::ostringstream table;
+        for(int i=0;i<12;++i)table<<"section"<<i<<"\n-1 -1 -1 -1 -1\n";
+        table<<"END\n";
+        std::istringstream help(table.str());
+        assert(game->configure_contextual_help(help,error));
+        std::istringstream options("0 0 250 417 299 462 340 417 389 466 208 222 410 242 122 86 480 350");
+        assert(game->configure_options(options,error));
+        game->set_outer_state(State::SpudSkateInit);
+        Device device;device.snapshot_support=true;
+        auto session=std::make_unique<NativeGameSession>(*game,device,
+            OriginalAssetResolver{directory},startup_fixture(),walkthrough_fixture());
+        std::istringstream sounds("help_intro.wav 476\nhelp_hover.wav 455\noptions_intro.wav 572\n");
+        assert(session->load_sound_catalog(sounds).success);
+        assert(session->tick({},false,false).submitted);
+        assert(session->tick({},false,false).submitted);
+        assert(device.replay_captures==1);
+        assert(game->request_window_options());
+        assert(session->tick({},false,false).submitted);
+        assert(session->tick({},false,false).submitted);
+        assert(device.replay_captures==1);
+        game->globals().dispatcher.options_active=false;
+        assert(session->tick({},false,false).submitted);
+        assert(device.replay_captures==2);
+        ActivityFrameInput input{};
+        input.pointer_position_valid=true;input.pointer_x=30;input.pointer_y=440;
+        input.pointer_release_pulse=true;
+        auto entry=session->tick(input,false,false);
+        assert(entry.submitted&&entry.prepared.game.effects.capture_original_help);
+        const auto captured=device.replay_captures;
+        input.pointer_release_pulse=false;input.pointer_x=300;input.pointer_y=200;
+        assert(session->tick(input,false,false).submitted);
+        assert(device.replay_captures==captured);
+        input.pointer_x=30;input.pointer_y=440;input.pointer_release_pulse=true;
+        assert(session->tick(input,false,false).submitted);
+        assert(device.replay_captures==captured);
+        assert(session->tick({},false,false).submitted);
+        assert(device.replay_captures==captured+1);
+        fs::remove_all(directory);
     }
     fs::remove_all(directory);
 }

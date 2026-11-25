@@ -395,6 +395,8 @@ NativeSessionFrame NativeGameSession::tick(
         }
         if((preparing_replay&&!skate_replay)||
            (entry_state==S::SpudSkateRun&&!preparing_replay&&
+            frame.prepared.game.kind==FrameKind::ActivityUpdated&&
+            !frame.prepared.game.effects.capture_original_help&&
             !frame.prepared.game.effects.save_and_unload)) {
             if(!device_.capture_replay_underlay(error)) {
                 fail(frame,PhysicalPresentationStage::SubmitDraw,error);
