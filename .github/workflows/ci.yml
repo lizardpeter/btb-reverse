@@ -22,6 +22,15 @@ jobs:
         run: python -m py_compile tools/*.py
       - name: Exercise read-only retail media audit fixtures
         run: python -m unittest discover -s tools -p test_audit_retail_bink.py
+      - name: Package exact source snapshot for offline reconstruction
+        run: git archive --format=tar.gz --output=btb-source-snapshot.tar.gz HEAD
+      - name: Upload source-only snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: btb-source-snapshot
+          path: btb-source-snapshot.tar.gz
+          retention-days: 7
+          if-no-files-found: error
 
 
   reconstruction-cpp:
@@ -65,6 +74,20 @@ jobs:
           python tools/bink32_synthetic_audio_differential.py --native build/reconstruction/btb_bink32_native_audio_audit
       - name: Test reconstruction
         run: ctest --test-dir build/reconstruction --output-on-failure
+      - name: Build optional installed-data Herding probe
+        run: cmake --build build/reconstruction --target btb_retail_herding_playthrough --parallel
+      - name: Upload Linux installed-data audit tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: btb-native-linux-audit-tools
+          path: |
+            build/reconstruction/btb_retail_herding_playthrough
+            build/reconstruction/btb_retail_golf_squirrel_playthrough
+            build/reconstruction/btb_bink32_retail_video_audit
+            build/reconstruction/btb_bink32_native_audio_audit
+            tools/audit_retail_bink.py
+          retention-days: 7
+          if-no-files-found: error
 
   integrated-game-windows:
     runs-on: windows-latest
