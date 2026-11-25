@@ -40,13 +40,14 @@ NativeSessionFrame NativeGameSession::tick(
     const bool pause=!skip_video_&&game_flow::dispatch_step(
         root_.globals().dispatcher).pause_global_movie;
     input.physical_help_snapshot_available=device_.supports_captured_underlays();
+    // Restore the last submitted movie pixels on EVERY unpaused tick:
+    // BinkWait can leave pixels untouched and fullscreen Flip swaps buffers.
+    // The independent snapshot also restores the pre-modal movie image.
+    if(!pause&&global_snapshot_valid_&&
+       !device_.draw_captured_underlay(CapturedUnderlay::GlobalMovie,{},error)){
+        fail(frame,PhysicalPresentationStage::SubmitDraw,error);return frame;
+    }
     if(pause!=global_movie_paused_){
-        // Restore the last submitted movie pixels before the decoder
-        // advances or waits; fullscreen Flip may have swapped buffers.
-        if(!pause&&global_snapshot_valid_&&
-           !device_.draw_captured_underlay(CapturedUnderlay::GlobalMovie,{},error)){
-            fail(frame,PhysicalPresentationStage::SubmitDraw,error);return frame;
-        }
         if(!device_.set_global_movie_paused(pause,error)){
             fail(frame,PhysicalPresentationStage::ObserveDevice,error);return frame;
         }

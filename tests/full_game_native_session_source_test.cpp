@@ -69,6 +69,10 @@ public:
     PhysicalFrameObservation sample{};
     int observe_count{};
     std::vector<bool> pause_transitions{};
+    bool snapshot_support{};
+    std::array<int,2> underlay_captures{},underlay_draws{};
+    std::vector<std::string> movie_operations{};
+    std::vector<Draw> overlay_draws{};
     int global_open{};
     int global_close{};
     int walk_open{};
@@ -90,10 +94,10 @@ public:
 
     bool observe(PhysicalFrameObservation& out,
                  std::string& error) override {
-        ++observe_count; out=sample; error.clear(); return true;
+        ++observe_count; movie_operations.push_back("observe");out=sample; error.clear(); return true;
     }
     bool set_global_movie_paused(bool paused,std::string& error) override {
-        pause_transitions.push_back(paused);error.clear();return true;
+        pause_transitions.push_back(paused);movie_operations.push_back(paused?"pause":"resume");error.clear();return true;
     }
     bool open_global_movie(
         const fs::path& movie,std::string& error) override {
@@ -130,6 +134,20 @@ public:
         for (const auto& draw : draws) {
             received_draws.push_back(draw.original);
         }
+        error.clear();return true;
+    }
+    bool supports_captured_underlays() const noexcept override {return snapshot_support;}
+    bool capture_underlay(CapturedUnderlay kind,std::string& error) override {
+        ++underlay_captures[static_cast<std::size_t>(kind)];
+        movie_operations.push_back("snapshot");error.clear();return true;
+    }
+    bool draw_captured_underlay(CapturedUnderlay kind,const std::vector<ResolvedDraw>& draws,std::string& error) override {
+        const auto i=static_cast<std::size_t>(kind);
+        if(!underlay_captures[i]){error="no captured underlay";return false;}
+        ++underlay_draws[i];
+        movie_operations.push_back("restore");
+        overlay_draws.clear();
+        for(const auto& draw:draws)overlay_draws.push_back(draw.original);
         error.clear();return true;
     }
     bool capture_replay_underlay(std::string& error) override {
@@ -1158,6 +1176,91 @@ int main() {
         assert(blocked.failure);
         assert(blocked.failure->stage==PhysicalPresentationStage::GameAdvance);
         assert(device.global_open==0);
+    }
+    // Native snapshot contract: real movie surface is restored before
+    // observe (including ordinary wait ticks), and a modal pauses before
+    // observe, ignores stale EOS and uses only its own bitmap overlays.
+    {
+        touch(directory,"Data/movies/modal.bik");
+        touch(directory,"Data/ui/options/optionsscreen.bmp");
+        touch(directory,"Data/ui/options/pointer.bmp");
+        std::string error;
+        OriginalVideoSequenceCatalog sequence;
+        std::istringstream sequence_text("Data/movies/modal.bik 1\n");
+        assert(sequence.read(sequence_text,error));
+        auto game=std::make_unique<GameRoot>();
+        assert(game->configure_startup_video_sequence(sequence.entries(),error));
+        std::istringstream options("0 0 250 417 299 462 340 417 389 466 208 222 410 242 122 86 480 350");
+        assert(game->configure_options(options,error));
+        game->set_outer_state(State::StartupMoviesThenProfileSetup);
+        Device device;device.snapshot_support=true;
+        auto session=std::make_unique<NativeGameSession>(*game,device,
+            OriginalAssetResolver{directory},startup_fixture(),walkthrough_fixture());
+        assert(session->tick({},false,false).submitted);
+        assert(device.underlay_captures[1]==1);
+        device.movie_operations.clear();
+        assert(session->tick({},false,false).submitted);
+        assert(device.movie_operations==std::vector<std::string>({"restore","observe","snapshot"}));
+        game->globals().dispatcher.options_active=true;
+        device.sample.global_movie_finished=true;
+        device.movie_operations.clear();
+        auto modal=session->tick({},false,false);
+        assert(modal.submitted&&!modal.failure);
+        assert(device.movie_operations==std::vector<std::string>({"pause","observe","restore"}));
+        assert(!game->globals().dispatcher.global_movie_finished);
+        assert(device.overlay_draws.size()==2);
+        assert(device.underlay_captures[1]==2);
+        assert(session->tick({},false,false).submitted);
+        assert(device.pause_transitions==std::vector<bool>({true}));
+        game->globals().dispatcher.options_active=false;
+        device.sample.global_movie_finished=false;
+        device.movie_operations.clear();
+        assert(session->tick({},false,false).submitted);
+        assert(device.movie_operations==std::vector<std::string>({"restore","resume","observe","snapshot"}));
+        assert(device.pause_transitions==std::vector<bool>({true,false}));
+        assert(device.replay_captures==0);
+    }
+
+    // Help uses its own captured surface; only cursor art is submitted
+    // above it, and exiting restores the scene without updating gameplay.
+    {
+        touch(directory,"Data/ui/helpred.bmp");
+        touch(directory,"Data/ui/help cursor.bmp");
+        touch(directory,"Data/sound/help_intro.wav");
+        touch(directory,"Data/sound/help_hover.wav");
+        auto game=std::make_unique<GameRoot>();
+        assert(game->select_profile(0));
+        game->install(ActivityId::Golf,std::make_unique<SourcePrintActivity>());
+        std::string error;
+        std::ostringstream table;
+        for(int i=0;i<16;++i)table<<"section"<<i<<"\n-1 -1 -1 -1 -1\n";
+        table<<"END\n";
+        std::istringstream help(table.str());
+        assert(game->configure_contextual_help(help,error));
+        game->set_outer_state(State::GolfInit);
+        Device device;device.snapshot_support=true;
+        auto session=std::make_unique<NativeGameSession>(*game,device,
+            OriginalAssetResolver{directory},startup_fixture(),walkthrough_fixture());
+        std::istringstream sounds("help_intro.wav 476\nhelp_hover.wav 455\n");
+        assert(session->load_sound_catalog(sounds).success);
+        assert(session->tick({},false,false).submitted);
+        ActivityFrameInput input{};
+        input.pointer_position_valid=true;input.pointer_x=30;input.pointer_y=440;
+        input.pointer_release_pulse=true;
+        auto entry=session->tick(input,false,false);
+        assert(entry.submitted&&entry.prepared.game.effects.capture_original_help);
+        assert(device.underlay_captures[0]==1);
+        input.pointer_release_pulse=false;input.pointer_x=300;input.pointer_y=200;
+        auto hover=session->tick(input,false,false);
+        assert(hover.submitted&&hover.prepared.game.dispatch.intercept==btb::game_flow::Intercept::ContextualHelp);
+        assert(device.overlay_draws.size()==1);
+        assert(device.overlay_draws.front().source_asset=="Data/ui/help cursor.bmp");
+        input.pointer_x=30;input.pointer_y=440;input.pointer_release_pulse=true;
+        auto exit=session->tick(input,false,false);
+        assert(exit.submitted&&device.overlay_draws.empty());
+        assert(device.underlay_draws[0]==2);
+        assert(device.replay_captures==0&&device.underlay_captures[1]==0);
+        assert(session->tick({},false,false).submitted);
     }
     fs::remove_all(directory);
 }
