@@ -21,6 +21,7 @@
 #include "btb/full_game_resources.hpp"
 #include "btb/display_manager.hpp"
 #include "btb/packed_frame_snapshot.hpp"
+#include "btb/win32_frame_output.hpp"
 #include "btb/win32_native_bitmap_registry.hpp"
 
 #include <filesystem>
@@ -55,6 +56,8 @@ public:
     [[nodiscard]] bool render_replay_ordered(
         const std::vector<ResolvedDraw>& draw_stream,std::string& error);
     [[nodiscard]] bool present(std::string& error);
+    void set_frame_output(Win32FrameOutput* output) noexcept {frame_output_=output;}
+    void set_dialog_owner(HWND hwnd) noexcept {dialog_owner_=hwnd;}
     // Direct original 00402440 cooperative test and loss recovery.
     [[nodiscard]] HRESULT cooperative_status() const noexcept;
     [[nodiscard]] HRESULT prepare_native_frame(std::string& error);
@@ -76,7 +79,7 @@ public:
     [[nodiscard]] IDirectDrawSurface7* bink_render_target() const noexcept {
         return backbuffer_;
     }
-    [[nodiscard]] HWND window_handle() const noexcept {return hwnd_;}
+    [[nodiscard]] HWND window_handle() const noexcept {return dialog_owner_?dialog_owner_:hwnd_;}
 
     // Bink movie frames decode into source-sized offscreen DD7 surfaces.
     // Caller owns returned COM reference, and presents it only after
@@ -110,6 +113,8 @@ private:
     void release_cached_bitmaps() noexcept;
 
     HWND hwnd_{};
+    HWND dialog_owner_{};
+    Win32FrameOutput* frame_output_{};
     display::DisplayMode mode_{display::DisplayMode::Windowed};
     IDirectDraw7* draw_{};
     IDirectDrawSurface7* primary_{};

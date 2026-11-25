@@ -586,6 +586,13 @@ bool Win32OriginalDirectDraw::present(std::string& error) {
     // decoded activity/walkthrough movies, prior to Flip/Blt. Replaying
     // only the bitmap list loses those overlays after device recovery.
     if(!capture_surface(composed_frame_,error))return false;
+    if(frame_output_){
+        if(!frame_output_->present(composed_frame_,error))return false;
+        if(cursor_pending_)std::swap(pending_cursorless_frame_,presented_cursorless_frame_);
+        else presented_cursorless_frame_.clear();
+        cursor_pending_=false;
+        return true;
+    }
     bool bitmap_reload=false;
     auto hr=try_present(bitmap_reload);
     if (hr==DDERR_SURFACELOST && bitmap_reload) {

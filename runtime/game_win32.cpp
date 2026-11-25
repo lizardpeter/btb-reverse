@@ -13,6 +13,9 @@
 #include "btb/win32_recompiled_host.hpp"
 #include "btb/win32_original_platform_link.hpp"
 #include "btb/recompiled_core_smoke.hpp"
+#if defined(BTB_ENHANCED_BUILD)
+#include "enhanced_host.hpp"
+#endif
 
 #include <algorithm>
 #include <filesystem>
@@ -563,8 +566,12 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
                 L"Original game installation required",MB_OK|MB_ICONERROR);
             return 5;
         }
+        #if defined(BTB_ENHANCED_BUILD)
+        return btb::enhanced::run_enhanced(instance,*chosen,show,skip_video,selected_profile);
+        #else
         return btb::full_game::run_recompiled_native_game(
             instance,*chosen,show,skip_video,selected_profile);
+        #endif
     }
     // --legacy-dino-preview: preserved solely for old source regression UI.
     Host host;

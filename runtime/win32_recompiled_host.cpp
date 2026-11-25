@@ -76,8 +76,14 @@ fs::path native_profile_directory(const fs::path& retail_root) {
     return retail_root/"BTB-Recompiled-Saves";
 }
 
+struct HiddenCompositionWindow {
+    HWND handle{};
+    ~HiddenCompositionWindow(){if(handle)DestroyWindow(handle);}
+};
 struct Host {
     HWND window{};
+    HiddenCompositionWindow composition{};
+    Win32FrameOutput* output{};
     fs::path root{};
     Win32OriginalDirectDraw graphics{};
     Win32OriginalDirectSound audio{};
@@ -113,8 +119,8 @@ struct Host {
     original_win32::RetailWindowState retail_window{};
     original_active_frame::State original_frame{};
 
-    explicit Host(fs::path original_root,bool skip,int profile)
-        :root(std::move(original_root)),
+    explicit Host(fs::path original_root,bool skip,int profile,Win32FrameOutput* sink)
+        :output(sink),root(std::move(original_root)),
          movies(graphics,audio,root,
                 native_bink_opt_in(L"BTB_EXPERIMENTAL_NATIVE_BINK_AUDIO"),
                 native_bink_opt_in(L"BTB_EXPERIMENTAL_NATIVE_BINK_VIDEO")),
@@ -165,7 +171,17 @@ struct Host {
             static_cast<std::uint32_t>(GetTickCount()));
         // PE32 00401F80 -> 00401FA0 now owns the actual DD7 creation,
         // windowed native style/menu setup and initial backbuffer clear.
-        if(FAILED(original_win32::initialize_display_for_game_window(
+        if(output){
+            // Never associate the DirectDraw primary/clipper with the Vulkan
+            // window. The original composition surfaces live on a hidden HWND.
+            composition.handle=CreateWindowExW(0,L"STATIC",L"BTB offscreen composition",
+                WS_POPUP,0,0,640,480,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);
+            if(!composition.handle){out_error="cannot create offscreen composition window";return false;}
+            if(!graphics.initialize(composition.handle,display::DisplayMode::Windowed,out_error))return false;
+            if(FAILED(graphics.clear_retail_backbuffer(0))){out_error="cannot clear offscreen composition";return false;}
+            graphics.set_dialog_owner(window);graphics.set_frame_output(output);
+            if(!output->initialize(window,out_error))return false;
+        }else if(FAILED(original_win32::initialize_display_for_game_window(
             window,display::DisplayMode::Windowed,graphics,out_error)))
             return false;
         if(!audio.initialize(window,out_error))return false;
@@ -497,7 +513,7 @@ struct Host {
                 : display::DisplayMode::Fullscreen;
             try{return static_cast<original_active_frame::U32>(
                 original_win32::create_or_reset_display_manager(
-                    h.window,mode,h.graphics,h.error));}
+                    h.output?h.composition.handle:h.window,mode,h.graphics,h.error));}
             catch(...){h.error="Native display reset exception";return 0x80004005U;}
         };
         callbacks.present_original_game_frame=+[](void* context)
@@ -529,6 +545,7 @@ struct Host {
             running=false;
             return false;
         }
+        if(output)output->state_changed(game.globals().dispatcher.current_state);
         if(game.globals().dispatcher.shutdown_phase==application::ShutdownPhase::FinalTeardown)
             PostMessageW(window,WM_CLOSE,0,0);
         return true; // idle-ms and recoverable DD7 frames must not quit
@@ -541,8 +558,8 @@ struct Host {
         const int height=std::max(1L,rect.bottom-rect.top);
         const int x=static_cast<short>(LOWORD(lparam));
         const int y=static_cast<short>(HIWORD(lparam));
-        pointer_x=std::clamp(x*640/width,0,639);
-        pointer_y=std::clamp(y*480/height,0,479);
+        if(output){pointer_x=x;pointer_y=y;output->map_pointer(pointer_x,pointer_y,width,height);}
+        else {pointer_x=std::clamp(x*640/width,0,639);pointer_y=std::clamp(y*480/height,0,479);}
     }
 };
 
@@ -568,6 +585,13 @@ LRESULT CALLBACK native_window_proc(
         host->close_requested=true;return 0;
     }
     if(msg==WM_COMMAND&&host->frame_in_progress)return 0;
+    if(host->output){
+        if(msg==WM_GETMINMAXINFO)return DefWindowProcW(hwnd,msg,wp,lp);
+        if((msg==WM_KEYDOWN&&wp==VK_F11)||(msg==WM_COMMAND&&LOWORD(wp)==0x3eaU)){
+            if(host->running&&!host->frame_in_progress&&(msg!=WM_KEYDOWN||!(lp&0x40000000)))host->output->toggle_borderless();
+            return 0;
+        }
+    }
     if(msg==WM_SETCURSOR&&host->running&&LOWORD(lp)==HTCLIENT){SetCursor(nullptr);return TRUE;}
     if(msg==WM_COMMAND&&LOWORD(wp)==0x9c41U){
         if(host->running)(void)host->game.request_window_options();
@@ -688,6 +712,7 @@ LRESULT CALLBACK native_window_proc(
     case WM_DESTROY:
         host->running=false;
         KillTimer(hwnd,kNativeTimer);
+        if(host->output)host->output->shutdown();
         if(!host->startup_completed){PostQuitMessage(host->exit_code?host->exit_code:2);return 0;}
         // The original activity owns its per-player save file (Fireworks
         // firedataN, Park Designer dypdataN, Band compositions, etc).
@@ -724,8 +749,8 @@ LRESULT CALLBACK native_window_proc(
 
 int run_recompiled_native_game(
     HINSTANCE instance,const fs::path& original_root,int show,
-    bool skip_video,int selected_profile) {
-    Host host(original_root,skip_video,selected_profile);
+    bool skip_video,int selected_profile,Win32FrameOutput* output) {
+    Host host(original_root,skip_video,selected_profile,output);
     WNDCLASSEXW cls{};
     cls.cbSize=sizeof(cls);
     cls.hInstance=instance;
@@ -733,11 +758,15 @@ int run_recompiled_native_game(
     cls.hCursor=LoadCursorW(nullptr,MAKEINTRESOURCEW(32512));
     cls.lpszClassName=L"BTBRetailNativeCxx";
     if(!RegisterClassExW(&cls))return 1;
-    RECT size{0,0,640,480};
+    RECT size{0,0,output?1280:640,output?960:480};
+    if(output){RECT work{};if(SystemParametersInfoW(SPI_GETWORKAREA,0,&work,0)){
+        size.right=std::min<LONG>(size.right,work.right-work.left-40);
+        size.bottom=std::min<LONG>(size.bottom,work.bottom-work.top-80);
+    }}
     AdjustWindowRect(&size,WS_OVERLAPPEDWINDOW,FALSE);
     const auto hwnd=CreateWindowExW(
         0,cls.lpszClassName,
-        L"Bob Builds a Park - Original Source Native DirectDraw7",
+        output?L"Bob Builds a Park - Enhanced Vulkan":L"Bob Builds a Park - Original Source Native DirectDraw7",
         WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,
         size.right-size.left,size.bottom-size.top,
         nullptr,nullptr,instance,&host);
