@@ -231,6 +231,9 @@ struct ActivityFrameInput {
     // Original Squirrel Lofty speech IDs 633..638. Absent only for
     // source-only fixtures; production fills this from DirectSound.
     std::optional<std::array<bool,6>> squirrel_lofty_voice_playing{};
+    // Original DAT_0044DE0C; supplied by the physical Win32 host.
+    // Source fixtures default to the fullscreen branch.
+    bool original_windowed_display{};
 };
 
 struct ActivityFrameOutput {

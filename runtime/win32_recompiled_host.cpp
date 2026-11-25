@@ -446,6 +446,7 @@ struct Host {
             ActivityFrameInput input=h.native_input.sample(
                 h.pointer_x,h.pointer_y,timeGetTime());
             input.pointer_position_valid=true;
+            input.original_windowed_display=h.retail_window.windowed;
             const auto click=consume_native_click(h.native_input.click_pulse);
             input.click_pulse=click.activity_click;
             const auto entry_state=h.game.globals().dispatcher.current_state;

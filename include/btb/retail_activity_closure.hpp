@@ -167,7 +167,7 @@ inline void debounce_maze_directions(
     if(!stable_first||!stable_second){first=0;second=0;}
 }
 
-// 00427320 source-defined squirrel conveyor phases, 2-frame animation and
+// 00427320 source-defined squirrel conveyor phases, three-cell animation and
 // a separate 50-unit vs 5-unit movement step (window mode dependent).
 struct SquirrelConveyor {
     I32 phase{};

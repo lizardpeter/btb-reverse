@@ -256,5 +256,55 @@ int main() {
         assert(game.globals().dispatcher.current_state==
                static_cast<int>(State::PlayAgainYesNoSetup));
     }
+    // Drive complete native windowed games using the actual 50-pixel,
+    // alternate-update conveyor branch. Compare the portable kernel to
+    // the live driver on every frame, even when the conveyor is idle.
+    for(int difficulty=0;difficulty<3;++difficulty)for(int seed=0;seed<12;++seed) {
+        btb::retail::OriginalRetailRandom random(static_cast<std::uint32_t>(seed+91));
+        fg::SquirrelDriver driver(root,difficulty,&random);
+        std::string error;
+        assert(driver.initialize(0,error));
+        int selected=0,frames=0,regenerated=0;
+        for(;frames<30000 && !driver.complete();++frames) {
+            fg::ActivityFrameInput input{};
+            input.original_windowed_display=true;
+            const auto old=driver.conveyor_state();
+            const bool transitioning=driver.level_transition_pending();
+            auto expected=old;
+            if(!transitioning)
+                btb::retail_activity::update_squirrel_conveyor(expected,true,nullptr);
+            if(!transitioning && driver.shared_back_available() &&
+                driver.conveyor_phase()==0 && driver.placed_count()<3 &&
+                driver.run_section()<6) {
+                for(std::size_t i=0;i<driver.choices().size();++i)
+                    if(driver.choices()[i].active && driver.choices()[i].correct) {
+                        const auto p=sq::kConveyorItemOrigins[i];
+                        input.pointer_x=p.x+10;input.pointer_y=p.y+10;
+                        input.click_pulse=true;++selected;break;
+                    }
+            }
+            const auto output=driver.advance(input);
+            assert(!output.fatal_error);
+            const auto now=driver.conveyor_state();
+            assert(now.window_counter==expected.window_counter);
+            assert(now.position==expected.position);
+            assert(now.animation_countdown==expected.animation_countdown);
+            assert(now.animation_frame==expected.animation_frame);
+            if(old.phase==1 && expected.phase==2)++regenerated;
+            if(expected.phase!=0)assert(now.phase==expected.phase);
+        }
+        assert(driver.complete()&&frames<30000);
+        assert(selected==3*(difficulty+1));
+        assert(regenerated==selected-1);
+        const auto prior=driver.conveyor_state().window_counter;
+        assert(driver.unload(error));
+        assert(driver.initialize(0,error));
+        assert(driver.conveyor_state().window_counter==prior);
+        auto frame=driver.advance({.original_windowed_display=true});
+        assert(!frame.fatal_error&&driver.conveyor_state().window_counter==prior+1);
+        frame=driver.advance({.original_windowed_display=false});
+        assert(!frame.fatal_error&&driver.conveyor_state().window_counter==prior+1);
+        assert(driver.unload(error));
+    }
     fs::remove_all(root);
 }

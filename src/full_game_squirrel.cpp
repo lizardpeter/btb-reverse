@@ -52,7 +52,8 @@ bool SquirrelDriver::initialize(int player,std::string& error) {
         connectors_=squirrel::chain_run_plan(plan);
         data_=std::move(candidate);
         placed_piece_ids_.fill(-1);
-        assembly_={};conveyor_={};
+        // 0051511C is not reset by original activity initialization.
+        assembly_={};conveyor_={.window_counter=conveyor_.window_counter};
         assembly_.run_section=0;
         assembly_.x=-data_->initial_horizontal_alignment_offset;
         level_=0;placed_count_=0;
@@ -244,8 +245,8 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
     const ActivityFrameInput& input) {
     if(!data_)return {};
     // 004279F0 calls 00427320 BEFORE scene composition and input.
-    // The recovered normal-speed branch moves 5px per tick, regenerates
-    // once when outgoing offset exceeds 500, and returns from -420.
+    // Fullscreen moves 5px per tick; windowed advances 50px every
+    // second coordinator update, including the counter during idle.
     const bool transition_frame=level_transition_pending_;
     if(transition_frame) {
         // 004273F0 writes the transition latch after the preceding draw.
@@ -272,9 +273,9 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         conveyor_.phase=transition.conveyor_phase;
         level_transition_pending_=false;
     }
-    if(!transition_frame && !complete_ && conveyor_.phase!=0) {
+    if(!transition_frame && !complete_) {
         const int prior=conveyor_.phase;
-        retail_activity::update_squirrel_conveyor(conveyor_,false,nullptr);
+        retail_activity::update_squirrel_conveyor(conveyor_,input.original_windowed_display,nullptr);
         if(prior==1 && conveyor_.phase==2) {
             std::string error;
             if(!generate_choices(error)) {
@@ -430,7 +431,7 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
 bool SquirrelDriver::unload(std::string& error) {
     data_.reset();player_=-1;
     connectors_={};placed_piece_ids_={};
-    choices_={};assembly_={};conveyor_={};
+    choices_={};assembly_={};conveyor_={.window_counter=conveyor_.window_counter};
     level_=0;placed_count_=0;
     placement_={squirrel::PlacementState::IdleSelect,placement_.position};
     placement_slot_=0;

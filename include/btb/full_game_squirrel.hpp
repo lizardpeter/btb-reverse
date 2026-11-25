@@ -15,9 +15,9 @@ namespace btb::full_game {
 
 // Native adapter for 0x00425160 / 0x004279F0 Lofty's Squirrel Run.
 // Uses the retail connector chain, 36-piece encoding, conveyor correctness
-// flags, and recovered 95-tick run-assembly motion. Lofty's exact fetch/
-// decoy-return choreography, sound IDs and transition scroll still need
-// differential verification; they must not be described as retail parity.
+// flags, 95-tick run-assembly motion and instruction-derived placement
+// kernels. Physical graphics/audio and end-to-end retail equivalence
+// remain separate validation requirements.
 class SquirrelDriver final : public ActivityDriver {
 public:
     using Choice=squirrel::ConveyorChoice;
@@ -37,6 +37,7 @@ public:
     [[nodiscard]] bool animating() const noexcept {return animating_;}
     [[nodiscard]] int conveyor_phase() const noexcept {return conveyor_.phase;}
     [[nodiscard]] int conveyor_offset() const noexcept {return conveyor_.position;}
+    [[nodiscard]] const retail_activity::SquirrelConveyor& conveyor_state() const noexcept {return conveyor_;}
     [[nodiscard]] const squirrel::PlacementMotion& placement() const noexcept {return placement_;}
     [[nodiscard]] bool complete() const noexcept {return complete_;}
     [[nodiscard]] bool level_transition_pending() const noexcept {return level_transition_pending_;}
