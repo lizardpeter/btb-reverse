@@ -186,16 +186,39 @@ int main() {
     assert(game.globals().dispatcher.current_state ==
            static_cast<int>(State::ActivitySelectUpdate));
 
-    // Native modal interception precedes any subsequent Activity Select.
-    assert(game.advance(firework).kind == FrameKind::Intercept);
+    // Exercise the real locked-Finale modal opening, voice gate, original
+    // artwork and release-to-return, not a direct reset of its global flag.
+    firework.managed_sound_playing=true;
+    auto overlay=game.advance(firework);
+    assert(overlay.kind==FrameKind::Intercept);
+    assert(overlay.effects.draws.size()==1);
+    assert(overlay.effects.draws[0].source_asset=="Data/ui/Progress-screen.bmp");
+    assert(overlay.effects.audio.empty());
+    firework.managed_sound_playing=false;
+    overlay=game.advance(firework);
+    assert(overlay.effects.audio.size()==1&&overlay.effects.audio[0].sound_id==954);
+    assert(overlay.effects.audio[0].input_interruptible);
+    assert(game.advance(firework).effects.audio.empty());
+    ActivityFrameInput overlay_back{};
+    overlay_back.pointer_position_valid=true;
+    overlay_back.pointer_x=600;
+    overlay_back.pointer_y=444;
+    overlay_back.pointer_button_held=true;
+    assert(game.advance(overlay_back).kind==FrameKind::Intercept);
+    assert(game.globals().dispatcher.progress_screen_active);
+    overlay_back.pointer_button_held=false;
+    overlay_back.pointer_release_pulse=true;
+    assert(game.advance(overlay_back).kind==FrameKind::Intercept);
+    assert(!game.globals().dispatcher.progress_screen_active);
+    assert(game.globals().dispatcher.current_state==static_cast<int>(State::ActivitySelectUpdate));
+    assert(game.advance({}).kind==FrameKind::FrontEndUpdated);
 
-    // Complete the exact 13 prerequisites, return from modal and re-enter
-    // state 4 to restore the native Activity Select dynamic hover metadata.
+    // Complete the exact 13 prerequisites and re-enter state 4 to
+    // restore native Activity Select dynamic hover metadata.
     for (int slot=50; slot<=62; ++slot) {
         game.globals().player_progress[0].values[
             static_cast<std::size_t>(slot)] = 1;
     }
-    game.globals().dispatcher.progress_screen_active = false;
     game.set_outer_state(State::ActivitySelectSetup);
     assert(game.advance({}).kind == FrameKind::FrontEndInitialized);
     assert(!game.globals().finale_gate.locked);

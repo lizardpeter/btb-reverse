@@ -53,10 +53,17 @@ struct NativeHostInput {
   if(!pointer_held){press_mouse();press_position=std::pair{x,y};}
  }
  void release_mouse() noexcept {if(pointer_held)release_pulse=true;pointer_held=false;}
- void key_down(unsigned key,bool repeated,unsigned scan=0) noexcept {
+ // Capture loss is cancellation, never a synthetic release/activation.
+ void cancel_mouse() noexcept {
+  pointer_held=false;click_pulse=false;release_pulse=false;press_position.reset();
+ }
+ void key_down(unsigned key,bool repeated,unsigned scan=0,bool extended=false) noexcept {
   if(key>=keys.size())return;
   keys[key]=0x80;
-  const auto dik=scan!=0 ? (scan&0xffU) : native_dik_for_vk(key);
+  // Win32 supplies an E0 indicator separately from the scan byte.
+  // DirectInput encodes E0 keys with bit 7 (e.g. Left = 0xcb,
+  // keypad 4 = 0x4b). Do not conflate the two.
+  const auto dik=scan!=0 ? ((scan&0xffU)|(extended?0x80U:0U)) : native_dik_for_vk(key);
   held_scan_by_vk[key]=dik;
   if(dik<scan_keys.size() && dik!=0)scan_keys[dik]=0x80;
   // Original Golf/manual uses Space as another primary-click pulse.

@@ -564,13 +564,27 @@ LRESULT CALLBACK native_window_proc(
     case WM_MOUSEMOVE:
         host->set_pointer(lp);return 0;
     case WM_LBUTTONDOWN:
-        host->set_pointer(lp);host->native_input.press_mouse(host->pointer_x,host->pointer_y);return 0;
+        host->set_pointer(lp);
+        if(!host->native_input.pointer_held)SetCapture(hwnd);
+        host->native_input.press_mouse(host->pointer_x,host->pointer_y);
+        return 0;
     case WM_LBUTTONUP:
-        host->set_pointer(lp);host->native_input.release_mouse();return 0;
+        host->set_pointer(lp);
+        host->native_input.release_mouse();
+        if(GetCapture()==hwnd)ReleaseCapture();
+        return 0;
+    case WM_CAPTURECHANGED:
+        if(host->native_input.pointer_held)host->native_input.cancel_mouse();
+        return 0;
+    case WM_CANCELMODE:
+        host->native_input.cancel_mouse();
+        if(GetCapture()==hwnd)ReleaseCapture();
+        return 0;
     case WM_KEYDOWN:
         host->native_input.key_down(
             static_cast<unsigned>(wp),(lp&0x40000000)!=0,
-            (static_cast<unsigned>(lp)>>16U)&0xffU);
+            (static_cast<unsigned>(lp)>>16U)&0xffU,
+            (static_cast<unsigned>(lp)&0x01000000U)!=0);
         // Original MainWindowProc (PE32 0x004020D0) never destroys
         // the game window on WM_KEYDOWN/VK_ESCAPE; it dispatches
         // unhandled keyboard messages through DefWindowProc.
@@ -583,7 +597,9 @@ LRESULT CALLBACK native_window_proc(
     case WM_CHAR:
         host->native_input.character(static_cast<unsigned>(wp));return 0;
     case WM_KILLFOCUS:
-        host->native_input.lose_focus();return 0;
+        host->native_input.lose_focus();
+        if(GetCapture()==hwnd)ReleaseCapture();
+        return 0;
     case WM_TIMER:
         if(wp!=kNativeTimer||host->fatal_dialog_shown||host->frame_in_progress||!host->running)return 0;
         host->frame_in_progress=true;

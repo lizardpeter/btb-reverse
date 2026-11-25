@@ -24,6 +24,34 @@ int main() {
         mouse.press_mouse();mouse.lose_focus();
         assert(!mouse.sample(220,260,3).pointer_release_pulse);
     }
+    {
+        NativeHostInput mouse;
+        mouse.press_mouse(220,260);
+        mouse.cancel_mouse();
+        auto frame=mouse.sample(300,400,0);
+        assert(!frame.pointer_button_held&&!frame.pointer_release_pulse);
+        assert(!frame.menu_press_position&&!mouse.click_pulse);
+        mouse.release_mouse();
+        assert(!mouse.sample(300,400,1).pointer_release_pulse);
+        mouse.press_mouse(44,55);
+        mouse.release_mouse();
+        frame=mouse.sample(44,55,2);
+        assert(frame.pointer_release_pulse&&frame.menu_press_position);
+    }
+    {
+        NativeHostInput keyboard;
+        keyboard.key_down(0x25,false,0x4b,true);
+        keyboard.key_down(0x64,false,0x4b,false);
+        auto frame=keyboard.sample(0,0,0);
+        assert(frame.keyboard_state[0xcb]==0x80);
+        assert(frame.keyboard_state[0x4b]==0x80);
+        keyboard.key_up(0x25);
+        frame=keyboard.sample(0,0,1);
+        assert(frame.keyboard_state[0xcb]==0);
+        assert(frame.keyboard_state[0x4b]==0x80);
+        keyboard.key_up(0x64);
+        assert(keyboard.sample(0,0,2).keyboard_state[0x4b]==0);
+    }
  NativeHostInput native{};
  auto initial=native.sample(320,240,0xffffff00U);
  assert(initial.pointer_x==320&&initial.pointer_y==240);
