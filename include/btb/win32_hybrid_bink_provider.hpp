@@ -21,6 +21,9 @@ public:
           retail_(renderer,std::move(root)),
           native_enabled_(sizeof(void*)==8||experimental_video||experimental_audio) {}
     void cancel_global_movie() noexcept;
+    [[nodiscard]] bool set_global_paused(bool paused,std::string& error) override {
+        return native_.set_global_paused(paused,error)&&retail_.set_global_paused(paused,error);
+    }
     [[nodiscard]] bool close_global(std::string& error) override;
     [[nodiscard]] bool set_original_volume(int percent,std::string& error) override;
     [[nodiscard]] bool open_global(

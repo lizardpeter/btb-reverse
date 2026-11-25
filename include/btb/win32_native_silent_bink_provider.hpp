@@ -25,6 +25,7 @@ public:
     ~Win32NativeSilentBinkProvider() override;
     void reset_global() noexcept;
     [[nodiscard]] bool close_global(std::string& error) override;
+    [[nodiscard]] bool set_global_paused(bool,std::string& error) override;
     [[nodiscard]] bool set_original_volume(int percent,std::string& error) override;
     [[nodiscard]] bool open_global(
         const std::filesystem::path& movie,std::string& error) override;
@@ -44,6 +45,8 @@ private:
     int volume_percent_{80};
     std::unique_ptr<Win32NativeBinkPcmVoice> voice_{};
     bool voice_started_{};
+    bool global_paused_{},refresh_after_pause_{};
+    std::uint64_t pause_started_us_{},paused_total_us_{};
     std::optional<bink32_recovered::Bink1AudioMasterClock>
         audio_clock_{};
     std::optional<bink32_recovered::BinkNativeSilentMovie> global_;

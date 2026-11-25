@@ -35,6 +35,16 @@ NativeSessionFrame NativeGameSession::tick(
 
     PhysicalFrameObservation physical{};
     std::string error;
+    // 0042A2C0 intercepts call 00409260 BEFORE the global movie
+    // update. A stopped movie must not report decoder EOS behind a modal.
+    const bool pause=!skip_video_&&game_flow::dispatch_step(
+        root_.globals().dispatcher).pause_global_movie;
+    if(pause!=global_movie_paused_){
+        if(!device_.set_global_movie_paused(pause,error)){
+            fail(frame,PhysicalPresentationStage::ObserveDevice,error);return frame;
+        }
+        global_movie_paused_=pause;
+    }
     if (!device_.observe(physical,error)) {
         fail(frame,PhysicalPresentationStage::ObserveDevice,error);
         return frame;
@@ -62,6 +72,7 @@ NativeSessionFrame NativeGameSession::tick(
     for(std::size_t i=0;i<input.squirrel_lofty_voice_playing->size();++i)
         (*input.squirrel_lofty_voice_playing)[i]=sound::is_sound_id_playing(
             effects_.audio().manager(),633+static_cast<int>(i),physical.managed.playing);
+    if(global_movie_paused_)physical.global_movie_finished=false;
     input.original_global_movie_finished = physical.global_movie_finished;
     input.original_global_movie_skip_pulse =
         input.original_global_movie_skip_pulse || input.click_pulse ||
@@ -315,6 +326,7 @@ NativeSessionFrame NativeGameSession::tick(
         !skip_video_ &&
         (frame.global_movie_opened ||
          (frame.prepared.game.kind == FrameKind::Intercept &&
+          !frame.prepared.game.dispatch.pause_global_movie &&
           (mode == 13 || mode == 14)) ||
          frame.prepared.game.effects.retain_original_global_movie_pixels);
     const bool preparing_replay=frame.prepared.game.replay_preparation&&

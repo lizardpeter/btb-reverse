@@ -24,6 +24,9 @@ namespace btb::full_game {
 class OriginalBinkProvider {
 public:
     virtual ~OriginalBinkProvider() = default;
+    [[nodiscard]] virtual bool set_global_paused(bool,std::string& error) {
+        error="global Bink pause provider unavailable";return false;
+    }
     [[nodiscard]] virtual bool set_original_volume(int,std::string& error) {
         error="Bink volume provider unavailable";return false;
     }
@@ -71,6 +74,9 @@ public:
     [[nodiscard]] bool draw_ordered(
         const std::vector<ResolvedDraw>& draws,
         std::string& error) override;
+    [[nodiscard]] bool set_global_movie_paused(bool paused,std::string& error) override {
+        return bink_.set_global_paused(paused,error);
+    }
     [[nodiscard]] bool set_original_volume(int percent,std::string& error) override;
     [[nodiscard]] bool capture_replay_underlay(std::string& error) override;
     [[nodiscard]] bool draw_replay_ordered(

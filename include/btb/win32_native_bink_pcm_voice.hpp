@@ -34,6 +34,7 @@ public:
         const btb::bink32_recovered::Bink1MoviePcm16& audio,
         std::string& error);
     [[nodiscard]] bool set_bink_volume(int volume,std::string& error);
+    [[nodiscard]] bool set_paused(bool,std::string& error);
     [[nodiscard]] bool start(std::string& error);
     [[nodiscard]] bool stop(std::string& error) noexcept;
     // Seek in decoded audio sample frames, not arbitrary BIK packet offsets;
@@ -52,7 +53,7 @@ private:
     IDirectSoundBuffer* buffer_{};
     std::uint32_t rate_{},bytes_per_frame_{};
     std::uint64_t sample_frames_{};
-    bool started_{},ever_played_{};
+    bool started_{},ever_played_{},resume_pending_{};
 };
 }
 #endif

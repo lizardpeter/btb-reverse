@@ -33,6 +33,8 @@ void Win32NativeSilentBinkProvider::reset_global() noexcept {
     global_.reset();
     voice_.reset();
     voice_started_=false;
+    global_paused_=refresh_after_pause_=false;
+    pause_started_us_=paused_total_us_=0;
     audio_clock_.reset();
 }
 
@@ -40,6 +42,18 @@ bool Win32NativeSilentBinkProvider::close_global(std::string& error) {
     reset_global();
     error.clear();
     return true;
+}
+
+bool Win32NativeSilentBinkProvider::set_global_paused(bool paused,std::string& error) {
+    if(!global_||paused==global_paused_){error.clear();return true;}
+    const auto now=clock_us();
+    if(voice_&&voice_started_&&!voice_->set_paused(paused,error))return false;
+    if(paused)pause_started_us_=now;
+    else{
+        paused_total_us_+=now-pause_started_us_;
+        refresh_after_pause_=true;
+    }
+    global_paused_=paused;error.clear();return true;
 }
 
 bool Win32NativeSilentBinkProvider::set_original_volume(int percent,std::string& error) {
@@ -113,8 +127,8 @@ bool Win32NativeSilentBinkProvider::open_global(
 bool Win32NativeSilentBinkProvider::service(
     bool& global_finished,std::string& error) {
     global_finished=false;
-    if(!global_) {error.clear();return true;}
-    auto timestamp=clock_us();
+    if(!global_||global_paused_) {error.clear();return true;}
+    auto timestamp=clock_us()-paused_total_us_;
     bool audio_finished=true;
     if(voice_) {
         // DirectSound's actual playback cursor, not an invented timer,
@@ -149,6 +163,14 @@ bool Win32NativeSilentBinkProvider::service(
         },
         video_finished,error);
     if(!ok)return false;
+    // A modal may have overwritten the last decoded image; restore it
+    // even when the next video frame is not yet due.
+    if(refresh_after_pause_){
+        if(const auto* pixels=global_->current_frame()){
+            if(!copy_native_bink_frame_to_directdraw(renderer_.bink_render_target(),*pixels,error))return false;
+        }
+        refresh_after_pause_=false;
+    }
     // Do not close the audio buffer simply because the last video frame
     // was presented: the real sound may still be completing.
     if(video_finished && audio_finished) {

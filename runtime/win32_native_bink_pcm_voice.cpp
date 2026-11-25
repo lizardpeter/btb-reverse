@@ -39,7 +39,7 @@ void Win32NativeBinkPcmVoice::close() noexcept {
     }
     rate_=bytes_per_frame_=0;
     sample_frames_=0;
-    started_=ever_played_=false;
+    started_=ever_played_=resume_pending_=false;
 }
 bool Win32NativeBinkPcmVoice::load(
     const btb::bink32_recovered::Bink1MoviePcm16& audio,
@@ -124,6 +124,28 @@ bool Win32NativeBinkPcmVoice::set_bink_volume(int volume,std::string& error) {
     error.clear();return true;
 }
 
+bool Win32NativeBinkPcmVoice::set_paused(bool paused,std::string& error) {
+    if(!buffer_){error="native Bink pause requires loaded PCM";return false;}
+    if(paused){
+        if(resume_pending_){error.clear();return true;}
+        DWORD status=0;
+        auto hr=buffer_->GetStatus(&status);
+        if(FAILED(hr)){error=ds_error("Bink pause GetStatus",hr);return false;}
+        if(started_&&(status&DSBSTATUS_PLAYING)){
+            hr=buffer_->Stop();
+            if(FAILED(hr)){error=ds_error("Bink pause Stop",hr);return false;}
+            // DirectSound Stop retains the playback cursor. Do not reset
+            // started_/ever_played_: a pause is not EOF or a new stream.
+            resume_pending_=true;ever_played_=true;
+        }
+    }else if(resume_pending_){
+        const auto hr=buffer_->Play(0,0,0);
+        if(FAILED(hr)){error=ds_error("Bink resume Play",hr);return false;}
+        resume_pending_=false;
+    }
+    error.clear();return true;
+}
+
 bool Win32NativeBinkPcmVoice::start(std::string& error) {
     if(!buffer_||!sample_frames_) {
         error="native Bink PCM sound buffer not loaded";
@@ -149,7 +171,7 @@ bool Win32NativeBinkPcmVoice::stop(std::string& error) noexcept {
         error=ds_error("DirectSound Bink PCM16 Stop",hr);
         return false;
     }
-    started_=false;
+    started_=false;resume_pending_=false;
     error.clear();
     return true;
 }
@@ -198,7 +220,7 @@ Win32NativeBinkPcmVoice::observe(std::string& error) noexcept {
         std::uint64_t(play_cursor/bytes_per_frame_),sample_frames_);
     // Do not report completion until DirectSound has been observed
     // actively playing and then has actually reached a stopped state.
-    const bool complete=started_ && ever_played_ && !playing;
+    const bool complete=started_ && ever_played_ && !playing && !resume_pending_;
     error.clear();
     return Playhead{complete?sample_frames_:position,playing,complete};
 }

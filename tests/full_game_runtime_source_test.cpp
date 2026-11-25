@@ -136,6 +136,9 @@ int main() {
 
     // The retail modal precedence remains in control before the activity
     // initializer runs. Options defeats movie, chooser and activity states.
+    std::istringstream options_fixture("0 0 250 417 299 462 340 417 389 466 208 222 410 242 122 86 480 350");
+    std::string options_error;
+    assert(game.configure_options(options_fixture,options_error));
     game.globals().dispatcher.options_active = true;
     game.globals().dispatcher.generic_screen_mode = 14;
     game.globals().dispatcher.global_movie_finished = true;

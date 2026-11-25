@@ -55,6 +55,10 @@ public:
     [[nodiscard]] virtual bool apply_sound(
         const ResolvedSoundEffect& effect,
         std::string& error) = 0;
+    // Stateless source-test devices have no physical movie clock.
+    [[nodiscard]] virtual bool set_global_movie_paused(bool,std::string& error) {
+        error.clear();return true;
+    }
     [[nodiscard]] virtual bool set_original_volume(int,std::string& error) {
         error="native volume provider unavailable";return false;
     }
@@ -152,6 +156,7 @@ private:
     OriginalWalkthroughCatalog walkthroughs_{};
     bool skip_video_{};
     bool walkthrough_open_{};
+    bool global_movie_paused_{};
     // Spud Skate tears down its movie surfaces during GameRoot::advance.
     // Keep its last actually composed frame before that teardown.
     bool skate_snapshot_valid_{};

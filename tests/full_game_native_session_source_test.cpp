@@ -68,6 +68,7 @@ class Device final : public NativeGameDevice {
 public:
     PhysicalFrameObservation sample{};
     int observe_count{};
+    std::vector<bool> pause_transitions{};
     int global_open{};
     int global_close{};
     int walk_open{};
@@ -90,6 +91,9 @@ public:
     bool observe(PhysicalFrameObservation& out,
                  std::string& error) override {
         ++observe_count; out=sample; error.clear(); return true;
+    }
+    bool set_global_movie_paused(bool paused,std::string& error) override {
+        pause_transitions.push_back(paused);error.clear();return true;
     }
     bool open_global_movie(
         const fs::path& movie,std::string& error) override {

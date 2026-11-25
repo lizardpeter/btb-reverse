@@ -28,6 +28,7 @@ using BinkCopyFn=std::int32_t (WINAPI*)(
 using BinkNextFn=void (WINAPI*)(void*);
 using BinkSurfaceFn=std::uint32_t (WINAPI*)(IDirectDrawSurface7*);
 using BinkSetAudioFn=std::int32_t (WINAPI*)(FARPROC,std::uint32_t);
+using BinkPauseFn=std::int32_t (WINAPI*)(void*,std::int32_t);
 using BinkVolumeFn=void (WINAPI*)(void*,std::uint32_t,std::int32_t);
 using BinkGotoFn=void (WINAPI*)(void*,std::uint32_t,std::uint32_t);
 
@@ -61,6 +62,7 @@ Win32RetailBinkProvider::~Win32RetailBinkProvider() {
 }
 void Win32RetailBinkProvider::close_global() noexcept {
     global_terminal_frame_copied_=false;
+    global_paused_=false;
 #if !defined(_WIN64)
     if(global_) {
         if(auto close=require_export<BinkCloseFn>(
@@ -108,6 +110,22 @@ bool Win32RetailBinkProvider::ensure_original_dll(
 #endif
 }
 
+bool Win32RetailBinkProvider::set_global_paused(bool paused,std::string& error) {
+#if !defined(_WIN64)
+    if(global_&&paused!=global_paused_){
+        auto pause=require_export<BinkPauseFn>(exports_,"BinkPause");
+        auto volume=require_export<BinkVolumeFn>(exports_,"BinkSetVolume");
+        if(!pause||!volume){error="original Bink pause exports unavailable";return false;}
+        (void)pause(global_,paused?1:0);
+        volume(global_,0,paused?0:volume_percent_<5?37:volume_percent_*310);
+        global_paused_=paused;
+    }
+#else
+    (void)paused;
+#endif
+    error.clear();return true;
+}
+
 bool Win32RetailBinkProvider::set_original_volume(int percent,std::string& error) {
     if(percent<0||percent>100){error="Bink volume percentage out of range";return false;}
     volume_percent_=percent;
@@ -115,7 +133,7 @@ bool Win32RetailBinkProvider::set_original_volume(int percent,std::string& error
     if(global_){
         auto volume=require_export<BinkVolumeFn>(exports_,"BinkSetVolume");
         if(!volume){error="original BinkSetVolume unavailable";return false;}
-        volume(global_,0,percent<5?37:percent*310);
+        if(!global_paused_)volume(global_,0,percent<5?37:percent*310);
     }
 #endif
     error.clear();return true;
@@ -168,7 +186,7 @@ bool Win32RetailBinkProvider::service(
 #if defined(_WIN64)
     error.clear();return true; // No movie can open via x86 DLL.
 #else
-    if(!global_) {error.clear();return true;}
+    if(!global_||global_paused_) {error.clear();return true;}
     // Last tick's final decoded pixels have now survived one complete
     // native frame submission/presentation opportunity. The movie may
     // transition without erasing an unseen terminal image.
