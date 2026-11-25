@@ -130,6 +130,37 @@ int main() {
         assert(state.conveyor_phase==1&&state.phase==0&&state.scroll_active==0);
     }
 
+    // Independent translated x86 trace: 384 complete level transitions
+    // across two paths, eight speeds, four starting X values, three
+    // counters and both level boundaries.
+    {
+        std::uint64_t hash=14695981039346656037ull,count=0;
+        auto mix=[&](std::uint32_t word) {
+            for(int byte=0;byte<4;++byte) {hash^=word&255u;hash*=1099511628211ull;word>>=8;}
+        };
+        for(int direct=0;direct<2;++direct)for(int level=0;level<2;++level)
+        for(int x:{-34,46,526,640})for(int speed:{-1,0,5,9,10,20,49,100})
+        for(int counter:{0,10,27}) {
+            LevelTransitionState s{1,direct!=0,level,6,0,x,7,0,5,0,counter,0,12,speed,
+                level*480,level*480+620};
+            for(int tick=0;tick<300;++tick) {
+                const auto frame=advance_level_transition(s);
+                for(auto word:std::array<int,16>{s.phase,int(s.direct),s.level,s.available_section,
+                    s.assembly_phase,s.squirrel_x,s.run_section,s.conveyor_phase,s.scroll_aux,
+                    s.scroll_active,s.scroll_distance,s.scroll_start,s.scroll_ticks,s.scroll_speed,
+                    s.background_left,s.background_right})mix(static_cast<std::uint32_t>(word));
+                for(auto word:std::array<int,4>{
+                    int(frame.background.has_value())+4*int(frame.draw_borders),
+                    int(frame.background.has_value()),frame.background?frame.background->left:0,
+                    frame.background?frame.background->right:0})mix(static_cast<std::uint32_t>(word));
+                ++count;
+                if(frame.level_advanced)break;
+                assert(tick<299);
+            }
+        }
+        assert(count==34392&&hash==0xb7693742661f6ad9ull);
+    }
+
     static_assert(
         kCompletedRunPieceDestinations[0] == Vec2i{116,194});
     static_assert(

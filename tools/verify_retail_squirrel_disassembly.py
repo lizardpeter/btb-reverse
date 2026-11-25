@@ -57,7 +57,7 @@ def translate(pe, name, start, end):
         elif mn=='call' and args[0]=='0x426f30': body='++retail_choice_calls;generate_choices();'
         elif mn=='call' and args[0]=='0x4259d0': body='selector();'
         elif mn=='call' and args[0]=='0x402af0': body=';' # verified RET
-        elif mn=='call' and args[0]=='DWORD PTR [ecx+0x1c]': body='capture_draw(esp);esp+=24;'
+        elif mn=='call' and args[0] in ('DWORD PTR [ecx+0x1c]','DWORD PTR [edx+0x1c]','DWORD PTR [eax+0x1c]'): body='capture_draw(esp);esp+=24;'
         elif mn=='setge' and args[0]=='dl': body='edx=(edx&0xffffff00u)|(comparison>=0);'
         elif mn=='imul' and len(args)==2: body=f'{op(args[0])}*=uint32_t({op(args[1])});'
         elif mn=='imul' and len(args)==3: body=f'{op(args[0])}=uint32_t({op(args[1])})*uint32_t({op(args[2])});'
@@ -81,6 +81,7 @@ def translate(pe, name, start, end):
 
 PREAMBLE=r'''
 #include "btb/squirrel_runtime.hpp"
+#include "btb/squirrel_presentation.hpp"
 #include "btb/retail_activity_closure.hpp"
 #include <iostream>
 #include <stdexcept>
@@ -109,9 +110,13 @@ uint32_t& mem(uint32_t a) {
     throw std::runtime_error("unmapped read/write "+std::to_string(a));
 }
 static std::array<int,5> draw{};
+static std::array<int,3> background_draw{};
 void capture_draw(uint32_t sp) {
     ++draw[0];draw[1]=mem(sp+4);draw[2]=mem(sp+8);
-    draw[3]=mem(mem(sp+16));draw[4]=mem(mem(sp+16)+8);
+    if(mem(sp+16)) {
+        draw[3]=mem(mem(sp+16));draw[4]=mem(mem(sp+16)+8);
+        ++background_draw[0];background_draw[1]=draw[3];background_draw[2]=draw[4];
+    }
 }
 '''
 HARNESS=r'''
@@ -249,6 +254,49 @@ int main(){
     }
     std::cout<<"Squirrel assembly frame comparisons: "<<count<<", trace "<<std::hex<<hash<<'\n';
     if(count!=5225472 || hash!=0x9f2c9d55e0505c56ULL)return 8;
+    // Independently verify both original transition branches at every
+    // frame, including the final backdrop draw and the direct no-draw path.
+    count=0;hash=14695981039346656037ULL;
+    constexpr std::array<uint32_t,16> transition_addresses{
+        0x5150d8,0x446a44,0x5150d0,0x515004,0x514fb8,0x514f94,0x514fb4,0x5150e8,
+        0x515104,0x515108,0x5150f0,0x51510c,0x515100,0x446a48,0x514f40,0x514f48};
+    const auto transition_words=[](const LevelTransitionState& s) {
+        return std::array<int,16>{s.phase,int(s.direct),s.level,s.available_section,
+            s.assembly_phase,s.squirrel_x,s.run_section,s.conveyor_phase,s.scroll_aux,
+            s.scroll_active,s.scroll_distance,s.scroll_start,s.scroll_ticks,s.scroll_speed,
+            s.background_left,s.background_right};
+    };
+    for(int direct=0;direct<2;++direct)for(int level=0;level<2;++level)
+    for(int x:{-34,46,526,640})for(int speed:{-1,0,5,9,10,20,49,100})
+    for(int counter:{0,10,27}) {
+        LevelTransitionState s{1,direct!=0,level,6,0,x,7,0,5,0,counter,0,12,speed,
+            level*480,level*480+620};
+        const auto initial=transition_words(s);
+        for(size_t i=0;i<initial.size();++i)mem(transition_addresses[i])=initial[i];
+        for(int tick=0;tick<300;++tick) {
+            draw={};background_draw={};transition();
+            const auto frame=advance_level_transition(s);
+            const auto actual=transition_words(s);
+            for(size_t i=0;i<actual.size();++i) {
+                const auto reference=mem(transition_addresses[i]);
+                if(uint32_t(actual[i])!=reference) {
+                    std::cerr<<"transition mismatch "<<direct<<' '<<level<<' '<<x<<' '
+                        <<speed<<' '<<counter<<' '<<tick<<" word "<<i<<'\n';return 9;
+                }
+                mix(reference);
+            }
+            const std::array<int,3> native_bg{int(frame.background.has_value()),
+                frame.background?frame.background->left:0,frame.background?frame.background->right:0};
+            if(native_bg!=background_draw||draw[0]!=int(frame.background.has_value())+4*int(frame.draw_borders)) {
+                std::cerr<<"transition draw mismatch\n";return 10;
+            }
+            mix(uint32_t(draw[0]));for(auto word:background_draw)mix(uint32_t(word));++count;
+            if(frame.level_advanced)break;
+            if(tick==299)return 11;
+        }
+    }
+    std::cout<<std::dec<<"Squirrel transition frame comparisons: "<<count<<", trace "<<std::hex<<hash<<'\n';
+    if(count!=34392 || hash!=0xb7693742661f6ad9ULL)return 12;
 }
 '''
 
@@ -267,7 +315,8 @@ def main():
     for name,start,end in [('retail_rand',0x42ffc4,0x42ffe2),
         ('selector',0x4259d0,0x425f33),('move_actor',0x427270,0x427312),
         ('generate_choices',0x426f30,0x427263),
-        ('slide_cycle',0x427320,0x4273eb),('assemble',0x425f40,0x4267ac)]:
+        ('slide_cycle',0x427320,0x4273eb),('assemble',0x425f40,0x4267ac),
+        ('transition',0x425780,0x42597f)]:
         code+=translate(a.pe,name,start,end)+'\n'
     code+=HARNESS
     with tempfile.TemporaryDirectory() as d:

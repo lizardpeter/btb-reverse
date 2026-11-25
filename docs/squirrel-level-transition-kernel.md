@@ -5,3 +5,5 @@
 004267B0 emits the carried choice at its position in the conveyor slot loop; the native driver previously emitted it before the entire loop. 004273F0 restores a decoy's conveyor-slot value when retrieved, not on its eventual return, while the hook position determines its visible placement. Both are corrected.
 
 Regression tests exercise direct transitions at both possible level boundaries and the full alternate scroll timing. The source-derived state model has not yet been checked against a physical DirectDraw device.
+
+The original instruction translation now covers 34,392 transition frames (384 complete scenarios) with no discrepancies against the locally reconstructed model. It compares 16 source state words and four draw words per frame, using direct and scrolling paths, both level boundaries, four initial X values, eight initial speeds, and three prior scroll counters. The production test pins FNV-1a64 b7693742661f6ad9 and the optional PE diagnostic performs direct field-by-field comparisons. The production CI result remains a separate check.
