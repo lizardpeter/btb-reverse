@@ -28,3 +28,10 @@ New native diagnostic `btb_retail_maze_playthrough` passed 48/48 runs against th
 
     cmake --build build/faithful --target btb_retail_maze_playthrough
     build/faithful/btb_retail_maze_playthrough /path/to/BTB-BBP 12
+
+## Spud Maze installed-data completion
+
+The `btb_retail_spud_maze_playthrough` probe passed 72/72 complete native GameRoot playthroughs on the installed five-screen map and actual repair bitmaps. Seeds 1–12, all three difficulties, both original display modes, all five profiles. Totals: 498 repairs, 318 screen crossings, 96 hammer drops, 95 recoveries, 335,653 updates, and 4,354,572 draw commands (4,336,069 visible). Every crop, explicit audio path, completion progress and replay handoff passed. The navigator submits actual directional input and click pulses, using original public graph/repair/hammer observations. It preserves the active corridor axis until node capture and excludes impossible zero-input portal returns; initial test-controller timeouts were corrected without changing the game. The synthetic 50-Hz clock and eight-update voice model remain explicit; physical rendering and sound-device equivalence remain open.
+
+    cmake --build build/faithful --target btb_retail_spud_maze_playthrough
+    build/faithful/btb_retail_spud_maze_playthrough /path/to/BTB-BBP 12

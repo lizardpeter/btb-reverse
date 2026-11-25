@@ -86,6 +86,7 @@ jobs:
             build/reconstruction/btb_retail_herding_playthrough
             build/reconstruction/btb_retail_golf_squirrel_playthrough
             build/reconstruction/btb_retail_maze_playthrough
+            build/reconstruction/btb_retail_spud_maze_playthrough
             build/reconstruction/btb_bink32_retail_video_audit
             build/reconstruction/btb_bink32_native_audio_audit
             tools/audit_retail_bink.py
@@ -199,6 +200,7 @@ jobs:
           path: |
             build/reconstruction-win/Release/btb_retail_golf_squirrel_playthrough.exe
             build/reconstruction-win/Release/btb_retail_maze_playthrough.exe
+            build/reconstruction-win/Release/btb_retail_spud_maze_playthrough.exe
           if-no-files-found: error
       - name: Upload source-only preview EXE
         uses: actions/upload-artifact@v4
