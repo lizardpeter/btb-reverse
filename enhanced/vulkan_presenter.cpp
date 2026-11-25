@@ -4,6 +4,7 @@
 #include "vulkan_sprite_batch.hpp"
 #include "frame_pacing.hpp"
 #include "presentation_activity.hpp"
+#include "native_cursor.hpp"
 #include "cursor_runs.hpp"
 #include "sprite_motion.hpp"
 #include <chrono>
@@ -68,6 +69,9 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
     bool continuous_{env_flag(L"BTB_CONTINUOUS_PRESENT")};
     bool cursor_image_initialized_{};
     CursorStamp scratch_cursor_{};
+    NativeCursor native_cursor_;
+    bool native_cursor_enabled_{env_text(L"BTB_HARDWARE_CURSOR")!=L"0"};
+    bool native_cursor_ready_{};
     std::uint64_t cursor_revision_{};
     unsigned long long base_uploads_{},stats_uploads_{};
     bool show_fps_{env_flag(L"BTB_SHOW_FPS")};
@@ -256,7 +260,29 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
         x=p.x;y=p.y;map_pointer(x,y,rect.right,rect.bottom);
         return cursor_position(x,y);
     }
+    void sync_native_cursor(){
+        native_cursor_ready_=false;
+        if(native_cursor_enabled_&&latest_cursor_&&!cursor_runs_.empty()){
+            RECT rect{};
+            if(GetClientRect(hwnd_,&rect)){
+                const auto dims=native_cursor_dimensions(viewport(rect.right,rect.bottom,integer_));
+                if(dims.width&&dims.height)native_cursor_ready_=native_cursor_.ensure(cursor_pixels_,dims.width,dims.height,cursor_revision_);
+            }
+        }
+        // Only alter the cursor while the actual game client owns it. Never
+        // overwrite a pointer belonging to the printer dialog or other app.
+        POINT p{};RECT rect{};
+        if(GetCursorPos(&p)&&WindowFromPoint(p)==hwnd_&&ScreenToClient(hwnd_,&p)&&GetClientRect(hwnd_,&rect)&&
+           p.x>=0&&p.y>=0&&p.x<rect.right&&p.y<rect.bottom){
+            int x=p.x,y=p.y;map_pointer(x,y,rect.right,rect.bottom);
+            if(x>=0&&x<640&&y>=0&&y<480){
+                if(native_cursor_ready_){if(GetCursor()!=native_cursor_.get())SetCursor(native_cursor_.get());}
+                else if(native_cursor_.get()&&GetCursor()==native_cursor_.get())SetCursor(nullptr);
+            }else if(native_cursor_.get()&&GetCursor()==native_cursor_.get())SetCursor(LoadCursorW(nullptr,IDC_ARROW));
+        }
+    }
     CursorStamp live_cursor(){
+        if(native_cursor_ready_)return {};
         int x=0,y=0;
         if(!cursor_runs_.empty()&&sample_cursor(x,y))return {x,y,cursor_revision_};
         return {};
@@ -392,7 +418,11 @@ public:
         set_base(*next);return draw_latest(error);
     }
     bool wants_idle_present() const noexcept override {return true;}
-    unsigned idle_wait_us() const noexcept override {return activity_.wait_us(pacer_.wait_us(now_ns()),latest_cursor_);}
+    unsigned idle_wait_us() const noexcept override {return activity_.wait_us(pacer_.wait_us(now_ns()),latest_cursor_&&!native_cursor_ready_);}
+    bool apply_client_cursor() noexcept override{
+        if(!native_cursor_ready_||!native_cursor_.get())return false;
+        SetCursor(native_cursor_.get());return true;
+    }
     void request_redraw() noexcept override{activity_.request_repaint();}
     bool idle_present(std::string& error) override {
         if(!latest_.valid()){error.clear();return true;}
@@ -404,6 +434,7 @@ public:
         if(!pacer_.due(now)){error.clear();return true;}
         RECT rect{};GetClientRect(hwnd_,&rect);
         if(IsIconic(hwnd_)||rect.right<=rect.left||rect.bottom<=rect.top){error.clear();return true;}
+        sync_native_cursor();
         const bool resized=dirty_||extent_.width!=uint32_t(rect.right-rect.left)||extent_.height!=uint32_t(rect.bottom-rect.top);
         // Retain interpolation work until it is actually uploaded, even when
         // acquire is unavailable. Check before acquiring any swapchain image.
@@ -544,7 +575,7 @@ public:
         borderless_=!borderless_;dirty_=true;
     }
     void shutdown() noexcept override {
-        presence_.stop();
+        presence_.stop();native_cursor_.reset();native_cursor_ready_=false;
         if(device_){
             vkDeviceWaitIdle(device_);
             drop_chain();

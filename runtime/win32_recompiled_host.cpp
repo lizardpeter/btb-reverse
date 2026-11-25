@@ -596,6 +596,7 @@ LRESULT CALLBACK native_window_proc(
                 if(x<0||y<0||x>=640||y>=480)return DefWindowProcW(hwnd,msg,wp,lp);
             }
         }
+        if(host->output&&host->output->apply_client_cursor())return TRUE;
         SetCursor(nullptr);return TRUE;
     }
     if(msg==WM_COMMAND&&LOWORD(wp)==0x9c41U){

@@ -24,6 +24,7 @@ public:
         const std::vector<ResolvedDraw>*,std::string& error){return present(composed,error);}
     virtual unsigned idle_wait_us() const noexcept{return 1000;}
     virtual void request_redraw() noexcept {}
+    virtual bool apply_client_cursor() noexcept{return false;}
     virtual bool supports_bitmap_frames() const noexcept {return false;}
     virtual bool present_bitmap_frame(const display::PackedFrameSnapshot& frame,
         const std::vector<ResolvedDraw>&,std::string& error){return present(frame,error);}
