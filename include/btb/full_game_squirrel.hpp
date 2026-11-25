@@ -69,7 +69,7 @@ private:
     // Initialized .data 0044699C/A0 is (172,0). The retail activity
     // init does not rewrite this persistent actor position.
     squirrel::PlacementMotion placement_{squirrel::PlacementState::IdleSelect,{172,0}};
-    int mouth_pose_{1};
+
     int mouth_draw_frame_{1};
     int sprite_draw_frame_{};
     bool sprite_draw_visible_{true};

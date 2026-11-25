@@ -606,6 +606,29 @@ int main() {
         assert(s.completed&&s.transition_phase==0);
     }
 
+    // Fingerprint of 432 complete source placement lifecycles, from
+    // selection through home, at six distinct starting positions.
+    {
+        std::uint64_t hash=14695981039346656037ull,count=0;
+        auto mix=[&](std::uint32_t n){for(int i=0;i<4;++i){hash^=n&255u;hash*=1099511628211ull;n>>=8;}};
+        constexpr std::array<Vec2i,6> starts{{{172,0},{93,185},{459,433},{0,0},{640,479},{114,327}}};
+        for(int level=0;level<3;++level)for(int slot=0;slot<3;++slot)
+        for(int choice=0;choice<4;++choice)for(int correct=0;correct<2;++correct)
+        for(auto start:starts){
+            PlacementMotion actor{PlacementState::IdleSelect,start};
+            assert(select_placement(actor,choice,correct));
+            for(int tick=0;tick<2000;++tick){
+                (void)advance_placement_motion(actor,slot);
+                for(int word:std::array<int,5>{int(actor.state),actor.position.x,actor.position.y,
+                    actor.carrying?choice:-1,actor.mouth_pose})mix(std::uint32_t(word));
+                ++count;
+                if(actor.state==PlacementState::IdleSelect)break;
+                assert(tick!=1999);
+            }
+        }
+        assert(count==227682&&hash==0x8a73b5a3fe5d3b9dull);
+    }
+
     constexpr auto final0 = completion_step(0, false, 0);
     static_assert(final0.stage == 1);
     static_assert(final0.action == CompletionAction::PlayFinalWendyLine);

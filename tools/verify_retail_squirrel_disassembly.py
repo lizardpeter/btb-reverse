@@ -36,7 +36,7 @@ def translate(pe, name, start, end):
 
     lines = [f'uint32_t {name}() {{',
         'uint32_t eax=0,ebx=0,ecx=0,edx=0,esi=0,edi=0,ebp=0,esp=0x80000000; int64_t comparison=0;']
-    if name=='selector':
+    if name in ('selector','move_actor'):
         lines[1]=lines[1].replace('esp=0x80000000','esp=0x7ffff800')
     # Selector has a separate stack window when called by assembly.
     conds={'je':'==0','jne':'!=0','jl':'<0','jge':'>=0','jle':'<=0','jg':'>0','jns':'>=0','js':'<0'}
@@ -54,6 +54,9 @@ def translate(pe, name, start, end):
         elif mn=='push': body=f'esp-=4;mem(esp)={op(args[0])};'
         elif mn=='pop': body=f'{op(args[0])}=mem(esp);esp+=4;'
         elif mn=='call' and args[0]=='0x42ffc4': body='eax=retail_rand();'
+        elif mn=='call' and args[0]=='0x427270': body='mem(0x7ffff804)=mem(esp);mem(0x7ffff808)=mem(esp+4);eax=move_actor();'
+        elif mn=='call' and args[0]=='0x402cf0': body='capture_sound(esp);esp+=12;eax=0;'
+        elif mn=='call' and args[0]=='0x402c90': body='++stop_calls;'
         elif mn=='call' and args[0]=='0x426f30': body='++retail_choice_calls;generate_choices();'
         elif mn=='call' and args[0]=='0x4259d0': body='selector();'
         elif mn=='call' and args[0]=='0x402af0': body=';' # verified RET
@@ -92,7 +95,9 @@ static std::array<uint32_t,1024> stack{};
 static std::array<uint32_t,2048> globals{};
 static std::array<uint32_t,512> image_data{IMAGE_WORDS};
 static uint32_t rng_state;
-static uint32_t window_mode;
+static uint32_t window_mode,click,px,py,manager;
+static std::array<int,4> audio{};
+static int stop_calls;
 static uint32_t retail_choice_calls, native_choice_calls;
 void note_choice() noexcept {++native_choice_calls;}
 uint32_t& mem(uint32_t a) {
@@ -101,6 +106,10 @@ uint32_t& mem(uint32_t a) {
     if(a>=0x446700u&&a<0x446f00u&&a%4==0)return image_data[(a-0x446700u)/4];
     if(a==0x447558u)return rng_state;
     if(a==0x44de0cu)return window_mode;
+    if(a==0x44ddd8)return manager;
+    if(a==0x4fbe54)return click;
+    if(a==0x4fbd24)return px;
+    if(a==0x4fbd30)return py;
     // Only the one observed DirectDraw receiver and BltFast call are
     // modeled. No original COM object or Windows device is executed.
     static uint32_t device=0x10000,surface=0x20000,vtable=0x30000;
@@ -109,6 +118,7 @@ uint32_t& mem(uint32_t a) {
     if(a==0x20000)return vtable;
     throw std::runtime_error("unmapped read/write "+std::to_string(a));
 }
+void capture_sound(uint32_t sp){++audio[0];audio[1]=mem(sp);audio[2]=mem(sp+4);audio[3]=mem(sp+8);}
 static std::array<int,5> draw{};
 static std::array<int,3> background_draw{};
 void capture_draw(uint32_t sp) {
@@ -139,7 +149,7 @@ int main(){
     std::cout<<"Squirrel selector comparisons: "<<count<<'\n'; count=0;
     for(int x=-40;x<=640;x+=17)for(int y=-20;y<=480;y+=20)
     for(int dx=-8;dx<=8;++dx)for(int dy=-8;dy<=8;++dy){
-        mem(0x44699c)=x;mem(0x4469a0)=y;mem(0x80000004)=x+dx;mem(0x80000008)=y+dy;
+        mem(0x44699c)=x;mem(0x4469a0)=y;mem(0x7ffff804)=x+dx;mem(0x7ffff808)=y+dy;
         auto expected=step_toward_target({x,y},{x+dx,y+dy});auto got=move_actor();
         if(expected.position.x!=int(mem(0x44699c))||expected.position.y!=int(mem(0x4469a0))||expected.reached!=bool(got)){
           std::cerr<<"actor mismatch "<<x<<' '<<y<<' '<<dx<<' '<<dy<<'\n';return 2;}
@@ -297,6 +307,72 @@ int main(){
     }
     std::cout<<std::dec<<"Squirrel transition frame comparisons: "<<count<<", trace "<<std::hex<<hash<<'\n';
     if(count!=34392 || hash!=0xb7693742661f6ad9ULL)return 12;
+
+    count=0;hash=14695981039346656037ULL;
+    for(int level=0;level<3;++level)for(int slot=0;slot<3;++slot)
+    for(int choice=0;choice<4;++choice)for(int correct=0;correct<2;++correct)
+    for(int from=0;from<3;++from)for(int offered=0;offered<9;++offered)for(uint32_t i=0;i<64;++i){
+        const int section=slot*2+int(i&1),piece=(int(i)+offered*3+choice)%36,marker=(int(i)%4)-1;
+        mem(0x5150d0)=level;mem(0x5150cc)=2;mem(0x515078+level*4)=slot;
+        mem(0x5150e4)=correct?3:4;mem(0x5150e8)=0;mem(0x514fb4)=section;mem(0x515004)=slot*2;
+        mem(0x514ef8)=choice;mem(0x515088+choice*4)=piece;mem(0x514eb8+choice*8)=offered;mem(0x514f00)=from;
+        mem(0x44699c)=116+slot*160;mem(0x4469a0)=327;mem(0x4469a4)=choice;mem(0x4469a8)=0;
+        mem(0x514fbc+(level*4+slot)*4)=-1;mem(0x514f64+(level*4+slot)*4)=marker;
+        mem(0x514efc)=-1;mem(0x514f08)=-1;mem(0x514f60)=0;mem(0x514fec)=-1;
+        mem(0x447558)=i*0x9e3779b9u+1234;btb::retail::OriginalRetailRandom rng(mem(0x447558));
+        audio={};stop_calls=0;placement();
+        PlacementDropState s;
+        s.actor_phase=correct?3:4;s.placed_slot=slot;s.available_section=slot*2;s.carry_slot=choice;
+        s.level=level;s.difficulty=2;s.run_section=section;s.choice_piece=piece;s.connector_marker=marker;
+        auto sound=apply_placement_drop(s,from,offered,rng);
+        if(!sound)return 13;
+        const std::array<uint32_t,14> actual{uint32_t(s.actor_phase),uint32_t(s.conveyor_phase),
+            uint32_t(s.placed_slot),uint32_t(s.available_section),uint32_t(s.carry_slot),uint32_t(s.mouth_pose),
+            uint32_t(s.retained_piece),uint32_t(s.connector_marker),uint32_t(s.temporary_decoy),uint32_t(s.choice_piece),
+            uint32_t(s.speech.mouth_frame),uint32_t(s.speech.countdown),uint32_t(s.speech.sound_id),rng.state()};
+        const std::array<uint32_t,14> addresses{0x5150e4,0x5150e8,uint32_t(0x515078+level*4),0x515004,
+            0x4469a4,0x4469a8,uint32_t(0x514fbc+(level*4+slot)*4),uint32_t(0x514f64+(level*4+slot)*4),
+            0x514efc,uint32_t(0x515088+choice*4),0x514f08,0x514f60,0x514fec,0x447558};
+        for(size_t k=0;k<actual.size();++k){
+            if(actual[k]!=mem(addresses[k])){
+                std::cerr<<"drop mismatch "<<level<<' '<<slot<<' '<<choice<<' '<<correct<<' '<<from<<' '<<offered<<' '<<i<<" word "<<k<<'\n';return 14;}
+            mix(mem(addresses[k]));
+        }
+        if(audio!=std::array<int,4>{1,*sound,50,1}||stop_calls!=0)return 15;
+        for(int n:audio)mix(uint32_t(n));++count;
+    }
+    std::cout<<std::dec<<"Squirrel drop comparisons: "<<count<<", trace "<<std::hex<<hash<<'\n';
+    if(count!=124416||hash!=0x12eebd7bdda884a6ULL)return 16;
+    count=0;hash=14695981039346656037ULL;
+    constexpr std::array<Vec2i,6> starts{{{172,0},{93,185},{459,433},{0,0},{640,479},{114,327}}};
+    for(int level=0;level<3;++level)for(int slot=0;slot<3;++slot)
+    for(int choice=0;choice<4;++choice)for(int correct=0;correct<2;++correct)for(auto start:starts){
+        const int section=slot*2,piece=(slot*9+choice*3+level)%36;
+        mem(0x5150d0)=level;mem(0x5150cc)=2;mem(0x515078+level*4)=slot;
+        mem(0x5150e4)=0;mem(0x5150e8)=0;mem(0x514fb4)=section;mem(0x515004)=slot*2;mem(0x514f50)=4;
+        for(int i=0;i<4;++i){mem(0x515088+i*4)=piece;mem(0x514ff0+i*4)=correct;mem(0x514eb8+i*8)=2;}
+        mem(0x514ef8)=-1;mem(0x514f00)=0;mem(0x44699c)=start.x;mem(0x4469a0)=start.y;
+        mem(0x4469a4)=-1;mem(0x4469a8)=1;mem(0x514fbc+(level*4+slot)*4)=-1;
+        mem(0x514f64+(level*4+slot)*4)=-1;mem(0x514efc)=-1;mem(0x514f08)=-1;
+        mem(0x514f60)=0;mem(0x514fec)=-1;mem(0x447558)=1234;
+        click=1;px=kConveyorItemOrigins[choice].x+10;py=310;placement();click=0;
+        PlacementMotion actor{PlacementState::IdleSelect,start};
+        if(!select_placement(actor,choice,correct)||int(mem(0x5150e4))!=int(actor.state)||int(mem(0x514ef8))!=choice)return 17;
+        for(int tick=0;tick<2000;++tick){
+            placement();(void)advance_placement_motion(actor,slot);
+            const std::array<int,5> actual{int(actor.state),actor.position.x,actor.position.y,actor.carrying?choice:-1,actor.mouth_pose};
+            constexpr std::array<uint32_t,5> addresses{0x5150e4,0x44699c,0x4469a0,0x4469a4,0x4469a8};
+            for(size_t i=0;i<actual.size();++i){
+                if(uint32_t(actual[i])!=mem(addresses[i])){
+                    std::cerr<<"placement motion mismatch "<<level<<' '<<slot<<' '<<choice<<' '<<correct<<' '<<start.x<<' '<<tick<<" word "<<i<<'\n';return 18;}
+                mix(mem(addresses[i]));
+            }
+            ++count;if(actor.state==PlacementState::IdleSelect)break;if(tick==1999)return 19;
+        }
+    }
+    std::cout<<std::dec<<"Squirrel placement frame comparisons: "<<count<<", trace "<<std::hex<<hash<<'\n';
+    if(count!=227682||hash!=0x8a73b5a3fe5d3b9dULL)return 20;
+
 }
 '''
 
@@ -316,7 +392,7 @@ def main():
         ('selector',0x4259d0,0x425f33),('move_actor',0x427270,0x427312),
         ('generate_choices',0x426f30,0x427263),
         ('slide_cycle',0x427320,0x4273eb),('assemble',0x425f40,0x4267ac),
-        ('transition',0x425780,0x42597f)]:
+        ('transition',0x425780,0x42597f),('placement',0x4273f0,0x4279e4)]:
         code+=translate(a.pe,name,start,end)+'\n'
     code+=HARNESS
     with tempfile.TemporaryDirectory() as d:

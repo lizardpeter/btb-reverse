@@ -58,7 +58,7 @@ bool SquirrelDriver::initialize(int player,std::string& error) {
         level_=0;placed_count_=0;
         placement_={squirrel::PlacementState::IdleSelect,placement_.position};
         placement_slot_=0;
-        mouth_pose_=mouth_draw_frame_=1;
+        mouth_draw_frame_=1;
         sprite_draw_frame_=0;sprite_draw_visible_=true;
         temporary_decoy_=carried_piece_=-1;speech_={};
         animating_=false;complete_=false;level_transition_pending_=false;
@@ -290,7 +290,7 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
             :input.managed_sound_playing;
         speech_.advance(playing,random_stream());
     }
-    mouth_draw_frame_=speech_was_active?speech_.mouth_frame:mouth_pose_;
+    mouth_draw_frame_=speech_was_active?speech_.mouth_frame:placement_.mouth_pose;
 
     // 004267B0 updates the assembly before its live squirrel blit.
     // Keep the active draw even when state becomes idle on this tick.
@@ -338,9 +338,6 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
     }
     if(transition_frame)return out; // source skips placement in transition branch
     if(placement_.state!=squirrel::PlacementState::IdleSelect) {
-        if(placement_.state==squirrel::PlacementState::ReturnAfterDecoy ||
-           placement_.state==squirrel::PlacementState::ReturnDecoyToConveyor)
-            mouth_pose_=2;
         const int selected=placement_.selected;
         const auto event=squirrel::advance_placement_motion(placement_,placement_slot_);
         auto& choice=choices_[static_cast<std::size_t>(selected)];
@@ -356,7 +353,7 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
             drop.placed_slot=placed_count_;
             drop.available_section=placed_count_*2;
             drop.carry_slot=selected;
-            drop.mouth_pose=mouth_pose_;
+            drop.mouth_pose=placement_.mouth_pose;
             drop.retained_piece=placed_piece_ids_[storage];
             drop.temporary_decoy=temporary_decoy_;
             drop.choice_piece=carried_piece_;
@@ -373,7 +370,7 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
             }
             placed_piece_ids_[storage]=drop.retained_piece;
             placed_count_=drop.placed_slot;
-            mouth_pose_=drop.mouth_pose;
+            placement_.mouth_pose=drop.mouth_pose;
             temporary_decoy_=drop.temporary_decoy;
             speech_=drop.speech;
             conveyor_.phase=drop.conveyor_phase;
@@ -424,7 +421,6 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         const auto& chosen=choices_[i];
         if(!chosen.active)return out;
         placement_slot_=placed_count_;
-        mouth_pose_=0;
         (void)squirrel::select_placement(placement_,static_cast<int>(i),chosen.correct);
         return out;
     }
@@ -438,7 +434,7 @@ bool SquirrelDriver::unload(std::string& error) {
     level_=0;placed_count_=0;
     placement_={squirrel::PlacementState::IdleSelect,placement_.position};
     placement_slot_=0;
-    mouth_pose_=mouth_draw_frame_=1;
+    mouth_draw_frame_=1;
     sprite_draw_frame_=0;sprite_draw_visible_=true;
     temporary_decoy_=carried_piece_=-1;speech_={};
     animating_=false;complete_=false;level_transition_pending_=false;

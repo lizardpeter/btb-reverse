@@ -759,12 +759,14 @@ struct PlacementMotion {
     Vec2i position{kLoftyHomeTarget};
     int selected{-1};
     bool carrying{};
+    int mouth_pose{1};
 };
 [[nodiscard]] constexpr bool select_placement(
     PlacementMotion& actor,int index,bool correct) noexcept {
     if(actor.state!=PlacementState::IdleSelect || index<0 || index>=4)return false;
     actor.selected=index;
     actor.carrying=false;
+    actor.mouth_pose=0;
     actor.state=correct?PlacementState::MoveToSelectedCorrect:PlacementState::MoveToSelectedDecoy;
     return true;
 }
@@ -786,6 +788,8 @@ struct PlacementMotion {
     case PlacementState::MoveToDecoyReturnPoint:destination=drop;break;
     default:break;
     }
+    if(actor.state==PlacementState::ReturnAfterDecoy ||
+       actor.state==PlacementState::ReturnDecoyToConveyor)actor.mouth_pose=2;
     const auto step=step_toward_target(actor.position,destination);
     actor.position=step.position;
     if(!step.reached)return PlacementEvent::None;
@@ -798,6 +802,7 @@ struct PlacementMotion {
         return PlacementEvent::PickedUp;
     case PlacementState::CommitCorrectPlacement:
         actor.state=PlacementState::ReturnHome;actor.carrying=false;
+        actor.mouth_pose=1;
         return PlacementEvent::CorrectDropped;
     case PlacementState::CommitDecoyPlacement:
         actor.state=PlacementState::ReturnAfterDecoy;actor.carrying=false;
