@@ -545,6 +545,35 @@ tick_run_assembly_animation(
     }
 }
 
+// Raw 00425F40 update result. Atlas index 86 is a real original
+// draw intent; the physical renderer must independently reject it.
+struct RunAssemblyFrame {
+    int sprite{};
+    bool visible{};
+    bool cycle_completed{};
+    bool entered_transient_state_2{};
+};
+
+template<class NextRand>
+[[nodiscard]] constexpr RunAssemblyFrame advance_run_assembly_frame(
+    RunAssemblyAnimationRuntime& s,const Data& data,
+    int available_section,std::size_t level,const RunPlan& plan,
+    const PlacedRunPieces& pieces,std::optional<int> landing_y,
+    NextRand&& next_rand) {
+    if(s.state==RunAssemblyAnimationState::Idle) {
+        if(s.run_section>available_section)
+            return {tick_assembly_idle_sprite(s,data.animation_step_delay,next_rand),true,false,false};
+        const auto keys=select_run_assembly_motion_keys(s.run_section,level,plan,pieces);
+        if(!keys)return {-1,false,false,false};
+        s.landing_y=landing_y;
+        begin_run_assembly_animation(s,data,*keys);
+    }
+    const auto tick=tick_run_assembly_animation(s,data);
+    const int frame=active_assembly_sprite_frame(s);
+    return {frame,assembly_sprite_visible(s,frame,level,pieces),
+            tick.cycle_completed,tick.entered_transient_state_2};
+}
+
 [[nodiscard]] constexpr RunPlan chain_run_plan(
     RunPlan random_draws) noexcept {
     // Retail generates all 12 rand()%3 values first, then overwrites the

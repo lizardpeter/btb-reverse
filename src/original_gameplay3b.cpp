@@ -155,78 +155,19 @@ I32 update_golf_gameplay(Golf& s,GolfIO& io) {
  }
 }
 void update_and_draw_squirrel_run(SquirrelRun& s,SquirrelRunIO& io){
- // Original 00425F40 uses a fixed 91-entry profile/direction mapping.
- // The table is defined explicitly below from local_16c[0..0x5a].
- static constexpr std::array<I32,91> code = {
-0,0,3,3,5,5,4,4,2,2,0,0,1,1,1,1,1,1,1,0,0,0,1,6,2,0,0,6,3,3,3,5,7,4,5,0,0,1,0,6,0,0,0,7,5,5,5,5,5,5,7,1,0,0,0,0,0,0,1,1,2,3,3,6,3,3,3,0,1,4,0,0,0,1,0,1,3,3,3,7,5,5,5,0,0,0,1,1,0,0,0
- };
- if(s.cadence<=0||s.sprite_width<=0||s.sprite_height<=0)
-  throw std::invalid_argument("invalid source Squirrel animation cadence or sprite");
- if(s.profile<0||s.profile>=4)throw std::out_of_range("Squirrel motion profile");
- auto tick=[&](I32 cap){
-  if(--s.countdown>0)return false;
-  s.countdown=s.cadence;
-  ++s.frame;
-  return s.frame>cap;
- };
- auto move=[&](bool descending){
-  const I32 shape=code[check_index(s.source_profile[check_index(s.direction,s.source_profile.size(),"Squirrel source direction")],code.size(),"Squirrel original motion-map index")];
-  const auto next=io.original_frame_offset(shape,s.frame,descending);
-  s.offset_y+=next;
-  s.offset_x+=s.step_x[check_index(s.frame,s.step_x.size(),"Squirrel X animation table")];
- };
- if(s.phase==0){
-  // Source DAT_00515004 < DAT_00514fb4 selects the idle-run path.
-  if(s.reset_run<s.completed_cycles){
-   if(tick(0)){
-    s.sequence=std::clamp(s.sequence+1,s.min_run,s.max_run);
-    s.frame=0;
-    if(s.sequence>s.max_run){
-     s.sequence=s.min_run+sample(io.random32(),4);
-    }
-   }
-  }else{
-   io.select_original_motion_profile(s);
-   s.phase=1;s.sequence=0;s.frame=0;s.direction=0;
-   s.countdown=s.cadence;s.profile_mark=s.motion_variant;
-  }
- }else if(s.phase==1){
-  if(s.countdown==s.cadence)move(false);
-  if(tick(2)){
-   s.phase=2;s.frame=0;s.sequence=3;
-  }
- }else if(s.phase==2){
-  io.no_op_legacy_hook();
-  s.phase=3;s.frame=0;s.sequence=3;
-  s.countdown=s.cadence;
- }else if(s.phase==3){
-  if(s.countdown==s.cadence)move(true);
-  if(tick(3)){
-   s.phase=4;s.frame=0;s.direction=2;s.sequence=0;
-  }
- }else if(s.phase==4){
-  if(s.countdown==s.cadence)move(false);
-  if(tick(2)){
-   s.phase=5;s.frame=0;s.direction=3;s.sequence=3;
-  }
- }else if(s.phase==5){
-  s.phase=6;s.frame=0;s.sequence=3;s.countdown=s.cadence;
- }else if(s.phase==6){
-  if(s.countdown==s.cadence)move(true);
-  if(tick(3)){
-   s.phase=0;++s.completed_cycles;s.frame=0;
-  }
- }else throw std::invalid_argument("unknown Squirrel source animation phase");
- const I32 mapped=code[check_index(s.sequence,code.size(),"Squirrel source sequence")];
- const I32 sheet_frame=io.original_sequence_base(mapped)+s.frame;
- s.clip_frame=sheet_frame*s.sprite_width;
- if(sheet_frame>62)s.show_overlay=true;
- if(!io.original_visibility_gate(s.round,s.branch,(s.completed_cycles%2)==0))return;
- if(s.phase>=4&&s.show_overlay)return;
- if(s.sprite_surface==0)throw std::runtime_error("Squirrel original sprite missing");
- const Box rect{s.clip_frame,0,s.clip_frame+s.sprite_width,s.sprite_height};
- s.last_motion_tick=s.sequence+s.frame;
- io.original_blt(s.x+s.offset_x,s.y+s.offset_y,s.sprite_surface,rect,true);
+ if(s.motion.animation_step_delay<=0||s.level>=squirrel::kMaximumLevelCount)
+  throw std::invalid_argument("invalid original Squirrel frame state");
+ const auto frame=squirrel::advance_run_assembly_frame(
+     s.animation,s.motion,s.available_section,s.level,s.plan,s.placed,
+     s.landing_y,[&]{return io.random32();});
+ if(frame.sprite<0)throw std::runtime_error("original Squirrel motion selector failed");
+ if(frame.entered_transient_state_2)io.no_op_legacy_hook();
+ if(!frame.visible)return;
+ if(!s.sprite_surface)throw std::runtime_error("Squirrel original sprite missing");
+ // Raw original blit intent. The native graphics provider owns clipping.
+ constexpr I32 width=102,height=92;
+ io.original_blt(s.animation.x+s.scroll_offset,s.animation.y,s.sprite_surface,
+                 {frame.sprite*width,0,(frame.sprite+1)*width,height},true);
 }
 I32 update_herding_activity(Herding& s,HerdingIO& io){
  io.enable_input_processing();

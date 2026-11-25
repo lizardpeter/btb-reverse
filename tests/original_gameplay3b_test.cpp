@@ -22,23 +22,12 @@ struct GolfHost:GolfIO {
  }
 };
 struct SquirrelHost:SquirrelRunIO{
- U32 next{};I32 selected{},noop{},frames{},code_calls{};
+ U32 next{};I32 noop{},frames{};Box last_rect{};Point last_position{};
  U32 random32() override{return next++;}
- void select_original_motion_profile(SquirrelRun& s) override{
-  ++selected;s.profile=1;s.motion_variant=1;
- }
  void no_op_legacy_hook() override{++noop;}
- I32 original_frame_offset(I32 profile,I32 frame,bool descending) override{
-  assert(profile>=0&&profile<=7&&frame>=0&&frame<=4);
-  ++code_calls;return descending?-2:2;
- }
- I32 original_sequence_base(I32 profile) override{
-  assert(profile>=0&&profile<=7);return profile*4;
- }
- bool original_visibility_gate(I32,I32,bool) override{return true;}
- void original_blt(I32,I32,U32 surface,Box rect,bool keyed) override{
-  assert(surface==9&&keyed&&rect.r>rect.l&&rect.b>rect.t);
-  ++frames;
+ void original_blt(I32 x,I32 y,U32 surface,Box rect,bool keyed) override{
+  assert(surface==9&&keyed&&rect.r-rect.l==102&&rect.b==92);
+  ++frames;last_rect=rect;last_position={x,y};
  }
 };
 struct HerdHost:HerdingIO {
@@ -124,13 +113,22 @@ int main(){
  }
  {
   SquirrelHost host;SquirrelRun s;
-  s.sprite_surface=9;s.sprite_width=32;s.sprite_height=48;
-  s.cadence=1;s.countdown=1;s.reset_run=0;
+  s.sprite_surface=9;s.motion.animation_step_delay=7;
+  s.animation.run_section=0;s.animation.x=-34;s.animation.y=205;
+  s.available_section=0;s.placed.fill(-1);
+  s.motion.horizontal_motion_deltas={0,3,10,27,8,-4,-4};
+  s.motion.vertical_motion_deltas[0]={0,0,1,-1,0,0,0};
+  s.landing_y=205;s.scroll_offset=-8;
   update_and_draw_squirrel_run(s,host);
-  assert(s.phase==1&&host.selected==1&&host.frames==1);
-  for(int i=0;i<30;i++)update_and_draw_squirrel_run(s,host);
-  assert(host.noop>=1&&host.frames>=4&&host.code_calls>=2);
-  assert(s.completed_cycles>=1);
+  assert(s.animation.state==btb::squirrel::RunAssemblyAnimationState::FirstThreeSubsteps);
+  assert(host.frames==1&&host.last_position.x==-42&&host.last_position.y==205);
+  assert(host.last_rect.l==0&&host.last_rect.r==102);
+  for(int i=1;i<95;i++)update_and_draw_squirrel_run(s,host);
+  assert(host.noop==1&&host.frames==95&&s.animation.run_section==1);
+  assert(s.animation.state==btb::squirrel::RunAssemblyAnimationState::Idle);
+  assert(s.animation.x==46&&s.animation.y==205);
+  update_and_draw_squirrel_run(s,host);
+  assert(s.animation.run_section==1&&host.frames==96);
   s.sprite_surface=0;
   bool threw=false;
   try{update_and_draw_squirrel_run(s,host);}catch(const std::runtime_error&){threw=true;}

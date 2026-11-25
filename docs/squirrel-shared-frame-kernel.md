@@ -1,0 +1,5 @@
+# Shared original Squirrel animation entry point
+
+The older original_gameplay3b entry point had separately invented animation timing, sprite dimensions, and visibility callbacks. Its implementation now calls the same typed 00425F40 frame kernel as the playable Squirrel activity. The exact motion data, connector plan, placement bank, available-section threshold, absolute landing Y and animation state are provided explicitly, and the only remaining host calls are CRT random, the original no-op hook and raw blit submission.
+
+The production adapter preserves its explicit section scheduling, validates source rectangle bounds, and omits invalid physical frame 86; the raw entry point preserves original draw intent. The old SquirrelRun callback interface had no other repository consumers beyond its source test (code search); that internal interface was deliberately simplified. Tests now cover original 95-frame cadence, coordinate offset, atlas crop, idle draw, and missing surface handling. No ledger stage is promoted by this change.

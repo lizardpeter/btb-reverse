@@ -288,17 +288,14 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
             ActivityFrameOutput failed;failed.fatal_error=animation_error;return failed;
         }
     }
-    if(animating_) {
-        const auto tick=squirrel::tick_run_assembly_animation(assembly_,*data_);
-        sprite_draw_frame_=squirrel::active_assembly_sprite_frame(assembly_);
-        sprite_draw_visible_=squirrel::assembly_sprite_visible(assembly_,sprite_draw_frame_,
-            static_cast<std::size_t>(level_),placed_piece_ids_);
-        if(tick.cycle_completed)animating_=false;
-    } else {
-        sprite_draw_frame_=squirrel::tick_assembly_idle_sprite(assembly_,
-            data_->animation_step_delay,[&]{return random_stream().next_rand();});
-        sprite_draw_visible_=sprite_draw_frame_>=0&&sprite_draw_frame_<86;
-    }
+    const auto assembly_frame=squirrel::advance_run_assembly_frame(
+        assembly_,*data_,(animating_?assembly_.run_section:assembly_.run_section-1),
+        static_cast<std::size_t>(level_),connectors_,placed_piece_ids_,
+        assembly_.landing_y,[&]{return random_stream().next_rand();});
+    sprite_draw_frame_=assembly_frame.sprite;
+    sprite_draw_visible_=assembly_frame.visible &&
+        squirrel::source_squirrel_frame_rect(sprite_draw_frame_).has_value();
+    if(assembly_frame.cycle_completed)animating_=false;
     auto out=draw();
     if(complete_) {
         const auto state=squirrel::completion_step(

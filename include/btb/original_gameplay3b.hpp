@@ -2,6 +2,7 @@
 // Recovery targets 00415080 / 00425F40 / 004182B0 (original 2002 PE32).
 // Ghidra evidence is source pseudocode, NOT retail behavioral equivalence.
 // External movement, sound, collision and DirectDraw are required native services.
+#include "btb/squirrel_runtime.hpp"
 #include <array>
 #include <cstdint>
 #include <utility>
@@ -42,29 +43,24 @@ public:
 };
 I32 update_golf_gameplay(Golf&,GolfIO&);
 
+// Typed entry-point state for original 00425F40. The same frame
+// kernel is also used by the live Squirrel activity.
 struct SquirrelRun {
- I32 phase{},profile{},sequence{},frame{},countdown{1},cadence{1},direction{},x{},y{},
-     offset_x{},offset_y{},sprite_width{64},sprite_height{64},scroll{},scroll_basis{},
-     clip_frame{},sheet_width{},sheet_index{},overlay_state{},visible_level{},
-     completed_cycles{},motion_variant{},current_sound{},round{},branch{},initial_floor{},
-     min_run{},max_run{10},min_elevated{},max_elevated{10},reset_run{},
-     stage_select{},profile_mark{},last_motion_tick{-1};
- bool finish_flag{},show_overlay{},special_animation{},hide_actor{},use_frame_table{};
+ squirrel::RunAssemblyAnimationRuntime animation{};
+ squirrel::Data motion{};
+ squirrel::RunPlan plan{};
+ squirrel::PlacedRunPieces placed{};
+ std::size_t level{};
+ I32 available_section{};
+ std::optional<I32> landing_y{};
+ I32 scroll_offset{};
  U32 sprite_surface{};
- std::array<I32,4> source_profile{0,1,2,3};
- std::array<I32,32> frame_start{};
- std::array<I32,32> step_x{},step_y{},fall_x{},fall_y{};
- std::array<I32,8> direction_mask{};
 };
 class SquirrelRunIO {
 public:
  virtual ~SquirrelRunIO()=default;
  virtual U32 random32()=0;
- virtual void select_original_motion_profile(SquirrelRun&)=0;
  virtual void no_op_legacy_hook()=0;
- virtual I32 original_frame_offset(I32 profile,I32 frame,bool descending)=0;
- virtual I32 original_sequence_base(I32 profile)=0;
- virtual bool original_visibility_gate(I32 round,I32 branch,bool even)=0;
  virtual void original_blt(I32 dest_x,I32 dest_y,U32 surface,Box source,bool keyed)=0;
 };
 void update_and_draw_squirrel_run(SquirrelRun&,SquirrelRunIO&);
