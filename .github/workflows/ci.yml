@@ -49,8 +49,10 @@ jobs:
         run: |
           cmake --build build/reconstruction --target btb_herding_pure_source_regressions --parallel
           ctest --test-dir build/reconstruction --output-on-failure -R '^herding_(source_|navigation_boundary_source|retail_rect_contact_source)'
-      - name: Build reconstruction
-        run: cmake --build build/reconstruction --parallel
+      - name: Exercise isolated Squirrel source kernels
+        run: |
+          cmake --build build/reconstruction --target btb_squirrel_runtime_tests btb_squirrel_data_tests btb_squirrel_presentation_tests --parallel
+          ctest --test-dir build/reconstruction --output-on-failure -R '^squirrel_(runtime|data|presentation)
       - name: Independently compare native Bink1 PCM16 against FFmpeg
         run: |
           if ! command -v ffmpeg >/dev/null; then sudo apt-get update && sudo apt-get install -y ffmpeg; fi
@@ -80,7 +82,7 @@ jobs:
       - name: Verify Pets Corner source and native gameplay regression
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^(herding_(source_|navigation_boundary_source|retail_rect_contact_source|behavior_bridge_source)|full_game_herding_)"
       - name: Exercise all whole-game source contracts
-        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^(bobs_band_persistence_source|full_game_blt_clip_source|full_game_bobs_band_source|full_game_effect_pipeline_source|full_game_front_end_source|full_game_generic_ui_source|full_game_menu_actions_source|full_game_maze_native|full_game_spud_maze_native|full_game_pregame_resources_source|full_game_pregame_root_source|full_game_pregame_source|full_game_resources_source|full_game_startup_movies_source|full_game_ui_bitmaps_source|full_game_walkthrough_catalog_source|golf_activity_source|original_asset_resolver_source|retail_crt_random_source|retail_point_in_polygon_source|park_designer_retail_catalog|full_game_park_scene_source|park_designer_placement_source|full_game_park_native_source|full_game_park_designer_source|park_designer_scene)$"
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^(bobs_band_persistence_source|full_game_blt_clip_source|full_game_bobs_band_source|full_game_effect_pipeline_source|full_game_front_end_source|full_game_generic_ui_source|full_game_menu_actions_source|full_game_maze_native|full_game_spud_maze_native|full_game_pregame_resources_source|full_game_pregame_root_source|full_game_pregame_source|full_game_resources_source|full_game_startup_movies_source|full_game_ui_bitmaps_source|full_game_walkthrough_catalog_source|golf_activity_source|full_game_golf_source|full_game_adventure_to_golf_source|full_game_squirrel_native|squirrel_runtime|squirrel_data|squirrel_presentation|original_asset_resolver_source|retail_crt_random_source|retail_point_in_polygon_source|park_designer_retail_catalog|full_game_park_scene_source|park_designer_placement_source|full_game_park_native_source|full_game_park_designer_source|park_designer_scene)$"
       - name: Verify reconstructed profile flow and music regression on Windows
         run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^(full_game_profile_selector_native|profile_name_entry|full_game_profiles_source|bobs_band_source|original_profile_screen|original_runtime16|original_string8|retail_pure_runtime_vectors|original_float6|original_exception9|original_startup11|original_help2|original_editor3|original_runtime15|original_locale7|original_wave7|original_printer7|original_runtime6|original_batch13|original_io13|original_heap14|original_unwind15|original_cxx12|original_device8|original_tail4|original_closure8|original_input_crt8|original_gameplay3|original_fireworks_start2|original_maze_init2|original_profiles_fireworks2|original_draw4|original_activity4|original_motion4|original_coordinators2|original_gameplay3b|original_init2|original_herding_init|original_park_init|original_crt_float3|original_closure4|original_stdio2|original_last2)$"
       - name: Verify integrated session on Windows
@@ -186,7 +188,216 @@ jobs:
       - name: Verify Pets Corner source and native gameplay regression
         run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^(herding_(source_|navigation_boundary_source|retail_rect_contact_source|behavior_bridge_source)|full_game_herding_)"
       - name: Exercise all whole-game source contracts
-        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^(bobs_band_persistence_source|full_game_blt_clip_source|full_game_bobs_band_source|full_game_effect_pipeline_source|full_game_front_end_source|full_game_generic_ui_source|full_game_menu_actions_source|full_game_maze_native|full_game_spud_maze_native|full_game_pregame_resources_source|full_game_pregame_root_source|full_game_pregame_source|full_game_resources_source|full_game_startup_movies_source|full_game_ui_bitmaps_source|full_game_walkthrough_catalog_source|golf_activity_source|original_asset_resolver_source|retail_crt_random_source|retail_point_in_polygon_source|park_designer_retail_catalog|full_game_park_scene_source|park_designer_placement_source|full_game_park_native_source|full_game_park_designer_source|park_designer_scene)$"
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^(bobs_band_persistence_source|full_game_blt_clip_source|full_game_bobs_band_source|full_game_effect_pipeline_source|full_game_front_end_source|full_game_generic_ui_source|full_game_menu_actions_source|full_game_maze_native|full_game_spud_maze_native|full_game_pregame_resources_source|full_game_pregame_root_source|full_game_pregame_source|full_game_resources_source|full_game_startup_movies_source|full_game_ui_bitmaps_source|full_game_walkthrough_catalog_source|golf_activity_source|full_game_golf_source|full_game_adventure_to_golf_source|full_game_squirrel_native|squirrel_runtime|squirrel_data|squirrel_presentation|original_asset_resolver_source|retail_crt_random_source|retail_point_in_polygon_source|park_designer_retail_catalog|full_game_park_scene_source|park_designer_placement_source|full_game_park_native_source|full_game_park_designer_source|park_designer_scene)$"
+      - name: Render original Fireworks certificate glyph and badge sources
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^fireworks_certificate$"
+      - name: Verify original Fireworks show decode/scheduling in Windows Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^fireworks_native_show$"
+      - name: Verify exact 23 source Fireworks movie names and order
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^fireworks_movie_bank_catalog$"
+      - name: Verify x86 native graphics/audio/Bink provider linkage
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_win32_platform_link$"
+      - name: Verify reconstructed profile flow and music regression on x86
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^(full_game_profile_selector_native|profile_name_entry|full_game_profiles_source|bobs_band_source|original_profile_screen|original_runtime16|original_string8|retail_pure_runtime_vectors|original_float6|original_exception9|original_startup11|original_help2|original_editor3|original_runtime15|original_locale7|original_wave7|original_printer7|original_runtime6|original_batch13|original_io13|original_heap14|original_unwind15|original_cxx12|original_device8|original_tail4|original_closure8|original_input_crt8|original_gameplay3|original_fireworks_start2|original_maze_init2|original_profiles_fireworks2|original_draw4|original_activity4|original_motion4|original_coordinators2|original_gameplay3b|original_init2|original_herding_init|original_park_init|original_crt_float3|original_closure4|original_stdio2|original_last2)$"
+      - name: Execute all 25 original leaf C++ bodies on x86 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_leaf_batch_25$"
+      - name: Verify 13 compiled original gameplay helpers in Win32 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_game_batch_13$"
+      - name: Execute 32 native MSVC runtime originals on Win32 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_crt_batch_32$"
+      - name: Exercise 14 native gameplay routines on Windows x86 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_games_batch_14$"
+      - name: Verify 30 original MSVC functions on Win32 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_msvc30$"
+      - name: Execute actual Win32 x86 game-core smoke through btb_game.exe
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^recompiled_game_executable_link$"
+      - name: Verify native game click-pulse parity Win32 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^native_input_pulse$"
+      - name: Verify 17 original CRT routines on Win32 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_crt17$"
+      - name: Verify five original native CRT dependencies Win32 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_runtime5$"
+      - name: Verify original game frame state-machine Win32 x86 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_active_frame$"
+      - name: Test original environment locale and sorting on Win32 x86
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_runtime8$"
+      - name: Verify 10 original CRT file and heap functions Win32 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_crt10$"
+      - name: Validate source Fireworks pre-show Bink routing in Windows Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^full_game_fireworks_transition$"
+      - name: Execute native two-phase session regression Win32 x86 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^full_game_native_session_source$"
+      - name: Exercise 15 original media and Bink game functions Win32
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_media15$"
+      - name: Verify 14 original native resource destructors Win32
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_system14$"
+      - name: Execute nine native gameplay and Bink-source functions Win32
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_activity9$"
+      - name: Verify 12 original activity lifecycle functions Win32
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_lifecycle12$"
+      - name: Verify shared original device functions on Win32
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_shared11$"
+      - name: Verify 11 original Golf Squirrel Band loaders Win32
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_gameplay11$"
+      - name: Verify live Maze calls compiled 0041AEB0 Win32
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_live_maze_debounce$"
+      - name: Verify nine original gameplay and Bink functions Win32
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_gameplay9$"
+      - name: Exercise original Park Designer and Spud algorithms Win32
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_source9$"
+      - name: Verify six original Golf Spud Skate Fireworks and Band routines Win32
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_gameplay6$"
+      - name: Verify 8 native original platform services Win32 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_services8$"
+      - name: Test 8 recovered shared UI routines in original Win32 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_shared_ui8$"
+      - name: Validate nine native CRT procedures Win32 Release
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^original_crt9$"
+      - name: Upload actual x86 compiled game image
+        uses: actions/upload-artifact@v4
+        with:
+          name: btb-game-win32-x86-link-preview
+          path: build/reconstruction-x86/Release/btb_game.exe
+          if-no-files-found: error
+
+      - name: Build reconstruction
+        run: cmake --build build/reconstruction --parallel
+      - name: Independently compare native Bink1 PCM16 against FFmpeg
+        run: |
+          if ! command -v ffmpeg >/dev/null; then sudo apt-get update && sudo apt-get install -y ffmpeg; fi
+          python tools/bink32_synthetic_audio_differential.py --native build/reconstruction/btb_bink32_native_audio_audit
+      - name: Test reconstruction
+        run: ctest --test-dir build/reconstruction --output-on-failure
+
+  integrated-game-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Regenerate evidence-indexed original-function registry
+        run: python tools/build_reconstruction_index.py
+      - name: Generate unified architecture evidence
+        run: python tools/build_remaining_architecture.py
+      - name: Configure C++26 Windows game
+        run: cmake -S . -B build/reconstruction-win -G "Visual Studio 18 2026" -A x64 -DBTB_BUILD_ENHANCED=ON
+      - name: Build isolated Bink1 codec and audio tests on Windows x64
+        run: cmake --build build/reconstruction-win --config Release --target btb_bink32_recovered btb_bink32_retail_video_audit btb_bink32_native_audio_audit btb_bink32_audio_master_clock_tests btb_bink32_audio_stream_tests btb_bink32_audio_pcm_tests btb_bink32_audio_movie_tests btb_spud_skate_data_tests
+      - name: Exercise native Bink1 audio reconstruction on Windows x64
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^(bink32_audio_master_clock|bink32_audio_stream_multiblock|bink32_audio_pcm16_format|bink32_audio_movie_timing|spud_skate_data)$"
+      - name: Build game and integrated regression
+        run: cmake --build build/reconstruction-win --config Release --target btb_game btb_game_enhanced btb_herding_source_regressions btb_full_game_source_regressions btb_full_game_maze_native_tests btb_full_game_spud_maze_native_tests btb_fireworks_movie_bank_catalog_tests btb_fireworks_native_show_tests btb_fireworks_certificate_tests btb_full_game_fireworks_transition_tests btb_game_session_tests btb_original_win32_platform_link_tests btb_original_leaf_batch_25_tests btb_original_game_batch_13_tests btb_original_crt_batch_32_tests btb_original_games_batch_14_tests btb_original_msvc30_tests btb_native_input_pulse_tests btb_native_host_input_tests btb_original_crt17_tests btb_original_runtime5_tests btb_original_active_frame_tests btb_original_runtime8_tests btb_original_crt10_tests btb_full_game_native_session_source_tests btb_original_media15_tests btb_original_system14_tests btb_original_activity9_tests btb_original_lifecycle12_tests btb_original_shared11_tests btb_original_gameplay11_tests btb_original_live_maze_debounce_tests btb_original_gameplay9_tests btb_original_source9_tests btb_original_gameplay6_tests btb_original_services8_tests btb_original_shared_ui8_tests btb_original_crt9_tests btb_full_game_profile_selector_native_tests btb_profile_name_entry_tests btb_full_game_profiles_source_tests btb_bobs_band_source_tests btb_original_profile_screen_tests btb_original_runtime16_tests btb_original_string8_tests btb_retail_pure_runtime_vectors_tests btb_original_float6_tests btb_original_exception9_tests btb_original_startup11_tests btb_original_help2_tests btb_original_editor3_tests btb_original_runtime15_tests btb_original_locale7_tests btb_original_wave7_tests btb_original_printer7_tests btb_original_runtime6_tests btb_original_batch13_tests btb_original_io13_tests btb_original_heap14_tests btb_original_unwind15_tests btb_original_cxx12_tests btb_original_device8_tests btb_original_tail4_tests btb_original_closure8_tests btb_original_input_crt8_tests btb_original_gameplay3_tests btb_original_fireworks_start2_tests btb_original_maze_init2_tests btb_original_profiles_fireworks2_tests btb_original_draw4_tests btb_original_activity4_tests btb_original_motion4_tests btb_original_coordinators2_tests btb_original_gameplay3b_tests btb_original_init2_tests btb_original_herding_init_tests btb_original_park_init_tests btb_original_crt_float3_tests btb_original_closure4_tests btb_original_stdio2_tests btb_original_last2_tests --parallel
+      - name: Verify Pets Corner source and native gameplay regression
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^(herding_(source_|navigation_boundary_source|retail_rect_contact_source|behavior_bridge_source)|full_game_herding_)"
+      - name: Exercise all whole-game source contracts
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^(bobs_band_persistence_source|full_game_blt_clip_source|full_game_bobs_band_source|full_game_effect_pipeline_source|full_game_front_end_source|full_game_generic_ui_source|full_game_menu_actions_source|full_game_maze_native|full_game_spud_maze_native|full_game_pregame_resources_source|full_game_pregame_root_source|full_game_pregame_source|full_game_resources_source|full_game_startup_movies_source|full_game_ui_bitmaps_source|full_game_walkthrough_catalog_source|golf_activity_source|full_game_golf_source|full_game_adventure_to_golf_source|full_game_squirrel_native|squirrel_runtime|squirrel_data|squirrel_presentation|original_asset_resolver_source|retail_crt_random_source|retail_point_in_polygon_source|park_designer_retail_catalog|full_game_park_scene_source|park_designer_placement_source|full_game_park_native_source|full_game_park_designer_source|park_designer_scene)$"
+      - name: Verify reconstructed profile flow and music regression on Windows
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^(full_game_profile_selector_native|profile_name_entry|full_game_profiles_source|bobs_band_source|original_profile_screen|original_runtime16|original_string8|retail_pure_runtime_vectors|original_float6|original_exception9|original_startup11|original_help2|original_editor3|original_runtime15|original_locale7|original_wave7|original_printer7|original_runtime6|original_batch13|original_io13|original_heap14|original_unwind15|original_cxx12|original_device8|original_tail4|original_closure8|original_input_crt8|original_gameplay3|original_fireworks_start2|original_maze_init2|original_profiles_fireworks2|original_draw4|original_activity4|original_motion4|original_coordinators2|original_gameplay3b|original_init2|original_herding_init|original_park_init|original_crt_float3|original_closure4|original_stdio2|original_last2)$"
+      - name: Verify integrated session on Windows
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^game_session$"
+      - name: Verify original DirectDraw7 DirectSound8 and Bink loader linkage
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_win32_platform_link$"
+      - name: Execute all 25 original leaf C++ bodies on x64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_leaf_batch_25$"
+      - name: Verify 13 compiled original gameplay helpers in Win64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_game_batch_13$"
+      - name: Execute 32 native MSVC runtime originals on Win64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_crt_batch_32$"
+      - name: Exercise 14 native gameplay routines on Windows x64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_games_batch_14$"
+      - name: Verify 30 original MSVC functions on Win64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_msvc30$"
+      - name: Execute actual Win64 game-core smoke through btb_game.exe
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^(recompiled_game_executable_link|enhanced_baseline_smoke)$"
+      - name: Verify native game click-pulse parity Win64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^native_input_pulse$"
+      - name: Verify 17 original CRT routines on Win64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_crt17$"
+      - name: Verify five original native CRT dependencies Win64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_runtime5$"
+      - name: Verify original game frame state-machine Win64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_active_frame$"
+      - name: Test original environment locale and sorting on Windows x64
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_runtime8$"
+      - name: Verify 10 original CRT file and heap functions Win64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_crt10$"
+      - name: Validate source Fireworks pre-show Bink routing in Windows Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^full_game_fireworks_transition$"
+      - name: Execute native two-phase session regression Win64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^full_game_native_session_source$"
+      - name: Exercise 15 original media and Bink game functions Win64
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_media15$"
+      - name: Verify 14 original native resource destructors Win64
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_system14$"
+      - name: Execute nine native gameplay and Bink-source functions Win64
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_activity9$"
+      - name: Verify 12 original activity lifecycle functions Win64
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_lifecycle12$"
+      - name: Verify shared original device functions on Win64
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_shared11$"
+      - name: Verify 11 original Golf Squirrel Band loaders Win64
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_gameplay11$"
+      - name: Verify live Maze calls compiled 0041AEB0 Win64
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_live_maze_debounce$"
+      - name: Verify nine original gameplay and Bink functions Win64
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_gameplay9$"
+      - name: Exercise original Park Designer and Spud algorithms Win64
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_source9$"
+      - name: Verify six original Golf Spud Skate Fireworks and Band routines Win64
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_gameplay6$"
+      - name: Render original Fireworks certificate glyph and badge sources
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^fireworks_certificate$"
+      - name: Verify original Fireworks show decode/scheduling in Windows Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^fireworks_native_show$"
+      - name: Verify exact 23 source Fireworks movie names and order
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^fireworks_movie_bank_catalog$"
+      - name: Verify 8 native original platform services Win64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_services8$"
+      - name: Test 8 recovered shared UI routines in Windows x64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_shared_ui8$"
+      - name: Validate nine native CRT procedures Win64 Release
+        run: ctest --test-dir build/reconstruction-win -C Release --output-on-failure -R "^original_crt9$"
+      - name: Upload native x64 Bink audit tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: btb-native-bink-win64-tools
+          path: |
+            build/reconstruction-win/Release/btb_bink32_retail_video_audit.exe
+            build/reconstruction-win/Release/btb_bink32_native_audio_audit.exe
+            tools/audit_retail_bink.py
+          if-no-files-found: error
+      - name: Upload source-only preview EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: btb-game-win64-preview
+          path: build/reconstruction-win/Release/btb_game.exe
+          if-no-files-found: error
+
+
+  integrated-game-windows-x86:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Regenerate original function registry
+        run: python tools/build_reconstruction_index.py
+      - name: Generate 615-function architecture evidence
+        run: python tools/build_remaining_architecture.py
+      - name: Configure original 32-bit Windows executable
+        run: cmake -S . -B build/reconstruction-x86 -G "Visual Studio 18 2026" -A Win32
+      - name: Build isolated Bink1 codec and audio tests on Windows x86
+        run: cmake --build build/reconstruction-x86 --config Release --target btb_bink32_recovered btb_bink32_audio_master_clock_tests btb_bink32_audio_stream_tests btb_bink32_audio_pcm_tests btb_bink32_audio_movie_tests btb_spud_skate_data_tests
+      - name: Exercise native Bink1 audio reconstruction on Windows x86
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^(bink32_audio_master_clock|bink32_audio_stream_multiblock|bink32_audio_pcm16_format|bink32_audio_movie_timing|spud_skate_data)$"
+      - name: Build x86 game and real Win32 COM providers
+        run: cmake --build build/reconstruction-x86 --config Release --target btb_game btb_herding_source_regressions btb_full_game_source_regressions btb_full_game_maze_native_tests btb_full_game_spud_maze_native_tests btb_fireworks_movie_bank_catalog_tests btb_fireworks_native_show_tests btb_fireworks_certificate_tests btb_full_game_fireworks_transition_tests btb_original_win32_platform_link_tests btb_original_leaf_batch_25_tests btb_original_game_batch_13_tests btb_original_crt_batch_32_tests btb_original_games_batch_14_tests btb_original_msvc30_tests btb_native_input_pulse_tests btb_native_host_input_tests btb_original_crt17_tests btb_original_runtime5_tests btb_original_active_frame_tests btb_original_runtime8_tests btb_original_crt10_tests btb_full_game_native_session_source_tests btb_original_media15_tests btb_original_system14_tests btb_original_activity9_tests btb_original_lifecycle12_tests btb_original_shared11_tests btb_original_gameplay11_tests btb_original_live_maze_debounce_tests btb_original_gameplay9_tests btb_original_source9_tests btb_original_gameplay6_tests btb_original_services8_tests btb_original_shared_ui8_tests btb_original_crt9_tests btb_full_game_profile_selector_native_tests btb_profile_name_entry_tests btb_full_game_profiles_source_tests btb_bobs_band_source_tests btb_original_profile_screen_tests btb_original_runtime16_tests btb_original_string8_tests btb_retail_pure_runtime_vectors_tests btb_original_float6_tests btb_original_exception9_tests btb_original_startup11_tests btb_original_help2_tests btb_original_editor3_tests btb_original_runtime15_tests btb_original_locale7_tests btb_original_wave7_tests btb_original_printer7_tests btb_original_runtime6_tests btb_original_batch13_tests btb_original_io13_tests btb_original_heap14_tests btb_original_unwind15_tests btb_original_cxx12_tests btb_original_device8_tests btb_original_tail4_tests btb_original_closure8_tests btb_original_input_crt8_tests btb_original_gameplay3_tests btb_original_fireworks_start2_tests btb_original_maze_init2_tests btb_original_profiles_fireworks2_tests btb_original_draw4_tests btb_original_activity4_tests btb_original_motion4_tests btb_original_coordinators2_tests btb_original_gameplay3b_tests btb_original_init2_tests btb_original_herding_init_tests btb_original_park_init_tests btb_original_crt_float3_tests btb_original_closure4_tests btb_original_stdio2_tests btb_original_last2_tests --parallel
+      - name: Verify Pets Corner source and native gameplay regression
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^(herding_(source_|navigation_boundary_source|retail_rect_contact_source|behavior_bridge_source)|full_game_herding_)"
+      - name: Exercise all whole-game source contracts
+        run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^(bobs_band_persistence_source|full_game_blt_clip_source|full_game_bobs_band_source|full_game_effect_pipeline_source|full_game_front_end_source|full_game_generic_ui_source|full_game_menu_actions_source|full_game_maze_native|full_game_spud_maze_native|full_game_pregame_resources_source|full_game_pregame_root_source|full_game_pregame_source|full_game_resources_source|full_game_startup_movies_source|full_game_ui_bitmaps_source|full_game_walkthrough_catalog_source|golf_activity_source|full_game_golf_source|full_game_adventure_to_golf_source|full_game_squirrel_native|squirrel_runtime|squirrel_data|squirrel_presentation|original_asset_resolver_source|retail_crt_random_source|retail_point_in_polygon_source|park_designer_retail_catalog|full_game_park_scene_source|park_designer_placement_source|full_game_park_native_source|full_game_park_designer_source|park_designer_scene)$"
       - name: Render original Fireworks certificate glyph and badge sources
         run: ctest --test-dir build/reconstruction-x86 -C Release --output-on-failure -R "^fireworks_certificate$"
       - name: Verify original Fireworks show decode/scheduling in Windows Release

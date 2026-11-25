@@ -414,6 +414,12 @@ add_executable(btb_squirrel_runtime_tests
 )
 target_link_libraries(btb_squirrel_runtime_tests PRIVATE btb_squirrel)
 add_test(NAME squirrel_runtime COMMAND btb_squirrel_runtime_tests)
+# Runtime checks enumerate retail branch tables and must not be stripped in Release.
+if(MSVC)
+    target_compile_options(btb_squirrel_runtime_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(btb_squirrel_runtime_tests PRIVATE -UNDEBUG)
+endif()
 
 add_executable(btb_squirrel_presentation_tests
     ${BTB_ROOT}/tests/squirrel_presentation_test.cpp
@@ -1422,6 +1428,11 @@ target_link_libraries(btb_full_game_squirrel_native_tests PRIVATE
 btb_require_cpp26(btb_full_game_squirrel_native_tests PRIVATE)
 add_test(NAME full_game_squirrel_native
     COMMAND btb_full_game_squirrel_native_tests)
+# Windows CI previously omitted both integrated Golf tests and Squirrel.
+add_dependencies(btb_full_game_source_regressions
+    btb_full_game_squirrel_native_tests btb_full_game_golf_source_tests
+    btb_full_game_adventure_to_golf_source_tests btb_squirrel_runtime_tests
+    btb_squirrel_data_tests btb_squirrel_presentation_tests)
 
 add_executable(btb_full_game_spud_maze_native_tests
     ${BTB_ROOT}/tests/full_game_spud_maze_native_test.cpp)

@@ -76,6 +76,7 @@ private:
     int placement_slot_{};
     int temporary_decoy_{-1};
     int carried_piece_{-1};
+    squirrel::LoftySpeechAnimation speech_{};
     bool animating_{};
     bool complete_{};
     int completion_stage_{};

@@ -419,6 +419,29 @@ int main() {
         assert(retrieve==int(!correct) && returned==int(!correct));
     }
 
+    // 004267B0 mouth state must use the same CRT draws in the same
+    // order, including the one last active tick on physical sound EOS.
+    for(std::uint32_t seed=0;seed<1024;++seed) {
+        btb::retail::OriginalRetailRandom actual(seed),expected(seed);
+        LoftySpeechAnimation mouth;
+        mouth.begin(656,actual); // Wendy's line consumes nothing.
+        assert(mouth.sound_id==-1 && actual.state()==expected.state());
+        mouth.begin(633,actual);
+        const int frame=expected.next_rand()%3,delay=expected.next_rand()%10+10;
+        assert(mouth.sound_id==633 && mouth.mouth_frame==frame &&
+            mouth.countdown==delay && actual.state()==expected.state());
+        for(int i=0;i<delay-1;++i)mouth.advance(true,actual);
+        assert(mouth.countdown==1 && actual.state()==expected.state());
+        const int next_delay=expected.next_rand()%10+10;
+        int next_frame;
+        do{next_frame=expected.next_rand()%3;}while(next_frame==frame);
+        mouth.advance(false,actual);
+        assert(mouth.sound_id==-1 && mouth.countdown==next_delay &&
+            mouth.mouth_frame==next_frame && actual.state()==expected.state());
+        mouth.advance(true,actual);
+        assert(actual.state()==expected.state() && mouth.countdown==next_delay);
+    }
+
     constexpr auto final0 = completion_step(0, false, 0);
     static_assert(final0.stage == 1);
     static_assert(final0.action == CompletionAction::PlayFinalWendyLine);

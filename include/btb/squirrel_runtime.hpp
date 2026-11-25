@@ -1,6 +1,7 @@
 #pragma once
 
 #include "btb/squirrel_data.hpp"
+#include "btb/retail_crt_random.hpp"
 
 #include <array>
 #include <cstdint>
@@ -670,6 +671,33 @@ struct PlacementMotion {
     default:return PlacementEvent::None;
     }
 }
+
+// 004273F0 starts the mouth animation only on Lofty's own feedback
+// IDs (633..638), with two original CRT draws. 004267B0 observes the
+// specific active sound, not the aggregate managed sound bank.
+struct LoftySpeechAnimation {
+    int sound_id{-1};
+    int mouth_frame{-1};
+    int countdown{};
+    constexpr void begin(int id,retail::OriginalRetailRandom& random) noexcept {
+        if(id<633 || id>638)return;
+        mouth_frame=random.next_rand()%3;
+        countdown=random.next_rand()%10+10;
+        sound_id=id;
+    }
+    constexpr void advance(bool specific_sound_playing,
+                           retail::OriginalRetailRandom& random) noexcept {
+        if(sound_id==-1)return;
+        if(!specific_sound_playing)sound_id=-1;
+        // Retail still advances the countdown on the frame that clears
+        // the sound ID; a replacement frame can be selected on that tick.
+        if(--countdown<1) {
+            countdown=random.next_rand()%10+10;
+            const int prior=mouth_frame;
+            do{mouth_frame=random.next_rand()%3;}while(mouth_frame==prior);
+        }
+    }
+};
 
 enum class CompletionAction : std::int32_t {
     None,

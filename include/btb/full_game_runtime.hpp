@@ -228,6 +228,9 @@ struct ActivityFrameInput {
     // Exact physical IsSoundIdPlaying(0x49+difficulty) observations.
     // Source-only fixture drivers can omit them and use aggregate status.
     std::optional<std::array<bool,3>> maze_intro_voice_playing{};
+    // Original Squirrel Lofty speech IDs 633..638. Absent only for
+    // source-only fixtures; production fills this from DirectSound.
+    std::optional<std::array<bool,6>> squirrel_lofty_voice_playing{};
 };
 
 struct ActivityFrameOutput {

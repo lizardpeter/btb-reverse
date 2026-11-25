@@ -58,6 +58,10 @@ NativeSessionFrame NativeGameSession::tick(
     for(std::size_t i=0;i<input.maze_intro_voice_playing->size();++i)
         (*input.maze_intro_voice_playing)[i]=sound::is_sound_id_playing(
             effects_.audio().manager(),0x49+static_cast<int>(i),physical.managed.playing);
+    input.squirrel_lofty_voice_playing.emplace();
+    for(std::size_t i=0;i<input.squirrel_lofty_voice_playing->size();++i)
+        (*input.squirrel_lofty_voice_playing)[i]=sound::is_sound_id_playing(
+            effects_.audio().manager(),633+static_cast<int>(i),physical.managed.playing);
     input.original_global_movie_finished = physical.global_movie_finished;
     input.original_global_movie_skip_pulse =
         input.original_global_movie_skip_pulse || input.click_pulse ||

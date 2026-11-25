@@ -56,7 +56,7 @@ bool SquirrelDriver::initialize(int player,std::string& error) {
         assembly_.run_section=0;
         assembly_.x=-data_->initial_horizontal_alignment_offset;
         level_=0;placed_count_=0;placement_={};placement_slot_=0;
-        temporary_decoy_=carried_piece_=-1;
+        temporary_decoy_=carried_piece_=-1;speech_={};
         animating_=false;complete_=false;
         completion_stage_=0;
         intro_stage_=0;
@@ -165,12 +165,25 @@ ActivityFrameOutput SquirrelDriver::draw() const {
                   squirrel::kEyesFrameHeight});
     sprite(out,"mouth.bmp",squirrel::kLoftyMouthX,
         squirrel::kLoftyMouthY,
-        Rect{0,0,squirrel::kMouthFrameWidth,
-                  squirrel::kMouthFrameHeight});
+        as_rect(squirrel::mouth_source_rect(std::max(0,speech_.mouth_frame))));
     sprite(out,"loftyarmswing_8bit.bmp",
         squirrel::kLoftyArmSwingX,squirrel::kLoftyArmSwingY,
-        Rect{0,0,squirrel::kArmSwingFrameWidth,
-                  squirrel::kArmSwingFrameHeight});
+        as_rect(squirrel::arm_swing_source_rect((placement_.position.x+28)/21)));
+    for(int i=0;i<placed_count_;++i) {
+        const int id=placed_piece_ids_[
+            static_cast<std::size_t>(level_)*4+
+            static_cast<std::size_t>(i)];
+        const auto& dest=squirrel::kCompletedRunPieceDestinations[
+            static_cast<std::size_t>(i)];
+        sprite(out,"all.bmp",dest.x,dest.y,
+            as_rect(squirrel::run_piece_source_rect(id)));
+    }
+    if(temporary_decoy_>=0) {
+        const auto& dest=squirrel::kCompletedRunPieceDestinations[
+            static_cast<std::size_t>(placement_slot_)];
+        sprite(out,"all.bmp",dest.x,dest.y,
+            as_rect(squirrel::run_piece_source_rect(temporary_decoy_)));
+    }
     // 004267B0 calls BuildSquirrelFrameRect for these connector IDs too.
     for(std::size_t i=0;i<squirrel::kConnectorDestinations.size();++i) {
         const int connector=connectors_[
@@ -189,34 +202,6 @@ ActivityFrameOutput SquirrelDriver::draw() const {
         if(const auto nut=squirrel::nut_pile_destination(
                 connectors_[static_cast<std::size_t>(level_)][3]))
             sprite(out,"nutpile.bmp",nut->x,nut->y);
-    }
-    for(int i=0;i<placed_count_;++i) {
-        const int id=placed_piece_ids_[
-            static_cast<std::size_t>(level_)*4+
-            static_cast<std::size_t>(i)];
-        const auto& dest=squirrel::kCompletedRunPieceDestinations[
-            static_cast<std::size_t>(i)];
-        sprite(out,"all.bmp",dest.x,dest.y,
-            as_rect(squirrel::run_piece_source_rect(id)));
-    }
-    if(temporary_decoy_>=0) {
-        const auto& dest=squirrel::kCompletedRunPieceDestinations[
-            static_cast<std::size_t>(placement_slot_)];
-        sprite(out,"all.bmp",dest.x,dest.y,
-            as_rect(squirrel::run_piece_source_rect(temporary_decoy_)));
-    }
-    for(std::size_t i=0;i<choices_.size();++i) {
-        const auto& choice=choices_[i];
-        if(!choice.active || (placement_.carrying && placement_.selected==static_cast<int>(i)))continue;
-        const auto& xy=squirrel::kConveyorItemOrigins[i];
-        const int x=xy.x+conveyor_.position;
-        const int left=std::max(x,0),right=std::min(x+89,640);
-        if(right<=left)continue;
-        auto rect=as_rect(squirrel::run_piece_source_rect(choice.piece_id));
-        if(!rect)continue;
-        rect->left+=left-x;
-        rect->right-=x+89-right;
-        sprite(out,"allconveyor.bmp",left,xy.y,rect);
     }
     // This is the actual 8772x92 original Squirrel sprite sheet.
     // Native assembly motion uses the recovered source x/y deltas
@@ -237,6 +222,19 @@ ActivityFrameOutput SquirrelDriver::draw() const {
         sprite(out,"allconveyor.bmp",placement_.position.x,
             placement_.position.y-squirrel::kConveyorHitHeight,
             as_rect(squirrel::run_piece_source_rect(carried_piece_)));
+    for(std::size_t i=0;i<choices_.size();++i) {
+        const auto& choice=choices_[i];
+        if(!choice.active || (placement_.carrying && placement_.selected==static_cast<int>(i)))continue;
+        const auto& xy=squirrel::kConveyorItemOrigins[i];
+        const int x=xy.x+conveyor_.position;
+        const int left=std::max(x,0),right=std::min(x+89,640);
+        if(right<=left)continue;
+        auto rect=as_rect(squirrel::run_piece_source_rect(choice.piece_id));
+        if(!rect)continue;
+        rect->left+=left-x;
+        rect->right-=x+89-right;
+        sprite(out,"allconveyor.bmp",left,xy.y,rect);
+    }
     for(const auto& border:squirrel::kFinalBorderDraws) {
         const auto* image=squirrel::surface_binding(border.surface);
         if(image)
@@ -280,6 +278,13 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
                 ActivityFrameOutput failed;failed.fatal_error=error;return failed;
             }
         }
+    }
+    if(speech_.sound_id!=-1) {
+        const auto index=static_cast<std::size_t>(speech_.sound_id-633);
+        const bool playing=input.squirrel_lofty_voice_playing
+            ?(*input.squirrel_lofty_voice_playing)[index]
+            :input.managed_sound_playing;
+        speech_.advance(playing,random_stream());
     }
     auto out=draw();
     if(complete_) {
@@ -336,8 +341,9 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
             carried_piece_=-1;
             if(placed_count_<3)conveyor_.phase=1;
             const int feedback=random_stream().next_rand()%7;
-            out.audio.push_back({AudioOperation::ManagedSoundId,{},
-                squirrel::correct_placement_feedback_sound_id(feedback),50,1});
+            const int sound=squirrel::correct_placement_feedback_sound_id(feedback);
+            speech_.begin(sound,random_stream());
+            out.audio.push_back({AudioOperation::ManagedSoundId,{},sound,50,1});
         } else if(event==E::DecoyDropped) {
             temporary_decoy_=carried_piece_;
             carried_piece_=-1;
@@ -356,6 +362,7 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
                 sound=squirrel::decoy_direction_feedback_sound_id(
                     required.from,choice.feedback_comparison,
                     random%(required.from<choice.feedback_comparison?3:4));
+            speech_.begin(sound,random_stream());
             out.audio.push_back({AudioOperation::ManagedSoundId,{},sound,50,1});
         } else if(event==E::DecoyRetrieved) {
             carried_piece_=temporary_decoy_;
@@ -412,7 +419,7 @@ bool SquirrelDriver::unload(std::string& error) {
     connectors_={};placed_piece_ids_={};
     choices_={};assembly_={};conveyor_={};
     level_=0;placed_count_=0;placement_={};placement_slot_=0;
-    temporary_decoy_=carried_piece_=-1;
+    temporary_decoy_=carried_piece_=-1;speech_={};
     animating_=false;complete_=false;
     completion_stage_=0;
     intro_stage_=0;

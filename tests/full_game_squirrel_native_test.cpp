@@ -69,7 +69,12 @@ int main() {
             "Data\\SubGameSquirrel\\level"+std::to_string(difficulty+1)+".bmp");
         assert(rendered.effects.draws[0].source_rectangle->right==620);
         int connector_art=0,nut_piles=0,conveyor_art=0,squirrel_art=0;
+        int hook_layer=-1,first_choice=-1,squirrel_layer=-1,layer=0;
         for(const auto& draw:rendered.effects.draws) {
+            if(draw.source_asset=="Data\\SubGameSquirrel\\hook.bmp")hook_layer=layer;
+            if(draw.source_asset=="Data\\SubGameSquirrel\\allconveyor.bmp" && first_choice<0)first_choice=layer;
+            if(draw.source_asset=="Data\\SubGameSquirrel\\squriel_1_86.bmp")squirrel_layer=layer;
+            ++layer;
             if(draw.source_asset=="Data\\SubGameSquirrel\\all.bmp" &&
                draw.source_rectangle &&
                (draw.x==36||draw.x==196||draw.x==356||draw.x==516)) {
@@ -98,6 +103,7 @@ int main() {
         assert(nut_piles==(difficulty==0?1:0));
         assert(conveyor_art==1);
         assert(squirrel_art==1);
+        assert(squirrel_layer>=0 && hook_layer>squirrel_layer && first_choice>hook_layer);
         for(int i=0;i<100 && driver->animating();++i) {
             auto initial=game.advance({});
             assert(initial.kind==fg::FrameKind::ActivityUpdated);
