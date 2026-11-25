@@ -80,6 +80,10 @@ bool Win32OriginalGameDevice::draw_replay_ordered(
 }
 
 bool Win32OriginalGameDevice::print_current_frame(std::string& error) {
+    if(draw_.packed_mode()){
+        display::PackedFrameSnapshot frame;
+        return draw_.capture_current_frame(frame,error)&&Win32RetailPrintProvider::print_packed_frame(frame,draw_.window_handle(),error);
+    }
     return Win32RetailPrintProvider::print_original_backbuffer(
         draw_.bink_render_target(),draw_.window_handle(),error);
 }

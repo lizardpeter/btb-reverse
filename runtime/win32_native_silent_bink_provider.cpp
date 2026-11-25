@@ -158,8 +158,7 @@ bool Win32NativeSilentBinkProvider::service(
         timestamp,
         [this](const bink32_recovered::BinkNativeYuVaFrame& frame,
                std::string& out_error) {
-            if(!copy_native_bink_frame_to_directdraw(renderer_.bink_render_target(),frame,out_error))return false;
-            renderer_.note_native_global_movie(frame);return true;
+            return renderer_.write_native_global_movie(frame,out_error);
         },
         video_finished,error);
     if(!ok)return false;
@@ -167,8 +166,7 @@ bool Win32NativeSilentBinkProvider::service(
     // even when the next video frame is not yet due.
     if(refresh_after_pause_){
         if(const auto* pixels=global_->current_frame()){
-            if(!copy_native_bink_frame_to_directdraw(renderer_.bink_render_target(),*pixels,error))return false;
-            renderer_.note_native_global_movie(*pixels);
+            if(!renderer_.write_native_global_movie(*pixels,error))return false;
         }
         refresh_after_pause_=false;
     }

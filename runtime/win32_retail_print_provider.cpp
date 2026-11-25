@@ -113,13 +113,7 @@ struct CapturedFrame {
     }
     error.clear();return true;
 }
-} // namespace
-
-bool Win32RetailPrintProvider::print_original_backbuffer(
-    IDirectDrawSurface7* source,HWND window,std::string& error) {
-    CapturedFrame frame{};
-    if(!capture_source(source,frame,error))return false;
-
+bool print_captured_frame(const CapturedFrame& frame,HWND window,std::string& error) {
     PRINTDLGA dlg{};
     dlg.lStructSize=sizeof(dlg);
     dlg.hwndOwner=window;
@@ -201,6 +195,20 @@ bool Win32RetailPrintProvider::print_original_backbuffer(
     }
     release();
     error.clear();return true;
+}
+} // namespace
+bool Win32RetailPrintProvider::print_original_backbuffer(IDirectDrawSurface7* source,HWND window,std::string& error){
+    CapturedFrame frame{};return capture_source(source,frame,error)&&print_captured_frame(frame,window,error);
+}
+bool Win32RetailPrintProvider::print_packed_frame(const display::PackedFrameSnapshot& source,HWND window,std::string& error){
+    if(!source.valid()){error="invalid packed certificate frame";return false;}
+    CapturedFrame frame{};
+    frame.info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);frame.info.bmiHeader.biWidth=static_cast<LONG>(source.width);
+    frame.info.bmiHeader.biHeight=-static_cast<LONG>(source.height);frame.info.bmiHeader.biPlanes=1;
+    frame.info.bmiHeader.biBitCount=32;frame.info.bmiHeader.biCompression=BI_RGB;
+    frame.pixels.resize(source.width*source.height*4);
+    if(!display::restore_packed_frame(source,frame.pixels,source.width*4,{4,0xff0000U,0xff00U,0xffU})){error="packed certificate conversion failed";return false;}
+    return print_captured_frame(frame,window,error);
 }
 }
 #endif

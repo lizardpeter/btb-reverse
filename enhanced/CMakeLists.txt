@@ -95,3 +95,8 @@ target_include_directories(btb_enhanced_native_movie_pixels_tests PRIVATE ${BTB_
 target_link_libraries(btb_enhanced_native_movie_pixels_tests PRIVATE btb_bink32_recovered)
 btb_require_cpp26(btb_enhanced_native_movie_pixels_tests PRIVATE)
 add_test(NAME enhanced_native_movie_pixels COMMAND btb_enhanced_native_movie_pixels_tests)
+
+add_executable(btb_enhanced_packed_scene_tests ${BTB_ROOT}/enhanced/packed_scene_test.cpp)
+target_include_directories(btb_enhanced_packed_scene_tests PRIVATE ${BTB_ROOT}/include)
+btb_require_cpp26(btb_enhanced_packed_scene_tests PRIVATE)
+add_test(NAME enhanced_packed_scene COMMAND btb_enhanced_packed_scene_tests)

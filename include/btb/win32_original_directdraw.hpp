@@ -23,6 +23,7 @@
 #include "btb/packed_frame_snapshot.hpp"
 #include "btb/win32_frame_output.hpp"
 #include "btb/bink32_yuva_frame.hpp"
+#include "btb/packed_scene.hpp"
 #include "btb/win32_native_bitmap_registry.hpp"
 
 #include <filesystem>
@@ -44,6 +45,10 @@ public:
     [[nodiscard]] bool initialize(
         HWND hwnd,display::DisplayMode mode,std::string& error);
     [[nodiscard]] bool recreate(HWND hwnd,display::DisplayMode mode,std::string& error);
+    [[nodiscard]] bool initialize_packed(HWND,std::string&);
+    [[nodiscard]] bool packed_mode()const noexcept{return packed_scene_.valid();}
+    [[nodiscard]] bool capture_current_frame(display::PackedFrameSnapshot& p,std::string& error){return capture_surface(p,error);}
+    [[nodiscard]] bool write_native_global_movie(const bink32_recovered::BinkNativeYuVaFrame&,std::string&);
     [[nodiscard]] bool restore_last_composed_frame(std::string& error);
     [[nodiscard]] bool render_ordered(
         const std::vector<ResolvedDraw>& draw_stream,
@@ -73,8 +78,8 @@ public:
     void shutdown() noexcept;
 
     [[nodiscard]] bool initialized() const noexcept {
-        return draw_ != nullptr && primary_ != nullptr &&
-               backbuffer_ != nullptr;
+        return packed_mode() || (draw_ != nullptr && primary_ != nullptr &&
+               backbuffer_ != nullptr);
     }
 
     // Borrowed original DirectDraw7 video target. The retail Bink
@@ -116,6 +121,11 @@ private:
     [[nodiscard]] bool restore_lost_surfaces(std::string& error);
     void release_cached_bitmaps() noexcept;
 
+    struct PackedBitmap{unsigned width{},height{};std::vector<std::uint8_t> pixels;};
+    PackedScene packed_scene_{};
+    std::unordered_map<std::filesystem::path,PackedBitmap> packed_bitmaps_;
+    std::size_t packed_bitmap_bytes_{};
+    bool blit_packed_bitmap(const ResolvedDraw&,std::string&);
     HWND hwnd_{};
     HWND dialog_owner_{};
     Win32FrameOutput* frame_output_{};

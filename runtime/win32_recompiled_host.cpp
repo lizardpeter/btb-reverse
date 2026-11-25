@@ -76,13 +76,8 @@ fs::path native_profile_directory(const fs::path& retail_root) {
     return retail_root/"BTB-Recompiled-Saves";
 }
 
-struct HiddenCompositionWindow {
-    HWND handle{};
-    ~HiddenCompositionWindow(){if(handle)DestroyWindow(handle);}
-};
 struct Host {
     HWND window{};
-    HiddenCompositionWindow composition{};
     Win32FrameOutput* output{};
     fs::path root{};
     Win32OriginalDirectDraw graphics{};
@@ -172,13 +167,10 @@ struct Host {
         // PE32 00401F80 -> 00401FA0 now owns the actual DD7 creation,
         // windowed native style/menu setup and initial backbuffer clear.
         if(output){
-            // Never associate the DirectDraw primary/clipper with the Vulkan
-            // window. The original composition surfaces live on a hidden HWND.
-            composition.handle=CreateWindowExW(0,L"STATIC",L"BTB offscreen composition",
-                WS_POPUP,0,0,640,480,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);
-            if(!composition.handle){out_error="cannot create offscreen composition window";return false;}
-            if(!graphics.initialize(composition.handle,display::DisplayMode::Windowed,out_error))return false;
-            if(FAILED(graphics.clear_retail_backbuffer(0))){out_error="cannot clear offscreen composition";return false;}
+            // Enhanced production uses native-only x64 movie backends.
+            // Never initialize DirectDraw or create a hidden primary surface.
+            if constexpr(sizeof(void*)!=8){out_error="Enhanced Vulkan runtime requires x64 native Bink";return false;}
+            if(!graphics.initialize_packed(window,out_error))return false;
             graphics.set_dialog_owner(window);graphics.set_frame_output(output);
             if(!output->initialize(window,out_error))return false;
         }else if(FAILED(original_win32::initialize_display_for_game_window(
@@ -514,7 +506,7 @@ struct Host {
                 : display::DisplayMode::Fullscreen;
             try{return static_cast<original_active_frame::U32>(
                 original_win32::create_or_reset_display_manager(
-                    h.output?h.composition.handle:h.window,mode,h.graphics,h.error));}
+                    h.window,mode,h.graphics,h.error));}
             catch(...){h.error="Native display reset exception";return 0x80004005U;}
         };
         callbacks.present_original_game_frame=+[](void* context)

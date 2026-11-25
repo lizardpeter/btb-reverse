@@ -6,6 +6,8 @@
 #include "btb/full_game_blt_clip.hpp"
 #include "btb/original_recompiled_bitmaps.hpp"
 #include "btb/win32_recompiled_graphics.hpp"
+#include "btb/win32_native_bink_surface.hpp"
+#include "btb/bink32_surface_convert.hpp"
 
 #if defined(_WIN32)
 #include <cstdint>
@@ -133,11 +135,11 @@ void Win32OriginalDirectDraw::release_cached_bitmaps() noexcept {
         (void)registry_->unregister_surface_reference(&entry.surface);
         release_surface(entry.surface);
     }
-    images_.clear();
+    images_.clear();packed_bitmaps_.clear();packed_bitmap_bytes_=0;
 }
 
 void Win32OriginalDirectDraw::shutdown() noexcept {
-    release_cached_bitmaps();
+    release_cached_bitmaps();packed_scene_.reset();
     replay_underlay_.clear();help_underlay_.clear();
     global_underlay_.clear();modal_underlay_.clear();composed_frame_.clear();
     pending_cursorless_frame_.clear();presented_cursorless_frame_.clear();cursor_pending_=false;late_default_cursor_.reset();
@@ -185,7 +187,14 @@ bool Win32OriginalDirectDraw::initialize(
     return true;
 }
 
+bool Win32OriginalDirectDraw::initialize_packed(HWND hwnd,std::string& error){
+    if(!hwnd||!IsWindow(hwnd)){error="packed composition requires live window";return false;}
+    shutdown();hwnd_=hwnd;mode_=display::DisplayMode::Windowed;
+    if(!packed_scene_.initialize()){error="packed scene allocation failed";return false;}
+    error.clear();return true;
+}
 bool Win32OriginalDirectDraw::recreate(HWND hwnd,display::DisplayMode mode,std::string& error) {
+    if(packed_mode()){error.clear();return true;} // Vulkan owns actual swapchain recreation.
     // initialize's original reset callback releases all COM resources.
     // Move only authentic captured pixels out of that teardown scope.
     auto replay=std::move(replay_underlay_),help=std::move(help_underlay_),
@@ -202,10 +211,12 @@ bool Win32OriginalDirectDraw::recreate(HWND hwnd,display::DisplayMode mode,std::
 
 bool Win32OriginalDirectDraw::restore_last_composed_frame(std::string& error) {
     if(!composed_frame_.valid()){error.clear();return true;}
+    if(packed_mode()){if(!packed_scene_.restore(composed_frame_)){error="packed scene restore failed";return false;}error.clear();return true;}
     return write_surface_pixels(backbuffer_,composed_frame_,0,0,error);
 }
 
 HRESULT Win32OriginalDirectDraw::clear_retail_backbuffer(DWORD color) noexcept {
+    if(packed_mode()){packed_scene_.clear(color);return DD_OK;}
     return original_win32::clear_backbuffer(backbuffer_,color);
 }
 
@@ -232,8 +243,34 @@ bool Win32OriginalDirectDraw::load_bitmap(
     return true;
 }
 
+bool Win32OriginalDirectDraw::blit_packed_bitmap(const ResolvedDraw& requested,std::string& error){
+    if(!requested.source.found()){error="unresolved packed bitmap";return false;}
+    const auto& path=requested.source.absolute_path;
+    auto it=packed_bitmaps_.find(path);
+    if(it==packed_bitmaps_.end()){
+        struct BitmapHandle{HBITMAP h{};~BitmapHandle(){if(h)DeleteObject(h);}};
+        BitmapHandle bmp{static_cast<HBITMAP>(LoadImageW(nullptr,path.c_str(),IMAGE_BITMAP,0,0,LR_LOADFROMFILE|LR_CREATEDIBSECTION))};
+        BITMAP data{};
+        if(!bmp.h||GetObjectW(bmp.h,sizeof(data),&data)!=sizeof(data)||data.bmWidth<=0||data.bmHeight<=0||data.bmWidth>8192||data.bmHeight>8192){error="packed bitmap load failed: "+path.string();return false;}
+        const auto bytes=std::uint64_t(data.bmWidth)*data.bmHeight*4;
+        constexpr std::size_t budget=64*1024*1024;
+        if(bytes>budget){error="packed bitmap exceeds cache budget";return false;}
+        PackedBitmap b{unsigned(data.bmWidth),unsigned(data.bmHeight),{}};b.pixels.resize(std::size_t(bytes));
+        BITMAPINFO info{};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);info.bmiHeader.biWidth=data.bmWidth;
+        info.bmiHeader.biHeight=-data.bmHeight;info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;info.bmiHeader.biCompression=BI_RGB;
+        HDC dc=GetDC(nullptr);if(!dc){error="packed bitmap device context unavailable";return false;}
+        const auto rows=GetDIBits(dc,bmp.h,0,data.bmHeight,b.pixels.data(),&info,DIB_RGB_COLORS);ReleaseDC(nullptr,dc);
+        if(rows!=data.bmHeight){error="packed bitmap conversion failed: "+path.string();return false;}
+        if(packed_bitmap_bytes_+bytes>budget){packed_bitmaps_.clear();packed_bitmap_bytes_=0;}
+        packed_bitmap_bytes_+=std::size_t(bytes);it=packed_bitmaps_.emplace(path,std::move(b)).first;
+    }
+    const auto& b=it->second;
+    if(!packed_scene_.blit(b.pixels,b.width,b.height,requested.original)){error="packed sprite rectangle invalid: "+requested.original.source_asset;return false;}
+    error.clear();return true;
+}
 bool Win32OriginalDirectDraw::blit(
     const ResolvedDraw& requested,std::string& error) {
+    if(packed_mode())return blit_packed_bitmap(requested,error);
 
     if (!requested.source.found()) {
         error="cannot blit an unresolved original bitmap";
@@ -342,6 +379,7 @@ bool Win32OriginalDirectDraw::blit(
 bool Win32OriginalDirectDraw::restore_lost_surfaces(
     std::string& error) {
 
+    if(packed_mode()){error.clear();return true;}
     auto hr=primary_->Restore();
     if (SUCCEEDED(hr)) hr=backbuffer_->Restore();
     if (SUCCEEDED(hr)) hr=original_win32::restore_all_directdraw_surfaces(draw_);
@@ -388,6 +426,7 @@ bool Win32OriginalDirectDraw::render_additional(
 bool Win32OriginalDirectDraw::capture_surface(display::PackedFrameSnapshot& target,
     std::string& error,IDirectDrawSurface7* source) {
     if(!initialized()){error="snapshot requires live DirectDraw";return false;}
+    if(packed_mode()&&!source){target=packed_scene_.frame();error.clear();return true;}
     return read_surface_pixels(source?source:backbuffer_,640,480,target,error);
 }
 
@@ -414,6 +453,15 @@ bool Win32OriginalDirectDraw::capture_presented_underlay(CapturedUnderlay kind,s
         error.clear();return true;
     }
     return capture_surface(underlay_target(kind),error);
+}
+bool Win32OriginalDirectDraw::write_native_global_movie(const bink32_recovered::BinkNativeYuVaFrame& frame,std::string& error){
+    if(packed_mode()){
+        if(!frame.width||!frame.height||frame.width>640||frame.height>480){error="invalid native global movie geometry";return false;}
+        auto& p=packed_scene_.frame();
+        bink32_recovered::BinkPackedSurface target{p.pixels,640*4,frame.width,frame.height,4,p.format.red,p.format.green,p.format.blue};
+        if(bink32_recovered::blit_bink_yuva_to_surface(frame,target)!=bink32_recovered::BinkSurfaceResult::ok){error="native global packed conversion failed";return false;}
+    }else if(!copy_native_bink_frame_to_directdraw(backbuffer_,frame,error))return false;
+    note_native_global_movie(frame);error.clear();return true;
 }
 void Win32OriginalDirectDraw::note_native_global_movie(const bink32_recovered::BinkNativeYuVaFrame& frame){
     opaque_video_.clear();bitmap_frame_valid_=false;bitmap_frame_.clear();reset_layers();
@@ -471,6 +519,16 @@ bool Win32OriginalDirectDraw::render_ordered_with_underlay(
     if(replay&&(!underlay||!underlay->valid())){
         error="original captured pixels unavailable";return false;
     }
+    if(packed_mode()){
+        if(replay){if(!packed_scene_.restore(*underlay)){error="packed underlay restore failed";return false;}}
+        else packed_scene_.clear();
+        for(const auto& draw:stream)if(!blit(draw,error))return false;
+        if(!replay&&frame_output_&&frame_output_->supports_bitmap_frames()){bitmap_frame_=stream;bitmap_frame_valid_=true;}
+        if(frame_output_&&frame_output_->supports_layer_frames()){
+            layer_frame_valid_=true;if(replay)append_pixel_layer(*underlay,0,0);append_layers(stream);
+        }
+        error.clear();return true;
+    }
     // Retry the ENTIRE ordered frame after losing a surface. A partial
     // retry would omit earlier blits whose pixels were lost on Restore.
     for (int attempt=0;attempt<2;++attempt) {
@@ -527,7 +585,7 @@ bool Win32OriginalDirectDraw::create_bink_offscreen_surface(
     int width,int height,IDirectDrawSurface7*& output,
     std::string& error) {
     output=nullptr;
-    if(!initialized()||width<1||height<1||
+    if(packed_mode()||!initialized()||width<1||height<1||
        width>640||height>480) {
         error="cannot allocate original Bink movie surface without live DD7";
         return false;
@@ -596,18 +654,20 @@ bool Win32OriginalDirectDraw::blit_packed_movie_surface(const display::PackedFra
     // Native movie pixels already contain the authentic alpha-composited
     // stream. No DD7 offscreen allocation, lock/readback or BltFast is used.
     // Maintain the existing reference backbuffer until its consumers move.
-    if(!write_surface_pixels(backbuffer_,pixels,x,y,error))return false;
+    if(packed_mode()){if(!packed_scene_.restore(pixels,x,y)){error="packed movie composition failed";return false;}}
+    else if(!write_surface_pixels(backbuffer_,pixels,x,y,error))return false;
     append_pixel_layer(pixels,x,y);error.clear();return true;
 }
 
 HRESULT Win32OriginalDirectDraw::cooperative_status() const noexcept {
-    return draw_?draw_->TestCooperativeLevel():E_POINTER;
+    return packed_mode()?DD_OK:draw_?draw_->TestCooperativeLevel():E_POINTER;
 }
 
 HRESULT Win32OriginalDirectDraw::prepare_native_frame(std::string& error) {
     cursor_pending_=false;late_default_cursor_.reset();
     bitmap_frame_valid_=false;bitmap_frame_.clear();opaque_video_.clear();reset_layers();
     if(!initialized()){error="native display preflight without surfaces";return E_POINTER;}
+    if(packed_mode()){error.clear();return DD_OK;}
     const HRESULT cooperative=cooperative_status();
     if(FAILED(cooperative))return cooperative;
     // Restore surfaces BEFORE GameRoot or any Bink provider consumes its

@@ -6,6 +6,7 @@
 #include <windows.h>
 #include <ddraw.h>
 #include <string>
+#include "btb/packed_frame_snapshot.hpp"
 
 namespace btb::full_game {
 
@@ -17,6 +18,7 @@ class Win32RetailPrintProvider final {
 public:
     [[nodiscard]] static bool print_original_backbuffer(
         IDirectDrawSurface7* source,HWND window,std::string& error);
+    [[nodiscard]] static bool print_packed_frame(const display::PackedFrameSnapshot&,HWND,std::string&);
 };
 }
 #endif
