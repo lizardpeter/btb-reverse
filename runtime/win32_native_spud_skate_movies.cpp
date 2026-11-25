@@ -11,7 +11,8 @@ namespace btb::full_game {
 Win32NativeSpudSkateMovies::Win32NativeSpudSkateMovies(Win32OriginalDirectDraw& d)
  :draw_(d),bank_([this](std::uint64_t time,std::string& error){return pace(time,error);},
  [this](std::size_t i,const NativeSpudSkateMovieBank::Frame& frame,std::string& error){
-  return surfaces_[i]&&copy_native_bink_frame_to_directdraw(surfaces_[i],frame,error);
+  if(i>=surfaces_.size()||!surfaces_[i]){error="native Skate movie surface unavailable";return false;}
+  return surfaces_[i].write(frame,error);
  }){}
 Win32NativeSpudSkateMovies::~Win32NativeSpudSkateMovies(){
  std::string ignored;(void)close(ignored);
@@ -20,7 +21,7 @@ bool Win32NativeSpudSkateMovies::open(
  const std::array<std::filesystem::path,5>& paths,std::string& error){
  if(active_){error="native Spud Skate bank already open";return false;}
  if(!bank_.open(paths,error))return false;
- for(auto& surface:surfaces_)if(!draw_.create_bink_offscreen_surface(600,380,surface,error)){
+ for(auto& surface:surfaces_)if(!surface.allocate(draw_,600,380,error)){
   std::string ignored;(void)close(ignored);return false;
  }
  active_=true;clock_started_=false;error.clear();return true;
@@ -47,11 +48,11 @@ bool Win32NativeSpudSkateMovies::begin_end_movie(std::string& error){
 bool Win32NativeSpudSkateMovies::blit_selected(std::string& error){
  const auto i=bank_.displayed_stream();
  if(!active_||!i){error.clear();return true;}
- return draw_.blit_bink_offscreen_surface(surfaces_[*i],600,380,spud_skate::kMovieScreenX,
-                                         spud_skate::kMovieScreenY,error);
+ if(*i>=surfaces_.size()){error="native Skate displayed stream out of range";return false;}
+ return surfaces_[*i].blit(draw_,spud_skate::kMovieScreenX,spud_skate::kMovieScreenY,error);
 }
 bool Win32NativeSpudSkateMovies::close(std::string& error){
- for(auto& surface:surfaces_){if(surface)surface->Release();surface=nullptr;}
+ for(auto& surface:surfaces_)surface.reset();
  active_=clock_started_=false;return bank_.close(error);
 }
 SpudSkateMovieSource* Win32HybridSpudSkateMovies::source() noexcept {

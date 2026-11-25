@@ -89,3 +89,9 @@ add_executable(btb_enhanced_packed_layer_tests ${BTB_ROOT}/enhanced/packed_layer
 target_include_directories(btb_enhanced_packed_layer_tests PRIVATE ${BTB_ROOT}/include)
 btb_require_cpp26(btb_enhanced_packed_layer_tests PRIVATE)
 add_test(NAME enhanced_packed_layer_plan COMMAND btb_enhanced_packed_layer_tests)
+
+add_executable(btb_enhanced_native_movie_pixels_tests ${BTB_ROOT}/enhanced/native_movie_pixels_test.cpp)
+target_include_directories(btb_enhanced_native_movie_pixels_tests PRIVATE ${BTB_ROOT}/include)
+target_link_libraries(btb_enhanced_native_movie_pixels_tests PRIVATE btb_bink32_recovered)
+btb_require_cpp26(btb_enhanced_native_movie_pixels_tests PRIVATE)
+add_test(NAME enhanced_native_movie_pixels COMMAND btb_enhanced_native_movie_pixels_tests)

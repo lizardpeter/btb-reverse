@@ -184,10 +184,7 @@ bool Win32NativeSilentBinkProvider::service(
 
 void Win32NativeSilentBinkProvider::release_walkthrough() noexcept {
     walkthrough_.reset();
-    if(walkthrough_surface_) {
-        walkthrough_surface_->Release();
-        walkthrough_surface_=nullptr;
-    }
+    walkthrough_surface_.reset();
 }
 
 bool Win32NativeSilentBinkProvider::open_walkthrough(
@@ -204,8 +201,7 @@ bool Win32NativeSilentBinkProvider::open_walkthrough(
         return false;
     }
     release_walkthrough();
-    if(!renderer_.create_bink_offscreen_surface(
-           kWalkthroughW,kWalkthroughH,walkthrough_surface_,error))
+    if(!walkthrough_surface_.allocate(renderer_,kWalkthroughW,kWalkthroughH,error))
         return false;
     walkthrough_=std::move(*opened);
     error.clear();
@@ -224,8 +220,7 @@ bool Win32NativeSilentBinkProvider::render_walkthrough_overlay(
     const auto play=[this](
         const bink32_recovered::BinkNativeYuVaFrame& frame,
         std::string& out_error) {
-        return copy_native_bink_frame_to_directdraw(
-            walkthrough_surface_,frame,out_error);
+        return walkthrough_surface_.write(frame,out_error);
     };
     bool finished=false;
     const auto now=clock_us();
@@ -242,9 +237,7 @@ bool Win32NativeSilentBinkProvider::render_walkthrough_overlay(
     }
     // render_ordered() clears the game backbuffer every update. Reblit
     // unchanged source pixels every frame, not only on decoder advances.
-    return renderer_.blit_bink_offscreen_surface(
-        walkthrough_surface_,kWalkthroughW,kWalkthroughH,
-        kWalkthroughX,kWalkthroughY,error);
+    return walkthrough_surface_.blit(renderer_,kWalkthroughX,kWalkthroughY,error);
 }
 }
 #endif

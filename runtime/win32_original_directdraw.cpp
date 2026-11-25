@@ -587,6 +587,19 @@ bool Win32OriginalDirectDraw::blit_bink_offscreen_surface(
     error.clear();return true;
 }
 
+bool Win32OriginalDirectDraw::blit_packed_movie_surface(const display::PackedFrameSnapshot& pixels,int x,int y,std::string& error){
+    bitmap_frame_valid_=false;bitmap_frame_.clear();opaque_video_.clear();
+    if(!initialized()||!pixels.valid()||x<0||y<0||x>640||y>480||
+       pixels.width>std::size_t(640-x)||pixels.height>std::size_t(480-y)){
+        error="native packed movie viewport invalid";return false;
+    }
+    // Native movie pixels already contain the authentic alpha-composited
+    // stream. No DD7 offscreen allocation, lock/readback or BltFast is used.
+    // Maintain the existing reference backbuffer until its consumers move.
+    if(!write_surface_pixels(backbuffer_,pixels,x,y,error))return false;
+    append_pixel_layer(pixels,x,y);error.clear();return true;
+}
+
 HRESULT Win32OriginalDirectDraw::cooperative_status() const noexcept {
     return draw_?draw_->TestCooperativeLevel():E_POINTER;
 }

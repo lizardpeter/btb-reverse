@@ -7,6 +7,7 @@
 #include "btb/bink32_audio_master_clock.hpp"
 #include "btb/win32_native_bink_pcm_voice.hpp"
 #include "btb/win32_original_game_device.hpp"
+#include "btb/win32_native_movie_surface.hpp"
 #include <cstdint>
 #include <filesystem>
 #include <memory>
@@ -51,7 +52,7 @@ private:
         audio_clock_{};
     std::optional<bink32_recovered::BinkNativeSilentMovie> global_;
     std::optional<bink32_recovered::BinkNativeSilentMovie> walkthrough_;
-    IDirectDrawSurface7* walkthrough_surface_{};
+    Win32NativeMovieSurface walkthrough_surface_{};
 };
 }
 #endif

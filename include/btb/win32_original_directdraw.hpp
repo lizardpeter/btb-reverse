@@ -58,6 +58,8 @@ public:
         const std::vector<ResolvedDraw>& draw_stream,std::string& error);
     [[nodiscard]] bool present(std::string& error);
     void set_frame_output(Win32FrameOutput* output) noexcept {frame_output_=output;}
+    [[nodiscard]] bool enhanced_output_active() const noexcept{return frame_output_!=nullptr;}
+    [[nodiscard]] bool blit_packed_movie_surface(const display::PackedFrameSnapshot&,int,int,std::string&);
     void note_native_global_movie(const bink32_recovered::BinkNativeYuVaFrame& frame);
     void set_dialog_owner(HWND hwnd) noexcept {dialog_owner_=hwnd;}
     // Direct original 00402440 cooperative test and loss recovery.

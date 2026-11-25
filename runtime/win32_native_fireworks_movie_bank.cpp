@@ -49,8 +49,7 @@ bool Win32NativeFireworksMovieBank::open(
    return fail("native Fireworks compressed stream open failed");
   width_[i]=static_cast<std::uint32_t>(size.width);
   height_[i]=static_cast<std::uint32_t>(size.height);
-  if(!draw_.create_bink_offscreen_surface(
-      size.width,size.height,surfaces_[i],error)){
+  if(!surfaces_[i].allocate(draw_,size.width,size.height,error)){
    const auto reason=error;return fail(reason);
   }
  }
@@ -78,9 +77,8 @@ bool Win32NativeFireworksMovieBank::decode_frame(
   error="native Fireworks source frame failed to decode";return false;
  }
  const auto* pixels=stream.current_frame();
- if(!pixels||!copy_native_bink_frame_to_directdraw(
-       surfaces_[i],*pixels,error)){
-  if(error.empty())error="native Fireworks DirectDraw upload failed";
+ if(!pixels||!surfaces_[i].write(*pixels,error)){
+  if(error.empty())error="native Fireworks movie upload failed";
   return false;
  }
  has_frame_[i]=true;
@@ -97,10 +95,6 @@ bool Win32NativeFireworksMovieBank::restart(
  error.clear();return true;
 }
 void Win32NativeFireworksMovieBank::release_cues() noexcept {
- for(auto& cue:cues_){
-  if(cue.frozen)cue.frozen->Release();
-  cue.frozen=nullptr;
- }
  cues_.clear();
 }
 void Win32NativeFireworksMovieBank::begin_show_frame() noexcept {
@@ -109,24 +103,12 @@ void Win32NativeFireworksMovieBank::begin_show_frame() noexcept {
 bool Win32NativeFireworksMovieBank::freeze_earlier(
  std::size_t i,std::string& error){
  if(i>=surfaces_.size()||!surfaces_[i]){
-  error="native Fireworks DD7 surface is missing";return false;
+  error="native Fireworks movie surface is missing";return false;
  }
  for(auto& cue:cues_){
   if(cue.index!=i||cue.frozen)continue;
-  IDirectDrawSurface7* snapshot=nullptr;
-  if(!draw_.create_bink_offscreen_surface(
-       static_cast<int>(width_[i]),static_cast<int>(height_[i]),
-       snapshot,error))return false;
-  RECT rect{0,0,static_cast<LONG>(width_[i]),
-                  static_cast<LONG>(height_[i])};
-  const auto hr=snapshot->BltFast(0,0,surfaces_[i],
-                                  &rect,DDBLTFAST_WAIT);
-  if(FAILED(hr)){
-   snapshot->Release();
-   error="native Fireworks DD7 duplicate overlay snapshot failed";
-   return false;
-  }
-  cue.frozen=snapshot;
+  cue.frozen.emplace();
+  if(!cue.frozen->clone_from(draw_,surfaces_[i],error)){cue.frozen.reset();return false;}
  }
  error.clear();return true;
 }
@@ -136,7 +118,7 @@ bool Win32NativeFireworksMovieBank::decode_and_queue(
  // Freeze earlier pixels before overwriting its only source surface.
  if(!freeze_earlier(i,error))return false;
  if(!decode_frame(i,finished,error))return false;
- if(has_frame_[i])cues_.push_back({i,x,y,nullptr});
+ if(has_frame_[i])cues_.push_back({i,x,y,{}});
  error.clear();return true;
 }
 bool Win32NativeFireworksMovieBank::blit_queued_show(
@@ -148,20 +130,14 @@ bool Win32NativeFireworksMovieBank::blit_queued_show(
   if(cue.index>=surfaces_.size()||!surfaces_[cue.index]){
    error="native Fireworks overlay source missing";return false;
   }
-  if(!draw_.blit_bink_offscreen_surface(
-       cue.frozen?cue.frozen:surfaces_[cue.index],
-       static_cast<int>(width_[cue.index]),
-       static_cast<int>(height_[cue.index]),
-       cue.x,cue.y,error))return false;
+  const auto& surface=cue.frozen?*cue.frozen:surfaces_[cue.index];
+  if(!surface.blit(draw_,cue.x,cue.y,error))return false;
  }
  error.clear();return true;
 }
 bool Win32NativeFireworksMovieBank::close(std::string& error){
  release_cues();
- for(auto& surface:surfaces_){
-  if(surface)surface->Release();
-  surface=nullptr;
- }
+ for(auto& surface:surfaces_)surface.reset();
  for(auto& stream:streams_)stream.reset();
  width_.fill(0);height_.fill(0);has_frame_.fill(false);
  final_copied_.fill(false);clock_started_.fill(false);

@@ -2,6 +2,7 @@
 #if defined(_WIN32)
 #include "btb/bink32_native_video_stream.hpp"
 #include "btb/win32_retail_fireworks_movie_bank.hpp"
+#include "btb/win32_native_movie_surface.hpp"
 #include <array>
 #include <chrono>
 #include <optional>
@@ -21,12 +22,12 @@ public:
  bool blit_queued_show(std::string&);
  bool ready() const noexcept{return ready_;}
 private:
- struct Cue {std::size_t index;int x,y;IDirectDrawSurface7* frozen{};};
+ struct Cue {std::size_t index;int x,y;std::optional<Win32NativeMovieSurface> frozen{};};
  void release_cues() noexcept;
  bool freeze_earlier(std::size_t,std::string&);
  Win32OriginalDirectDraw& draw_;
  std::array<std::optional<btb::bink32_recovered::BinkNativeVideoStream>,23> streams_{};
- std::array<IDirectDrawSurface7*,23> surfaces_{};
+ std::array<Win32NativeMovieSurface,23> surfaces_{};
  std::array<std::uint32_t,23> width_{},height_{};
  std::array<bool,23> has_frame_{},final_copied_{},clock_started_{};
  std::array<std::chrono::steady_clock::time_point,23> origins_{};

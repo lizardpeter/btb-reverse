@@ -2,6 +2,7 @@
 #if defined(_WIN32)
 #include "btb/full_game_spud_skate.hpp"
 #include "btb/win32_original_directdraw.hpp"
+#include "btb/win32_native_movie_surface.hpp"
 #include "btb/native_spud_skate_movie_bank.hpp"
 #include "btb/win32_retail_spud_skate_movies.hpp"
 #include <array>
@@ -23,7 +24,7 @@ private:
  bool pace(std::uint64_t,std::string&);
  Win32OriginalDirectDraw& draw_;
  NativeSpudSkateMovieBank bank_;
- std::array<IDirectDrawSurface7*,5> surfaces_{};
+ std::array<Win32NativeMovieSurface,5> surfaces_{};
  std::chrono::steady_clock::time_point origin_{};
  bool active_{},clock_started_{};
 };
