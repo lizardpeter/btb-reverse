@@ -141,7 +141,7 @@ void Win32OriginalDirectDraw::shutdown() noexcept {
     replay_underlay_.clear();help_underlay_.clear();
     global_underlay_.clear();modal_underlay_.clear();composed_frame_.clear();
     pending_cursorless_frame_.clear();presented_cursorless_frame_.clear();cursor_pending_=false;late_default_cursor_.reset();
-    bitmap_frame_valid_=false;bitmap_frame_.clear();opaque_video_.clear();
+    bitmap_frame_valid_=false;bitmap_frame_.clear();opaque_video_.clear();reset_layers();
     if(extra_back_reference_ && backbuffer_)backbuffer_->Release();
     extra_back_reference_=false;
     release_surface(backbuffer_);
@@ -360,12 +360,28 @@ bool Win32OriginalDirectDraw::restore_lost_surfaces(
     return true;
 }
 
+void Win32OriginalDirectDraw::append_layers(const std::vector<ResolvedDraw>& draws){
+    if(!layer_frame_valid_)return;
+    if(draws.size()>8192-layer_frame_.size()){reset_layers();return;}
+    for(const auto& draw:draws)layer_frame_.emplace_back(draw);
+}
+void Win32OriginalDirectDraw::append_pixel_layer(const display::PackedFrameSnapshot& pixels,int x,int y){
+    if(!layer_frame_valid_)return;
+    if(!pixels.valid()||layer_frame_.size()>=8192){reset_layers();return;}
+    // Bound retained movie/underlay snapshots to 32 MiB per frame.
+    std::size_t bytes=pixels.pixels.size();
+    for(const auto& layer:layer_frame_)if(const auto* p=std::get_if<PackedCompositionLayer>(&layer))bytes+=p->pixels->pixels.size();
+    if(bytes>32*1024*1024){reset_layers();return;}
+    layer_frame_.emplace_back(PackedCompositionLayer{std::make_shared<const display::PackedFrameSnapshot>(pixels),x,y});
+    has_pixel_layer_=true;
+}
 bool Win32OriginalDirectDraw::render_additional(
     const std::vector<ResolvedDraw>& stream,std::string& error) {
     if(!initialized()){error="post-movie overlay requires live DirectDraw";return false;}
     for(const auto& draw:stream)if(!blit(draw,error))return false;
     if(!stream.empty())opaque_video_.clear();
     if(bitmap_frame_valid_)bitmap_frame_.insert(bitmap_frame_.end(),stream.begin(),stream.end());
+    append_layers(stream);
     error.clear();return true;
 }
 
@@ -400,7 +416,7 @@ bool Win32OriginalDirectDraw::capture_presented_underlay(CapturedUnderlay kind,s
     return capture_surface(underlay_target(kind),error);
 }
 void Win32OriginalDirectDraw::note_native_global_movie(const bink32_recovered::BinkNativeYuVaFrame& frame){
-    opaque_video_.clear();bitmap_frame_valid_=false;bitmap_frame_.clear();
+    opaque_video_.clear();bitmap_frame_valid_=false;bitmap_frame_.clear();reset_layers();
     if(!frame_output_||!frame_output_->supports_opaque_video()||frame.width!=640||frame.height!=480||
        frame.planes[0].size()!=640*480||frame.planes[1].size()!=320*240||frame.planes[2].size()!=320*240||
        frame.planes[3].size()!=640*480||!std::all_of(frame.planes[3].begin(),frame.planes[3].end(),[](auto a){return a==255;}))return;
@@ -411,6 +427,7 @@ bool Win32OriginalDirectDraw::draw_transient_cursor(const ResolvedDraw& cursor,s
     if(!capture_surface(pending_cursorless_frame_,error))return false;
     if(!blit(cursor,error))return false;
     if(bitmap_frame_valid_)bitmap_frame_.push_back(cursor);
+    if(layer_frame_valid_){if(layer_frame_.size()<8192)layer_frame_.emplace_back(cursor);else reset_layers();}
     const auto& d=cursor.original;
     if(frame_output_&&frame_output_->supports_late_cursor()&&d.source_asset=="Data/ui/cursor.bmp"&&
        d.color_keyed&&!d.destination_clip&&d.source_rectangle&&d.source_rectangle->left==0&&
@@ -446,7 +463,7 @@ bool Win32OriginalDirectDraw::render_ordered_with_underlay(
         return false;
     }
     const bool replay=kind!=UnderlayKind::None;
-    bitmap_frame_valid_=false;bitmap_frame_.clear();opaque_video_.clear();
+    bitmap_frame_valid_=false;bitmap_frame_.clear();opaque_video_.clear();reset_layers();
     const auto* underlay=kind==UnderlayKind::Replay?&replay_underlay_:
         kind==UnderlayKind::Help?&help_underlay_:
         kind==UnderlayKind::GlobalMovie?&global_underlay_:
@@ -487,6 +504,11 @@ bool Win32OriginalDirectDraw::render_ordered_with_underlay(
             if (valid) {
                 if(!replay&&frame_output_&&frame_output_->supports_bitmap_frames()){
                     bitmap_frame_=stream;bitmap_frame_valid_=true;
+                }
+                if(frame_output_&&frame_output_->supports_layer_frames()){
+                    layer_frame_valid_=true;
+                    if(replay)append_pixel_layer(*underlay,0,0);
+                    append_layers(stream);
                 }
                 error.clear();
                 return true;
@@ -557,6 +579,11 @@ bool Win32OriginalDirectDraw::blit_bink_offscreen_surface(
         if(!read_surface_pixels(source,width,height,pixels,error))return false;
         if(!write_surface_pixels(backbuffer_,pixels,x,y,error))return false;
     }
+    if(layer_frame_valid_){
+        display::PackedFrameSnapshot pixels;std::string ignored;
+        if(read_surface_pixels(source,width,height,pixels,ignored))append_pixel_layer(pixels,x,y);
+        else reset_layers(); // Reference DD7 blit already succeeded.
+    }
     error.clear();return true;
 }
 
@@ -566,7 +593,7 @@ HRESULT Win32OriginalDirectDraw::cooperative_status() const noexcept {
 
 HRESULT Win32OriginalDirectDraw::prepare_native_frame(std::string& error) {
     cursor_pending_=false;late_default_cursor_.reset();
-    bitmap_frame_valid_=false;bitmap_frame_.clear();opaque_video_.clear();
+    bitmap_frame_valid_=false;bitmap_frame_.clear();opaque_video_.clear();reset_layers();
     if(!initialized()){error="native display preflight without surfaces";return E_POINTER;}
     const HRESULT cooperative=cooperative_status();
     if(FAILED(cooperative))return cooperative;
@@ -610,7 +637,11 @@ bool Win32OriginalDirectDraw::present(std::string& error) {
     // only the bitmap list loses those overlays after device recovery.
     if(!capture_surface(composed_frame_,error))return false;
     if(frame_output_){
-        const bool submitted=cursor_pending_&&late_default_cursor_?
+        const bool submitted=layer_frame_valid_&&has_pixel_layer_?
+            frame_output_->present_layer_frame(composed_frame_,layer_frame_,
+                cursor_pending_&&late_default_cursor_?&pending_cursorless_frame_:nullptr,
+                cursor_pending_&&late_default_cursor_?&*late_default_cursor_:nullptr,error):
+            cursor_pending_&&late_default_cursor_?
             frame_output_->present_cursor_frame(composed_frame_,pending_cursorless_frame_,*late_default_cursor_,
                 bitmap_frame_valid_?&bitmap_frame_:nullptr,error):opaque_video_.valid()?
             frame_output_->present_opaque_video(composed_frame_,opaque_video_,error):

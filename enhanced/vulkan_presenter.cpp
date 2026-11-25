@@ -80,6 +80,8 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
     VulkanSpriteBatch sprite_batch_;
     bool interpolate_{env_flag(L"BTB_INTERPOLATE_SPRITES")};
     bool sprites_enabled_{env_flag(L"BTB_GPU_SPRITES")||interpolate_};
+    bool layers_enabled_{env_flag(L"BTB_GPU_LAYERS")};
+    std::vector<full_game::FrameCompositionLayer> latest_layers_;
     SpriteMotion motion_;
     bool interpolation_needs_upload_{};
     bool video_enabled_{env_flag(L"BTB_GPU_BINK")};
@@ -116,7 +118,7 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
                 VkBool32 present=VK_FALSE;
                 if(vkGetPhysicalDeviceSurfaceSupportKHR(p,i,surface_,&present)!=VK_SUCCESS||
                    !present||!(families[i].queueFlags&VK_QUEUE_GRAPHICS_BIT)||
-                   ((sprites_enabled_||video_enabled_)&&!(families[i].queueFlags&VK_QUEUE_COMPUTE_BIT)))continue;
+                   ((sprites_enabled_||video_enabled_||layers_enabled_)&&!(families[i].queueFlags&VK_QUEUE_COMPUTE_BIT)))continue;
                 const int score=props.deviceType==VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU?3:
                     props.deviceType==VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU?2:1;
                 if(score>best){physical_=p;family_=i;best=score;}
@@ -303,7 +305,7 @@ public:
         if(!vk_ok(vkAllocateMemory(device_,&ma,nullptr,&staging_memory_),"allocate upload memory",error)||
            !vk_ok(vkBindBufferMemory(device_,staging_,staging_memory_,0),"bind upload memory",error)||
            !vk_ok(vkMapMemory(device_,staging_memory_,0,kUploadBytes,0,&mapped_),"map upload memory",error))return false;
-        if(sprites_enabled_||video_enabled_){
+        if(sprites_enabled_||video_enabled_||layers_enabled_){
             wchar_t exe[32768]{};
             const auto n=GetModuleFileNameW(nullptr,exe,32768);
             if(!n||n>=32768){error="Cannot locate enhanced shader directory";return false;}
@@ -315,7 +317,7 @@ public:
     }
     bool present(const display::PackedFrameSnapshot& frame,std::string& error) override {
         if(!frame.valid()||frame.width!=640||frame.height!=480){error="Invalid composed game frame";return false;}
-        motion_.reset();interpolation_needs_upload_=false;
+        motion_.reset();interpolation_needs_upload_=false;latest_layers_.clear();
         latest_=frame;upload_pending_=true;latest_bitmap_frame_=false;latest_draws_.clear();latest_video_.clear();latest_cursor_=false;++source_updates_;
         return draw_latest(error);
     }
@@ -325,14 +327,14 @@ public:
         if(!frame.valid()||frame.width!=640||frame.height!=480){error="Invalid bitmap frame";return false;}
         // Only cursorless ordinary-cursor scenes are eligible: carried
         // objects and activity-specific cursors must track their source tick.
-        motion_.reset();interpolation_needs_upload_=false;
+        motion_.reset();interpolation_needs_upload_=false;latest_layers_.clear();
         latest_=frame;upload_pending_=true;latest_bitmap_frame_=true;latest_draws_=draws;latest_video_.clear();latest_cursor_=false;++source_updates_;
         return draw_latest(error);
     }
     bool supports_opaque_video() const noexcept override{return video_enabled_;}
     bool present_opaque_video(const display::PackedFrameSnapshot& frame,const full_game::OpaqueGlobalVideo& video,std::string& error) override {
         if(!frame.valid()||frame.width!=640||frame.height!=480||!video.valid()){error="Invalid native opaque video frame";return false;}
-        motion_.reset();interpolation_needs_upload_=false;
+        motion_.reset();interpolation_needs_upload_=false;latest_layers_.clear();
         latest_=frame;latest_video_=video;latest_bitmap_frame_=false;latest_draws_.clear();upload_pending_=true;latest_cursor_=false;++source_updates_;
         return draw_latest(error);
     }
@@ -340,7 +342,7 @@ public:
     bool present_cursor_frame(const display::PackedFrameSnapshot& composed,const display::PackedFrameSnapshot& base,
         const full_game::ResolvedDraw& cursor,const std::vector<full_game::ResolvedDraw>* draws,std::string& error) override {
         if(!base.valid()||base.width!=640||base.height!=480||!load_cursor(cursor.source.absolute_path))return present(composed,error);
-        latest_=base;latest_cursor_=true;upload_pending_=true;latest_video_.clear();latest_draws_.clear();latest_bitmap_frame_=false;++source_updates_;
+        latest_layers_.clear();latest_=base;latest_cursor_=true;upload_pending_=true;latest_video_.clear();latest_draws_.clear();latest_bitmap_frame_=false;++source_updates_;
         // The DD7 command stream includes the cursor as its final draw.
         // GPU-compose the base without that cursor; render it separately at present time.
         if(draws&&!draws->empty()&&draws->back().original.source_asset==cursor.original.source_asset){
@@ -350,6 +352,22 @@ public:
         else motion_.reset();
         interpolation_needs_upload_=false;
         return draw_latest(error);
+    }
+    bool supports_layer_frames() const noexcept override{return layers_enabled_;}
+    bool present_layer_frame(const display::PackedFrameSnapshot& composed,
+        const std::vector<full_game::FrameCompositionLayer>& layers,const display::PackedFrameSnapshot* base,
+        const full_game::ResolvedDraw* cursor,std::string& error) override {
+        if(!composed.valid()||composed.width!=640||composed.height!=480)return present(composed,error);
+        motion_.reset();interpolation_needs_upload_=false;latest_layers_=layers;
+        latest_cursor_=false;latest_bitmap_frame_=false;latest_video_.clear();latest_draws_.clear();
+        latest_=composed;
+        if(base&&cursor&&base->valid()&&base->width==640&&base->height==480&&!latest_layers_.empty()&&load_cursor(cursor->source.absolute_path)){
+            const auto* last=std::get_if<full_game::ResolvedDraw>(&latest_layers_.back());
+            if(last&&last->source.absolute_path==cursor->source.absolute_path){
+                latest_layers_.pop_back();latest_=*base;latest_cursor_=true;
+            }
+        }
+        upload_pending_=true;++source_updates_;return draw_latest(error);
     }
     bool wants_idle_present() const noexcept override {return true;}
     unsigned idle_wait_us() const noexcept override {return pacer_.wait_us(now_ns());}
@@ -387,7 +405,8 @@ public:
         const bool rgb888=latest_.format.bytes==4&&latest_.format.red==0xff0000U&&latest_.format.green==0xff00U&&latest_.format.blue==0xffU;
         const bool gpu_sprites=upload&&sprites_enabled_&&latest_bitmap_frame_&&rgb888&&sprite_batch_.prepare(render_draws);
         const bool gpu_video=upload&&video_enabled_&&!gpu_sprites&&rgb888&&latest_video_.valid()&&sprite_batch_.prepare_opaque_video(latest_video_);
-        const bool compute=gpu_sprites||gpu_video;
+        const bool gpu_layers=upload&&layers_enabled_&&!gpu_sprites&&!gpu_video&&rgb888&&!latest_layers_.empty()&&sprite_batch_.prepare_layers(latest_layers_);
+        const bool compute=gpu_sprites||gpu_video||gpu_layers;
         if(upload&&!compute){
         const display::PackedRgbFormat packed{4,bgra?0x00ff0000U:0x000000ffU,0x0000ff00U,bgra?0x000000ffU:0x00ff0000U};
         if(!display::restore_packed_frame(latest_,{static_cast<uint8_t*>(mapped_),size_t(kBytes)},640*4,packed)){

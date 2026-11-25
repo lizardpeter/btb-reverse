@@ -7,6 +7,7 @@ on:
       - 'include/btb/win32_frame_output.hpp'
       - 'include/btb/packed_frame_snapshot.hpp'
       - 'include/btb/opaque_global_video.hpp'
+      - 'include/btb/frame_composition_layer.hpp'
       - 'runtime/win32_recompiled_host.cpp'
       - 'runtime/win32_original_directdraw.cpp'
       - '.github/workflows/enhanced-vulkan.yml'
@@ -44,7 +45,7 @@ jobs:
       - name: Configure required Vulkan and Slang
         run: cmake -S . -B build/enhanced-vulkan -G "Visual Studio 18 2026" -A x64 -DBTB_BUILD_ENHANCED=ON -DBTB_REQUIRE_VULKAN=ON -DBTB_REQUIRE_SLANG=ON
       - name: Build enhanced executable, shaders, policy and Vulkan smoke
-        run: cmake --build build/enhanced-vulkan --config Release --target btb_game_enhanced btb_enhanced_policy_tests btb_enhanced_frame_pacing_tests btb_enhanced_sprite_motion_tests btb_enhanced_sprite_batch_tests btb_enhanced_vulkan_tests btb_enhanced_vulkan_sprite_tests
+        run: cmake --build build/enhanced-vulkan --config Release --target btb_game_enhanced btb_enhanced_policy_tests btb_enhanced_frame_pacing_tests btb_enhanced_sprite_motion_tests btb_enhanced_packed_layer_tests btb_enhanced_sprite_batch_tests btb_enhanced_vulkan_tests btb_enhanced_vulkan_sprite_tests
       - name: Validate compiled SPIR-V
         shell: pwsh
         run: |

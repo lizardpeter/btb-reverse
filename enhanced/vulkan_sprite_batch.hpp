@@ -2,6 +2,7 @@
 #include "sprite_batch_plan.hpp"
 #include "btb/full_game_resources.hpp"
 #include "btb/opaque_global_video.hpp"
+#include "btb/frame_composition_layer.hpp"
 #include <vulkan/vulkan.h>
 #include <filesystem>
 #include <unordered_map>
@@ -32,6 +33,7 @@ public:
     ~VulkanSpriteBatch(){shutdown();}
     bool initialize(VkPhysicalDevice,VkDevice,const std::filesystem::path&,std::string&);
     bool prepare(const std::vector<full_game::ResolvedDraw>&);
+    bool prepare_layers(const std::vector<full_game::FrameCompositionLayer>&);
     bool prepare_jobs(std::span<const SpriteJob>,std::span<const std::uint32_t>);
     // The same retained-atlas operations serve the production sprite stream
     // and headless GPU differential. Caller must wait for its submit fence.

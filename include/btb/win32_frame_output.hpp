@@ -3,6 +3,7 @@
 #include <windows.h>
 #include "btb/packed_frame_snapshot.hpp"
 #include "btb/opaque_global_video.hpp"
+#include "btb/frame_composition_layer.hpp"
 #include <string>
 #include <vector>
 #include <array>
@@ -25,6 +26,10 @@ public:
     virtual bool supports_bitmap_frames() const noexcept {return false;}
     virtual bool present_bitmap_frame(const display::PackedFrameSnapshot& frame,
         const std::vector<ResolvedDraw>&,std::string& error){return present(frame,error);}
+    virtual bool supports_layer_frames() const noexcept{return false;}
+    virtual bool present_layer_frame(const display::PackedFrameSnapshot& composed,
+        const std::vector<FrameCompositionLayer>&,const display::PackedFrameSnapshot*,
+        const ResolvedDraw*,std::string& error){return present(composed,error);}
     virtual bool supports_opaque_video() const noexcept{return false;}
     virtual bool present_opaque_video(const display::PackedFrameSnapshot& frame,
         const OpaqueGlobalVideo&,std::string& error){return present(frame,error);}

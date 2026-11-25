@@ -156,6 +156,31 @@ int main(int argc,char** argv){
     }
     if(batch.update_resident_jobs(jobs))return fail("video failed to invalidate resident atlas");
     if(!batch.upload_resident_atlas(atlas,reserved)||!dispatch_resident(jobs,false))return fail("resident reload after video");
+    // Actual packed-layer path, including an RGB565 underlay, two
+    // overlapping decoded surfaces, and opaque magenta movie pixels.
+    auto under=std::make_shared<btb::display::PackedFrameSnapshot>();
+    std::vector<uint8_t> raw(640*480*2);
+    for(std::size_t i=0;i<raw.size();i+=2){raw[i]=0;raw[i+1]=0xf8;}
+    if(!btb::display::capture_packed_frame(*under,raw,640*2,640,480,{2,0xf800,0x7e0,0x1f}))return fail("layer underlay");
+    auto overlay=std::make_shared<btb::display::PackedFrameSnapshot>();
+    std::vector<uint8_t> rgba(282*179*4);
+    for(std::size_t i=0;i<rgba.size();i+=4){rgba[i]=255;rgba[i+1]=0;rgba[i+2]=255;rgba[i+3]=0;}
+    if(!btb::display::capture_packed_frame(*overlay,rgba,282*4,282,179,{4,0xff,0xff00,0xff0000}))return fail("layer movie");
+    std::vector<btb::full_game::FrameCompositionLayer> layers{btb::full_game::PackedCompositionLayer{under,0,0},btb::full_game::PackedCompositionLayer{overlay,30,40},btb::full_game::PackedCompositionLayer{under,620,470}};
+    if(!batch.prepare_layers(layers))return fail("prepare mixed layers");
+    if(vkResetCommandBuffer(cmd,0)!=VK_SUCCESS)return fail("layer reset");
+    VkCommandBufferBeginInfo layer_begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    if(vkBeginCommandBuffer(cmd,&layer_begin)!=VK_SUCCESS)return fail("layer begin");
+    batch.record(cmd,false);
+    if(vkEndCommandBuffer(cmd)!=VK_SUCCESS)return fail("layer end");
+    VkSubmitInfo layer_submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};layer_submit.commandBufferCount=1;layer_submit.pCommandBuffers=&cmd;
+    if(vkQueueSubmit(queue,1,&layer_submit,VK_NULL_HANDLE)!=VK_SUCCESS||vkQueueWaitIdle(queue)!=VK_SUCCESS)return fail("layer dispatch");
+    const auto layer_pixels=batch.readback();
+    for(unsigned y=0;y<480;++y)for(unsigned x=0;x<640;++x){
+        const uint32_t color=x>=30&&x<312&&y>=40&&y<219?0xffff00ffU:0xff0000ffU;
+        if(layer_pixels[y*640+x]!=color)return fail("packed-layer pixel mismatch");
+    }
+    std::cout<<"PASS: 307200 packed-layer pixels match expected opaque composition\n";
     std::cout<<"PASS: 921600 resident-atlas GPU pixels match source-order oracle\n";
     std::cout<<"PASS: 614400 opaque Bink GPU pixels match native CPU conversion\n";
     std::cout<<"PASS: 614400 GPU-computed pixels match portable painter-order oracle\n";

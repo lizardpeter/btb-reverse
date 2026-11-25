@@ -84,3 +84,8 @@ add_executable(btb_enhanced_sprite_motion_tests ${BTB_ROOT}/enhanced/sprite_moti
 target_include_directories(btb_enhanced_sprite_motion_tests PRIVATE ${BTB_ROOT}/include)
 btb_require_cpp26(btb_enhanced_sprite_motion_tests PRIVATE)
 add_test(NAME enhanced_sprite_motion COMMAND btb_enhanced_sprite_motion_tests)
+
+add_executable(btb_enhanced_packed_layer_tests ${BTB_ROOT}/enhanced/packed_layer_plan_test.cpp)
+target_include_directories(btb_enhanced_packed_layer_tests PRIVATE ${BTB_ROOT}/include)
+btb_require_cpp26(btb_enhanced_packed_layer_tests PRIVATE)
+add_test(NAME enhanced_packed_layer_plan COMMAND btb_enhanced_packed_layer_tests)

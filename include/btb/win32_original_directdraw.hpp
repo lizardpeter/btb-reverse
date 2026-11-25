@@ -120,6 +120,11 @@ private:
     bool bitmap_frame_valid_{};
     std::vector<ResolvedDraw> bitmap_frame_{};
     OpaqueGlobalVideo opaque_video_{};
+    bool layer_frame_valid_{},has_pixel_layer_{};
+    std::vector<FrameCompositionLayer> layer_frame_{};
+    void reset_layers() noexcept{layer_frame_valid_=false;has_pixel_layer_=false;layer_frame_.clear();}
+    void append_layers(const std::vector<ResolvedDraw>&);
+    void append_pixel_layer(const display::PackedFrameSnapshot&,int,int);
     std::optional<ResolvedDraw> late_default_cursor_{};
     display::DisplayMode mode_{display::DisplayMode::Windowed};
     IDirectDraw7* draw_{};

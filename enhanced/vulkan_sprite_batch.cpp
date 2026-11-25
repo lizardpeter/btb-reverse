@@ -1,4 +1,5 @@
 #include "vulkan_sprite_batch.hpp"
+#include "packed_layer_plan.hpp"
 #if defined(_WIN32)
 #include <windows.h>
 #endif
@@ -154,6 +155,31 @@ bool VulkanSpriteBatch::prepare(const std::vector<full_game::ResolvedDraw>& draw
         if(job.width&&job.height)jobs_.push_back(job);
     }
     return update_resident_jobs(jobs_);
+}
+bool VulkanSpriteBatch::prepare_layers(const std::vector<full_game::FrameCompositionLayer>& layers){
+    if(!pipeline_||layers.size()>8192)return false;
+    invalidate_resident();atlas_.clear();jobs_.clear();
+    std::unordered_map<std::filesystem::path,ResidentBitmap> offsets;
+    for(const auto& layer:layers){
+        if(const auto* pixel=std::get_if<full_game::PackedCompositionLayer>(&layer)){
+            if(!append_packed_layer(*pixel,atlas_,jobs_))return false;
+            continue;
+        }
+        const auto& draw=std::get<full_game::ResolvedDraw>(layer);
+        if(!draw.source.found())return false;
+        auto it=offsets.find(draw.source.absolute_path);
+        if(it==offsets.end()){
+            const auto* b=load(draw.source.absolute_path);
+            if(!b||b->pixels.size()>batch_word_limit-atlas_.size())return false;
+            const auto offset=std::uint32_t(atlas_.size());
+            atlas_.insert(atlas_.end(),b->pixels.begin(),b->pixels.end());
+            it=offsets.emplace(draw.source.absolute_path,ResidentBitmap{b->width,b->height,offset}).first;
+        }
+        SpriteJob job{};const auto& b=it->second;
+        if(!make_sprite_job(job,draw.original,b.width,b.height,b.offset))return false;
+        if(job.width&&job.height)jobs_.push_back(job);
+    }
+    return prepare_jobs(jobs_,atlas_);
 }
 bool VulkanSpriteBatch::upload_resident_atlas(std::span<const std::uint32_t> atlas,std::size_t reserved){
     invalidate_resident();
