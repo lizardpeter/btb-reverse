@@ -35,3 +35,10 @@ The `btb_retail_spud_maze_playthrough` probe passed 72/72 complete native GameRo
 
     cmake --build build/faithful --target btb_retail_spud_maze_playthrough
     build/faithful/btb_retail_spud_maze_playthrough /path/to/BTB-BBP 12
+
+## Dinosaur installed-data completion
+
+The native Dinosaur probe completed all nine original layouts (three species × three difficulties), seeds 1–12: 108/108 runs, 1,104 accepted and 1,104 rejected placements, 108 certificates and print requests, 5,604 gameplay updates and 71,280 submitted/visible draw commands. Actual original bitmap dimensions and named audio files were checked. The original virtual cursor warp is now applied consistently to the placement test and drawing, the shared CRT stream consumes the original separate pickup draws and conditional reaction draws plus the mode-2 discarded draw, and certificate entry occurs only on a later update after finalization and the original audio gate. The certificate replaces the underlying puzzle commands, and the pressed print overlay uses the input-held state. The native Dinosaur unit regression passed locally. Modeled voices and emitted print requests are not physical playback or printer certification.
+
+    cmake --build build/faithful --target btb_retail_dino_playthrough
+    build/faithful/btb_retail_dino_playthrough /path/to/BTB-BBP 12

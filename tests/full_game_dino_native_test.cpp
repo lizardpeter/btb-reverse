@@ -64,7 +64,9 @@ int main() {
     retail_level(root,"Raptor","Easy");
     retail_level(root,"Tric","Hard");
     {
-        auto driver=std::make_unique<DinoDriver>(root);
+        btb::retail::OriginalRetailRandom rng{7};
+        btb::retail::OriginalRetailRandom expected_rng{7};
+        auto driver=std::make_unique<DinoDriver>(root,&rng);
         auto* actual=driver.get();
         GameRoot game;
         assert(game.select_profile(1));
@@ -88,6 +90,9 @@ int main() {
             .click_pulse=true,.random_value=2,.pointer_button_held=true});
         assert(frame.kind==FrameKind::ActivityUpdated);
         assert(actual->runtime()->selected_piece()==0);
+        (void)expected_rng.next_rand();(void)expected_rng.next_rand();
+        assert(rng.state()==expected_rng.state());
+        assert(frame.effects.draws.back().x==10&&frame.effects.draws.back().y==10);
         assert(draw_has(frame.effects,
             "Data/SubGameDino/Dino/Raptor/Easy/Piece0.bmp"));
         assert(draw_has(frame.effects,
@@ -132,6 +137,11 @@ int main() {
         frame=game.advance({});
         assert(frame.kind==FrameKind::ActivityUpdated);
         assert(actual->runtime()->complete());
+        assert(frame.effects.progress_writes.empty());
+        frame=game.advance({.managed_sound_playing=true});
+        assert(frame.effects.progress_writes.empty());
+        frame=game.advance({});
+        assert(frame.effects.draws.size()==1);
         assert(frame.effects.progress_writes.size()==1);
         assert(frame.effects.progress_writes[0].slot==
                btb::progress::Slot::DinoRaptor);

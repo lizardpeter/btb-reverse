@@ -1,5 +1,6 @@
 #include "btb/full_game_dino.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <exception>
@@ -169,7 +170,15 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
         out.fatal_error="Dinosaur run state entered before retail initializer";
         return out;
     }
-    const dino::Vec2i cursor{input.pointer_x,input.pointer_y};
+    dino::Vec2i cursor{input.pointer_x,input.pointer_y};
+    const bool complete_at_entry=runtime_->complete();
+    if(runtime_->mode()==dino::InteractionMode::Carrying) {
+        // Original cursor surface is anchored at the piece top-left. The
+        // host uses absolute mouse coordinates, so emulate the virtual warp
+        // with the pickup offset for both drawing AND the placement test.
+        cursor.x=std::clamp(cursor.x+pickup_offset_.x,0,580);
+        cursor.y=std::clamp(cursor.y+pickup_offset_.y,0,400);
+    }
 
     if(startup_pending_) {
         const auto intro=dino::startup_presentation(species_);
@@ -182,10 +191,11 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
         startup_pending_=false;
     }
 
-    if(runtime_->mode()==dino::InteractionMode::FinalizeAcceptedDrop)
-        (void)runtime_->finalize_accepted_drop();
-
-    if(!runtime_->complete()) {
+    if(runtime_->mode()==dino::InteractionMode::FinalizeAcceptedDrop) {
+        // 00409E00 mode 2 consumes an otherwise-unused rand and returns
+        // to idle without processing the same frame's click again.
+        if(runtime_->finalize_accepted_drop())(void)next_rand();
+    } else if(!runtime_->complete()) {
         if(runtime_->mode()==dino::InteractionMode::Idle &&
            input.click_pulse) {
             const auto chosen=runtime_->begin_drag(cursor);
@@ -193,16 +203,17 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
                 const auto& piece=runtime_->pieces()[*chosen];
                 pickup_offset_={piece.current.x-cursor.x,
                                 piece.current.y-cursor.y};
-                animations_.queue_pickup(input.random_value&1,
-                                         (input.random_value>>1)&1);
+                cursor=piece.current;
+                const int mode_bit=next_rand()&1;
+                const int character_bit=next_rand()&1;
+                animations_.queue_pickup(mode_bit,character_bit);
             }
         } else if(runtime_->mode()==dino::InteractionMode::Carrying &&
                   input.click_pulse) {
             const auto index=dino::level_index(species_,difficulty_);
             const auto dropped=runtime_->try_drop(
                 cursor,dino::Runtime::snap_tolerance(index));
-            const auto roll=static_cast<int>(
-                static_cast<std::uint32_t>(input.random_value)%6U);
+            const int roll=next_rand()%6;
             if(dropped==dino::DropResult::Accepted) {
                 out.audio.push_back({AudioOperation::StopManagedSounds});
                 out.audio.push_back({AudioOperation::ManagedSoundId,{},
@@ -211,12 +222,24 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
             } else if(dropped==dino::DropResult::Rejected) {
                 out.audio.push_back({AudioOperation::ManagedSoundId,{},
                     dino::wrong_drop_sound_id(roll),50,1});
-                (void)animations_.queue_wrong_drop(roll,
-                    (input.random_value>>1)&1);
+                const auto character=roll<3?dino::Character::Ellis:dino::Character::Bob;
+                // The second original rand is conditional on the chosen
+                // character being idle, not merely on a rejected drop.
+                if(animations_.channel(character).mode()==dino::CharacterAnimationMode::Idle)
+                    (void)animations_.queue_wrong_drop(roll,next_rand()&1);
             }
         }
     }
 
+    const auto gate=dino::completion_gate(
+        complete_at_entry,input.managed_sound_playing,
+        completion_started_?1:0);
+    // The certificate replaces the entire puzzle. During the preceding
+    // managed-sound wait, retail DrawDinoActivity executes twice per tick.
+    if(!gate.update_certificate_print_ui) {
+    if(gate.wait_for_managed_feedback)
+        (void)dino::compose_dino_frame(*runtime_,animations_,species_,special_anchor_,
+                                     dino::kInitialSpecialRenderOffsetIndex);
     const auto composition=dino::compose_dino_frame(
         *runtime_,animations_,species_,special_anchor_,
         dino::kInitialSpecialRenderOffsetIndex);
@@ -237,16 +260,14 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
         const auto& piece=runtime_->pieces()[*carried];
         out.draws.push_back({
             pieces_[*carried],
-            cursor.x+pickup_offset_.x,
-            cursor.y+pickup_offset_.y,
+            cursor.x,
+            cursor.y,
             Rect{0,0,piece.source_rect.right,piece.source_rect.bottom},
             true
         });
     }
 
-    const auto gate=dino::completion_gate(
-        runtime_->complete(),input.managed_sound_playing,
-        completion_started_?1:0);
+    }
     if(gate.begin_completion) {
         const auto finished=dino::begin_completion(species_,0);
         out.audio.push_back({AudioOperation::StopManagedSounds});
@@ -264,7 +285,7 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
             0,0,std::nullopt,false
         });
         const auto print=dino::update_print_button(print_state_,{
-            input.pointer_x,input.pointer_y,input.click_pulse,false
+            input.pointer_x,input.pointer_y,input.click_pulse,input.pointer_button_held
         });
         if(print.hover_sound_id) {
             out.audio.push_back({AudioOperation::ManagedSoundId,{},
