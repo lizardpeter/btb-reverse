@@ -12,6 +12,7 @@ on:
       - 'include/btb/frame_composition_layer.hpp'
       - 'include/btb/native_movie_pixels.hpp'
       - 'include/btb/packed_scene.hpp'
+      - 'include/btb/bmp_decoder.hpp'
       - 'runtime/win32_original_game_device.cpp'
       - 'runtime/win32_retail_print_provider.cpp'
       - 'include/btb/win32_native_movie_surface.hpp'
@@ -55,7 +56,7 @@ jobs:
       - name: Configure required Vulkan and Slang
         run: cmake -S . -B build/enhanced-vulkan -G "Visual Studio 18 2026" -A x64 -DBTB_BUILD_ENHANCED=ON -DBTB_REQUIRE_VULKAN=ON -DBTB_REQUIRE_SLANG=ON
       - name: Build enhanced executable, shaders, policy and Vulkan smoke
-        run: cmake --build build/enhanced-vulkan --config Release --target btb_game_enhanced btb_enhanced_policy_tests btb_enhanced_frame_pacing_tests btb_enhanced_presentation_activity_tests btb_enhanced_native_cursor_plan_tests btb_enhanced_sprite_motion_tests btb_enhanced_packed_layer_tests btb_enhanced_native_movie_pixels_tests btb_enhanced_packed_scene_tests btb_enhanced_win32_packed_tests btb_enhanced_sprite_batch_tests btb_enhanced_vulkan_tests btb_enhanced_vulkan_sprite_tests
+        run: cmake --build build/enhanced-vulkan --config Release --target btb_game_enhanced btb_enhanced_policy_tests btb_enhanced_frame_pacing_tests btb_enhanced_presentation_activity_tests btb_enhanced_native_cursor_plan_tests btb_enhanced_sprite_motion_tests btb_enhanced_packed_layer_tests btb_enhanced_native_movie_pixels_tests btb_enhanced_packed_scene_tests btb_enhanced_win32_packed_tests btb_enhanced_sprite_batch_tests btb_enhanced_vulkan_tests btb_enhanced_vulkan_sprite_tests btb_enhanced_bmp_decoder_tests btb_enhanced_bmp_asset_audit
       - name: Prove enhanced executable has no DirectDraw imports
         shell: pwsh
         run: |
