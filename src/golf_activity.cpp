@@ -35,6 +35,8 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
         aim_ = clamp_aim(clamp_aim(input.source_mouse_aim.value_or(aim_)) +
                          input.aim_delta);
         if (input.accept_aim) {
+            // Retail clears the last matched target only when aiming is accepted.
+            target_index_=-1;
             state_ = RoundState::PowerMeter;
         }
         break;
@@ -149,7 +151,6 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
         power_ = next.power;
         attempts_remaining_ = next.attempts_remaining;
         direction_ = next.power_direction;
-        target_index_ = -1;
         feedback_has_started_ = false;
         state_ = next.state;
 

@@ -1,0 +1,5 @@
+# Golf target animation recovery
+
+Evidence: `analysis/ghidra_main_exe/functions/00414A60.c` and `004145F0.c`, plus state 0 and state 6 of `00415080.c`. Native drawing now emits Bob before two spectator entries and then three targets. The unused third spectator record remains parsed. The first spectator crop preserves the one-pixel left inset. The idle flag advances every four draws; non-idle target animation increments after drawing, at the same four-draw cadence. The hit flag uses flag01.bmp, 198x165 cells, 19 frames, x-35 and y+2. The windmill and clown follow the recovered indexed base-surface branch. Matched target persists until the next aim-confirm pulse. All independent counters are reset on initialization/unload.
+
+Source regression covers idle cadence, draw order, a controlled first-bounce flag hit, hit crop and animation cadence, and the reset/aim-confirm lifetime. The current host still composes post-update state instead of the retail draw-before-update order; spectator reaction selection and idle-loop limits remain unresolved. No live retail parity is asserted.

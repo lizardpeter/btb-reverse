@@ -9,6 +9,7 @@
         #expr,__FILE__,__LINE__);std::abort();} } while(false)
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <memory>
 #include <string>
 
@@ -84,7 +85,7 @@ data\subgamegolf\wendy.bmp
     // Retail DrawGolfActivity draws five toolbar balls, physical ball
     // and shadow BMPs, then the authored course/characters, not merely
     // eight neutral backdrop/actor sprites.
-    assert(step.effects.draws.size()==17);
+    assert(step.effects.draws.size()==16);
     assert(step.effects.draws[0].source_asset=="Data\\SubGameGolf\\golfbg.bmp");
     const auto& digit=step.effects.draws[1];
     assert(digit.source_asset=="Data\\SubGameGolf\\golfnumbers.bmp");
@@ -98,11 +99,18 @@ data\subgamegolf\wendy.bmp
     assert(step.effects.draws[8].source_asset=="Data\\SubGameGolf\\shadow.bmp");
     assert(step.effects.draws[9].source_asset=="Data\\SubGameGolf\\golfballstop.bmp");
     assert(step.effects.draws[9].x==187 && step.effects.draws[9].y==330);
-    assert(step.effects.draws[10].source_asset=="data\\subgamegolf\\flag.bmp");
-    assert(step.effects.draws.back().source_rectangle->top==44*174);
+    assert(step.effects.draws[10].source_asset==handle->round()->data().bob_sprite_path);
+    assert(step.effects.draws[10].source_rectangle->top==44*174);
+    assert(step.effects.draws[11].source_rectangle->left==1);
+    assert(step.effects.draws[13].source_asset=="data\\subgamegolf\\flag.bmp");
+    assert(step.effects.draws[13].source_rectangle->left==0);
+    assert(step.effects.draws[15].source_asset=="data\\subgamegolf\\clown.bmp");
     assert(step.effects.audio.size()==2);
     assert(step.effects.audio[0].source_asset=="Data/music/golf.wav");
     assert(step.effects.audio[1].sound_id==123 && step.effects.audio[1].input_interruptible);
+    for(int i=0;i<3;++i)step=game.advance({.managed_sound_playing=true});
+    assert(step.effects.draws[13].source_rectangle->left==22);
+    assert(step.effects.audio.empty());
     assert(step.effects.progress_writes.empty());
 
     for (int shot=0; shot<5; ++shot) {
@@ -214,10 +222,10 @@ data\subgamegolf\wendy.bmp
     assert(step.kind==FrameKind::ActivityInitialized);
     // Mouse X maps through the retail 88 - (x/7) aiming equation.
     step=native.advance({.pointer_x=616});
-    assert(step.effects.draws.back().source_rectangle->top==0);
+    assert(step.effects.draws[10].source_rectangle->top==0);
     assert(live->round()->state()==btb::golf::RoundState::Aim);
     step=native.advance({.pointer_x=0});
-    assert(step.effects.draws.back().source_rectangle->top==44*174);
+    assert(step.effects.draws[10].source_rectangle->top==44*174);
     assert(step.effects.audio.size()==1 && step.effects.audio[0].sound_id==101);
     assert(step.kind==FrameKind::ActivityUpdated);
     step=native.advance({.pointer_x=0,.directional_input_bits=0x02});
@@ -269,6 +277,47 @@ data\subgamegolf\wendy.bmp
         btb::progress::Slot::Golf)==1);
     assert(native.globals().dispatcher.current_state==0x3c);
     assert(live->round()==nullptr);
+
+    // Controlled target location: first ground contact overlaps the flag.
+    // This fixture changes geometry only, not the source-backed mechanics.
+    std::string fixture;
+    {
+        std::ifstream in(root/"golfdata.txt");
+        fixture.assign(std::istreambuf_iterator<char>(in),{});
+    }
+    const auto pos=fixture.find("330 178");
+    assert(pos!=std::string::npos);
+    fixture.replace(pos,7,"154 170");
+    {std::ofstream file(root/"golfdata.txt");file<<fixture;}
+    GolfDriver hit_driver(root,0);
+    assert(hit_driver.initialize(0,error));
+    auto effects=hit_driver.advance({.pointer_x=616,.click_pulse=true});
+    effects=hit_driver.advance({.pointer_x=616,.click_pulse=true});
+    effects=hit_driver.advance({});
+    hit_driver.queue_control({.swing_animation_finished=true});
+    effects=hit_driver.advance({});
+    for(int i=0;i<200 && hit_driver.round()->state()==btb::golf::RoundState::BallFlight;++i)
+        effects=hit_driver.advance({});
+    assert(hit_driver.round()->state()==btb::golf::RoundState::ResolveLanding);
+    effects=hit_driver.advance({});
+    const auto flag_hit=[](const ActivityFrameOutput& out)->const decltype(out.draws)::value_type*{
+        for(const auto& draw:out.draws)
+            if(draw.source_asset=="Data\\SubGameGolf\\flag01.bmp")return &draw;
+        return nullptr;
+    };
+    const auto* first_hit=flag_hit(effects);
+    assert(first_hit && first_hit->x==119 && first_hit->y==172);
+    assert(first_hit->source_rectangle->left==0 && first_hit->source_rectangle->right==198);
+    for(int i=0;i<4;++i)effects=hit_driver.advance({.managed_sound_playing=true});
+    const auto* next_hit=flag_hit(effects);
+    assert(next_hit && next_hit->source_rectangle->left==198);
+    effects=hit_driver.advance({});
+    effects=hit_driver.advance({});
+    assert(hit_driver.round()->state()==btb::golf::RoundState::Aim);
+    assert(flag_hit(effects)); // persists through attempt reset
+    effects=hit_driver.advance({.pointer_x=616,.click_pulse=true});
+    assert(!flag_hit(effects)); // next shot clears the previous hit
+    assert(hit_driver.unload(error));
 
     fs::remove_all(root);
 }

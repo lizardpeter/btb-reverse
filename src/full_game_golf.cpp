@@ -38,6 +38,8 @@ bool GolfDriver::initialize(int player_index, std::string& error) {
         swing_animation_ticks_=0;
         feedback_voice_started_=false;
         intro_stage_=0;
+        flag_idle_tick_=flag_idle_frame_=0;
+        target_hit_ticks_={};target_hit_frames_={};
         error.clear();
         return true;
     } catch (const std::exception& exception) {
@@ -47,7 +49,7 @@ bool GolfDriver::initialize(int player_index, std::string& error) {
 }
 
 ActivityFrameOutput GolfDriver::compose_frame(
-    const golf::RoundFrame& state) const {
+    const golf::RoundFrame& state) {
 
     ActivityFrameOutput out;
     if (!round_) {
@@ -101,30 +103,6 @@ ActivityFrameOutput GolfDriver::compose_frame(
             ball_x,ball_y-state.bounce_height,std::nullopt,true
         });
     }
-    for (const auto& target : course.course_objects) {
-        out.draws.push_back({
-            target.sprite_path,
-            target.position.x,target.position.y,
-            target.frame_size.x > 0 && target.frame_size.y > 0
-                ? std::optional<Rect>{
-                    Rect{0,0,target.frame_size.x,target.frame_size.y}
-                  }
-                : std::nullopt,
-            true
-        });
-    }
-    for (const auto& spectator : course.spectators) {
-        out.draws.push_back({
-            spectator.sprite_path,
-            spectator.position.x,spectator.position.y,
-            spectator.frame_size.x > 0 && spectator.frame_size.y > 0
-                ? std::optional<Rect>{
-                    Rect{0,0,spectator.frame_size.x,spectator.frame_size.y}
-                  }
-                : std::nullopt,
-            true
-        });
-    }
     // 00414A60/00415080: 45 aim rows, 16 swing columns; the actual
     // shipped 2128x7830 sheet uses 133x174 cells.
     const int w=course.bob_frame_size_retail.x;
@@ -138,6 +116,57 @@ ActivityFrameOutput GolfDriver::compose_frame(
         Rect{col*w,row*h,(col+1)*w,(row+1)*h},true
     });
 
+
+    // 00414A60 draws Bob, two spectators, then the three targets.
+    // A third spectator record is loaded but is not in the draw loop.
+    for(std::size_t i=0;i<2;++i) {
+        const auto& spectator=course.spectators[i];
+        const int inset=i==0?1:0; // original first sheet skips its left border
+        out.draws.push_back({spectator.sprite_path,
+            spectator.position.x,spectator.position.y,
+            spectator.frame_size.x>inset && spectator.frame_size.y>0
+                ? std::optional<Rect>{Rect{inset,0,spectator.frame_size.x,
+                    spectator.frame_size.y}} : std::nullopt,true});
+    }
+    // DAT_0050AE24: idle flag advances before drawing every fourth
+    // frame. Windmill and clown idle counters do not advance here.
+    // Hit animation counters are independent and advance after drawing.
+    for(std::size_t i=0;i<course.course_objects.size();++i) {
+        const auto& target=course.course_objects[i];
+        const bool hit=state.matched_target==static_cast<int>(i);
+        if(i==0 && hit) {
+            const int left=target_hit_frames_[i]*198;
+            out.draws.push_back({"Data\\SubGameGolf\\flag01.bmp",
+                target.position.x-35,target.position.y+2,
+                Rect{left,0,left+198,165},true});
+            if(++target_hit_ticks_[i]>3) {
+                target_hit_ticks_[i]=0;
+                target_hit_frames_[i]=(target_hit_frames_[i]+1)%19;
+            }
+            continue;
+        }
+        const int count=std::max(1,target.frame_count);
+        int frame=0;
+        if(hit) {
+            frame=target_hit_frames_[i]%count;
+            if(++target_hit_ticks_[i]>3) {
+                target_hit_ticks_[i]=0;
+                target_hit_frames_[i]=(frame+1)%count;
+            }
+        } else if(i==0) {
+            if(++flag_idle_tick_>3) {
+                flag_idle_tick_=0;
+                flag_idle_frame_=(flag_idle_frame_+1)%count;
+            }
+            frame=flag_idle_frame_;
+        }
+        const int left=frame*target.frame_size.x;
+        out.draws.push_back({target.sprite_path,target.position.x,target.position.y,
+            target.frame_size.x>0 && target.frame_size.y>0
+                ? std::optional<Rect>{Rect{left,0,left+target.frame_size.x,
+                    target.frame_size.y}} : std::nullopt,true});
+    }
+
     // 0x00414A60 submits the real powerbar at (0x53,0x1A0).
     // The source-width is trunc(power * 0x101 / 1000), height 0x35.
     // A zero-width blit has no drawable pixels and is omitted.
@@ -149,8 +178,8 @@ ActivityFrameOutput GolfDriver::compose_frame(
                 Rect{0,0,width,53},true
             });
     }
-    // Spectator reactions and target-specific animation banks remain
-    // separate from this recovered presentation.
+    // Spectator reaction selection remains to be recovered from the
+    // original idle-loop limits and shared random-stream call order.
     return out;
 }
 
@@ -258,6 +287,8 @@ bool GolfDriver::unload(std::string& error) {
     swing_animation_ticks_=0;
     feedback_voice_started_=false;
     intro_stage_=0;
+    flag_idle_tick_=flag_idle_frame_=0;
+    target_hit_ticks_={};target_hit_frames_={};
     player_index_ = -1;
     error.clear();
     return true;
