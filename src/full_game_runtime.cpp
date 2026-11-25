@@ -446,29 +446,46 @@ GameFrame GameRoot::advance(const ActivityFrameInput& sample) {
     }
     if(help_exit_delay_>0)--help_exit_delay_;
     ActivityFrameInput input=sample;
-    // 004282C0 only enables help with a normal cursor and releases the
-    // button before entering. Exclude the movie-backed Spud Skate scene
-    // until the native device has a captured-surface overlay provider.
+    // 004282C0 only enables help with a normal cursor and commits on
+    // the release pulse. The name-popup branch uses the distinct RECT at
+    // 00446F28, not the ordinary button at 00446F18. Movie-backed Spud
+    // Skate requires a physical captured-surface provider.
     const auto help_activity=activity_for_state(static_cast<game_flow::State>(globals_.dispatcher.current_state));
-    const bool can_help=help_configured_&&initialized_activity_&&help_activity&&
+    const bool popup=name_entry_.has_value()&&name_entry_phase_==2;
+    const bool on_profile=globals_.dispatcher.current_state==
+        static_cast<int>(game_flow::State::PlayerProfileAndNameEntry);
+    const bool profile_help=on_profile&&
+        (popup?!name_entry_->awaiting_accept_voice:
+         !name_entry_&&!profile_screen_state_.delete_mode&&
+         !profile_screen_state_.quit_voice_pending&&profile_screen_state_.selection_pending<0);
+    const bool activity_help=initialized_activity_&&help_activity&&
         help_activity->id==*initialized_activity_&&
         (*initialized_activity_!=ActivityId::SpudSkate||sample.physical_help_snapshot_available)&&
+        drivers_[static_cast<std::size_t>(*initialized_activity_)]->shared_help_available();
+    const bool can_help=help_configured_&&(profile_help||activity_help)&&
         sample.pointer_position_valid&&help_exit_delay_==0&&
         !globals_.dispatcher.generic_yes_no_active&&!globals_.dispatcher.leave_activity_active&&
-        !globals_.dispatcher.options_active&&!globals_.dispatcher.progress_screen_active&&
-        drivers_[static_cast<std::size_t>(*initialized_activity_)]->shared_help_available();
-    const bool over=can_help&&sample.pointer_x>20&&sample.pointer_x<65&&
-        sample.pointer_y>420&&sample.pointer_y<465;
+        !globals_.dispatcher.whole_game_quit_active&&!globals_.dispatcher.options_active&&
+        !globals_.dispatcher.progress_screen_active;
+    const bool over=can_help&&(popup?
+        sample.pointer_x>92&&sample.pointer_x<143&&sample.pointer_y>305&&sample.pointer_y<357:
+        sample.pointer_x>21&&sample.pointer_x<65&&sample.pointer_y>420&&sample.pointer_y<465);
     if(over){input.click_pulse=false;input.pointer_release_pulse=false;}
     auto result=advance_impl(input);
-    if(over&&result.kind==FrameKind::ActivityUpdated&&!result.state_changed&&
+    if(over&&(result.kind==FrameKind::ActivityUpdated||
+             (profile_help&&result.kind==FrameKind::FrontEndUpdated))&&!result.state_changed&&
        !result.effects.open_leave_activity_confirmation&&!result.effects.open_yes_no_confirmation&&
-       !result.effects.retain_original_global_movie_pixels&&!result.effects.draws.empty()){
-        result.effects.draws.push_back({sample.pointer_button_held?
-            "Data/ui/helpreddep.bmp":"Data/ui/helpred.bmp",14,418,{},true});
+       !result.effects.open_whole_game_quit&&!result.effects.retain_original_global_movie_pixels&&
+       !result.effects.draws.empty()){
+        // The five-sign adapter already owns its button artwork. The name
+        // popup needs the distinct controller overlay at (92,305).
+        if(popup||!on_profile)
+            result.effects.draws.push_back({sample.pointer_button_held&&!popup?
+                "Data/ui/helpreddep.bmp":"Data/ui/helpred.bmp",
+                popup?92:14,popup?305:418,{},true});
         if(!help_hover_)result.effects.audio.push_back({AudioOperation::ManagedSoundId,{},455,50,2});
         if(sample.pointer_release_pulse){
-            const auto decision=help::enter_decision(globals_.dispatcher.current_state,false,false);
+            const auto decision=help::enter_decision(globals_.dispatcher.current_state,popup,false);
             if(decision.active){
                 help_background_=result.effects.draws;
                 result.effects.capture_original_help=true;

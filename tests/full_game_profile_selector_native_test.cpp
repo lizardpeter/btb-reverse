@@ -9,6 +9,7 @@
       #expr,__FILE__,__LINE__);std::abort();} } while(false)
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -252,6 +253,51 @@ int main() {
         assert(restarted.load_profile_files(profile_dir,error));
         assert(restarted.globals().profile_metadata[1].name_length==0);
         assert(restarted.globals().profile_metadata[1].badge_index==-1);
+    }
+    // Original 004282C0 uses 00446F18 on the five-sign screen and
+    // 00446F28 on the name popup; both enter the shared Help controller
+    // without accidentally selecting, cancelling or accepting a profile.
+    {
+        GameRoot game;
+        game.install_profile_screen(adapter(root));
+        game.set_outer_state(State::PlayerProfileAndNameEntry);
+        std::istringstream info("signs\n49 137 592 353 316\n-1 -1 -1 -1 -1\npopup\n194 188 451 237 312\n-1 -1 -1 -1 -1\nEND\n");
+        std::string error;
+        assert(game.configure_contextual_help(info,error));
+        ActivityFrameInput input{};
+        input.pointer_position_valid=true;input.pointer_x=30;input.pointer_y=440;
+        input.pointer_release_pulse=true;
+        auto frame=game.advance(input);
+        assert(frame.effects.capture_original_help);
+        assert(!game.globals().active_profile);
+        input.pointer_release_pulse=false;input.pointer_x=200;input.pointer_y=200;
+        frame=game.advance(input);
+        assert(frame.dispatch.intercept==btb::game_flow::Intercept::ContextualHelp);
+        assert(frame.effects.audio.back().sound_id==316);
+        input.pointer_x=30;input.pointer_y=440;input.pointer_release_pulse=true;
+        frame=game.advance(input);
+        assert(frame.effects.original_help_background_count);
+        assert(!frame.state_changed);
+        // Let the original 50-frame Help exit delay expire.
+        for(int i=0;i<50;++i)frame=game.advance({});
+        frame=game.advance({.pointer_x=80,.pointer_y=175,.click_pulse=true});
+        assert(frame.kind==FrameKind::FrontEndUpdated);
+        frame=game.advance({});
+        assert(frame.kind==FrameKind::FrontEndInitialized);
+        input.pointer_x=110;input.pointer_y=330;input.pointer_release_pulse=true;
+        frame=game.advance(input);
+        assert(frame.effects.capture_original_help);
+        assert(drawn(frame.effects,"Data/ui/enter name.bmp"));
+        input.pointer_x=220;input.pointer_y=210;input.pointer_release_pulse=false;
+        frame=game.advance(input);
+        assert(frame.dispatch.intercept==btb::game_flow::Intercept::ContextualHelp);
+        assert(frame.effects.audio.back().sound_id==312);
+        input.pointer_x=110;input.pointer_y=330;input.pointer_release_pulse=true;
+        frame=game.advance(input);
+        assert(frame.effects.original_help_background_count);
+        assert(!game.globals().active_profile);
+        frame=game.advance({});
+        assert(drawn(frame.effects,"Data/ui/enter name.bmp"));
     }
     {
         const auto missing=root/"loaddata"/"fontdatablue.txt";
