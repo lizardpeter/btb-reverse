@@ -1389,6 +1389,10 @@ add_executable(btb_retail_golf_squirrel_playthrough
     ${BTB_ROOT}/tools/native/retail_golf_squirrel_playthrough.cpp)
 target_link_libraries(btb_retail_golf_squirrel_playthrough PRIVATE btb_recompiled_core)
 btb_require_cpp26(btb_retail_golf_squirrel_playthrough PRIVATE)
+add_executable(btb_retail_maze_playthrough
+    ${BTB_ROOT}/tools/native/retail_maze_playthrough.cpp)
+target_link_libraries(btb_retail_maze_playthrough PRIVATE btb_recompiled_core)
+btb_require_cpp26(btb_retail_maze_playthrough PRIVATE)
 find_package(Python3 QUIET COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)
     add_test(NAME retail_golf_squirrel_metadata
@@ -1449,7 +1453,7 @@ add_dependencies(btb_full_game_source_regressions
     btb_full_game_squirrel_native_tests btb_full_game_golf_source_tests
     btb_full_game_adventure_to_golf_source_tests btb_squirrel_runtime_tests
     btb_squirrel_data_tests btb_squirrel_presentation_tests
-    btb_retail_golf_squirrel_playthrough)
+    btb_retail_golf_squirrel_playthrough btb_retail_maze_playthrough)
 
 add_executable(btb_full_game_spud_maze_native_tests
     ${BTB_ROOT}/tests/full_game_spud_maze_native_test.cpp)

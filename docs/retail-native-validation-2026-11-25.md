@@ -21,3 +21,10 @@ The checked-in tools were compiled and run against the verified original PE. All
 All 61 identified paths in the original global movies (33), Spud Skate (5), and Fireworks (23) banks decoded, 12732 frames and 44 audio tracks, 61034880 PCM16 bytes. Zero failed or partial paths. This structural audit does not establish pixel or PCM equivalence by itself, and does not claim other folders have been exhaustively inventoried. Physical Windows audio/video/input parity remains open.
 
 Independent FFmpeg 7.1.5 comparison against the same local production build: 61/61 original paths, 12,732 exact video frames (all planes), 44/44 PCM16 tracks with identical lengths; 30,517,440 sample values, 9,806 values differing by one LSB, maximum difference 1 LSB. The full local C++26 build also passed all 254 CTests, including the metadata fixture and its negative cases. These are codec and command-stream results, not physical device certification.
+
+## Maze installed-data completion
+
+New native diagnostic `btb_retail_maze_playthrough` passed 48/48 runs against the original map, sprite and explicit audio files: 12 seeds with all three difficulties plus a deliberate 900-update idle wait on Hard to exercise NPC spawning. Total: 432 packages, 144 screen crossings, 152,262 gameplay updates, 28,371 active NPC updates, and 2,271,768 submitted draw commands (2,251,768 intersected the viewport). All bitmap bounds and named audio paths validated. All selected-profile completion writes and replay handoffs passed. Seven of eight NPC phases observed (0,1,2,4,5,6,7); phase 3 not covered. The controller observes public state and supplies ordinary keyboard input with a modeled 50-Hz clock and eight-update voice durations. It does not modify the game state or simulate the actual Windows sound/device clock. The original map files stay local.
+
+    cmake --build build/faithful --target btb_retail_maze_playthrough
+    build/faithful/btb_retail_maze_playthrough /path/to/BTB-BBP 12
