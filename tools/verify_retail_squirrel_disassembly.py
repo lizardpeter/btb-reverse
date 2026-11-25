@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Translate selected retail PE instructions into a bounded native comparison harness.
 
-Requires the user's original matching PE, GNU objdump and a C++20 compiler.
+Requires the user's original matching PE, GNU objdump and a C++ compiler supporting the repository headers.
 No retail machine code is executed or written to the repository.
 """
 import argparse
@@ -36,7 +36,7 @@ def translate(pe, name, start, end):
 
     lines = [f'uint32_t {name}() {{',
         'uint32_t eax=0,ebx=0,ecx=0,edx=0,esi=0,edi=0,ebp=0,esp=0x80000000; int64_t comparison=0;']
-    conds={'je':'==0','jne':'!=0','jl':'<0','jge':'>=0','jle':'<=0','jg':'>0','jns':'>=0'}
+    conds={'je':'==0','jne':'!=0','jl':'<0','jge':'>=0','jle':'<=0','jg':'>0','jns':'>=0','js':'<0'}
     for line in asm.splitlines():
         match=re.match(r'^\s*([0-9a-f]+):\s+([a-z]+)\s*(.*)$',line)
         if not match:
@@ -51,6 +51,7 @@ def translate(pe, name, start, end):
         elif mn=='push': body=f'esp-=4;mem(esp)={op(args[0])};'
         elif mn=='pop': body=f'{op(args[0])}=mem(esp);esp+=4;'
         elif mn=='call' and args[0]=='0x42ffc4': body='eax=retail_rand();'
+        elif mn=='call' and args[0]=='0x426f30': body='++retail_choice_calls;generate_choices();'
         elif mn=='imul' and len(args)==3: body=f'{op(args[0])}=uint32_t({op(args[1])})*uint32_t({op(args[2])});'
         elif mn=='imul': body=f'{{int64_t v=int64_t(int32_t(eax))*int32_t({op(args[0])});eax=uint32_t(v);edx=uint32_t(uint64_t(v)>>32);}}'
         elif mn=='idiv': body=f'{{int64_t v=int64_t(int32_t(edx))*4294967296LL+eax;int32_t d=int32_t({op(args[0])});eax=uint32_t(v/d);edx=uint32_t(v%d);}}'
@@ -72,6 +73,7 @@ def translate(pe, name, start, end):
 
 PREAMBLE=r'''
 #include "btb/squirrel_runtime.hpp"
+#include "btb/retail_activity_closure.hpp"
 #include <iostream>
 #include <stdexcept>
 #include <array>
@@ -81,12 +83,16 @@ static std::array<uint32_t,256> stack{};
 static std::array<uint32_t,2048> globals{};
 static std::array<uint32_t,2> actor{};
 static uint32_t rng_state;
+static uint32_t window_mode;
+static uint32_t retail_choice_calls, native_choice_calls;
+void note_choice() noexcept {++native_choice_calls;}
 static std::array<uint32_t,28> permutations{PERMUTATIONS};
 uint32_t& mem(uint32_t a) {
     if(a>=0x7ffffc10u&&a<0x80000010u&&a%4==0)return stack[(a-0x7ffffc10u)/4];
     if(a>=0x514000u&&a<0x516000u&&a%4==0)return globals[(a-0x514000u)/4];
     if(a==0x44699cu||a==0x4469a0u)return actor[(a-0x44699cu)/4];
     if(a==0x447558u)return rng_state;
+    if(a==0x44de0cu)return window_mode;
     if(a>=0x4469acu&&a<0x446a1cu&&a%4==0)return permutations[(a-0x4469acu)/4];
     throw std::runtime_error("unmapped read/write "+std::to_string(a));
 }
@@ -136,7 +142,26 @@ int main(){
                 std::cerr<<"conveyor choice mismatch "<<difficulty<<' '<<level<<' '<<slot<<' '<<from<<' '<<to<<' '<<seed<<' '<<i<<'\n';return 4;}}
         ++count;
     }
-    std::cout<<"Squirrel conveyor comparisons: "<<count<<'\n';
+    std::cout<<"Squirrel conveyor comparisons: "<<count<<'\n'; count=0;
+    using btb::retail_activity::SquirrelConveyor;
+    using btb::retail_activity::update_squirrel_conveyor;
+    for(bool windowed:{false,true})for(int phase=0;phase<3;++phase)
+    for(int pos=-470;pos<=550;pos+=5)for(int countdown=0;countdown<4;++countdown)
+    for(int frame=0;frame<3;++frame)for(uint32_t counter: {0u,1u,2u,0x7fffffffu,0xffffffffu}){
+        SquirrelConveyor s{phase,pos,countdown,frame,counter};
+        mem(0x44de0c)=windowed;mem(0x51511c)=counter;mem(0x5150e8)=phase;
+        mem(0x5150ec)=pos;mem(0x5150f8)=countdown;mem(0x5150f4)=frame;
+        retail_choice_calls=native_choice_calls=0;
+        mem(0x5150cc)=0;mem(0x5150d0)=0;mem(0x515078)=0;
+        mem(0x514f0c)=0;mem(0x514f10)=1;mem(0x447558)=42;
+        slide_cycle();update_squirrel_conveyor(s,windowed,note_choice);
+        if(s.phase!=int(mem(0x5150e8))||s.position!=int(mem(0x5150ec))||
+           s.animation_countdown!=int(mem(0x5150f8))||s.animation_frame!=int(mem(0x5150f4))||
+           s.window_counter!=mem(0x51511c)||retail_choice_calls!=native_choice_calls){
+           std::cerr<<"slide mismatch "<<windowed<<' '<<phase<<' '<<pos<<' '<<countdown<<' '<<frame<<' '<<counter<<'\n';return 5;}
+        ++count;
+    }
+    std::cout<<"Squirrel conveyor slide comparisons: "<<count<<'\n';
 }
 '''
 
@@ -146,6 +171,7 @@ def main():
     p.add_argument('pe',type=pathlib.Path)
     p.add_argument('--repo',type=pathlib.Path,default=pathlib.Path('.'))
     p.add_argument('--cxx',default='g++')
+    p.add_argument('--std',default='c++2c',help='compiler C++ standard flag value')
     a=p.parse_args()
     image=a.pe.read_bytes()
     if hashlib.sha256(image).hexdigest()!=SHA:
@@ -153,14 +179,15 @@ def main():
     code=PREAMBLE.replace('PERMUTATIONS',','.join(map(str,struct.unpack_from('<28I',image,0x469ac))))
     for name,start,end in [('retail_rand',0x42ffc4,0x42ffe2),
         ('selector',0x4259d0,0x425f33),('move_actor',0x427270,0x427312),
-        ('generate_choices',0x426f30,0x427263)]:
+        ('generate_choices',0x426f30,0x427263),
+        ('slide_cycle',0x427320,0x4273eb)]:
         code+=translate(a.pe,name,start,end)+'\n'
     code+=HARNESS
     with tempfile.TemporaryDirectory() as d:
         cpp=pathlib.Path(d)/'diff.cpp'
         exe=pathlib.Path(d)/'diff'
         cpp.write_text(code)
-        subprocess.run([a.cxx,'-std=c++20','-O2','-I',str(a.repo/'include'),str(cpp),'-o',str(exe)],check=True)
+        subprocess.run([a.cxx,f'-std={a.std}','-O2','-I',str(a.repo/'include'),str(cpp),'-o',str(exe)],check=True)
         subprocess.run([str(exe)],check=True)
 
 
