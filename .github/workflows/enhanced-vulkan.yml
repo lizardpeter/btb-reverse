@@ -6,6 +6,7 @@ on:
       - 'enhanced/**'
       - 'include/btb/win32_frame_output.hpp'
       - 'include/btb/packed_frame_snapshot.hpp'
+      - 'include/btb/opaque_global_video.hpp'
       - 'runtime/win32_recompiled_host.cpp'
       - 'runtime/win32_original_directdraw.cpp'
       - '.github/workflows/enhanced-vulkan.yml'
@@ -53,6 +54,14 @@ jobs:
             & spirv-val --target-env vulkan1.4 $shader.FullName
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
+      - name: Export exact compiled compute shaders for headless Vulkan tests
+        uses: actions/upload-artifact@v4
+        with:
+          name: btb-compute-spirv
+          path: |
+            build/enhanced-vulkan/shaders/spriteBatch.spv
+            build/enhanced-vulkan/shaders/binkOpaque.spv
+          if-no-files-found: error
       - name: Run enhanced policy, source-link and actual Vulkan presentation smoke
         run: ctest --test-dir build/enhanced-vulkan -C Release --output-on-failure -R "^enhanced_"
       - uses: actions/upload-artifact@v4
@@ -64,3 +73,34 @@ jobs:
             build/enhanced-vulkan/**/btb_enhanced_vulkan_sprite_tests.exe
             build/enhanced-vulkan/**/*.spv
           if-no-files-found: error
+
+  compute-lavapipe:
+    needs: vulkan-x64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: btb-compute-spirv
+          path: build/compute-shaders
+      - name: Install Mesa Vulkan software driver and headers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-14 libvulkan-dev mesa-vulkan-drivers vulkan-tools spirv-tools
+      - name: Build exact compute differential on Linux
+        run: |
+          mkdir -p build/compute-tests
+          g++-14 -std=c++2c -O2 -Iinclude enhanced/vulkan_sprite_batch_test.cpp enhanced/vulkan_sprite_batch.cpp src/bink32_surface_convert.cpp -lvulkan -o build/compute-tests/compute-differential
+      - name: Require actual SPIR-V execution on Lavapipe
+        run: |
+          set -e
+          test -f build/compute-shaders/spriteBatch.spv
+          test -f build/compute-shaders/binkOpaque.spv
+          spirv-val --target-env vulkan1.2 build/compute-shaders/spriteBatch.spv
+          spirv-val --target-env vulkan1.2 build/compute-shaders/binkOpaque.spv
+          export VK_DRIVER_FILES="$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)"
+          test -n "$VK_DRIVER_FILES"
+          export VK_ICD_FILENAMES="$VK_DRIVER_FILES"
+          # Unlike Windows hosted hardware smoke, a missing driver/skip
+          # is a failure here. Mesa software execution is mandatory.
+          build/compute-tests/compute-differential build/compute-shaders

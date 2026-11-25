@@ -1,7 +1,7 @@
 #pragma once
 #include "sprite_batch_plan.hpp"
 #include "btb/full_game_resources.hpp"
-#include "btb/win32_frame_output.hpp"
+#include "btb/opaque_global_video.hpp"
 #include <vulkan/vulkan.h>
 #include <filesystem>
 #include <unordered_map>
@@ -33,6 +33,10 @@ public:
     bool initialize(VkPhysicalDevice,VkDevice,const std::filesystem::path&,std::string&);
     bool prepare(const std::vector<full_game::ResolvedDraw>&);
     bool prepare_jobs(std::span<const SpriteJob>,std::span<const std::uint32_t>);
+    // The same retained-atlas operations serve the production sprite stream
+    // and headless GPU differential. Caller must wait for its submit fence.
+    bool upload_resident_atlas(std::span<const std::uint32_t>,std::size_t reserved);
+    bool update_resident_jobs(std::span<const SpriteJob>);
     bool prepare_opaque_video(const full_game::OpaqueGlobalVideo&);
     std::span<const std::uint32_t> readback() const noexcept {
         return output_.mapped?std::span<const std::uint32_t>{static_cast<const std::uint32_t*>(output_.mapped),640*480}:std::span<const std::uint32_t>{};

@@ -2,6 +2,7 @@
 #if defined(_WIN32)
 #include <windows.h>
 #include "btb/packed_frame_snapshot.hpp"
+#include "btb/opaque_global_video.hpp"
 #include <string>
 #include <vector>
 #include <array>
@@ -10,12 +11,7 @@ namespace btb::full_game {
 // Optional native presentation sink. Faithful host passes nullptr and
 // continues to use the original DD7 presentation path.
 struct ResolvedDraw;
-// Canonical display planes only; no codec-private reference state.
-struct OpaqueGlobalVideo {
-    std::array<std::vector<std::uint8_t>,3> planes{};
-    bool valid() const noexcept{return planes[0].size()==640*480&&planes[1].size()==320*240&&planes[2].size()==320*240;}
-    void clear() noexcept {for(auto& plane:planes)plane.clear();}
-};
+
 class Win32FrameOutput {
 public:
     virtual ~Win32FrameOutput()=default;

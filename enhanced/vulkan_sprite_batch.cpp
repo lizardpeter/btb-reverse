@@ -1,5 +1,7 @@
 #include "vulkan_sprite_batch.hpp"
+#if defined(_WIN32)
 #include <windows.h>
+#endif
 #include <fstream>
 #include <cstring>
 #include <algorithm>
@@ -95,6 +97,7 @@ bool VulkanSpriteBatch::initialize(VkPhysicalDevice physical,VkDevice device,con
 }
 VulkanSpriteBatch::Bitmap* VulkanSpriteBatch::load(const std::filesystem::path& path){
     if(auto it=cache_.find(path);it!=cache_.end())return &it->second;
+    #if defined(_WIN32)
     struct GdiBitmap {HBITMAP h{};~GdiBitmap(){if(h)DeleteObject(h);}};
     GdiBitmap bitmap{static_cast<HBITMAP>(LoadImageW(nullptr,path.c_str(),IMAGE_BITMAP,0,0,LR_LOADFROMFILE|LR_CREATEDIBSECTION))};
     BITMAP data{};
@@ -116,6 +119,11 @@ VulkanSpriteBatch::Bitmap* VulkanSpriteBatch::load(const std::filesystem::path& 
     if(cached_words_+count>batch_word_limit*2){cache_.clear();cached_words_=0;}
     cached_words_+=std::size_t(count);
     return &cache_.emplace(path,std::move(pixels)).first->second;
+    #else
+    // The non-Windows target is a headless compute regression. It uses
+    // deterministic raw pixel fixtures, not the Windows BMP loader.
+    return nullptr;
+    #endif
 }
 bool VulkanSpriteBatch::prepare(const std::vector<full_game::ResolvedDraw>& draws){
     if(!pipeline_||draws.size()>8192)return false;
@@ -138,18 +146,24 @@ bool VulkanSpriteBatch::prepare(const std::vector<full_game::ResolvedDraw>& draw
             atlas_.insert(atlas_.end(),b->pixels.begin(),b->pixels.end());
             resident_.emplace(path,ResidentBitmap{b->width,b->height,offset});
         }
-        resident_base_=reserved;resident_size_=atlas_.size();
-        // Stable artwork occupies a separate reserved tail of the existing
-        // mapped buffer. On high-refresh redraws only metadata is copied.
-        std::memcpy(static_cast<std::uint32_t*>(input_.mapped)+resident_base_,atlas_.data(),resident_size_*4);
-        resident_valid_=true;
+        if(!upload_resident_atlas(atlas_,reserved))return false;
     }
     for(const auto& d:draws){
         const auto& b=resident_.at(d.source.absolute_path);SpriteJob job{};
         if(!make_sprite_job(job,d.original,b.width,b.height,b.offset))return false;
         if(job.width&&job.height)jobs_.push_back(job);
     }
-    if(!pack_sprite_metadata(jobs_,resident_size_,resident_base_,words_))return false;
+    return update_resident_jobs(jobs_);
+}
+bool VulkanSpriteBatch::upload_resident_atlas(std::span<const std::uint32_t> atlas,std::size_t reserved){
+    invalidate_resident();
+    if(!input_.mapped||reserved<header_words+tile_words||reserved>batch_word_limit||atlas.size()>batch_word_limit-reserved)return false;
+    resident_base_=reserved;resident_size_=atlas.size();
+    if(!atlas.empty())std::memcpy(static_cast<std::uint32_t*>(input_.mapped)+resident_base_,atlas.data(),resident_size_*4);
+    resident_valid_=true;return true;
+}
+bool VulkanSpriteBatch::update_resident_jobs(std::span<const SpriteJob> jobs){
+    if(!input_.mapped||!resident_valid_||!pack_sprite_metadata(jobs,resident_size_,resident_base_,words_))return false;
     std::memcpy(input_.mapped,words_.data(),words_.size()*4);
     video_pending_=false;return true;
 }

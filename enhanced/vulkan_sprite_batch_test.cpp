@@ -3,7 +3,9 @@
 #include <iostream>
 #include <array>
 #include <random>
+#if defined(_WIN32)
 #include <windows.h>
+#endif
 namespace {
 struct Device {
     VkInstance instance{};VkDevice device{};VkCommandPool pool{};
@@ -12,16 +14,25 @@ struct Device {
 };
 int fail(const char* error){std::cerr<<error<<'\n';return 1;}
 }
-int main(){
+int main(int argc,char** argv){
     using namespace btb::enhanced;
+    // The production Win32 renderer requires 1.4. The headless differential
+    // requires only Vulkan 1.2 (SPIR-V 1.5); it executes the identical shaders.
+    #if defined(_WIN32)
+    constexpr auto minimum_api=VK_API_VERSION_1_4;
+    #else
+    constexpr auto minimum_api=VK_API_VERSION_1_2;
+    #endif
     uint32_t version=0;
-    if(vkEnumerateInstanceVersion(&version)!=VK_SUCCESS||version<VK_API_VERSION_1_4){
-        std::cout<<"SKIP: Vulkan 1.4 loader unavailable\n";return 77;
+    if(vkEnumerateInstanceVersion(&version)!=VK_SUCCESS||version<minimum_api){
+        std::cout<<"SKIP: required Vulkan loader unavailable\n";return 77;
     }
     Device owner;
-    VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};app.apiVersion=VK_API_VERSION_1_4;
+    VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};app.apiVersion=minimum_api;
     VkInstanceCreateInfo ic{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};ic.pApplicationInfo=&app;
-    if(vkCreateInstance(&ic,nullptr,&owner.instance)!=VK_SUCCESS){std::cout<<"SKIP: Vulkan instance unavailable\n";return 77;}
+    const auto created=vkCreateInstance(&ic,nullptr,&owner.instance);
+    if(created==VK_ERROR_INCOMPATIBLE_DRIVER){std::cout<<"SKIP: Vulkan incompatible driver\n";return 77;}
+    if(created!=VK_SUCCESS)return fail("create Vulkan instance");
     uint32_t count=0;
     if(vkEnumeratePhysicalDevices(owner.instance,&count,nullptr)!=VK_SUCCESS||!count){std::cout<<"SKIP: no Vulkan physical device\n";return 77;}
     std::vector<VkPhysicalDevice> physicals(count);
@@ -29,7 +40,7 @@ int main(){
     VkPhysicalDevice physical{};uint32_t family=0;
     for(auto p:physicals){
         VkPhysicalDeviceProperties props{};vkGetPhysicalDeviceProperties(p,&props);
-        if(props.apiVersion<VK_API_VERSION_1_4||props.limits.maxStorageBufferRange<batch_word_limit*4)continue;
+        if(props.apiVersion<minimum_api||props.limits.maxStorageBufferRange<batch_word_limit*4)continue;
         uint32_t n=0;vkGetPhysicalDeviceQueueFamilyProperties(p,&n,nullptr);
         std::vector<VkQueueFamilyProperties> queues(n);vkGetPhysicalDeviceQueueFamilyProperties(p,&n,queues.data());
         for(uint32_t i=0;i<n;++i)if(queues[i].queueCount&&(queues[i].queueFlags&VK_QUEUE_COMPUTE_BIT)){
@@ -37,7 +48,9 @@ int main(){
         }
         if(physical)break;
     }
-    if(!physical){std::cout<<"SKIP: no Vulkan 1.4 compute device\n";return 77;}
+    if(!physical){std::cout<<"SKIP: no compatible Vulkan compute device\n";return 77;}
+    VkPhysicalDeviceProperties chosen{};vkGetPhysicalDeviceProperties(physical,&chosen);
+    std::cout<<"Executing compute on "<<chosen.deviceName<<" API "<<VK_VERSION_MAJOR(chosen.apiVersion)<<"."<<VK_VERSION_MINOR(chosen.apiVersion)<<'\n';
     float priority=1.f;
     VkDeviceQueueCreateInfo qi{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};qi.queueFamilyIndex=family;qi.queueCount=1;qi.pQueuePriorities=&priority;
     VkDeviceCreateInfo di{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};di.queueCreateInfoCount=1;di.pQueueCreateInfos=&qi;
@@ -48,11 +61,20 @@ int main(){
     VkCommandBufferAllocateInfo ca{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};ca.commandPool=owner.pool;ca.level=VK_COMMAND_BUFFER_LEVEL_PRIMARY;ca.commandBufferCount=1;
     VkCommandBuffer cmd{};
     if(vkAllocateCommandBuffers(owner.device,&ca,&cmd)!=VK_SUCCESS)return fail("allocate command");
-    wchar_t exe[32768]{};
-    const auto len=GetModuleFileNameW(nullptr,exe,32768);
-    if(!len||len>=32768)return fail("shader location");
+    std::filesystem::path shader_dir;
+    if(argc==2)shader_dir=argv[1];
+    else {
+        #if defined(_WIN32)
+        wchar_t exe[32768]{};
+        const auto len=GetModuleFileNameW(nullptr,exe,32768);
+        if(!len||len>=32768)return fail("shader location");
+        shader_dir=std::filesystem::path(exe).parent_path()/"shaders";
+        #else
+        return fail("pass the directory containing compiled compute SPIR-V");
+        #endif
+    }
     VulkanSpriteBatch batch;std::string error;
-    if(!batch.initialize(physical,owner.device,std::filesystem::path(exe).parent_path()/L"shaders"/L"spriteBatch.spv",error))
+    if(!batch.initialize(physical,owner.device,shader_dir/"spriteBatch.spv",error))
         return fail(error.c_str());
     std::mt19937 rng(0x425442);
     std::vector<uint32_t> atlas(128*128);
@@ -84,6 +106,27 @@ int main(){
             if(pixels[y*640+x]!=expected){std::cerr<<"Pixel mismatch at "<<x<<","<<y<<" BGRA="<<bgra<<'\n';return 2;}
         }
     }
+    // Exercise the exact resident storage path used in interpolation.
+    const auto reserved=reserve_atlas_base(jobs.size());
+    if(!batch.upload_resident_atlas(atlas,reserved))return fail("resident upload");
+    auto dispatch_resident=[&](const std::vector<SpriteJob>& moving,bool bgra){
+        if(!pack_sprite_batch(moving,atlas,packed)||!batch.update_resident_jobs(moving))return false;
+        if(vkResetCommandBuffer(cmd,0)!=VK_SUCCESS)return false;
+        VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+        if(vkBeginCommandBuffer(cmd,&begin)!=VK_SUCCESS)return false;
+        batch.record(cmd,bgra);
+        if(vkEndCommandBuffer(cmd)!=VK_SUCCESS)return false;
+        VkSubmitInfo si{VK_STRUCTURE_TYPE_SUBMIT_INFO};si.commandBufferCount=1;si.pCommandBuffers=&cmd;
+        if(vkQueueSubmit(queue,1,&si,VK_NULL_HANDLE)!=VK_SUCCESS||vkQueueWaitIdle(queue)!=VK_SUCCESS)return false;
+        const auto pixels=batch.readback();if(pixels.size()!=640*480)return false;
+        for(unsigned y=0;y<480;++y)for(unsigned x=0;x<640;++x)
+            if(pixels[y*640+x]!=sprite_batch_pixel(packed,x,y,bgra))return false;
+        return true;
+    };
+    if(!dispatch_resident(jobs,false))return fail("resident first frame");
+    auto moving=jobs;
+    for(auto& j:moving){if(j.dst_x+j.width+3<=640)j.dst_x+=3;if(j.dst_y>=2)j.dst_y-=2;}
+    if(!dispatch_resident(moving,true))return fail("resident moving frame without atlas reupload");
     btb::full_game::OpaqueGlobalVideo video;
     btb::bink32_recovered::BinkNativeYuVaFrame frame;
     frame.width=640;frame.height=480;frame.source_has_alpha=false;
@@ -111,6 +154,9 @@ int main(){
             if(pixels[i]!=reference){std::cerr<<"Bink mismatch at pixel "<<i<<" BGRA="<<bgra<<'\n';return 3;}
         }
     }
+    if(batch.update_resident_jobs(jobs))return fail("video failed to invalidate resident atlas");
+    if(!batch.upload_resident_atlas(atlas,reserved)||!dispatch_resident(jobs,false))return fail("resident reload after video");
+    std::cout<<"PASS: 921600 resident-atlas GPU pixels match source-order oracle\n";
     std::cout<<"PASS: 614400 opaque Bink GPU pixels match native CPU conversion\n";
     std::cout<<"PASS: 614400 GPU-computed pixels match portable painter-order oracle\n";
     return 0;
