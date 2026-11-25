@@ -676,7 +676,7 @@ int main() {
         std::string error;
         assert(session.present_prepared(error));
         device.operation_order.clear();
-        touch(directory/"Data/ui/cursor.bmp");
+        touch(directory,"Data/ui/cursor.bmp");
         const auto click=session.tick({.pointer_x=639,.pointer_y=479,.click_pulse=true,
             .pointer_position_valid=true,.native_cursor_enabled=true},true,false,true);
         assert(!click.failure && click.ready_for_present);
