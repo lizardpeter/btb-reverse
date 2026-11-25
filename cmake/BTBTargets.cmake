@@ -1700,6 +1700,15 @@ if(WIN32)
     btb_require_cpp26(btb_original_win32_platform_link_tests PRIVATE)
     add_test(NAME original_win32_platform_link
         COMMAND btb_original_win32_platform_link_tests)
+
+    add_executable(btb_win32_display_recreation_tests
+        ${BTB_ROOT}/tests/win32_display_recreation_test.cpp)
+    target_link_libraries(btb_win32_display_recreation_tests
+        PRIVATE btb_original_win32_platform)
+    btb_require_cpp26(btb_win32_display_recreation_tests PRIVATE)
+    add_test(NAME win32_display_recreation
+        COMMAND btb_win32_display_recreation_tests)
+    set_tests_properties(win32_display_recreation PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 45)
 endif()
 
 # Fail configuration if any production .cpp is silently left out of the
