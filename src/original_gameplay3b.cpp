@@ -1,3 +1,4 @@
+#include "btb/golf_runtime.hpp"
 #include "btb/original_gameplay3b.hpp"
 #include <algorithm>
 #include <cmath>
@@ -101,9 +102,10 @@ I32 update_golf_gameplay(Golf& s,GolfIO& io) {
   s.phase=3;return s.ball_anim;
  case 3:{
   if(++s.delay_count>8){s.delay_count=0;s.ball_anim=std::min(s.ball_anim+1,s.ball_anim_max-1);}
-  const U32 event_index=static_cast<U32>(s.frame_counter++);
-  if((s.mode==0?(event_index%2U==0U):(event_index%10U==0U)))
-   return s.mode==0?s.frame_counter:static_cast<I32>(event_index/10U);
+  U32 event_index=static_cast<U32>(s.frame_counter);
+  const auto cadence=btb::golf::advance_flight_cadence(event_index,s.mode!=0);
+  s.frame_counter=static_cast<I32>(event_index);
+  if(!cadence.advance_physics)return cadence.skipped_return;
   const Vec2 step=io.original_vector_from_degrees(s.landed_phase,s.velocity/80);
   s.ball_x+=step.x;s.ball_y-=step.y;
   const I32 energy_loss=io.original_energy_loss(s);

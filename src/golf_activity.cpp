@@ -5,9 +5,10 @@
 
 namespace btb::golf {
 
-Round::Round(Data data, int difficulty)
+Round::Round(Data data, int difficulty,std::uint32_t initial_flight_counter)
     : data_(std::move(data)),
-      difficulty_(std::clamp(difficulty, 0, 2)) {
+      difficulty_(std::clamp(difficulty, 0, 2)),
+      flight_tick_(initial_flight_counter) {
     // Native InitializeGolfActivity uses the hard-coded 5, not the parsed
     // data.attempts_by_difficulty table {5,4,3}.
     attempts_remaining_ = kRetailInitialAttempts;
@@ -78,10 +79,9 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
         break;
 
     case RoundState::BallFlight:
-        // Retail normal-speed branch advances physics on alternate
-        // host frames (00415080 DAT_0050AF08 & 1). Animation continues
-        // independently on both frames.
-        if((flight_tick_++ & 1U)==0U)break;
+        // Physical display mode selects the original modulo gate; the
+        // swing animation advances independently of the physics cadence.
+        if(!advance_flight_cadence(flight_tick_,input.original_windowed_display).advance_physics)break;
         advance_ball(ball_);
         // 00415080 state 3 (0050AE50 / 0050AC04 / 0050ABCC):
         // rising steps shrink by one, falling steps use the current
@@ -150,10 +150,9 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
             data_.initial_ball_position(),attempts_remaining_);
         ball_.position = next.ball_position;
         ball_.speed = 0;
-        bounce_height_=0;
-        bounce_amplitude_=0;
-        bounce_remaining_=0;
-        bounce_direction_=1;
+        // 00415080 state 6 restores ground position and power only.
+        // An airborne stop can leave a nonzero height until state 2 of
+        // the next shot explicitly resets the bounce globals.
         power_ = next.power;
         attempts_remaining_ = next.attempts_remaining;
         direction_ = next.power_direction;

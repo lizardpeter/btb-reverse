@@ -24,6 +24,7 @@ struct RoundInput {
     std::optional<int> source_mouse_aim{};
     // Consume the process RNG only on an original rand branch.
     retail::OriginalRetailRandom* random_stream{};
+    bool original_windowed_display{};
 };
 
 // 00414C86..00414DB1: two spectators share the process CRT stream.
@@ -90,13 +91,14 @@ struct RoundFrame {
 // Advance never forges those events merely to move the model forward.
 class Round {
 public:
-    explicit Round(Data data, int difficulty);
+    explicit Round(Data data, int difficulty,std::uint32_t initial_flight_counter=0);
 
     [[nodiscard]] RoundFrame advance(const RoundInput& input) noexcept;
     [[nodiscard]] const Data& data() const noexcept { return data_; }
     [[nodiscard]] RoundState state() const noexcept { return state_; }
     [[nodiscard]] BallMotion ball() const noexcept { return ball_; }
     [[nodiscard]] int difficulty() const noexcept { return difficulty_; }
+    [[nodiscard]] std::uint32_t flight_counter() const noexcept {return flight_tick_;}
     [[nodiscard]] int attempts_remaining() const noexcept {
         return attempts_remaining_;
     }
@@ -111,7 +113,7 @@ private:
     RoundState state_{RoundState::Aim};
     BallMotion ball_{};
     int aim_{60};
-    unsigned flight_tick_{};
+    std::uint32_t flight_tick_{};
     int bounce_height_{};
     int bounce_amplitude_{};
     int bounce_remaining_{};

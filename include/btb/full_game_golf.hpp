@@ -60,6 +60,7 @@ private:
     // 0x00415080 state 99 advances 9 inner ticks and 8 outer frames;
     // source sound manager owns state-5 voice completion.
     int swing_animation_ticks_{};
+    std::uint32_t flight_counter_{}; // original persistent DAT_0050AF08
     retail::OriginalRetailRandom* shared_random_{};
     int intro_stage_{};
     std::array<golf::SpectatorAnimation,2> spectator_animation_{{{0,5,-1},{0,7,-1}}};

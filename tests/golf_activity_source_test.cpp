@@ -209,6 +209,51 @@ int main() {
     }
     assert(sequence.finished());
 
+    // Compare both original display modes through counter rollover.
+    for(bool windowed:{false,true})for(std::uint32_t initial:
+        {0u,1u,0x7ffffffbu,0xfffffffbu}) {
+        auto counter=initial;
+        for(std::uint32_t i=0;i<32;++i) {
+            const auto signed_before=static_cast<std::int32_t>(initial+i);
+            const auto cadence=advance_flight_cadence(counter,windowed);
+            assert(counter==initial+i+1);
+            assert(cadence.advance_physics==(signed_before%(windowed?10:2)!=0));
+            assert(cadence.skipped_return==(windowed?signed_before/10:
+                static_cast<std::int32_t>(counter)));
+        }
+    }
+    // Max-power misses can stop airborne. Source state 6 preserves
+    // this 3-pixel residual until launch setup of the next attempt.
+    auto far=data;
+    for(auto& object:far.course_objects)object.position={10000,10000};
+    Round max_power(far,0,0);
+    a=max_power.advance({.accept_aim=true,.source_mouse_aim=0});
+    for(int i=0;i<499;++i)a=max_power.advance({});
+    a=max_power.advance({.accept_power=true});
+    assert(a.power==1000);
+    a=max_power.advance({});
+    a=max_power.advance({.swing_animation_finished=true});
+    int physics_frames=0,steps=0;
+    while(max_power.state()==RoundState::BallFlight && physics_frames<200) {
+        const auto prior=max_power.ball();
+        a=max_power.advance({.original_windowed_display=true});
+        if(physics_frames%10==0) {
+            assert(a.ball.speed==prior.speed&&a.ball.position.x==prior.position.x);
+        } else {
+            ++steps;assert(a.ball.speed<prior.speed);
+        }
+        ++physics_frames;
+    }
+    assert(steps==82&&physics_frames==92);
+    assert(a.state==RoundState::ResolveLanding&&a.bounce_height==3);
+    a=max_power.advance({});a=max_power.advance({});a=max_power.advance({});
+    assert(a.state==RoundState::Aim&&a.bounce_height==3);
+    const auto prior_counter=max_power.flight_counter();
+    a=max_power.advance({.accept_aim=true});a=max_power.advance({.accept_power=true});
+    a=max_power.advance({});
+    assert(a.state==RoundState::SwingAnimationDelay&&a.bounce_height==0);
+    assert(max_power.flight_counter()==prior_counter);
+
     Round edge(data,0);
     a=edge.advance({.aim_delta=-1,.source_mouse_aim=100});
     assert(a.aim==87); // clamp mouse-derived aim before key adjustment

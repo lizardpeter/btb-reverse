@@ -54,6 +54,20 @@ inline constexpr double kBallSpeedDecayFraction = 0.012;
 inline constexpr std::int32_t kBallSpeedMinimumDecay = 10;
 inline constexpr std::int32_t kBallStopThreshold = 20;
 
+// Original 004152C8..0041530D. The signed division in windowed mode
+// matters after the 32-bit global wraps into its negative range.
+struct FlightCadence {
+    bool advance_physics{};
+    std::int32_t skipped_return{};
+};
+[[nodiscard]] constexpr FlightCadence advance_flight_cadence(
+    std::uint32_t& counter,bool windowed) noexcept {
+    const auto original=static_cast<std::int32_t>(counter);
+    ++counter;
+    if(windowed)return {original%10!=0,original/10};
+    return {(original%2)!=0,static_cast<std::int32_t>(counter)};
+}
+
 [[nodiscard]] std::int32_t clamp_aim(std::int32_t aim) noexcept;
 [[nodiscard]] std::int32_t quantize_aim_angle(std::int32_t aim) noexcept;
 

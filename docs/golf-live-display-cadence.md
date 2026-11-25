@@ -1,0 +1,7 @@
+# Live Golf display cadence and attempt-reset behavior
+
+The actual display mode propagated by the Win32 host is now consumed by Golf as well as Squirrel. Original 004152C8..0041530D skips physics when the pre-increment DAT_0050AF08 remainder is zero: signed modulo 10 in windowed mode, signed modulo 2 in fullscreen. The counter wraps as an original 32-bit word. The playable round and reconstructed raw entry point use one cadence helper, and the driver preserves the counter across activity reload because 004145F0 does not initialize it.
+
+Original state 6 restores ground coordinates, decreases the attempt count and resets power/direction. It does not clear the independent airborne-height state until the next launch setup (state 2). A local numerical model using original fixture course centers, float32 coordinates and the recovered vector constant surveyed all 45 even angles and 1,001 powers (45,045 trajectories). No coincident stop/target hit occurred; 40 full-power trajectories stopped airborne at height 3. This was a numerical model survey, not a direct original-instruction differential. The normal typed state still normalizes overlapping artificial targets. Source tests now cover both cadence branches, 32-bit rollover, maximum-power airborne reset and actual native-driver window mode/replay counter persistence.
+
+Original binary remains private. Full physical-device gameplay equivalence is not established.

@@ -31,7 +31,7 @@ bool GolfDriver::initialize(int player_index, std::string& error) {
     try {
         auto data = golf::parse_data(source);
         auto candidate = std::make_unique<golf::Round>(
-            std::move(data),difficulty_);
+            std::move(data),difficulty_,flight_counter_);
         round_ = std::move(candidate);
         player_index_ = player_index;
         queued_input_.reset();
@@ -212,6 +212,7 @@ ActivityFrameOutput GolfDriver::advance(
         }
     }
     if (!queued_input_) {
+        action.original_windowed_display=input.original_windowed_display;
         switch(round_->state()) {
         case golf::RoundState::Aim:
             // Original 0x00415080: aim = clamp(88 - pointer_x / 7).
@@ -283,6 +284,7 @@ ActivityFrameOutput GolfDriver::advance(
 }
 
 bool GolfDriver::unload(std::string& error) {
+    if(round_)flight_counter_=round_->flight_counter();
     round_.reset();
     queued_input_.reset();
     swing_animation_ticks_=0;

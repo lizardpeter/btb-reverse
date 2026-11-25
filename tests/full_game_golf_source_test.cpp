@@ -355,5 +355,27 @@ data\subgamegolf\wendy.bmp
     assert(!flag_hit(effects)); // next frame sees cleared previous hit
     assert(hit_driver.unload(error));
 
+    // Live host windowed cadence is passed all the way to the round,
+    // and DAT_0050AF08 persists across native activity replay.
+    GolfDriver windowed(root,0);
+    assert(windowed.initialize(0,error));
+    effects=windowed.advance({.pointer_x=616,.click_pulse=true,.original_windowed_display=true});
+    effects=windowed.advance({.click_pulse=true,.original_windowed_display=true});
+    effects=windowed.advance({.original_windowed_display=true});
+    for(int i=0;i<72;++i)
+        effects=windowed.advance({.original_windowed_display=true});
+    assert(windowed.round()->state()==btb::golf::RoundState::BallFlight);
+    const auto before=windowed.round()->ball();
+    for(int i=0;i<10;++i) {
+        const auto old=windowed.round()->ball();
+        effects=windowed.advance({.original_windowed_display=true});
+        assert(windowed.round()->flight_counter()==static_cast<unsigned>(i+1));
+        if(i==0)assert(windowed.round()->ball().speed==old.speed);
+        else assert(windowed.round()->ball().speed<old.speed);
+    }
+    assert(windowed.round()->ball().position.x>before.position.x);
+    assert(windowed.unload(error)&&windowed.initialize(0,error));
+    assert(windowed.round()->flight_counter()==10);
+    assert(windowed.unload(error));
     fs::remove_all(root);
 }
