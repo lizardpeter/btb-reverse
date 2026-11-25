@@ -17,6 +17,28 @@ int main() {
     using namespace btb::full_game;
     namespace fs = std::filesystem;
 
+    // Exact executable animation tables: every actor/reaction pair
+    // consumes precisely one random draw at the idle boundary.
+    for(std::size_t actor=0;actor<2;++actor)for(int variant=0;variant<2;++variant) {
+        btb::golf::SpectatorAnimation a{19,1,-1};
+        int calls=0;
+        auto next=[&]{++calls;return variant;};
+        btb::golf::advance_spectator_animation(a,actor,true,next);
+        assert(a.frame==btb::golf::kSpectatorReactionStart[actor][variant]);
+        assert(a.reaction==variant && calls==1);
+        const int ticks=(btb::golf::kSpectatorReactionEnd[actor][variant]-a.frame)*5;
+        for(int i=0;i<ticks;++i)
+            btb::golf::advance_spectator_animation(a,actor,true,next);
+        assert(a.frame==0 && a.reaction==-2 && calls==1);
+        for(int i=0;i<100;++i)
+            btb::golf::advance_spectator_animation(a,actor,true,next);
+        assert(a.frame==0 && calls==1);
+    }
+    static_assert(btb::golf::bob_aim_row(0)==44);
+    static_assert(btb::golf::bob_aim_row(60)==14);
+    static_assert(btb::golf::bob_aim_row(87)==0);
+    static_assert(btb::golf::bob_aim_row(88)==0);
+
     const auto root = fs::temp_directory_path() /
                       "btb_golf_full_game_source_test";
     fs::remove_all(root);
@@ -97,10 +119,11 @@ data\subgamegolf\wendy.bmp
     assert(step.effects.draws[6].x==453);
     assert(step.effects.draws[7].source_asset=="Data\\SubGameGolf\\marker.bmp");
     assert(step.effects.draws[8].source_asset=="Data\\SubGameGolf\\shadow.bmp");
+    assert(step.effects.draws[8].x==191 && step.effects.draws[8].y==338);
     assert(step.effects.draws[9].source_asset=="Data\\SubGameGolf\\golfballstop.bmp");
     assert(step.effects.draws[9].x==187 && step.effects.draws[9].y==330);
     assert(step.effects.draws[10].source_asset==handle->round()->data().bob_sprite_path);
-    assert(step.effects.draws[10].source_rectangle->top==30*174); // initial aim is 60
+    assert(step.effects.draws[10].source_rectangle->top==14*174); // initial aim is 60
     assert(step.effects.draws[11].source_rectangle->left==1);
     assert(step.effects.draws[13].source_asset=="data\\subgamegolf\\flag.bmp");
     assert(step.effects.draws[13].source_rectangle->left==0);
@@ -225,14 +248,14 @@ data\subgamegolf\wendy.bmp
     assert(step.kind==FrameKind::ActivityInitialized);
     // Mouse X maps through the retail 88 - (x/7) aiming equation.
     step=native.advance({.pointer_x=616});
-    assert(step.effects.draws[10].source_rectangle->top==30*174);
+    assert(step.effects.draws[10].source_rectangle->top==14*174);
     assert(live->round()->state()==btb::golf::RoundState::Aim);
     step=native.advance({.pointer_x=0});
-    assert(step.effects.draws[10].source_rectangle->top==0);
+    assert(step.effects.draws[10].source_rectangle->top==44*174);
     assert(step.effects.audio.size()==1 && step.effects.audio[0].sound_id==101);
     assert(step.kind==FrameKind::ActivityUpdated);
     step=native.advance({.pointer_x=0,.directional_input_bits=0x02});
-    assert(step.effects.draws[10].source_rectangle->top==44*174);
+    assert(step.effects.draws[10].source_rectangle->top==0);
     // Aim is now 87, then the UI returns to mouse-originated aim at 616.
     assert(live->round()->state()==btb::golf::RoundState::Aim);
 

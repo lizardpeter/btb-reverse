@@ -26,6 +26,44 @@ struct RoundInput {
     retail::OriginalRetailRandom* random_stream{};
 };
 
+// 00414C86..00414DB1: two spectators share the process CRT stream.
+// The idle limits (20,20) are the two initialized words at 004437CC.
+// Reaction starts and exclusive ends are the original stack tables.
+// Reaction -1 is unused, -2 is already played for the current shot.
+struct SpectatorAnimation {
+    int frame{};
+    int countdown{5};
+    int reaction{-1};
+};
+inline constexpr std::array<int,2> kSpectatorIdleLimits{20,20};
+inline constexpr std::array<std::array<int,2>,2> kSpectatorReactionStart{{{21,21},{45,60}}};
+inline constexpr std::array<std::array<int,2>,2> kSpectatorReactionEnd{{{45,41},{90,88}}};
+template<class NextRand>
+constexpr void advance_spectator_animation(SpectatorAnimation& s,
+    std::size_t actor, bool hit, NextRand&& next_rand) noexcept {
+    if(--s.countdown>0)return;
+    s.countdown=5;
+    ++s.frame;
+    const int idle=kSpectatorIdleLimits[actor];
+    if(!hit) {
+        if(s.frame>=idle)s.frame=0;
+        return;
+    }
+    if(s.frame==idle) {
+        if(s.reaction==-1) {
+            s.reaction=next_rand()&1;
+            s.frame=kSpectatorReactionStart[actor][s.reaction];
+        } else s.frame=0;
+    }
+    if(s.reaction>=0 && s.frame>=kSpectatorReactionEnd[actor][s.reaction]) {
+        s.frame=0;
+        s.reaction=-2;
+    }
+}
+[[nodiscard]] constexpr int bob_aim_row(int aim) noexcept {
+    // 00414C16: truncate(44.0 - aim / 2.0), not aim/2.
+    return static_cast<int>(44.0-static_cast<double>(aim)/2.0);
+}
 struct RoundFrame {
     RoundState state{RoundState::Aim};
     BallMotion ball{};

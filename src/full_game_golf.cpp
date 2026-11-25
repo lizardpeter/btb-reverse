@@ -37,6 +37,7 @@ bool GolfDriver::initialize(int player_index, std::string& error) {
         queued_input_.reset();
         swing_animation_ticks_=0;
         intro_stage_=0;
+        spectator_animation_={{{0,5,-1},{0,7,-1}}};
         flag_idle_tick_=flag_idle_frame_=0;
         target_hit_ticks_={};target_hit_frames_={};
         error.clear();
@@ -78,28 +79,31 @@ ActivityFrameOutput GolfDriver::compose_frame(
         });
     if(state.attempts_remaining>0) {
         const int ball_x=static_cast<int>(state.ball.position.x);
-        const int ball_y=static_cast<int>(state.ball.position.y);
         if(state.state==golf::RoundState::Aim) {
             // 00414A60 projects a 140-pixel aiming marker at aim minus 2.
             constexpr double rad=3.14159265358979323846/180.0;
             const double angle=(state.aim-2)*rad;
             out.draws.push_back({"Data\\SubGameGolf\\marker.bmp",
-                static_cast<int>(state.ball.position.x+140*std::cos(angle)),
-                static_cast<int>(state.ball.position.y-140*std::sin(angle)),
+                static_cast<int>(state.ball.position.x+140*std::cos(angle)-22.0),
+                static_cast<int>(state.ball.position.y-140*std::sin(angle)-22.0),
                 std::nullopt,true});
         }
-        // Native DrawGolfActivity checks the current float ball location
-        // before submitting the magenta-keyed shadow and stopped-ball
-        // sprites. The original asset resolver keeps both physical BMPs.
-        out.draws.push_back({
-            "Data\\SubGameGolf\\shadow.bmp",ball_x,ball_y,
-            std::nullopt,true
-        });
-        out.draws.push_back({
-            // DrawGolfActivity uses 0050AEE4 on every visible ball draw.
-            "Data\\SubGameGolf\\golfballstop.bmp",
-            ball_x,ball_y-state.bounce_height,std::nullopt,true
-        });
+        // 00414B92..00414C16: the PE float constants at 0043B394,
+        // 0043B398, 0043B39C and 0043B3A0 are 4,8,45,22.
+        // Shadow and ball are both suppressed at ground Y <= 45.
+        if(state.ball.position.y>45.0f) {
+            out.draws.push_back({
+                "Data\\SubGameGolf\\shadow.bmp",
+                static_cast<int>(state.ball.position.x+4.0f),
+                static_cast<int>(state.ball.position.y+8.0f),
+                std::nullopt,true
+            });
+            out.draws.push_back({
+                "Data\\SubGameGolf\\golfballstop.bmp",
+                ball_x,static_cast<int>(state.ball.position.y-state.bounce_height),
+                std::nullopt,true
+            });
+        }
     }
     // 00414A60/00415080: 45 aim rows, 16 swing columns; the actual
     // shipped 2128x7830 sheet uses 133x174 cells.
@@ -107,7 +111,7 @@ ActivityFrameOutput GolfDriver::compose_frame(
     const int h=course.bob_frame_size_retail.y;
     const int col=std::clamp(swing_animation_ticks_/9,0,
         std::max(0,std::min(16,course.bob_frame_count)-1));
-    const int row=std::clamp(state.aim/2,0,
+    const int row=std::clamp(golf::bob_aim_row(state.aim),0,
         std::max(0,std::min(45,course.bob_rotation_count)-1));
     out.draws.push_back({
         course.bob_sprite_path,course.bob_position.x,course.bob_position.y,
@@ -119,11 +123,17 @@ ActivityFrameOutput GolfDriver::compose_frame(
     // A third spectator record is loaded but is not in the draw loop.
     for(std::size_t i=0;i<2;++i) {
         const auto& spectator=course.spectators[i];
+        auto& animation=spectator_animation_[i];
+        golf::advance_spectator_animation(animation,i,state.matched_target>=0,[&]{
+            return (shared_random_?*shared_random_:fallback_spectator_random_).next_rand();
+        });
         const int inset=i==0?1:0; // original first sheet skips its left border
+        const int left=animation.frame*spectator.frame_size.x+inset;
+        const int right=(animation.frame+1)*spectator.frame_size.x;
         out.draws.push_back({spectator.sprite_path,
             spectator.position.x,spectator.position.y,
             spectator.frame_size.x>inset && spectator.frame_size.y>0
-                ? std::optional<Rect>{Rect{inset,0,spectator.frame_size.x,
+                ? std::optional<Rect>{Rect{left,0,right,
                     spectator.frame_size.y}} : std::nullopt,true});
     }
     // DAT_0050AE24: idle flag advances before drawing every fourth
@@ -176,8 +186,6 @@ ActivityFrameOutput GolfDriver::compose_frame(
                 Rect{0,0,width,53},true
             });
     }
-    // Spectator reaction selection remains to be recovered from the
-    // original idle-loop limits and shared random-stream call order.
     return out;
 }
 
@@ -233,6 +241,8 @@ ActivityFrameOutput GolfDriver::advance(
     queued_input_.reset();
 
     const auto frame = round_->advance(action);
+    if(prior==golf::RoundState::Aim && frame.state==golf::RoundState::PowerMeter)
+        for(auto& spectator:spectator_animation_)spectator.reaction=-1;
     if(prior==golf::RoundState::LaunchSetup &&
        frame.state==golf::RoundState::SwingAnimationDelay)
         swing_animation_ticks_=0;
@@ -278,6 +288,7 @@ bool GolfDriver::unload(std::string& error) {
     queued_input_.reset();
     swing_animation_ticks_=0;
     intro_stage_=0;
+    spectator_animation_={{{0,5,-1},{0,7,-1}}};
     flag_idle_tick_=flag_idle_frame_=0;
     target_hit_ticks_={};target_hit_frames_={};
     player_index_ = -1;

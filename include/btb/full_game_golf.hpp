@@ -62,6 +62,8 @@ private:
     int swing_animation_ticks_{};
     retail::OriginalRetailRandom* shared_random_{};
     int intro_stage_{};
+    std::array<golf::SpectatorAnimation,2> spectator_animation_{{{0,5,-1},{0,7,-1}}};
+    retail::OriginalRetailRandom fallback_spectator_random_{};
     int flag_idle_tick_{};
     int flag_idle_frame_{};
     std::array<int,3> target_hit_ticks_{};
