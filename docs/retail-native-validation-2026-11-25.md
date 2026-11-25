@@ -42,3 +42,10 @@ The native Dinosaur probe completed all nine original layouts (three species × 
 
     cmake --build build/faithful --target btb_retail_dino_playthrough
     build/faithful/btb_retail_dino_playthrough /path/to/BTB-BBP 12
+
+## Spud Skate installed-data validation
+
+12/12 complete native runs, all three difficulties and four quality levels, scoring 0/16/32/48 across the original sixteen stunt opportunities. 16,068 gameplay updates and 62,688 actual decoded frame upload callbacks. The x64 native host now shares the portable five-stream bank with the probe: synchronized frame 44 is presented immediately at the first loop boundary; the second frame-660 marker immediately presents end.bik frame 1; end observation retains displayed frame 44. Space-held input and pre-update score drawing restored. Mixed-case original paths resolve without duplicating files. The probe checks profile-specific badge prerequisites, replay handoff, decoded plane sizes and real bitmap crops. Actual DirectDraw upload and sound playback require Windows validation. The optional legacy x86 retail DLL comparison adapter retains its previous timing behavior.
+
+    cmake --build build/faithful --target btb_retail_spud_skate_playthrough
+    build/faithful/btb_retail_spud_skate_playthrough /path/to/BTB-BBP

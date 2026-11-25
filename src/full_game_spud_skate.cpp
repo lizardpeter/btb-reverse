@@ -1,4 +1,5 @@
 #include "btb/full_game_spud_skate.hpp"
+#include "btb/original_asset_resolver.hpp"
 
 #include <algorithm>
 #include <array>
@@ -42,11 +43,14 @@ bool SpudSkateDriver::initialize(
         error="original five-stream Spud Skate Bink provider is not connected";
         return false;
     }
-    const auto folder=root_/kSpudRoot;
+    const OriginalAssetResolver assets(root_);
     try {
-        std::ifstream timing_file(folder/kOriginalDifficultyFiles[
+        const auto timing_path=assets.resolve(std::string(kSpudRoot)+kOriginalDifficultyFiles[
             static_cast<std::size_t>(difficulty_)]);
-        std::ifstream sounds_file(folder/"soundinfo.txt");
+        const auto sounds_path=assets.resolve(std::string(kSpudRoot)+"soundinfo.txt");
+        if(!timing_path.found()||!sounds_path.found()){error="original Spud Skate timing/sound files unavailable";return false;}
+        std::ifstream timing_file(timing_path.absolute_path);
+        std::ifstream sounds_file(sounds_path.absolute_path);
         if(!timing_file || !sounds_file) {
             error="original Spud Skate timing/sound files unavailable";
             return false;
@@ -63,11 +67,9 @@ bool SpudSkateDriver::initialize(
         }
         std::array<std::filesystem::path,5> binks{};
         for(std::size_t i=0;i<binks.size();++i) {
-            binks[i]=folder/kOriginalMovies[i];
-            if(!std::filesystem::is_regular_file(binks[i])) {
-                error="missing original Spud Skate Bink: "+binks[i].string();
-                return false;
-            }
+            const auto movie=assets.resolve(std::string(kSpudRoot)+kOriginalMovies[i]);
+            if(!movie.found()) {error=movie.error;return false;}
+            binks[i]=movie.absolute_path;
         }
         if(!movies_->open(binks,error))return false;
         timing_=timing;
@@ -132,10 +134,10 @@ bool SpudSkateDriver::queue_result_sounds(
 }
 
 void SpudSkateDriver::append_authentic_bitmap_draws(
-    ActivityFrameOutput& out) const {
+    ActivityFrameOutput& out,int displayed_score,bool show_overlay) const {
     out.draws.push_back({
         "Data/SubGameSpudSkate/minimised.bmp",0,0,{},false});
-    if(const auto overlay=
+    if(show_overlay)if(const auto overlay=
             spud_skate::overlay_surface_for_quality(state_.quality)) {
         const auto idx=static_cast<int>(*overlay)-
             static_cast<int>(spud_skate::SurfaceKind::NormalOverlay);
@@ -144,7 +146,7 @@ void SpudSkateDriver::append_authentic_bitmap_draws(
                 static_cast<char>('1'+idx)+".bmp",
             267,415,{},true});
     }
-    const auto digits=spud_skate::score_render_plan(state_.score);
+    const auto digits=spud_skate::score_render_plan(displayed_score);
     for(std::size_t i=0;i<digits.count;++i) {
         const auto& digit=digits.digits[i];
         out.draws.push_back({"Data/SubGameSpudSkate/skatespudscore.bmp",
@@ -174,6 +176,8 @@ ActivityFrameOutput SpudSkateDriver::advance(
         out.audio.push_back({AudioOperation::ManagedSoundId,{},758,50,1});
         first_audio_=false;
     }
+    const int displayed_score=state_.score;
+    bool show_overlay=false;
     if(state_.phase==spud_skate::PlaybackPhase::SynchronizedRun) {
         // No Bink-derived decoded frame -> NO gameplay update, scoring
         // or success. The four retail quality movies advance together.
@@ -184,8 +188,9 @@ ActivityFrameOutput SpudSkateDriver::advance(
         }
         const auto step=spud_skate::update_synchronized_run(
             state_,timing_,sounds_,
-            {frame.primary_decoded_frame,input.click_pulse,
+            {frame.primary_decoded_frame,input.click_pulse||(input.keyboard_state[0x39]&0x80),
              frame.quality_stream_reached_end});
+        show_overlay=!step.resync_quality_streams&&!step.start_end_movie;
         if(step.sound_request &&
            !queue_stunt_sound(*step.sound_request,out,error)) {
             out.fatal_error=error;return out;
@@ -236,7 +241,7 @@ ActivityFrameOutput SpudSkateDriver::advance(
     }
     // The native movie provider owns the actual 600x380 Bink surface;
     // these are the original remaining common DirectDraw BMP layers.
-    append_authentic_bitmap_draws(out);
+    append_authentic_bitmap_draws(out,displayed_score,show_overlay);
     return out;
 }
 

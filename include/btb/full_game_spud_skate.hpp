@@ -18,6 +18,7 @@ namespace btb::full_game {
 // A production implementation must own all five original movie handles,
 // render the selected quality surface, and report the true end.bik state.
 struct SpudSkateMovieFrame {
+    // At the loop-end boundary this is the Bink cursor BEFORE decode.
     int primary_decoded_frame{-1};
     bool quality_stream_reached_end{};
     bool end_movie_finished{};
@@ -81,7 +82,7 @@ private:
     [[nodiscard]] bool queue_result_sounds(
         const spud_skate::ResultPresentation& result,
         ActivityFrameOutput& out,std::string& error);
-    void append_authentic_bitmap_draws(ActivityFrameOutput& out) const;
+    void append_authentic_bitmap_draws(ActivityFrameOutput& out,int displayed_score,bool show_overlay) const;
 
     std::filesystem::path root_{};
     std::unique_ptr<SpudSkateMovieSource> movies_{};
