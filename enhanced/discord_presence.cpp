@@ -64,10 +64,11 @@ bool delay(std::stop_token stop,int count){
     for(int i=0;i<count&&!stop.stop_requested();++i)std::this_thread::sleep_for(100ms);
     return !stop.stop_requested();
 }
-std::string activity_json(std::string_view text,uint64_t start,uint64_t nonce,bool clear=false){
+std::string activity_json(std::string_view text,uint64_t start,uint64_t nonce,std::string_view image,bool clear=false){
     const auto details=clear?std::string("null"):
         "{\"type\":0,\"details\":\"Bob Builds a Park Enhanced\",\"state\":\""+std::string(text)+
-        "\",\"timestamps\":{\"start\":"+std::to_string(start)+"}}";
+        "\",\"timestamps\":{\"start\":"+std::to_string(start)+"}"+
+        (image.empty()?std::string{}:",\"assets\":{\"large_image\":\""+std::string(image)+"\",\"large_text\":\"Bob Builds a Park Enhanced\"}")+"}";
     return "{\"cmd\":\"SET_ACTIVITY\",\"args\":{\"pid\":"+std::to_string(GetCurrentProcessId())+
         ",\"activity\":"+details+"},\"nonce\":\""+std::to_string(nonce)+"\"}";
 }
@@ -76,7 +77,13 @@ void DiscordPresence::start(){
     char id[32]{};const auto len=GetEnvironmentVariableA("BTB_DISCORD_APP_ID",id,32);
     if(!len||len>=32||!valid_discord_id({id,len}))return;
     if(worker_.joinable())return;
-    worker_=std::jthread([this,app=std::string(id,len)](std::stop_token stop){
+    char image_key[128]{};const auto image_len=GetEnvironmentVariableA("BTB_DISCORD_LARGE_IMAGE",image_key,128);
+    std::string image;
+    if(image_len&&image_len<128){
+        std::string_view candidate{image_key,image_len};
+        if(std::all_of(candidate.begin(),candidate.end(),[](char c){return (c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='_'||c=='-';}))image=candidate;
+    }
+    worker_=std::jthread([this,app=std::string(id,len),image=std::move(image)](std::stop_token stop){
         try{
             const auto started=static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::seconds>(
                 std::chrono::system_clock::now().time_since_epoch()).count());
@@ -104,12 +111,12 @@ void DiscordPresence::start(){
                     auto text=presence_for_state(state_.load(std::memory_order_relaxed));
                     const auto now=std::chrono::steady_clock::now();
                     if(text!=last&&now>=next){
-                        if(!send(pipe.value,1,activity_json(text,started,++nonce))){alive=false;break;}
+                        if(!send(pipe.value,1,activity_json(text,started,++nonce,image))){alive=false;break;}
                         last=text;next=now+15s;
                     }
                     delay(stop,2);
                 }
-                if(alive&&stop.stop_requested())(void)send(pipe.value,1,activity_json({},started,++nonce,true));
+                if(alive&&stop.stop_requested())(void)send(pipe.value,1,activity_json({},started,++nonce,image,true));
                 if(!stop.stop_requested())delay(stop,50);
             }
         }catch(...){/* Discord is never a gameplay failure. */}

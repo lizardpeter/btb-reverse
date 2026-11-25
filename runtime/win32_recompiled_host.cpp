@@ -475,7 +475,8 @@ struct Host {
             const bool inside=GetCursorPos(&screen)&&WindowFromPoint(screen)==h.window&&
                 ScreenToClient(h.window,&screen)&&GetClientRect(h.window,&client)&&
                 PtInRect(&client,screen);
-            input.native_cursor_enabled=inside||!h.retail_window.windowed;
+            input.native_cursor_enabled=(inside||!h.retail_window.windowed)&&
+                (!h.output||(h.pointer_x>=0&&h.pointer_x<640&&h.pointer_y>=0&&h.pointer_y<480));
             input.original_windowed_display=h.retail_window.windowed;
             input.original_random=&h.original_game_random;
             const auto click=consume_native_click(h.native_input.click_pulse);
@@ -631,12 +632,13 @@ LRESULT CALLBACK native_window_proc(
         host->set_pointer(lp);return 0;
     case WM_LBUTTONDOWN:
         host->set_pointer(lp);
+        if(host->output&&(host->pointer_x<0||host->pointer_x>=640||host->pointer_y<0||host->pointer_y>=480))return 0;
         if(!host->native_input.pointer_held)SetCapture(hwnd);
         host->native_input.press_mouse(host->pointer_x,host->pointer_y);
         return 0;
     case WM_LBUTTONUP:
         host->set_pointer(lp);
-        host->native_input.release_mouse();
+        if(!host->output||host->native_input.pointer_held)host->native_input.release_mouse();
         if(GetCapture()==hwnd)ReleaseCapture();
         return 0;
     case WM_CAPTURECHANGED:

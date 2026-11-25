@@ -45,7 +45,7 @@ bool VulkanSpriteBatch::initialize(VkPhysicalDevice physical,VkDevice device,con
     }
     std::ifstream file(path,std::ios::binary|std::ios::ate);
     if(!file){error="Cannot open compiled spriteBatch.spv";return false;}
-    const auto size=file.tellg();
+    const std::streamoff size=file.tellg();
     if(size<=0||size>1024*1024||size%4){error="Invalid sprite compute shader size";return false;}
     std::vector<uint32_t> code(static_cast<std::size_t>(size)/4);
     file.seekg(0);
@@ -132,7 +132,10 @@ bool VulkanSpriteBatch::prepare(const std::vector<full_game::ResolvedDraw>& draw
         if(!make_sprite_job(job,d.original,b->width,b->height,it->second))return false;
         if(job.width&&job.height)jobs_.push_back(job);
     }
-    if(!pack_sprite_batch(jobs_,atlas_,words_))return false;
+    return prepare_jobs(jobs_,atlas_);
+}
+bool VulkanSpriteBatch::prepare_jobs(std::span<const SpriteJob> jobs,std::span<const std::uint32_t> atlas){
+    if(!input_.mapped||!pack_sprite_batch(jobs,atlas,words_))return false;
     std::memcpy(input_.mapped,words_.data(),words_.size()*4);
     return true;
 }
@@ -144,10 +147,10 @@ void VulkanSpriteBatch::record(VkCommandBuffer cmd,bool bgra){
     vkCmdPushConstants(cmd,pipeline_layout_,VK_SHADER_STAGE_COMPUTE_BIT,0,4,&value);
     vkCmdDispatch(cmd,80,60,1);
     VkBufferMemoryBarrier b{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};
-    b.srcAccessMask=VK_ACCESS_SHADER_WRITE_BIT;b.dstAccessMask=VK_ACCESS_TRANSFER_READ_BIT;
+    b.srcAccessMask=VK_ACCESS_SHADER_WRITE_BIT;b.dstAccessMask=VK_ACCESS_TRANSFER_READ_BIT|VK_ACCESS_HOST_READ_BIT;
     b.srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;b.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
     b.buffer=output_.buffer;b.size=VK_WHOLE_SIZE;
-    vkCmdPipelineBarrier(cmd,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,nullptr,1,&b,0,nullptr);
+    vkCmdPipelineBarrier(cmd,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT|VK_PIPELINE_STAGE_HOST_BIT,0,0,nullptr,1,&b,0,nullptr);
 }
 void VulkanSpriteBatch::shutdown() noexcept {
     if(!device_)return;

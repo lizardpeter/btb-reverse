@@ -23,6 +23,10 @@ public:
     ~VulkanSpriteBatch(){shutdown();}
     bool initialize(VkPhysicalDevice,VkDevice,const std::filesystem::path&,std::string&);
     bool prepare(const std::vector<full_game::ResolvedDraw>&);
+    bool prepare_jobs(std::span<const SpriteJob>,std::span<const std::uint32_t>);
+    std::span<const std::uint32_t> readback() const noexcept {
+        return output_.mapped?std::span<const std::uint32_t>{static_cast<const std::uint32_t*>(output_.mapped),640*480}:std::span<const std::uint32_t>{};
+    }
     // Only called after the previous submission's fence is signaled.
     void record(VkCommandBuffer,bool bgra);
     VkBuffer pixels() const noexcept{return output_.buffer;}

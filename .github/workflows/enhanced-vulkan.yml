@@ -43,12 +43,12 @@ jobs:
       - name: Configure required Vulkan and Slang
         run: cmake -S . -B build/enhanced-vulkan -G "Visual Studio 18 2026" -A x64 -DBTB_BUILD_ENHANCED=ON -DBTB_REQUIRE_VULKAN=ON -DBTB_REQUIRE_SLANG=ON
       - name: Build enhanced executable, shaders, policy and Vulkan smoke
-        run: cmake --build build/enhanced-vulkan --config Release --target btb_game_enhanced btb_enhanced_policy_tests btb_enhanced_vulkan_tests
+        run: cmake --build build/enhanced-vulkan --config Release --target btb_game_enhanced btb_enhanced_policy_tests btb_enhanced_sprite_batch_tests btb_enhanced_vulkan_tests btb_enhanced_vulkan_sprite_tests
       - name: Validate compiled SPIR-V
         shell: pwsh
         run: |
           $shaders = @(Get-ChildItem build/enhanced-vulkan -Recurse -Filter *.spv)
-          if ($shaders.Count -lt 3) { throw "Expected all three compiled Slang entrypoints" }
+          if ($shaders.Count -lt 4) { throw "Expected all four compiled Slang entrypoints" }
           foreach ($shader in $shaders) {
             & spirv-val --target-env vulkan1.4 $shader.FullName
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -61,5 +61,6 @@ jobs:
           path: |
             build/enhanced-vulkan/**/btb_game_enhanced.exe
             build/enhanced-vulkan/**/btb_enhanced_vulkan_tests.exe
+            build/enhanced-vulkan/**/btb_enhanced_vulkan_sprite_tests.exe
             build/enhanced-vulkan/**/*.spv
           if-no-files-found: error
