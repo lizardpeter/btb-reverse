@@ -75,3 +75,7 @@ add_executable(btb_enhanced_sprite_batch_tests ${BTB_ROOT}/enhanced/sprite_batch
 target_include_directories(btb_enhanced_sprite_batch_tests PRIVATE ${BTB_ROOT}/include)
 btb_require_cpp26(btb_enhanced_sprite_batch_tests PRIVATE)
 add_test(NAME enhanced_sprite_batch_plan COMMAND btb_enhanced_sprite_batch_tests)
+
+add_executable(btb_enhanced_frame_pacing_tests ${BTB_ROOT}/enhanced/frame_pacing_test.cpp)
+btb_require_cpp26(btb_enhanced_frame_pacing_tests PRIVATE)
+add_test(NAME enhanced_frame_pacing COMMAND btb_enhanced_frame_pacing_tests)

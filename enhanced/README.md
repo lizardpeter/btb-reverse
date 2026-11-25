@@ -61,3 +61,14 @@ Optional `BTB_DISCORD_LARGE_IMAGE` selects an uploaded Discord application asset
 ## Experimental native Bink GPU conversion
 
 Set `BTB_GPU_BINK=1` to enable the opaque full-screen native Bink conversion. The original native decoder still supplies authentic Y/U/V/A planes. When a decoded 640x480 frame has all alpha bytes equal to 255 and no additional draw overwrites it, Vulkan uploads the three packed YUV420 planes and executes the Slang integer BT.601 conversion to the swapchain's RGBA/BGRA order. Native CPU conversion and the hidden composition surface remain the reference and fallback; subsequent unchanged frames, alpha-bearing images, movie overlays and captured backgrounds stay on the reference path. This does not replace Bink entropy decoding or audio timing. The headless GPU differential also compares 614,400 video pixels against `blit_bink_yuva_to_surface`, for 1,228,800 total sprite/video pixel comparisons per execution. The earlier alpha-aware texture-based shader remains a candidate for mixed movie overlays, not the path being dispatched here.
+
+## High-refresh presentation and late-sampled cursor
+
+The enhanced message loop now pumps independent presentation in both FIFO and low-latency modes. A high-resolution Windows waitable timer replaces the coarse 1 ms message-loop timeout when available, with bounded message draining and nonblocking fence/acquire checks. The original 16 ms source-game timer and recovered gameplay rules are unchanged.
+
+- `BTB_MAX_FPS=0` (default): no software FPS cap; `30` through `1000` selects a limit (e.g. 120, 144, 165, 240, 360, 480). A monotonic deadline prevents catch-up bursts.
+- `BTB_PRESENT_MODE=fifo` (default): display-synchronized; `mailbox` and `immediate` request supported low-latency modes, with FIFO fallback. `BTB_UNCAPPED_PRESENT=1` remains a shorthand for requesting immediate mode when no explicit mode is set.
+- `BTB_SHOW_FPS=1`: window title reports successful queue presents/s separately from source updates/s. This is not a measurement of physical displayed frames.
+- Default normal cursor is late-sampled on each presentation. The source frame is retained without its cursor; the existing GPU compositor can compose the cursorless draw stream. A small 19x19 keyed cursor overlay is copied into a scratch image on-device, with disjoint opaque row runs. No full CPU frame upload is needed for cursor-only refreshes. Special activity cursors, dragged pieces, Help, movies and missing/unexpected cursor artwork retain the original source-frame behavior. `BTB_DISABLE_LATE_CURSOR=1` disables the separate overlay.
+
+Portable tests cover pacing at 60, 120, 144, 165, 240, 360, 480 and 1000 FPS, long stalls, exact color-key runs, cursor bounds and channel packing. Physical high-refresh throughput depends on GPU, desktop composition, swapchain mode and display. This change does not invent interpolated original animation frames or accelerate gameplay to the display refresh rate.

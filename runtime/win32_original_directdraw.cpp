@@ -140,7 +140,7 @@ void Win32OriginalDirectDraw::shutdown() noexcept {
     release_cached_bitmaps();
     replay_underlay_.clear();help_underlay_.clear();
     global_underlay_.clear();modal_underlay_.clear();composed_frame_.clear();
-    pending_cursorless_frame_.clear();presented_cursorless_frame_.clear();cursor_pending_=false;
+    pending_cursorless_frame_.clear();presented_cursorless_frame_.clear();cursor_pending_=false;late_default_cursor_.reset();
     bitmap_frame_valid_=false;bitmap_frame_.clear();opaque_video_.clear();
     if(extra_back_reference_ && backbuffer_)backbuffer_->Release();
     extra_back_reference_=false;
@@ -407,10 +407,15 @@ void Win32OriginalDirectDraw::note_native_global_movie(const bink32_recovered::B
     for(std::size_t i=0;i<3;++i)opaque_video_.planes[i]=frame.planes[i];
 }
 bool Win32OriginalDirectDraw::draw_transient_cursor(const ResolvedDraw& cursor,std::string& error) {
-    opaque_video_.clear();
+    opaque_video_.clear();late_default_cursor_.reset();
     if(!capture_surface(pending_cursorless_frame_,error))return false;
     if(!blit(cursor,error))return false;
     if(bitmap_frame_valid_)bitmap_frame_.push_back(cursor);
+    const auto& d=cursor.original;
+    if(frame_output_&&frame_output_->supports_late_cursor()&&d.source_asset=="Data/ui/cursor.bmp"&&
+       d.color_keyed&&!d.destination_clip&&d.source_rectangle&&d.source_rectangle->left==0&&
+       d.source_rectangle->top==0&&d.source_rectangle->right==19&&d.source_rectangle->bottom==19)
+        late_default_cursor_=cursor;
     cursor_pending_=true;return true;
 }
 bool Win32OriginalDirectDraw::capture_underlay(CapturedUnderlay kind,std::string& error) {
@@ -560,7 +565,7 @@ HRESULT Win32OriginalDirectDraw::cooperative_status() const noexcept {
 }
 
 HRESULT Win32OriginalDirectDraw::prepare_native_frame(std::string& error) {
-    cursor_pending_=false;
+    cursor_pending_=false;late_default_cursor_.reset();
     bitmap_frame_valid_=false;bitmap_frame_.clear();opaque_video_.clear();
     if(!initialized()){error="native display preflight without surfaces";return E_POINTER;}
     const HRESULT cooperative=cooperative_status();
@@ -605,7 +610,9 @@ bool Win32OriginalDirectDraw::present(std::string& error) {
     // only the bitmap list loses those overlays after device recovery.
     if(!capture_surface(composed_frame_,error))return false;
     if(frame_output_){
-        const bool submitted=opaque_video_.valid()?
+        const bool submitted=cursor_pending_&&late_default_cursor_?
+            frame_output_->present_cursor_frame(composed_frame_,pending_cursorless_frame_,*late_default_cursor_,
+                bitmap_frame_valid_?&bitmap_frame_:nullptr,error):opaque_video_.valid()?
             frame_output_->present_opaque_video(composed_frame_,opaque_video_,error):
             bitmap_frame_valid_?frame_output_->present_bitmap_frame(composed_frame_,bitmap_frame_,error):
             frame_output_->present(composed_frame_,error);

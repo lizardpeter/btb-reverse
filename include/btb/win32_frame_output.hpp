@@ -21,6 +21,11 @@ public:
     virtual ~Win32FrameOutput()=default;
     virtual bool initialize(HWND,std::string&)=0;
     virtual bool present(const display::PackedFrameSnapshot&,std::string&)=0;
+    virtual bool supports_late_cursor() const noexcept{return false;}
+    virtual bool present_cursor_frame(const display::PackedFrameSnapshot& composed,
+        const display::PackedFrameSnapshot&,const ResolvedDraw&,
+        const std::vector<ResolvedDraw>*,std::string& error){return present(composed,error);}
+    virtual unsigned idle_wait_us() const noexcept{return 1000;}
     virtual bool supports_bitmap_frames() const noexcept {return false;}
     virtual bool present_bitmap_frame(const display::PackedFrameSnapshot& frame,
         const std::vector<ResolvedDraw>&,std::string& error){return present(frame,error);}

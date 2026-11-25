@@ -593,7 +593,15 @@ LRESULT CALLBACK native_window_proc(
             return 0;
         }
     }
-    if(msg==WM_SETCURSOR&&host->running&&LOWORD(lp)==HTCLIENT){SetCursor(nullptr);return TRUE;}
+    if(msg==WM_SETCURSOR&&host->running&&LOWORD(lp)==HTCLIENT){
+        if(host->output){POINT p{};RECT rect{};
+            if(GetCursorPos(&p)&&ScreenToClient(hwnd,&p)&&GetClientRect(hwnd,&rect)){
+                int x=p.x,y=p.y;host->output->map_pointer(x,y,rect.right,rect.bottom);
+                if(x<0||y<0||x>=640||y>=480)return DefWindowProcW(hwnd,msg,wp,lp);
+            }
+        }
+        SetCursor(nullptr);return TRUE;
+    }
     if(msg==WM_COMMAND&&LOWORD(wp)==0x9c41U){
         if(host->running)(void)host->game.request_window_options();
         return 0;
@@ -796,8 +804,13 @@ int run_recompiled_native_game(
         // Run presentation independently of the source game timer. Never
         // rerun a game tick just to redraw the most recent complete frame.
         received=1;
+        // High-resolution one-shot waits avoid the legacy ~15.6 ms
+        // scheduler granularity without changing the system timer period.
+        HANDLE idle_timer=CreateWaitableTimerExW(nullptr,nullptr,0x00000002U,TIMER_MODIFY_STATE|SYNCHRONIZE);
+        if(!idle_timer)idle_timer=CreateWaitableTimerW(nullptr,FALSE,nullptr);
         for(;;){
-            while(PeekMessageW(&msg,nullptr,0,0,PM_REMOVE)){
+            unsigned drained=0;
+            while(drained++<128&&PeekMessageW(&msg,nullptr,0,0,PM_REMOVE)){
                 if(msg.message==WM_QUIT){received=0;break;}
                 if(!TranslateAcceleratorW(hwnd,accelerators,&msg)){
                     TranslateMessage(&msg);DispatchMessageW(&msg);
@@ -812,9 +825,13 @@ int run_recompiled_native_game(
                     if(IsWindow(hwnd))DestroyWindow(hwnd);
                 }
             }
-            // Yield while no messages are queued; no 60Hz presentation cap.
-            MsgWaitForMultipleObjectsEx(0,nullptr,1,QS_ALLINPUT,MWMO_INPUTAVAILABLE);
+            const unsigned wait=host.running&&!IsIconic(hwnd)?output->idle_wait_us():50000U;
+            LARGE_INTEGER due{};due.QuadPart=-static_cast<LONGLONG>(std::max(1U,wait))*10;
+            if(idle_timer&&SetWaitableTimer(idle_timer,&due,0,nullptr,nullptr,FALSE))
+                MsgWaitForMultipleObjectsEx(1,&idle_timer,INFINITE,QS_ALLINPUT,MWMO_INPUTAVAILABLE);
+            else MsgWaitForMultipleObjectsEx(0,nullptr,std::max(1U,(wait+999)/1000),QS_ALLINPUT,MWMO_INPUTAVAILABLE);
         }
+        if(idle_timer)CloseHandle(idle_timer);
     }else while((received=GetMessageW(&msg,nullptr,0,0))>0){
         if(!TranslateAcceleratorW(hwnd,accelerators,&msg)){
             TranslateMessage(&msg);

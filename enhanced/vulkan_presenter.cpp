@@ -2,6 +2,9 @@
 #include "presentation_policy.hpp"
 #include "discord_presence.hpp"
 #include "vulkan_sprite_batch.hpp"
+#include "frame_pacing.hpp"
+#include "cursor_runs.hpp"
+#include <chrono>
 #include <vulkan/vulkan.h>
 #include <algorithm>
 #include <array>
@@ -15,6 +18,14 @@ namespace btb::enhanced {
 namespace {
 bool env_flag(const wchar_t* name) noexcept {
     wchar_t v[8]{};return GetEnvironmentVariableW(name,v,8)==1&&v[0]==L'1';
+}
+std::wstring env_text(const wchar_t* name){
+    wchar_t v[32]{};const auto n=GetEnvironmentVariableW(name,v,32);
+    return n>0&&n<32?std::wstring(v,n):std::wstring{};
+}
+std::uint64_t now_ns() noexcept {
+    return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count());
 }
 bool vk_ok(VkResult result,const char* step,std::string& error){
     if(result==VK_SUCCESS)return true;
@@ -40,16 +51,27 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
     std::vector<VkSemaphore> ready_;
     VkImage source_{};
     VkDeviceMemory source_memory_{};
+    VkImage cursor_image_{};
+    VkDeviceMemory cursor_memory_{};
     VkBuffer staging_{};
     VkDeviceMemory staging_memory_{};
     void* mapped_{};
     bool source_initialized_{};
     bool upload_pending_{};
     display::PackedFrameSnapshot latest_{};
-    unsigned long long submitted_frames_{};
+    unsigned long long submitted_frames_{},source_updates_{},stats_presents_{},stats_updates_{};
+    std::uint64_t stats_ns_{};
+    FramePacer pacer_{parse_fps(env_text(L"BTB_MAX_FPS"))};
+    bool show_fps_{env_flag(L"BTB_SHOW_FPS")};
+    bool late_cursor_enabled_{!env_flag(L"BTB_DISABLE_LATE_CURSOR")},latest_cursor_{};
+    CursorPixels cursor_pixels_{};
+    std::vector<CursorRun> cursor_runs_;
+    std::filesystem::path cursor_path_;
+    std::vector<VkBufferImageCopy> cursor_copies_;
     bool dirty_{true},linear_{env_flag(L"BTB_LINEAR_FILTER")};
     bool integer_{!env_flag(L"BTB_FRACTIONAL_SCALE")};
     bool immediate_{env_flag(L"BTB_UNCAPPED_PRESENT")};
+    std::wstring requested_mode_{env_text(L"BTB_PRESENT_MODE")};
     bool borderless_{};
     WINDOWPLACEMENT placement_{sizeof(WINDOWPLACEMENT)};
     LONG_PTR style_{};
@@ -61,6 +83,7 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
     bool latest_bitmap_frame_{};
     std::vector<full_game::ResolvedDraw> latest_draws_;
     static constexpr VkDeviceSize kBytes=640*480*4;
+    static constexpr VkDeviceSize kUploadBytes=kBytes+cursor_pixels*4;
     static constexpr VkImageSubresourceRange range_{VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1};
     static constexpr VkImageSubresourceLayers layers_{VK_IMAGE_ASPECT_COLOR_BIT,0,0,1};
 
@@ -102,26 +125,29 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
         if(!device_)return;
         for(auto s:ready_)if(s)vkDestroySemaphore(device_,s,nullptr);
         ready_.clear();images_.clear();
+        if(cursor_image_)vkDestroyImage(device_,cursor_image_,nullptr);
+        if(cursor_memory_)vkFreeMemory(device_,cursor_memory_,nullptr);
+        cursor_image_=VK_NULL_HANDLE;cursor_memory_=VK_NULL_HANDLE;
         if(source_)vkDestroyImage(device_,source_,nullptr);
         if(source_memory_)vkFreeMemory(device_,source_memory_,nullptr);
         if(chain_)vkDestroySwapchainKHR(device_,chain_,nullptr);
         source_=VK_NULL_HANDLE;source_memory_=VK_NULL_HANDLE;chain_=VK_NULL_HANDLE;
         source_initialized_=false;extent_={};
     }
-    bool create_source(std::string& error){
+    bool create_image(VkImage& image,VkDeviceMemory& memory,std::string& error){
         VkImageCreateInfo im{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
         im.imageType=VK_IMAGE_TYPE_2D;im.format=format_;im.extent={640,480,1};
         im.mipLevels=1;im.arrayLayers=1;im.samples=VK_SAMPLE_COUNT_1_BIT;
         im.tiling=VK_IMAGE_TILING_OPTIMAL;im.usage=VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         im.sharingMode=VK_SHARING_MODE_EXCLUSIVE;im.initialLayout=VK_IMAGE_LAYOUT_UNDEFINED;
-        if(!vk_ok(vkCreateImage(device_,&im,nullptr,&source_),"create game image",error))return false;
-        VkMemoryRequirements req{};vkGetImageMemoryRequirements(device_,source_,&req);
+        if(!vk_ok(vkCreateImage(device_,&im,nullptr,&image),"create game image",error))return false;
+        VkMemoryRequirements req{};vkGetImageMemoryRequirements(device_,image,&req);
         VkMemoryAllocateInfo alloc{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};alloc.allocationSize=req.size;
         if(!memory_type(req.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,alloc.memoryTypeIndex)){
             error="No device-local memory for game image";return false;
         }
-        return vk_ok(vkAllocateMemory(device_,&alloc,nullptr,&source_memory_),"allocate game image",error)&&
-               vk_ok(vkBindImageMemory(device_,source_,source_memory_,0),"bind game image",error);
+        return vk_ok(vkAllocateMemory(device_,&alloc,nullptr,&memory),"allocate game image",error)&&
+               vk_ok(vkBindImageMemory(device_,image,memory,0),"bind game image",error);
     }
     bool rebuild(std::string& error){
         RECT rect{};GetClientRect(hwnd_,&rect);
@@ -162,9 +188,12 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
         std::vector<VkPresentModeKHR> modes(count);
         if(!vk_ok(vkGetPhysicalDeviceSurfacePresentModesKHR(physical_,surface_,&count,modes.data()),"present modes",error))return false;
         present_mode_=VK_PRESENT_MODE_FIFO_KHR;
-        if(immediate_){
-            for(auto m:{VK_PRESENT_MODE_IMMEDIATE_KHR,VK_PRESENT_MODE_MAILBOX_KHR})
-                if(std::find(modes.begin(),modes.end(),m)!=modes.end()){present_mode_=m;break;}
+        const auto supports=[&](VkPresentModeKHR m){return std::find(modes.begin(),modes.end(),m)!=modes.end();};
+        if(requested_mode_==L"mailbox"){
+            if(supports(VK_PRESENT_MODE_MAILBOX_KHR))present_mode_=VK_PRESENT_MODE_MAILBOX_KHR;
+        }else if(requested_mode_==L"immediate"||(requested_mode_.empty()&&immediate_)){
+            if(supports(VK_PRESENT_MODE_IMMEDIATE_KHR))present_mode_=VK_PRESENT_MODE_IMMEDIATE_KHR;
+            else if(supports(VK_PRESENT_MODE_MAILBOX_KHR))present_mode_=VK_PRESENT_MODE_MAILBOX_KHR;
         }
         VkSwapchainCreateInfoKHR sc{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
         sc.surface=surface_;sc.minImageCount=caps.minImageCount+1;
@@ -181,7 +210,8 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
         ready_.resize(count,VK_NULL_HANDLE);
         VkSemaphoreCreateInfo semaphore{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
         for(auto& s:ready_)if(!vk_ok(vkCreateSemaphore(device_,&semaphore,nullptr,&s),"image present semaphore",error))return false;
-        if(!create_source(error))return false;
+        if(!create_image(source_,source_memory_,error)||
+           (late_cursor_enabled_&&!create_image(cursor_image_,cursor_memory_,error)))return false;
         dirty_=false;return true;
     }
     void barrier(VkImage image,VkImageLayout old,VkImageLayout next,
@@ -191,6 +221,36 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
         b.srcQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;b.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
         b.image=image;b.subresourceRange=range_;
         vkCmdPipelineBarrier(cmd_,from,to,0,0,nullptr,0,nullptr,1,&b);
+    }
+    bool load_cursor(const std::filesystem::path& path){
+        if(path==cursor_path_)return true;
+        struct BitmapHandle{HBITMAP h{};~BitmapHandle(){if(h)DeleteObject(h);}};
+        BitmapHandle bmp{static_cast<HBITMAP>(LoadImageW(nullptr,path.c_str(),IMAGE_BITMAP,0,0,LR_LOADFROMFILE|LR_CREATEDIBSECTION))};
+        BITMAP data{};
+        if(!bmp.h||GetObjectW(bmp.h,sizeof(data),&data)!=sizeof(data)||data.bmWidth!=19||data.bmHeight!=19)return false;
+        BITMAPINFO info{};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);info.bmiHeader.biWidth=19;
+        info.bmiHeader.biHeight=-19;info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;info.bmiHeader.biCompression=BI_RGB;
+        HDC dc=GetDC(nullptr);if(!dc)return false;
+        const int rows=GetDIBits(dc,bmp.h,0,19,cursor_pixels_.data(),&info,DIB_RGB_COLORS);
+        ReleaseDC(nullptr,dc);if(rows!=19)return false;
+        for(auto& pixel:cursor_pixels_)pixel=cursor_format(pixel,true); // BGRX -> RGBA
+        cursor_runs_=cursor_runs(cursor_pixels_);cursor_path_=path;return true;
+    }
+    bool sample_cursor(int& x,int& y){
+        POINT p{};RECT rect{};
+        if(!latest_cursor_||!GetCursorPos(&p)||WindowFromPoint(p)!=hwnd_||!ScreenToClient(hwnd_,&p)||!GetClientRect(hwnd_,&rect))return false;
+        x=p.x;y=p.y;map_pointer(x,y,rect.right,rect.bottom);
+        return cursor_position(x,y);
+    }
+    void update_stats(std::uint64_t now){
+        if(!show_fps_)return;
+        if(!stats_ns_){stats_ns_=now;stats_presents_=submitted_frames_;stats_updates_=source_updates_;return;}
+        if(now-stats_ns_<1000000000ULL)return;
+        const double seconds=double(now-stats_ns_)/1e9;
+        const auto fps=static_cast<unsigned>((submitted_frames_-stats_presents_)/seconds+0.5);
+        const auto updates=static_cast<unsigned>((source_updates_-stats_updates_)/seconds+0.5);
+        const auto title=L"Bob Builds a Park Enhanced | "+std::to_wstring(fps)+L" presents/s | "+std::to_wstring(updates)+L" source updates/s";
+        SetWindowTextW(hwnd_,title.c_str());stats_ns_=now;stats_presents_=submitted_frames_;stats_updates_=source_updates_;
     }
 public:
     ~VulkanPresenter() override{shutdown();}
@@ -229,7 +289,7 @@ public:
         if(!vk_ok(vkCreateFence(device_,&fi,nullptr,&fence_),"frame fence",error)||
            !vk_ok(vkCreateSemaphore(device_,&se,nullptr,&acquired_),"image acquire semaphore",error))return false;
         VkBufferCreateInfo bi{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-        bi.size=kBytes;bi.usage=VK_BUFFER_USAGE_TRANSFER_SRC_BIT;bi.sharingMode=VK_SHARING_MODE_EXCLUSIVE;
+        bi.size=kUploadBytes;bi.usage=VK_BUFFER_USAGE_TRANSFER_SRC_BIT;bi.sharingMode=VK_SHARING_MODE_EXCLUSIVE;
         if(!vk_ok(vkCreateBuffer(device_,&bi,nullptr,&staging_),"upload staging buffer",error))return false;
         VkMemoryRequirements req{};vkGetBufferMemoryRequirements(device_,staging_,&req);
         VkMemoryAllocateInfo ma{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};ma.allocationSize=req.size;
@@ -238,7 +298,7 @@ public:
         }
         if(!vk_ok(vkAllocateMemory(device_,&ma,nullptr,&staging_memory_),"allocate upload memory",error)||
            !vk_ok(vkBindBufferMemory(device_,staging_,staging_memory_,0),"bind upload memory",error)||
-           !vk_ok(vkMapMemory(device_,staging_memory_,0,kBytes,0,&mapped_),"map upload memory",error))return false;
+           !vk_ok(vkMapMemory(device_,staging_memory_,0,kUploadBytes,0,&mapped_),"map upload memory",error))return false;
         if(sprites_enabled_||video_enabled_){
             wchar_t exe[32768]{};
             const auto n=GetModuleFileNameW(nullptr,exe,32768);
@@ -251,29 +311,44 @@ public:
     }
     bool present(const display::PackedFrameSnapshot& frame,std::string& error) override {
         if(!frame.valid()||frame.width!=640||frame.height!=480){error="Invalid composed game frame";return false;}
-        latest_=frame;upload_pending_=true;latest_bitmap_frame_=false;latest_draws_.clear();latest_video_.clear();
+        latest_=frame;upload_pending_=true;latest_bitmap_frame_=false;latest_draws_.clear();latest_video_.clear();latest_cursor_=false;++source_updates_;
         return draw_latest(error);
     }
     bool supports_bitmap_frames() const noexcept override{return sprites_enabled_;}
     bool present_bitmap_frame(const display::PackedFrameSnapshot& frame,
         const std::vector<full_game::ResolvedDraw>& draws,std::string& error) override {
         if(!frame.valid()||frame.width!=640||frame.height!=480){error="Invalid bitmap frame";return false;}
-        latest_=frame;upload_pending_=true;latest_bitmap_frame_=true;latest_draws_=draws;latest_video_.clear();
+        latest_=frame;upload_pending_=true;latest_bitmap_frame_=true;latest_draws_=draws;latest_video_.clear();latest_cursor_=false;++source_updates_;
         return draw_latest(error);
     }
     bool supports_opaque_video() const noexcept override{return video_enabled_;}
     bool present_opaque_video(const display::PackedFrameSnapshot& frame,const full_game::OpaqueGlobalVideo& video,std::string& error) override {
         if(!frame.valid()||frame.width!=640||frame.height!=480||!video.valid()){error="Invalid native opaque video frame";return false;}
-        latest_=frame;latest_video_=video;latest_bitmap_frame_=false;latest_draws_.clear();upload_pending_=true;
+        latest_=frame;latest_video_=video;latest_bitmap_frame_=false;latest_draws_.clear();upload_pending_=true;latest_cursor_=false;++source_updates_;
         return draw_latest(error);
     }
-    bool wants_idle_present() const noexcept override {return immediate_;}
+    bool supports_late_cursor() const noexcept override{return late_cursor_enabled_;}
+    bool present_cursor_frame(const display::PackedFrameSnapshot& composed,const display::PackedFrameSnapshot& base,
+        const full_game::ResolvedDraw& cursor,const std::vector<full_game::ResolvedDraw>* draws,std::string& error) override {
+        if(!base.valid()||base.width!=640||base.height!=480||!load_cursor(cursor.source.absolute_path))return present(composed,error);
+        latest_=base;latest_cursor_=true;upload_pending_=true;latest_video_.clear();latest_draws_.clear();latest_bitmap_frame_=false;++source_updates_;
+        // The DD7 command stream includes the cursor as its final draw.
+        // GPU-compose the base without that cursor; render it separately at present time.
+        if(draws&&!draws->empty()&&draws->back().original.source_asset==cursor.original.source_asset){
+            latest_draws_.assign(draws->begin(),draws->end()-1);latest_bitmap_frame_=true;
+        }
+        return draw_latest(error);
+    }
+    bool wants_idle_present() const noexcept override {return true;}
+    unsigned idle_wait_us() const noexcept override {return pacer_.wait_us(now_ns());}
     bool idle_present(std::string& error) override {
         if(!latest_.valid()){error.clear();return true;}
         return draw_latest(error);
     }
     unsigned long long presented_frames() const noexcept override {return submitted_frames_;}
     bool draw_latest(std::string& error) {
+        const auto now=now_ns();update_stats(now);
+        if(!pacer_.due(now)){error.clear();return true;}
         RECT rect{};GetClientRect(hwnd_,&rect);
         if(IsIconic(hwnd_)||rect.right<=rect.left||rect.bottom<=rect.top){error.clear();return true;}
         if(dirty_||extent_.width!=uint32_t(rect.right-rect.left)||extent_.height!=uint32_t(rect.bottom-rect.top))
@@ -318,6 +393,28 @@ public:
         barrier(source_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_TRANSFER_READ_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
         }
+        // Late-sample the live OS pointer after preparing the base commands.
+        // Copy the unchanged base on-device and overlay only opaque cursor runs.
+        // No full-frame CPU upload is needed for cursor-only refreshes.
+        VkImage picture=source_;
+        int cursor_x=0,cursor_y=0;
+        if(cursor_image_&&!cursor_runs_.empty()&&sample_cursor(cursor_x,cursor_y)){
+            auto* dst=static_cast<std::uint8_t*>(mapped_)+kBytes;
+            for(std::size_t i=0;i<cursor_pixels_.size();++i){const auto c=cursor_format(cursor_pixels_[i],bgra);std::memcpy(dst+4*i,&c,4);}
+            barrier(cursor_image_,VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,0,VK_ACCESS_TRANSFER_WRITE_BIT,VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
+            VkImageCopy base{};base.srcSubresource=layers_;base.dstSubresource=layers_;base.extent={640,480,1};
+            vkCmdCopyImage(cmd_,source_,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,cursor_image_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&base);
+            barrier(cursor_image_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_TRANSFER_WRITE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
+            cursor_copies_.clear();
+            for(const auto& run:cursor_runs_){
+                VkBufferImageCopy copy{};copy.bufferOffset=kBytes+4*(run.y*cursor_size+run.x);
+                copy.imageSubresource=layers_;copy.imageOffset={cursor_x+int(run.x),cursor_y+int(run.y),0};copy.imageExtent={run.length,1,1};
+                cursor_copies_.push_back(copy);
+            }
+            vkCmdCopyBufferToImage(cmd_,staging_,cursor_image_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,static_cast<uint32_t>(cursor_copies_.size()),cursor_copies_.data());
+            barrier(cursor_image_,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_TRANSFER_READ_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
+            picture=cursor_image_;
+        }
         auto dest=images_[index];
         barrier(dest,VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,0,VK_ACCESS_TRANSFER_WRITE_BIT,
             VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
@@ -329,7 +426,7 @@ public:
         const auto v=viewport(int(extent_.width),int(extent_.height),integer_);
         VkImageBlit blit{};blit.srcSubresource=layers_;blit.dstSubresource=layers_;
         blit.srcOffsets[1]={640,480,1};blit.dstOffsets[0]={v.x,v.y,0};blit.dstOffsets[1]={v.x+v.width,v.y+v.height,1};
-        vkCmdBlitImage(cmd_,source_,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,dest,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        vkCmdBlitImage(cmd_,picture,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,dest,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             1,&blit,linear_?VK_FILTER_LINEAR:VK_FILTER_NEAREST);
         barrier(dest,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,VK_ACCESS_TRANSFER_WRITE_BIT,0,
             VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
@@ -346,7 +443,7 @@ public:
         result=vkQueuePresentKHR(queue_,&p);
         if(result==VK_ERROR_OUT_OF_DATE_KHR||result==VK_SUBOPTIMAL_KHR)dirty_=true;
         else if(!vk_ok(result,"present Vulkan frame",error))return false;
-        if(result==VK_SUCCESS||result==VK_SUBOPTIMAL_KHR)++submitted_frames_;
+        if(result==VK_SUCCESS||result==VK_SUBOPTIMAL_KHR){++submitted_frames_;pacer_.submitted(now_ns());}
         error.clear();return true;
     }
     void state_changed(int state) noexcept override {presence_.update(state);}

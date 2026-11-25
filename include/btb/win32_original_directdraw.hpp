@@ -120,6 +120,7 @@ private:
     bool bitmap_frame_valid_{};
     std::vector<ResolvedDraw> bitmap_frame_{};
     OpaqueGlobalVideo opaque_video_{};
+    std::optional<ResolvedDraw> late_default_cursor_{};
     display::DisplayMode mode_{display::DisplayMode::Windowed};
     IDirectDraw7* draw_{};
     IDirectDrawSurface7* primary_{};
