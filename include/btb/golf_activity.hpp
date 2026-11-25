@@ -35,6 +35,7 @@ struct RoundFrame {
     bool feedback_started{};
     bool finished{};
     bool progress_golf_completion{};
+    int bounce_height{}; // retail 0x0050AE50; independent of ground position
 };
 
 // Sources:
@@ -70,6 +71,10 @@ private:
     BallMotion ball_{};
     int aim_{60};
     unsigned flight_tick_{};
+    int bounce_height_{};
+    int bounce_amplitude_{};
+    int bounce_remaining_{};
+    int bounce_direction_{1};
     int power_{};
     int direction_{1};
     int attempts_remaining_{kRetailInitialAttempts};

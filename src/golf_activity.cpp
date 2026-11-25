@@ -20,7 +20,7 @@ Round::Round(Data data, int difficulty)
 RoundFrame Round::snapshot() const noexcept {
     return {
         state_,ball_,aim_,power_,score_,attempts_remaining_,target_index_,
-        std::nullopt,false,finished_,false
+        std::nullopt,false,finished_,false,bounce_height_
     };
 }
 
@@ -32,7 +32,7 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
 
     switch (state_) {
     case RoundState::Aim:
-        aim_ = clamp_aim(input.source_mouse_aim.value_or(aim_) +
+        aim_ = clamp_aim(clamp_aim(input.source_mouse_aim.value_or(aim_)) +
                          input.aim_delta);
         if (input.accept_aim) {
             state_ = RoundState::PowerMeter;
@@ -51,6 +51,12 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
         const auto shot = make_shot(aim_,power_);
         ball_.angle_degrees = shot.angle_degrees;
         ball_.speed = shot.speed;
+        // 00415080 state 2: ground coordinates and airborne height
+        // are independent; power selects an integer initial bounce.
+        bounce_height_=0;
+        bounce_direction_=1;
+        bounce_amplitude_=((power_/2+500)*16)/1000;
+        bounce_remaining_=bounce_amplitude_;
         state_ = RoundState::SwingAnimationDelay;
         break;
     }
@@ -70,12 +76,36 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
         // independently on both frames.
         if((flight_tick_++ & 1U)==0U)break;
         advance_ball(ball_);
-        // The source checks all target hot areas during flight as well
-        // as during landing; the ball must not pass through a hole.
-        if(ball_.stopped() || std::any_of(data_.course_objects.begin(),
+        // 00415080 state 3 (0050AE50 / 0050AC04 / 0050ABCC):
+        // rising steps shrink by one, falling steps use the current
+        // amplitude capped at eight. Each ground contact reduces the
+        // next amplitude by a third, with amplitudes below three disabled.
+        if(bounce_height_>0 || bounce_remaining_>0) {
+            const int step=std::min(8,bounce_remaining_);
+            if(bounce_direction_==1) {
+                bounce_height_+=step;
+                if(--bounce_remaining_==0) {
+                    bounce_direction_=-1;
+                    bounce_remaining_=bounce_amplitude_;
+                }
+            } else {
+                bounce_height_-=step;
+                if(bounce_height_<=0) {
+                    bounce_height_=0;
+                    bounce_amplitude_-=bounce_amplitude_/3;
+                    bounce_direction_=1;
+                    bounce_remaining_=bounce_amplitude_>=3?bounce_amplitude_:0;
+                }
+            }
+        }
+        // LAB_004153FC is reached only at ground height zero. A ball
+        // passing over a target while airborne does not enter its hole.
+        // Keep the typed landing state even when speed and a hit coincide.
+        if(ball_.stopped() || (bounce_height_==0 &&
+            std::any_of(data_.course_objects.begin(),
             data_.course_objects.end(),[&](const auto& target){
                 return ball_reaches_target(ball_.position,target);
-            })) {
+            }))) {
             ball_.speed=0;
             state_=RoundState::ResolveLanding;
         }
@@ -112,6 +142,10 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
             data_.initial_ball_position(),attempts_remaining_);
         ball_.position = next.ball_position;
         ball_.speed = 0;
+        bounce_height_=0;
+        bounce_amplitude_=0;
+        bounce_remaining_=0;
+        bounce_direction_=1;
         power_ = next.power;
         attempts_remaining_ = next.attempts_remaining;
         direction_ = next.power_direction;
@@ -135,6 +169,7 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
     out.attempts_remaining = attempts_remaining_;
     out.matched_target = target_index_;
     out.finished = finished_;
+    out.bounce_height = bounce_height_;
     return out;
 }
 

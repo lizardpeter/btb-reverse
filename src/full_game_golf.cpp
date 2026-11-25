@@ -98,7 +98,7 @@ ActivityFrameOutput GolfDriver::compose_frame(
             state.ball.speed>0
                 ? "Data\\SubGameGolf\\golfballgo.bmp"
                 : "Data\\SubGameGolf\\golfballstop.bmp",
-            ball_x,ball_y,std::nullopt,true
+            ball_x,ball_y-state.bounce_height,std::nullopt,true
         });
     }
     for (const auto& target : course.course_objects) {
@@ -149,8 +149,8 @@ ActivityFrameOutput GolfDriver::compose_frame(
                 Rect{0,0,width,53},true
             });
     }
-    // Exact airborne bounce height, spectator reactions and target-specific
-    // animation banks remain separate from this recovered presentation.
+    // Spectator reactions and target-specific animation banks remain
+    // separate from this recovered presentation.
     return out;
 }
 

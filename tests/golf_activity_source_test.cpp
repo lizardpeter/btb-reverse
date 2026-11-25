@@ -102,7 +102,23 @@ int main() {
     assert(frame.ball.position.x==launch.position.x && frame.ball.speed==launch.speed);
     frame=round.advance({});
     assert(frame.ball.position.x>launch.position.x && frame.ball.speed<launch.speed);
-    int motion_steps = 2;
+    assert(frame.bounce_height==8);
+    // Physics advances every second host frame, so the intermediate
+    // frame must retain the exact same height and ground coordinates.
+    const auto first_physics=frame;
+    frame=round.advance({});
+    assert(frame.bounce_height==8 && frame.ball.position.x==first_physics.ball.position.x);
+    frame=round.advance({});
+    assert(frame.bounce_height==15);
+    for(int tick=3;tick<=8;++tick) {
+        frame=round.advance({});
+        frame=round.advance({});
+    }
+    assert(frame.bounce_height==36);
+    frame=round.advance({});
+    frame=round.advance({});
+    assert(frame.bounce_height==28);
+    int motion_steps = 18;
     while (round.state() == RoundState::BallFlight && motion_steps < 200) {
         frame = round.advance({});
         ++motion_steps;
@@ -128,6 +144,7 @@ int main() {
     assert(frame.ball.position.x == 187.0f);
     assert(frame.ball.position.y == 330.0f);
     assert(frame.power == 0);
+    assert(frame.bounce_height == 0);
 
     for (int shot=1; shot<5; ++shot) {
         static_cast<void>(round.advance({.accept_aim=true}));
@@ -155,4 +172,23 @@ int main() {
     assert(frame.attempts_remaining == 0);
     assert(round.score() == 0);
     assert(!round.advance({}).progress_golf_completion);
+
+    // Artificial near-launch hole: the first airborne physics update
+    // overlaps it but must NOT terminate the shot (retail ground gate).
+    auto near=data;
+    near.course_objects[0].position={193,330};
+    near.course_objects[0].hot_area_position={0,0};
+    Round airborne(near,0);
+    auto a=airborne.advance({.accept_aim=true,.source_mouse_aim=0});
+    a=airborne.advance({.accept_power=true});
+    a=airborne.advance({});
+    a=airborne.advance({.swing_animation_finished=true});
+    a=airborne.advance({});
+    a=airborne.advance({});
+    assert(ball_reaches_target(a.ball.position,near.course_objects[0]));
+    assert(a.bounce_height==8 && a.state==RoundState::BallFlight);
+
+    Round edge(data,0);
+    a=edge.advance({.aim_delta=-1,.source_mouse_aim=100});
+    assert(a.aim==87); // clamp mouse-derived aim before key adjustment
 }
