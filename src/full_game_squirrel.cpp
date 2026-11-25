@@ -60,7 +60,6 @@ bool SquirrelDriver::initialize(int player,std::string& error) {
         placement_slot_=0;
         mouth_pose_=mouth_draw_frame_=1;
         sprite_draw_frame_=0;sprite_draw_visible_=true;
-        previous_high_sprite_=false;
         temporary_decoy_=carried_piece_=-1;speech_={};
         animating_=false;complete_=false;level_transition_pending_=false;
         completion_stage_=0;
@@ -108,7 +107,12 @@ bool SquirrelDriver::start_run_section(std::string& error) {
             std::to_string(assembly_.run_section);
         return false;
     }
-    landing_connector_=current_choice_connector_;
+    const auto origin=squirrel::source_squirrel_start_position(
+        connectors_[static_cast<std::size_t>(level_)][0]);
+    constexpr std::array<int,3> target_y{237,205,173};
+    assembly_.landing_y.reset();
+    if(origin && current_choice_connector_>=0 && current_choice_connector_<3)
+        assembly_.landing_y=target_y[static_cast<std::size_t>(current_choice_connector_)]-origin->y;
     squirrel::begin_run_assembly_animation(assembly_,*data_,*keys);
     animating_=true;
     return true;
@@ -285,21 +289,8 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         }
     }
     if(animating_) {
-        const auto prior=assembly_.state;
         const auto tick=squirrel::tick_run_assembly_animation(assembly_,*data_);
-        if((prior==squirrel::RunAssemblyAnimationState::SecondFirstThreeSubsteps ||
-            prior==squirrel::RunAssemblyAnimationState::RetainedTransition) &&
-            assembly_.state==squirrel::RunAssemblyAnimationState::SecondLastFourSubsteps &&
-            previous_high_sprite_ && landing_connector_>=0 && landing_connector_<3) {
-            // 004265C7..004265E9: high atlas transition restores absolute
-            // Y before the first D-profile delta.
-            constexpr std::array<int,3> target_y{237,205,173};
-            const auto origin=squirrel::source_squirrel_start_position(
-                connectors_[static_cast<std::size_t>(level_)][0]);
-            assembly_.y=target_y[static_cast<std::size_t>(landing_connector_)]-origin->y+tick.delta.y;
-        }
         sprite_draw_frame_=squirrel::active_assembly_sprite_frame(assembly_);
-        previous_high_sprite_=sprite_draw_frame_>=63;
         sprite_draw_visible_=squirrel::assembly_sprite_visible(assembly_,sprite_draw_frame_,
             static_cast<std::size_t>(level_),placed_piece_ids_);
         if(tick.cycle_completed)animating_=false;
@@ -431,7 +422,7 @@ bool SquirrelDriver::unload(std::string& error) {
     placement_={squirrel::PlacementState::IdleSelect,placement_.position};
     placement_slot_=0;
     mouth_pose_=mouth_draw_frame_=1;
-    sprite_draw_frame_=0;sprite_draw_visible_=true;previous_high_sprite_=false;
+    sprite_draw_frame_=0;sprite_draw_visible_=true;
     temporary_decoy_=carried_piece_=-1;speech_={};
     animating_=false;complete_=false;level_transition_pending_=false;
     completion_stage_=0;

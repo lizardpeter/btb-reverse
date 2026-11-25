@@ -303,6 +303,10 @@ struct RunAssemblyAnimationRuntime {
     std::int32_t sprite_mode{};
     std::int32_t sprite_frame{};
     RunAssemblyMotionKeys motion_keys{};
+    // DAT_00515110 is latched by the preceding active draw, even if hidden.
+    bool high_sprite{};
+    // Coordinate-system-adjusted absolute destination from DAT_00515114.
+    std::optional<int> landing_y{};
 };
 
 // Initialized PE table at 004467E8: fourteen pairs of atlas indices.
@@ -392,6 +396,20 @@ tick_run_assembly_animation(
     const Data& data) noexcept {
 
     RunAssemblyAnimationTick result;
+    auto finish_active=[&]() constexpr {
+        runtime.high_sprite=active_assembly_sprite_frame(runtime)>=63;
+        return result;
+    };
+    auto enter_d=[&]() constexpr {
+        runtime.state=RunAssemblyAnimationState::SecondLastFourSubsteps;
+        runtime.delay_remaining=data.animation_step_delay;
+        runtime.substep=0;
+        runtime.sprite_frame=3;
+        // 004265C7: restore Y BEFORE the first D delta, using the prior
+        // frame's high sprite latch (not the newly selected sprite).
+        if(runtime.high_sprite && runtime.landing_y)
+            runtime.y=*runtime.landing_y;
+    };
 
     auto apply = [&](std::int32_t key, std::int32_t absolute_substep)
         constexpr {
@@ -430,11 +448,7 @@ tick_run_assembly_animation(
     // State 5 is similarly a retained bridge into state 6.
     if (runtime.state ==
         RunAssemblyAnimationState::RetainedTransition) {
-        runtime.state =
-            RunAssemblyAnimationState::SecondLastFourSubsteps;
-        runtime.delay_remaining = data.animation_step_delay;
-        runtime.substep = 0;
-        runtime.sprite_frame = 3;
+        enter_d();
     }
 
     while (true) {
@@ -481,14 +495,14 @@ tick_run_assembly_animation(
 
         --runtime.delay_remaining;
         if (runtime.delay_remaining > 0) {
-            return result;
+            return finish_active();
         }
 
         runtime.delay_remaining = data.animation_step_delay;
         ++runtime.substep;
 
         if (runtime.substep < phase_length) {
-            return result;
+            return finish_active();
         }
 
         switch (runtime.state) {
@@ -511,10 +525,7 @@ tick_run_assembly_animation(
             continue;
 
         case RunAssemblyAnimationState::SecondFirstThreeSubsteps:
-            runtime.state =
-                RunAssemblyAnimationState::SecondLastFourSubsteps;
-            runtime.substep = 0;
-            runtime.sprite_frame = 3;
+            enter_d();
             continue;
 
         case RunAssemblyAnimationState::SecondLastFourSubsteps:
@@ -524,7 +535,7 @@ tick_run_assembly_animation(
             runtime.state = RunAssemblyAnimationState::Idle;
             ++runtime.run_section;
             result.cycle_completed = true;
-            return result;
+            return finish_active();
 
         case RunAssemblyAnimationState::Idle:
         case RunAssemblyAnimationState::TransitionToSecondPhase:

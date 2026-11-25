@@ -334,6 +334,63 @@ int main() {
     assert(motion_tick.absolute_motion_substep == 3);
     assert((Vec2i{retained.x,retained.y} == Vec2i{27,-1}));
 
+    // 00425F40 original disassembly trace fingerprint, generated from
+    // the SHA-256-verified retail executable by translating its bounded x86
+    // integer instructions and capturing the DirectDraw blit arguments.
+    // 40,824 independent scenarios x 128 updates. Includes delay 1 to
+    // exercise same-frame phase fallthrough, plus the shipped delay 7.
+    {
+        std::uint64_t hash=14695981039346656037ull,count=0;
+        const auto mix=[&](std::uint32_t word) {
+            for(int byte=0;byte<4;++byte) {
+                hash^=word&255u;hash*=1099511628211ull;word>>=8;
+            }
+        };
+        constexpr std::array<int,3> target_y{237,205,173};
+        for(int tuple=0;tuple<81;++tuple)for(int id=0;id<36;++id)
+        for(int section=0;section<7;++section)for(int delay=1;delay<=7;delay+=6) {
+            RunPlan plan{};PlacedRunPieces pieces{};
+            int value=tuple;
+            for(int i=0;i<4;++i) {
+                plan[0][i]=value%3;value/=3;pieces[i]=(id+i*7)%36;
+            }
+            auto data=animation_data;data.animation_step_delay=delay;
+            RunAssemblyAnimationRuntime s{};
+            s.run_section=section;s.x=-34;s.y=205;s.high_sprite=(id&1)!=0;
+            s.landing_y=target_y[id%3];
+            btb::retail::OriginalRetailRandom random(1234+id);
+            for(int tick=0;tick<128;++tick) {
+                int frame=0;bool visible=false;
+                if(s.state==RunAssemblyAnimationState::Idle && s.run_section>section) {
+                    frame=tick_assembly_idle_sprite(s,delay,[&]{return random.next_rand();});
+                    // Original emits even idle frame 86, which is outside
+                    // the physical bitmap. Hash raw intent; the live host
+                    // deliberately rejects that invalid source rectangle.
+                    visible=true;
+                } else {
+                    if(s.state==RunAssemblyAnimationState::Idle)
+                        begin_run_assembly_animation(s,data,
+                            *select_run_assembly_motion_keys(s.run_section,0,plan,pieces));
+                    (void)tick_run_assembly_animation(s,data);
+                    frame=active_assembly_sprite_frame(s);
+                    visible=assembly_sprite_visible(s,frame,0,pieces);
+                }
+                for(auto word:std::array<std::uint32_t,10>{
+                    static_cast<std::uint32_t>(s.state),static_cast<std::uint32_t>(s.run_section),
+                    static_cast<std::uint32_t>(s.x),static_cast<std::uint32_t>(s.y),
+                    static_cast<std::uint32_t>(s.delay_remaining),static_cast<std::uint32_t>(s.substep),
+                    static_cast<std::uint32_t>(s.sprite_mode),static_cast<std::uint32_t>(s.sprite_frame),
+                    static_cast<std::uint32_t>(s.high_sprite),random.state()})mix(word);
+                for(auto word:std::array<int,5>{int(visible),visible?s.x:0,
+                    visible?s.y:0,visible?frame*102:0,visible?(frame+1)*102:0})
+                    mix(static_cast<std::uint32_t>(word));
+                ++count;
+            }
+        }
+        assert(count==5225472ull);
+        assert(hash==0x9f2c9d55e0505c56ull);
+    }
+
     static_assert(static_cast<int>(PlacementState::IdleSelect) == 0);
     static_assert(static_cast<int>(PlacementState::ReturnDecoyToConveyor) == 8);
 
