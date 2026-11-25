@@ -6,6 +6,7 @@
 #include "presentation_activity.hpp"
 #include "native_cursor.hpp"
 #include "cursor_runs.hpp"
+#include "btb/bmp_decoder.hpp"
 #include "sprite_motion.hpp"
 #include <chrono>
 #include <vulkan/vulkan.h>
@@ -242,16 +243,14 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
     }
     bool load_cursor(const std::filesystem::path& path){
         if(path==cursor_path_)return true;
-        struct BitmapHandle{HBITMAP h{};~BitmapHandle(){if(h)DeleteObject(h);}};
-        BitmapHandle bmp{static_cast<HBITMAP>(LoadImageW(nullptr,path.c_str(),IMAGE_BITMAP,0,0,LR_LOADFROMFILE|LR_CREATEDIBSECTION))};
-        BITMAP data{};
-        if(!bmp.h||GetObjectW(bmp.h,sizeof(data),&data)!=sizeof(data)||data.bmWidth!=19||data.bmHeight!=19)return false;
-        BITMAPINFO info{};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);info.bmiHeader.biWidth=19;
-        info.bmiHeader.biHeight=-19;info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;info.bmiHeader.biCompression=BI_RGB;
-        HDC dc=GetDC(nullptr);if(!dc)return false;
-        const int rows=GetDIBits(dc,bmp.h,0,19,cursor_pixels_.data(),&info,DIB_RGB_COLORS);
-        ReleaseDC(nullptr,dc);if(rows!=19)return false;
-        for(auto& pixel:cursor_pixels_)pixel=cursor_format(pixel,true); // BGRX -> RGBA
+        display::DecodedBitmap decoded;std::string error;
+        if(!display::decode_bmp_file(path,decoded,error)||decoded.width!=19||decoded.height!=19)return false;
+        // Shared decoder yields BGRA bytes; the cursor atlas uses AABBGGRR.
+        for(std::size_t i=0;i<cursor_pixels_.size();++i){
+            const auto* p=decoded.bgra.data()+i*4;
+            cursor_pixels_[i]=0xff000000U|(std::uint32_t(p[0])<<16)|
+                (std::uint32_t(p[1])<<8)|std::uint32_t(p[2]);
+        }
         cursor_runs_=cursor_runs(cursor_pixels_);cursor_path_=path;++cursor_revision_;return true;
     }
     bool sample_cursor(int& x,int& y){

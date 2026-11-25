@@ -116,9 +116,10 @@ The enhanced executable now links a separate `btb_enhanced_win32_platform` stati
 
 ## Retail bitmap coverage audit
 
-The enhanced build includes a deterministic BMP decoder independent of GDI.
-It normalizes supported BMP data into top-down BGRA8 while preserving the
-retail magenta color-key convention. Supported inputs include indexed 1/4/8-bit,
+The enhanced CPU bitmap compositor, Vulkan sprite atlas, and late-sampled cursor
+all use the same deterministic BMP decoder independent of GDI. It normalizes
+supported BMP data into top-down BGRA8 while preserving the retail magenta
+color-key convention. Supported inputs include indexed 1/4/8-bit,
 RGB555, RGB565/BITFIELDS, 24/32-bit RGB, explicit alpha bitfields, OS/2 CORE,
 and RLE4/RLE8. Unsupported compression, malformed masks, invalid palette
 references, truncated rows, and malformed RLE commands fail closed.
