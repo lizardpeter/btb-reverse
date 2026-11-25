@@ -59,6 +59,7 @@ data\\subgamegolf\\wendy.bmp
 //Comments
 )");
 
+    const auto fixture=in.str();
     const auto data = parse_data(in);
 
     assert((data.bob_position == Vec2i{98, 195}));
@@ -86,4 +87,10 @@ data\\subgamegolf\\wendy.bmp
     assert(data.ball_frame_count == 1);
     assert((data.trailing_point == Vec2i{105, 247}));
     assert(!data.final_optional_pair_was_present);
+    auto installed=fixture;
+    installed.insert(installed.find("//Comments"),"304 155\n");
+    std::istringstream with_pair(installed);
+    const auto retail=parse_data(with_pair);
+    assert(retail.final_optional_pair_was_present);
+    assert((retail.final_optional_pair==Vec2i{304,155}));
 }

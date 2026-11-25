@@ -75,8 +75,8 @@ Data parse_data(std::istream& in) {
     out.trailing_point = read_vec2(in, "trailing point");
 
     // Exact retail behavior: one final fscanf("%d %d") is attempted.
-    // The shipped golfdata.txt reaches its //Comments section here, so this
-    // normally fails and leaves the destination globals unchanged.
+    // The verified installation contains 304 155 before //Comments.
+    // Older source fixtures omit it; failure leaves destination globals unchanged.
     Vec2i optional{};
     if (in >> optional.x >> optional.y) {
         out.final_optional_pair_was_present = true;

@@ -51,8 +51,8 @@ struct Data {
     // The shipped file contains one undocumented pair after the ball data.
     Vec2i trailing_point{};
 
-    // Retail performs one more "%d %d" fscanf after trailing_point. In the
-    // shipped file the next token is "//Comments", so that scan fails.
+    // Retail performs one more "%d %d" fscanf after trailing_point.
+    // The verified installation contains 304 155; some fixture files omit it.
     bool final_optional_pair_was_present{false};
     Vec2i final_optional_pair{};
 
