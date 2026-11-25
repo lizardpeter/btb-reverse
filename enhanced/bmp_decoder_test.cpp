@@ -98,7 +98,7 @@ int main(){
     if(!decode_bmp(delta,out,error)||!pixel(out,0,1,255,0,0)||
        !pixel(out,1,1,0,0,0)||!pixel(out,2,1,0,255,0))return fail("RLE8 delta",error);
     // RLE4 absolute mode packs alternating nibbles and WORD padding.
-    auto rle4_absolute=make(5,1,4,2,p4,{0,5,0x12,0x34,0x50,0,0,1},{},4);
+    auto rle4_absolute=make(5,1,4,2,p4,{0,5,0x12,0x30,0x10,0,0,1},{},4);
     if(!decode_bmp(rle4_absolute,out,error)||!pixel(out,0,0,255,0,0)||
        !pixel(out,1,0,0,255,0)||!pixel(out,2,0,0,0,255)||
        !pixel(out,3,0,0,0,0)||!pixel(out,4,0,255,0,0))return fail("RLE4 absolute",error);
