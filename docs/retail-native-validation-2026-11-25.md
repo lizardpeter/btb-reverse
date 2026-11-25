@@ -63,3 +63,12 @@ The native Dinosaur probe completed all nine original layouts (three species × 
 
     cmake --build build/faithful --target btb_retail_fireworks_playthrough
     build/faithful/btb_retail_fireworks_playthrough /path/to/BTB-BBP /new/temporary/save-directory
+
+## Park Designer installed-data validation
+
+5/5 profiles, 2,820 updates and 43,900 validated original bitmap draw commands. Each run builds a pond, fountain, accessory, bandstand base, four linked pillars, roof and decoration, then switches to winter, issues a print request, declines Delete All, accepts the real Back confirmation, waits for completion voice, verifies progress and shared completion code 7, writes and reloads the original 30,512-byte design save. The original authored bounds and both seasonal art sets are used; private game assets and saves are excluded from the repository.
+
+    cmake --build build/faithful --target btb_retail_park_playthrough
+    build/faithful/btb_retail_park_playthrough /path/to/BTB-BBP /new/temporary/save-directory
+
+All ten activity drivers now have installed-data completion coverage. This is not yet a single uninterrupted front-end-to-finale Windows playthrough; the probes exercise actual game data, commands and activity logic with headless input and modeled sound state, not physical DirectDraw, DirectSound or printer devices.

@@ -91,6 +91,7 @@ jobs:
             build/reconstruction/btb_retail_spud_skate_playthrough
             build/reconstruction/btb_retail_bobs_band_playthrough
             build/reconstruction/btb_retail_fireworks_playthrough
+            build/reconstruction/btb_retail_park_playthrough
             build/reconstruction/btb_bink32_retail_video_audit
             build/reconstruction/btb_bink32_native_audio_audit
             tools/audit_retail_bink.py
@@ -209,6 +210,7 @@ jobs:
             build/reconstruction-win/Release/btb_retail_spud_skate_playthrough.exe
             build/reconstruction-win/Release/btb_retail_bobs_band_playthrough.exe
             build/reconstruction-win/Release/btb_retail_fireworks_playthrough.exe
+            build/reconstruction-win/Release/btb_retail_park_playthrough.exe
           if-no-files-found: error
       - name: Upload source-only preview EXE
         uses: actions/upload-artifact@v4
