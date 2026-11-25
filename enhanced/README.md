@@ -12,7 +12,7 @@ recommended (slangc in PATH or the SDK Bin directory).
 ```powershell
 cmake -S . -B build/enhanced -A x64 -DBTB_BUILD_ENHANCED=ON -DBTB_REQUIRE_VULKAN=ON -DBTB_REQUIRE_SLANG=ON
 cmake --build build/enhanced --config Release --target btb_game_enhanced
-build/enhanced/enhanced/Release/btb_game_enhanced.exe --native-original "C:\Games\Bob Builds a Park"
+build/enhanced/Release/btb_game_enhanced.exe --native-original "C:\Games\Bob Builds a Park"
 ```
 
 The enhanced executable opens a resizable 4:3 letterboxed Vulkan window.

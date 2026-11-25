@@ -26,11 +26,20 @@ jobs:
         run: |
           python tools/build_reconstruction_index.py
           python tools/build_remaining_architecture.py
-      - name: Install Vulkan SDK 1.4
-        uses: humbletim/install-vulkan-sdk@v1.1.1
-        with:
-          version: 1.4.341.1
-          cache: true
+      - name: Install verified LunarG Vulkan SDK 1.4.341.1
+        shell: pwsh
+        run: |
+          $version = "1.4.341.1"
+          $root = "C:\VulkanSDK\$version"
+          $installer = Join-Path $env:RUNNER_TEMP "vulkansdk-windows-X64-$version.exe"
+          $expected = "bcf2d75aa9556889ab974858666e20b3655b6055a0db704ccb47279ff33b5bfe"
+          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$version/windows/vulkansdk-windows-X64-$version.exe" -OutFile $installer
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) { throw "SDK installer SHA256 mismatch" }
+          $proc = Start-Process -FilePath $installer -ArgumentList @("--root",$root,"--accept-licenses","--default-answer","--confirm-command","install") -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "Vulkan SDK installer exit $($proc.ExitCode)" }
+          if (!(Test-Path "$root\Include\vulkan\vulkan.h") -or !(Test-Path "$root\Bin\slangc.exe")) { throw "Required Vulkan headers or Slang compiler missing" }
+          "VULKAN_SDK=$root" >> $env:GITHUB_ENV
+          "$root\Bin" >> $env:GITHUB_PATH
       - name: Configure required Vulkan and Slang
         run: cmake -S . -B build/enhanced-vulkan -G "Visual Studio 18 2026" -A x64 -DBTB_BUILD_ENHANCED=ON -DBTB_REQUIRE_VULKAN=ON -DBTB_REQUIRE_SLANG=ON
       - name: Build enhanced executable, shaders, policy and Vulkan smoke
