@@ -19,3 +19,5 @@ The checked-in tools were compiled and run against the verified original PE. All
 ## Bink native structural decode
 
 All 61 identified paths in the original global movies (33), Spud Skate (5), and Fireworks (23) banks decoded, 12732 frames and 44 audio tracks, 61034880 PCM16 bytes. Zero failed or partial paths. This structural audit does not establish pixel or PCM equivalence by itself, and does not claim other folders have been exhaustively inventoried. Physical Windows audio/video/input parity remains open.
+
+Independent FFmpeg 7.1.5 comparison against the same local production build: 61/61 original paths, 12,732 exact video frames (all planes), 44/44 PCM16 tracks with identical lengths; 30,517,440 sample values, 9,806 values differing by one LSB, maximum difference 1 LSB. The full local C++26 build also passed all 254 CTests, including the metadata fixture and its negative cases. These are codec and command-stream results, not physical device certification.

@@ -74,3 +74,13 @@ executable with `--reference-yuva` for pixel comparison.
 A successful complete audit establishes native file/stream decoding, not
 identical PCM or pixels, real-device rendering, synchronization or end-to-end
 gameplay. Those are separate certification gates.
+
+## Reproducible independent reference comparison (2026-11-25)
+
+The current production checkout was built locally with GCC 14. FFmpeg 7.1.5 accepts the original SJPi stream directly when the Bink demuxer is selected; no original-header modification or ELF compatibility adjustment is needed. The 61 identified original media paths again passed: 12,732/12,732 frames with zero Y/U/V/A byte differences; 44/44 audio tracks with identical sample counts (30,517,440 signed PCM16 values), 9,806 values different by exactly one LSB and all others exact. Maximum difference 1 LSB. The tool and reference executables are separate from the game runtime. Original game assets are not distributed.
+
+Run the independent verifier after building the native audit tools:
+
+    python tools/compare_retail_bink.py /path/to/BTB-BBP --video-tool build/faithful/btb_bink32_retail_video_audit --audio-tool build/faithful/btb_bink32_native_audio_audit --expected-count 61 --out /tmp/btb-bink-comparison.json
+
+The command checks each full reference comparison summary, every declared audio track, sample alignment/counts, maximum signed PCM difference, and discovery count. It fails for empty inventories, timeouts, decode errors, mismatches or missing tools. It emits only metadata, hashes and counts; raw reference data is temporary. Physical Windows playback is a separate certification gate.

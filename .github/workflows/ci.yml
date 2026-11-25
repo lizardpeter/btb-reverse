@@ -21,7 +21,9 @@ jobs:
       - name: Compile Python tooling
         run: python -m py_compile tools/*.py
       - name: Exercise read-only retail media audit fixtures
-        run: python -m unittest discover -s tools -p test_audit_retail_bink.py
+        run: |
+          python -m unittest discover -s tools -p test_audit_retail_bink.py
+          python -m unittest discover -s tools -p test_compare_retail_bink.py
       - name: Package exact source snapshot for offline reconstruction
         run: git archive --format=tar.gz --output=btb-source-snapshot.tar.gz HEAD
       - name: Upload source-only snapshot
@@ -86,6 +88,7 @@ jobs:
             build/reconstruction/btb_bink32_retail_video_audit
             build/reconstruction/btb_bink32_native_audio_audit
             tools/audit_retail_bink.py
+            tools/compare_retail_bink.py
           retention-days: 7
           if-no-files-found: error
 
@@ -186,6 +189,7 @@ jobs:
             build/reconstruction-win/Release/btb_bink32_retail_video_audit.exe
             build/reconstruction-win/Release/btb_bink32_native_audio_audit.exe
             tools/audit_retail_bink.py
+            tools/compare_retail_bink.py
           if-no-files-found: error
       - name: Upload installed-data activity diagnostics
         uses: actions/upload-artifact@v4
