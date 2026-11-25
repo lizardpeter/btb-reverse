@@ -45,10 +45,13 @@ int main() {
 
     constexpr auto bob_rect =
         placement_actor_source_rect(kInitialPlacementActorVisuals[0]);
-    static_assert(bob_rect.left == 512);
-    static_assert(bob_rect.top == 0);
-    static_assert(bob_rect.right == 640);
-    static_assert(bob_rect.bottom == 128);
+    static_assert(bob_rect.left == 0);
+    static_assert(bob_rect.top == 512);
+    static_assert(bob_rect.right == 128);
+    static_assert(bob_rect.bottom == 640);
+    constexpr auto walking_rect=placement_actor_source_rect({260,168,7,24,0});
+    static_assert(walking_rect.left==3072&&walking_rect.top==896);
+    static_assert(walking_rect.right==3200&&walking_rect.bottom==1024);
 
     PlacementActorVisual idle_anim = kInitialPlacementActorVisuals[0];
     for (int i = 0; i < 5; ++i) {

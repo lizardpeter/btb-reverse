@@ -186,8 +186,10 @@ struct ActorSourceRect {
 
 [[nodiscard]] constexpr ActorSourceRect placement_actor_source_rect(
     const PlacementActorVisual& visual) noexcept {
-    const auto left = visual.source_column * 128;
-    const auto top = visual.source_row * 128;
+    // 004131A2..004131DA writes animation to RECT.left/right and
+    // direction to RECT.top/bottom. Retail sheets are 30x8 cells.
+    const auto left = visual.source_row * 128;
+    const auto top = visual.source_column * 128;
     return {left, top, left + 128, top + 128};
 }
 

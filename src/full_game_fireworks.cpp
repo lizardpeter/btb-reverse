@@ -444,7 +444,7 @@ ActivityFrameOutput FireworksDriver::advance(
     const auto control = fireworks::update_editor_controls(
         editor_,
         {input.pointer_x, input.pointer_y, input.click_pulse,
-         false, input.click_pulse});
+         input.pointer_button_held, input.click_pulse});
     if (control.sound_id) {
         append_sound(output, *control.sound_id, 90, 1);
     }
@@ -492,7 +492,7 @@ ActivityFrameOutput FireworksDriver::advance(
                         sequence_, row, column);
                     const auto result = fireworks::complete_placement_release(
                         editor_, sequence_, row, column,
-                        static_cast<int>(nonnegative_roll(input.random_value) % 4));
+                        original_random_?original_random_->next_rand()%4:static_cast<int>(nonnegative_roll(input.random_value) % 4));
                     if (result.sound_id) append_sound(output, *result.sound_id);
                 }
             } else if (editor_.internal_state == InternalState::Editor) {
@@ -502,7 +502,7 @@ ActivityFrameOutput FireworksDriver::advance(
                    editor_.actor_states[1]!=fireworks::PlacementActorState::Idle)break;
                 const auto palette = fireworks::process_palette_action(
                     editor_, static_cast<fireworks::FireworkType>(i - 18),
-                    static_cast<int>(nonnegative_roll(input.random_value) % 5));
+                    original_random_?original_random_->next_rand()%5:static_cast<int>(nonnegative_roll(input.random_value) % 5));
                 if (palette.begin.sound_id) {
                     append_sound(output, *palette.begin.sound_id);
                 }

@@ -56,3 +56,10 @@ The native Dinosaur probe completed all nine original layouts (three species × 
 
     cmake --build build/faithful --target btb_retail_bobs_band_playthrough
     build/faithful/btb_retail_bobs_band_playthrough /path/to/BTB-BBP /new/temporary/save-directory
+
+## Fireworks installed-data validation
+
+5/5 profile runs: 90 authored placements and launches, 1,195 pre-show decoded frames, 9,235 show decoded frames, 115 stream restarts, 8,005 gameplay updates and 18,675 validated original bitmap draw commands. Certificate print request, progress, retained class-2 Back/replay handoff and exact 72-byte saved layouts passed. The original 004131A2..004131DA instructions write direction*128 to RECT.top and animation*128 to RECT.left; correcting the transposed native crop prevents out-of-bounds reads on the actual 3840x1024 actor atlases. Held-button overlays and shared original RNG selection restored. The test uses the production native movie scheduler, actual Bink decoding, a virtual clock and modeled managed sound; it does not certify physical Windows playback or printing.
+
+    cmake --build build/faithful --target btb_retail_fireworks_playthrough
+    build/faithful/btb_retail_fireworks_playthrough /path/to/BTB-BBP /new/temporary/save-directory
