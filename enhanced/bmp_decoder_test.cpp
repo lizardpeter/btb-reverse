@@ -59,6 +59,29 @@ int main(){
     });
     if(!decode_bmp(top,out,error)||!pixel(out,0,0,255,0,0)||!pixel(out,0,1,0,0,255))
         return fail("24-bit top-down",error);
+    // Deterministic sweep over odd/even row widths, padding, and both orientations.
+    for(unsigned height=1;height<=7;++height)for(unsigned width=1;width<=19;++width)
+        for(bool top_down:{false,true}) {
+            const unsigned stride=((width*3+3)/4)*4;
+            std::vector<std::uint8_t> raw(std::size_t(stride)*height,0);
+            for(unsigned fy=0;fy<height;++fy)for(unsigned x=0;x<width;++x) {
+                auto* q=raw.data()+std::size_t(fy)*stride+x*3;
+                q[0]=std::uint8_t((x*17+fy*11+width)%256);
+                q[1]=std::uint8_t((x*7+fy*29+height)%256);
+                q[2]=std::uint8_t((x*31+fy*3+width+height)%256);
+            }
+            auto sweep=make(width,top_down?-std::int32_t(height):std::int32_t(height),24,0,{},raw);
+            if(!decode_bmp(sweep,out,error)||out.bits_per_pixel!=24||out.top_down!=top_down)
+                return fail("24-bit format sweep",error);
+            for(unsigned fy=0;fy<height;++fy)for(unsigned x=0;x<width;++x) {
+                const unsigned y=top_down?fy:height-1-fy;
+                const auto* q=raw.data()+std::size_t(fy)*stride+x*3;
+                if(!pixel(out,x,y,q[2],q[1],q[0]))return fail("24-bit row/stride pixel mismatch");
+            }
+        }
+    auto zero_image_size=b24;put32(zero_image_size,34,0);
+    if(!decode_bmp(zero_image_size,out,error)||!pixel(out,0,0,255,0,0))
+        return fail("BI_RGB zero image-size field",error);
     // Indexed 8-bit palette.
     const auto p4=pal({{0,0,0},{255,0,0},{0,255,0},{0,0,255}});
     auto b8=make(3,1,8,0,p4,{1,2,3,0},{},4);
