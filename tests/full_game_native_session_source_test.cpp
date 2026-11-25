@@ -70,7 +70,7 @@ public:
     int observe_count{};
     std::vector<bool> pause_transitions{};
     bool snapshot_support{};
-    std::array<int,2> underlay_captures{},underlay_draws{};
+    std::array<int,3> underlay_captures{},underlay_draws{};
     std::vector<std::string> movie_operations{};
     std::vector<Draw> overlay_draws{};
     int global_open{};
@@ -106,7 +106,7 @@ public:
         error.clear(); return true;
     }
     bool close_global_movie(std::string& error) override {
-        ++global_close;error.clear();return true;
+        ++global_close;movie_operations.push_back("close global");error.clear();return true;
     }
     bool open_walkthrough_movie(
         const fs::path& movie,
@@ -117,7 +117,7 @@ public:
         error.clear(); return true;
     }
     bool close_walkthrough_movie(std::string& error) override {
-        ++walk_close;error.clear();return true;
+        ++walk_close;movie_operations.push_back("close walkthrough");error.clear();return true;
     }
     bool apply_sound(const ResolvedSoundEffect&,
                      std::string& error) override {
@@ -1261,6 +1261,54 @@ int main() {
         assert(device.underlay_draws[0]==2);
         assert(device.replay_captures==0&&device.underlay_captures[1]==0);
         assert(session->tick({},false,false).submitted);
+    }
+    // Escape/Options over a live instruction walkthrough freezes the
+    // actual composed image, then Alt+X closes both media providers
+    // before observation and submits only credits, not stale overlays.
+    {
+        touch(directory,"Data/ui/credits1.bmp");
+        touch(directory,"Data/ui/credits2.bmp");
+        touch(directory,"Data/sound/options_intro.wav");
+        auto game=std::make_unique<GameRoot>();
+        assert(game->select_profile(0));
+        assert(game->install_pregame_front_end_pair(State::GolfPregameSetup,std::make_unique<Instruction>()));
+        game->globals().menu.selected_subgame=1;
+        std::string error;
+        std::istringstream options("0 0 250 417 299 462 340 417 389 466 208 222 410 242 122 86 480 350");
+        std::istringstream credits("Data/ui/credits1.bmp Data/ui/credits2.bmp");
+        assert(game->configure_options(options,error));
+        assert(game->configure_credits(credits,error));
+        game->set_outer_state(State::GolfPregameSetup);
+        Device device;device.snapshot_support=true;
+        auto session=std::make_unique<NativeGameSession>(*game,device,
+            OriginalAssetResolver{directory},startup_fixture(),walkthrough_fixture());
+        std::istringstream sounds("options_intro.wav 572\n");
+        assert(session->load_sound_catalog(sounds).success);
+        assert(session->tick({},false,false).submitted);
+        assert(session->has_walkthrough());
+        assert(game->request_window_options());
+        device.movie_operations.clear();
+        auto frame=session->tick({},false,false);
+        assert(frame.submitted&&!frame.failure);
+        assert(device.underlay_captures[2]==1&&device.underlay_draws[2]==1);
+        assert(device.overlay_draws.size()==2);
+        assert(session->has_walkthrough());
+        assert(session->tick({},false,false).submitted);
+        assert(device.underlay_captures[2]==1&&device.underlay_draws[2]==2);
+        game->request_window_credits();
+        device.movie_operations.clear();
+        frame=session->tick({},false,false);
+        assert(frame.submitted&&!frame.failure&&frame.walkthrough_closed);
+        assert(!session->has_walkthrough());
+        assert(device.global_close==1&&device.walk_close==1);
+        assert(device.movie_operations==std::vector<std::string>({"close global","close walkthrough","observe"}));
+        assert(frame.prepared.game.effects.draws.size()==1);
+        assert(frame.prepared.game.effects.draws[0].source_asset=="Data/ui/credits1.bmp");
+        frame=session->tick({.click_pulse=true},true,false);
+        assert(frame.submitted&&frame.prepared.game.effects.draws[0].source_asset=="Data/ui/credits2.bmp");
+        frame=session->tick({.click_pulse=true},true,false);
+        assert(frame.submitted&&game->globals().dispatcher.shutdown_phase==btb::application::ShutdownPhase::FinalTeardown);
+        assert(device.global_close==1&&device.walk_close==1);
     }
     fs::remove_all(directory);
 }

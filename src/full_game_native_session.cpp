@@ -41,6 +41,30 @@ NativeSessionFrame NativeGameSession::tick(
     const bool pause=!skip_video_&&!shutting_down&&game_flow::dispatch_step(
         root_.globals().dispatcher).pause_global_movie;
     input.physical_help_snapshot_available=device_.supports_captured_underlays();
+    // The menu/accelerator fires between ticks. Capture the last
+    // actually presented scene, not a reconstructed bitmap-only list.
+    // An existing movie snapshot is already the correct underlay.
+    if(!shutting_down&&root_.window_options_requested()&&
+       input.physical_help_snapshot_available&&!global_snapshot_valid_){
+        if(!device_.capture_presented_underlay(CapturedUnderlay::Modal,error)){
+            fail(frame,PhysicalPresentationStage::SubmitDraw,error);return frame;
+        }
+        modal_snapshot_valid_=true;
+    }
+    if(root_.globals().dispatcher.shutdown_phase==application::ShutdownPhase::BeginCredits){
+        // Stop physical media before observing it. Otherwise an
+        // interrupted decoder can advance/fail while entering credits.
+        if(!device_.close_global_movie(error)){
+            fail(frame,PhysicalPresentationStage::MovieClose,error);return frame;
+        }
+        global_snapshot_valid_=false;global_movie_paused_=false;modal_snapshot_valid_=false;
+        if(walkthrough_open_){
+            if(!device_.close_walkthrough_movie(error)){
+                fail(frame,PhysicalPresentationStage::MovieClose,error);return frame;
+            }
+            walkthrough_open_=false;frame.walkthrough_closed=true;
+        }
+    }
     // Restore the last submitted movie pixels on EVERY unpaused tick:
     // BinkWait can leave pixels untouched and fullscreen Flip swaps buffers.
     // The independent snapshot also restores the pre-modal movie image.
@@ -157,7 +181,7 @@ NativeSessionFrame NativeGameSession::tick(
         return resolved.absolute_path;
     };
 
-    if (game.close_original_global_movie) {
+    if (game.close_original_global_movie && !shutting_down) {
         global_snapshot_valid_=false;global_movie_paused_=false;
         if (!device_.close_global_movie(error)) {
             fail(frame,PhysicalPresentationStage::MovieClose,error);
@@ -359,6 +383,8 @@ NativeSessionFrame NativeGameSession::tick(
             drawn=render_snapshot(CapturedUnderlay::Help,*effects.original_help_background_count);
         else if(global_movie_paused_&&global_snapshot_valid_&&effects.original_modal_background_count)
             drawn=render_snapshot(CapturedUnderlay::GlobalMovie,*effects.original_modal_background_count);
+        else if(modal_snapshot_valid_&&intercept==game_flow::Intercept::Options&&effects.original_modal_background_count)
+            drawn=render_snapshot(CapturedUnderlay::Modal,*effects.original_modal_background_count);
         else if(skate_replay)drawn=device_.draw_replay_ordered({},error);
         else if(replay_underlay)drawn=device_.draw_replay_ordered(draws,error);
         else if(preparing_replay&&draws.empty())drawn=true; // capture existing pixels
@@ -377,6 +403,7 @@ NativeSessionFrame NativeGameSession::tick(
             if(entry_state==S::SpudSkateRun)skate_snapshot_valid_=true;
         }
     }
+    if(!root_.globals().dispatcher.options_active)modal_snapshot_valid_=false;
     if(input.physical_help_snapshot_available){
         if(frame.prepared.game.effects.capture_original_help&&
            !device_.capture_underlay(CapturedUnderlay::Help,error)){

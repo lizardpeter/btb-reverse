@@ -68,6 +68,9 @@ public:
         const std::vector<ResolvedDraw>& draws,
         std::string& error) = 0;
     [[nodiscard]] virtual bool supports_captured_underlays() const noexcept {return false;}
+    [[nodiscard]] virtual bool capture_presented_underlay(CapturedUnderlay kind,std::string& error) {
+        return capture_underlay(kind,error);
+    }
     [[nodiscard]] virtual bool capture_underlay(CapturedUnderlay,std::string& error) {
         error="captured source surface unavailable";return false;
     }
@@ -167,6 +170,7 @@ private:
     bool walkthrough_open_{};
     bool global_movie_paused_{};
     bool global_snapshot_valid_{};
+    bool modal_snapshot_valid_{};
     // Spud Skate tears down its movie surfaces during GameRoot::advance.
     // Keep its last actually composed frame before that teardown.
     bool skate_snapshot_valid_{};

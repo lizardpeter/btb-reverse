@@ -183,7 +183,7 @@ inline constexpr std::array<int,5> kProfileGateSoundIds{{
     0x12f,0x130,0x131,0x136,0x137
 }};
 
-enum class CapturedUnderlay { Help, GlobalMovie };
+enum class CapturedUnderlay { Help, GlobalMovie, Modal };
 
 struct ActivityFrameInput {
     int pointer_x{};
@@ -421,6 +421,7 @@ public:
     [[nodiscard]] bool configure_contextual_help(std::istream&,std::string&);
     // Original window-menu commands 0x9c41 (Options) and 0x3e9 (Exit).
     [[nodiscard]] bool request_window_options() noexcept;
+    [[nodiscard]] bool window_options_requested() const noexcept {return window_options_pending_;}
     [[nodiscard]] bool accepts_native_name_input() const noexcept {
         return name_entry_&&name_entry_phase_==2&&!name_entry_->awaiting_accept_voice&&
             !contextual_help_.active&&!globals_.dispatcher.options_active&&

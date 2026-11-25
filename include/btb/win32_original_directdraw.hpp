@@ -45,6 +45,7 @@ public:
         std::string& error);
     [[nodiscard]] bool render_additional(const std::vector<ResolvedDraw>&,std::string& error);
     [[nodiscard]] bool capture_underlay(CapturedUnderlay,std::string& error);
+    [[nodiscard]] bool capture_presented_underlay(CapturedUnderlay,std::string& error);
     [[nodiscard]] bool render_captured_underlay(CapturedUnderlay,const std::vector<ResolvedDraw>&,std::string& error);
     [[nodiscard]] bool capture_replay_underlay(std::string& error);
     [[nodiscard]] bool render_replay_ordered(
@@ -94,8 +95,9 @@ private:
         OriginalSurface& out,std::string& error);
     [[nodiscard]] bool blit(
         const ResolvedDraw& draw,std::string& error);
-    enum class UnderlayKind { None, Replay, Help, GlobalMovie };
-    [[nodiscard]] bool capture_surface(IDirectDrawSurface7*&,std::string&);
+    enum class UnderlayKind { None, Replay, Help, GlobalMovie, Modal };
+    [[nodiscard]] bool capture_surface(IDirectDrawSurface7*&,std::string&,IDirectDrawSurface7* source=nullptr);
+    [[nodiscard]] IDirectDrawSurface7*& underlay_target(CapturedUnderlay) noexcept;
     [[nodiscard]] bool render_ordered_with_underlay(
         const std::vector<ResolvedDraw>& stream,std::string& error,
         UnderlayKind kind);
@@ -116,6 +118,7 @@ private:
     IDirectDrawSurface7* replay_underlay_{};
     IDirectDrawSurface7* help_underlay_{};
     IDirectDrawSurface7* global_underlay_{};
+    IDirectDrawSurface7* modal_underlay_{};
     UnderlayKind previous_frame_underlay_{UnderlayKind::None};
     bool surface_lost_during_draw_{};
 };

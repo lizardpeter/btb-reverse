@@ -79,6 +79,9 @@ public:
     }
     [[nodiscard]] bool set_original_volume(int percent,std::string& error) override;
     [[nodiscard]] bool supports_captured_underlays() const noexcept override {return true;}
+    [[nodiscard]] bool capture_presented_underlay(CapturedUnderlay kind,std::string& error) override {
+        return draw_.capture_presented_underlay(kind,error);
+    }
     [[nodiscard]] bool capture_underlay(CapturedUnderlay kind,std::string& error) override {
         return draw_.capture_underlay(kind,error);
     }
