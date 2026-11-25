@@ -9,6 +9,7 @@
 
 #if defined(_WIN32)
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <utility>
 
@@ -25,6 +26,61 @@ void release_surface(IDirectDrawSurface7*& surface) noexcept {
         surface->Release();
         surface=nullptr;
     }
+}
+
+[[nodiscard]] display::PackedRgbFormat locked_format(const DDSURFACEDESC2& info) noexcept {
+    if(!(info.ddpfPixelFormat.dwFlags&DDPF_RGB)||info.ddpfPixelFormat.dwRGBBitCount%8)return {};
+    return {info.ddpfPixelFormat.dwRGBBitCount/8,
+        info.ddpfPixelFormat.dwRBitMask,info.ddpfPixelFormat.dwGBitMask,
+        info.ddpfPixelFormat.dwBBitMask};
+}
+[[nodiscard]] bool read_surface_pixels(IDirectDrawSurface7* surface,int width,int height,
+    display::PackedFrameSnapshot& output,std::string& error) {
+    if(!surface||width<=0||height<=0||width>640||height>480){error="invalid snapshot surface";return false;}
+    DDSURFACEDESC2 info{};info.dwSize=sizeof(info);
+    const auto hr=surface->Lock(nullptr,&info,DDLOCK_WAIT|DDLOCK_READONLY|DDLOCK_SURFACEMEMORYPTR,nullptr);
+    if(FAILED(hr)){error=hresult_description("lock original snapshot",hr);return false;}
+    bool valid=false;
+    // Always unlock, even if allocating the CPU snapshot throws.
+    try{
+        if(info.lpSurface&&info.lPitch>0&&info.dwWidth>=static_cast<DWORD>(width)&&
+           info.dwHeight>=static_cast<DWORD>(height)&&
+           static_cast<std::size_t>(info.lPitch)<=std::numeric_limits<std::size_t>::max()/height){
+            const auto pitch=static_cast<std::size_t>(info.lPitch);
+            valid=display::capture_packed_frame(output,
+                {static_cast<const std::uint8_t*>(info.lpSurface),pitch*height},
+                pitch,width,height,locked_format(info));
+        }
+    }catch(...){valid=false;}
+    const auto unlock=surface->Unlock(nullptr);
+    if(FAILED(unlock)){error=hresult_description("unlock original snapshot",unlock);return false;}
+    if(!valid){error="unsupported original snapshot pixel layout";return false;}
+    error.clear();return true;
+}
+[[nodiscard]] bool write_surface_pixels(IDirectDrawSurface7* surface,
+    const display::PackedFrameSnapshot& input,int x,int y,std::string& error) {
+    if(!surface||!input.valid()||x<0||y<0||x>640||y>480){error="invalid snapshot destination";return false;}
+    DDSURFACEDESC2 info{};info.dwSize=sizeof(info);
+    const auto hr=surface->Lock(nullptr,&info,DDLOCK_WAIT|DDLOCK_SURFACEMEMORYPTR,nullptr);
+    if(FAILED(hr)){error=hresult_description("lock original snapshot destination",hr);return false;}
+    bool valid=false;
+    const auto format=locked_format(info);
+    if(info.lpSurface&&info.lPitch>0&&format.valid()&&
+       static_cast<std::size_t>(x)+input.width<=info.dwWidth&&
+       static_cast<std::size_t>(y)+input.height<=info.dwHeight){
+        const auto pitch=static_cast<std::size_t>(info.lPitch);
+        if(info.dwHeight&&pitch<=std::numeric_limits<std::size_t>::max()/info.dwHeight&&
+           (static_cast<std::size_t>(x)+input.width)*format.bytes<=pitch){
+            const auto offset=static_cast<std::size_t>(y)*pitch+static_cast<std::size_t>(x)*format.bytes;
+            valid=display::restore_packed_frame(input,
+                {static_cast<std::uint8_t*>(info.lpSurface)+offset,pitch*info.dwHeight-offset},
+                pitch,format);
+        }
+    }
+    const auto unlock=surface->Unlock(nullptr);
+    if(FAILED(unlock)){error=hresult_description("unlock original snapshot destination",unlock);return false;}
+    if(!valid){error="unsupported original snapshot destination pixel layout";return false;}
+    error.clear();return true;
 }
 
 class DisplayProvider final:public original_display3::Services {
@@ -82,12 +138,8 @@ void Win32OriginalDirectDraw::release_cached_bitmaps() noexcept {
 
 void Win32OriginalDirectDraw::shutdown() noexcept {
     release_cached_bitmaps();
-    previous_frame_.clear();
-    previous_frame_underlay_=UnderlayKind::None;
-    release_surface(replay_underlay_);
-    release_surface(help_underlay_);
-    release_surface(global_underlay_);
-    release_surface(modal_underlay_);
+    replay_underlay_.clear();help_underlay_.clear();
+    global_underlay_.clear();modal_underlay_.clear();composed_frame_.clear();
     if(extra_back_reference_ && backbuffer_)backbuffer_->Release();
     extra_back_reference_=false;
     release_surface(backbuffer_);
@@ -129,6 +181,25 @@ bool Win32OriginalDirectDraw::initialize(
 
     error.clear();
     return true;
+}
+
+bool Win32OriginalDirectDraw::recreate(HWND hwnd,display::DisplayMode mode,std::string& error) {
+    // initialize's original reset callback releases all COM resources.
+    // Move only authentic captured pixels out of that teardown scope.
+    auto replay=std::move(replay_underlay_),help=std::move(help_underlay_),
+        global=std::move(global_underlay_),modal=std::move(modal_underlay_),
+        composed=std::move(composed_frame_);
+    shutdown();
+    if(!initialize(hwnd,mode,error))return false;
+    replay_underlay_=std::move(replay);help_underlay_=std::move(help);
+    global_underlay_=std::move(global);modal_underlay_=std::move(modal);
+    composed_frame_=std::move(composed);
+    return true;
+}
+
+bool Win32OriginalDirectDraw::restore_last_composed_frame(std::string& error) {
+    if(!composed_frame_.valid()){error.clear();return true;}
+    return write_surface_pixels(backbuffer_,composed_frame_,0,0,error);
 }
 
 HRESULT Win32OriginalDirectDraw::clear_retail_backbuffer(DWORD color) noexcept {
@@ -290,26 +361,19 @@ bool Win32OriginalDirectDraw::render_additional(
     const std::vector<ResolvedDraw>& stream,std::string& error) {
     if(!initialized()){error="post-movie overlay requires live DirectDraw";return false;}
     for(const auto& draw:stream)if(!blit(draw,error))return false;
-    previous_frame_.insert(previous_frame_.end(),stream.begin(),stream.end());
     error.clear();return true;
 }
 
-bool Win32OriginalDirectDraw::capture_surface(IDirectDrawSurface7*& target,std::string& error,IDirectDrawSurface7* source) {
+bool Win32OriginalDirectDraw::capture_surface(display::PackedFrameSnapshot& target,
+    std::string& error,IDirectDrawSurface7* source) {
     if(!initialized()){error="snapshot requires live DirectDraw";return false;}
-    if(!target&&!create_bink_offscreen_surface(640,480,target,error))return false;
-    RECT full{0,0,640,480};
-    const auto hr=target->Blt(&full,source?source:backbuffer_,&full,DDBLT_WAIT,nullptr);
-    if(FAILED(hr)){
-        release_surface(target);
-        error=hresult_description("capture original underlay",hr);return false;
-    }
-    error.clear();return true;
+    return read_surface_pixels(source?source:backbuffer_,640,480,target,error);
 }
 
 bool Win32OriginalDirectDraw::capture_replay_underlay(std::string& error) {
     return capture_surface(replay_underlay_,error);
 }
-IDirectDrawSurface7*& Win32OriginalDirectDraw::underlay_target(CapturedUnderlay kind) noexcept {
+display::PackedFrameSnapshot& Win32OriginalDirectDraw::underlay_target(CapturedUnderlay kind) noexcept {
     if(kind==CapturedUnderlay::Help)return help_underlay_;
     if(kind==CapturedUnderlay::Modal)return modal_underlay_;
     return global_underlay_;
@@ -318,19 +382,16 @@ bool Win32OriginalDirectDraw::capture_presented_underlay(CapturedUnderlay kind,s
     // Windowed Blt keeps the 640x480 render buffer; fullscreen Flip
     // swaps it with the front surface. Never capture the stale back
     // buffer after a fullscreen flip or the desktop in windowed mode.
-    return capture_surface(underlay_target(kind),error,
-        mode_==display::DisplayMode::Fullscreen?primary_:backbuffer_);
+    // The retained composed frame is independent of the fullscreen
+    // front surface's lockability and remains valid after a device reset.
+    if(composed_frame_.valid()){
+        underlay_target(kind)=composed_frame_;
+        error.clear();return true;
+    }
+    return capture_surface(underlay_target(kind),error);
 }
 bool Win32OriginalDirectDraw::capture_underlay(CapturedUnderlay kind,std::string& error) {
-    if(!capture_surface(underlay_target(kind),error))
-        return false;
-    // Global movie pixels were not generated by a bitmap draw stream.
-    // Surface-loss recovery must replay this exact captured frame.
-    if(kind==CapturedUnderlay::GlobalMovie){
-        previous_frame_.clear();
-        previous_frame_underlay_=UnderlayKind::GlobalMovie;
-    }
-    return true;
+    return capture_surface(underlay_target(kind),error);
 }
 bool Win32OriginalDirectDraw::render_captured_underlay(CapturedUnderlay kind,
     const std::vector<ResolvedDraw>& stream,std::string& error) {
@@ -357,11 +418,11 @@ bool Win32OriginalDirectDraw::render_ordered_with_underlay(
         return false;
     }
     const bool replay=kind!=UnderlayKind::None;
-    auto* underlay=kind==UnderlayKind::Replay?replay_underlay_:
-        kind==UnderlayKind::Help?help_underlay_:
-        kind==UnderlayKind::GlobalMovie?global_underlay_:
-        kind==UnderlayKind::Modal?modal_underlay_:nullptr;
-    if(replay&&(!underlay||underlay->IsLost()!=DD_OK)){
+    const auto* underlay=kind==UnderlayKind::Replay?&replay_underlay_:
+        kind==UnderlayKind::Help?&help_underlay_:
+        kind==UnderlayKind::GlobalMovie?&global_underlay_:
+        kind==UnderlayKind::Modal?&modal_underlay_:nullptr;
+    if(replay&&(!underlay||!underlay->valid())){
         error="original captured pixels unavailable";return false;
     }
     // Retry the ENTIRE ordered frame after losing a surface. A partial
@@ -369,10 +430,13 @@ bool Win32OriginalDirectDraw::render_ordered_with_underlay(
     for (int attempt=0;attempt<2;++attempt) {
         surface_lost_during_draw_=false;
         // 00403540 issues the original native DDBLT_COLORFILL.
-        RECT full{0,0,640,480};
-        auto hr=replay
-            ? backbuffer_->BltFast(0,0,underlay,&full,DDBLTFAST_WAIT)
-            : original_win32::clear_backbuffer(backbuffer_,0);
+        HRESULT hr=DD_OK;
+        if(replay){
+            if(!write_surface_pixels(backbuffer_,*underlay,0,0,error)){
+                if(attempt==0&&backbuffer_->IsLost()==DDERR_SURFACELOST&&restore_lost_surfaces(error))continue;
+                return false;
+            }
+        }else hr=original_win32::clear_backbuffer(backbuffer_,0);
         // The original clear omits DDBLT_WAIT; the saved replay
         // snapshot instead uses the original blocking bitmap blit.
         for(int spin=0;!replay&&spin<32&&hr==DDERR_WASSTILLDRAWING;++spin)
@@ -392,8 +456,6 @@ bool Win32OriginalDirectDraw::render_ordered_with_underlay(
                 }
             }
             if (valid) {
-                previous_frame_=stream;
-                previous_frame_underlay_=kind;
                 error.clear();
                 return true;
             }
@@ -446,14 +508,21 @@ bool Win32OriginalDirectDraw::blit_bink_offscreen_surface(
     auto hr=backbuffer_->BltFast(
         static_cast<DWORD>(x),static_cast<DWORD>(y),
         source,&rect,DDBLTFAST_WAIT);
-    if(hr==DDERR_SURFACELOST) {
-        surface_lost_during_draw_=true;
-        error="original Bink offscreen source or backbuffer lost";
-        return false;
-    }
     if(FAILED(hr)) {
-        error=hresult_description("original Bink DD7 viewport blit",hr);
-        return false;
+        // Existing movie banks own system-memory surfaces on the previous
+        // DD7 object after display recreation. Cross-device/format BltFast
+        // may fail. Transfer their real pixels with checked locks instead.
+        display::PackedFrameSnapshot pixels;
+        if(source->IsLost()!=DD_OK){
+            error="original Bink offscreen pixels lost";return false;
+        }
+        if(backbuffer_->IsLost()==DDERR_SURFACELOST){
+            surface_lost_during_draw_=true;
+            // Restoring here would lose all preceding bitmap layers.
+            error="original Bink destination lost during composition";return false;
+        }
+        if(!read_surface_pixels(source,width,height,pixels,error))return false;
+        if(!write_surface_pixels(backbuffer_,pixels,x,y,error))return false;
     }
     error.clear();return true;
 }
@@ -485,6 +554,10 @@ bool Win32OriginalDirectDraw::present(std::string& error) {
             windowed,bitmap_reload);
     };
 
+    // Preserve the COMPLETE composed backbuffer, including independently
+    // decoded activity/walkthrough movies, prior to Flip/Blt. Replaying
+    // only the bitmap list loses those overlays after device recovery.
+    if(!capture_surface(composed_frame_,error))return false;
     bool bitmap_reload=false;
     auto hr=try_present(bitmap_reload);
     if (hr==DDERR_SURFACELOST && bitmap_reload) {
@@ -496,8 +569,7 @@ bool Win32OriginalDirectDraw::present(std::string& error) {
             error="00403480/00403830 failed to reload original bitmaps";
             return false;
         }
-        if(!render_ordered_with_underlay(previous_frame_,error,
-                                          previous_frame_underlay_))return false;
+        if(!restore_last_composed_frame(error))return false;
         bool lost_again=false;
         hr=try_present(lost_again);
         if(lost_again){

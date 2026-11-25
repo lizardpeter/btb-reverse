@@ -19,8 +19,9 @@ HRESULT create_or_reset_display_manager(
         error="00401FA0 requires an existing native game HWND";
         return E_POINTER;
     }
-    graphics.shutdown(); // 00402FE0 then native object release
-    if(!graphics.initialize(window,mode,error)) {
+    // Original object release is performed by recreate; CPU-owned
+    // snapshots survive the native compatibility reset.
+    if(!graphics.recreate(window,mode,error)) {
         // The host initialization interface currently returns bool, not the
         // exact failing DD7 HRESULT. Never claim the original failure code.
         return E_FAIL;
@@ -41,6 +42,7 @@ HRESULT create_or_reset_display_manager(
         return filled;
     }
     error.clear();
+    if(!graphics.restore_last_composed_frame(error))return E_FAIL;
     return S_OK;
 }
 

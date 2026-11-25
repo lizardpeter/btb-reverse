@@ -1,4 +1,6 @@
 #include "btb/display_manager.hpp"
+#include "btb/packed_frame_snapshot.hpp"
+#include <array>
 
 #include <cassert>
 #include <cstddef>
@@ -6,6 +8,47 @@
 using namespace btb::display;
 
 int main() {
+    // These checks execute in Release as well as Debug (no assert/NDEBUG).
+    {
+        constexpr PackedRgbFormat rgb565{2,0xf800,0x07e0,0x001f};
+        constexpr PackedRgbFormat xrgb{4,0xff0000,0xff00,0xff};
+        constexpr PackedRgbFormat rgb24{3,0xff0000,0xff00,0xff};
+        constexpr PackedRgbFormat rgb555{2,0x7c00,0x03e0,0x001f};
+        static_assert(rgb565.valid()&&xrgb.valid()&&rgb24.valid()&&rgb555.valid());
+        static_assert(!PackedRgbFormat{2,0xf800,0xf800,0x1f}.valid());
+        static_assert(!PackedRgbFormat{2,0x10000,0x7e0,0x1f}.valid());
+        static_assert(!PackedRgbFormat{4,0x500,0xf0,0xf}.valid());
+        // 2x2 image with 2 bytes of padding on every source row.
+        const std::array<std::uint8_t,12> raw{0x00,0xf8,0xe0,0x07,0xaa,0xaa,
+            0x1f,0x00,0xff,0xff,0xbb,0xbb};
+        PackedFrameSnapshot image;
+        if(!capture_packed_frame(image,raw,6,2,2,rgb565))return 1;
+        std::array<std::uint8_t,20> target{};target.fill(0x55);
+        if(!restore_packed_frame(image,target,10,xrgb))return 2;
+        const std::array<std::uint8_t,20> expected{0,0,255,0,0,255,0,0,0x55,0x55,
+            255,0,0,0,255,255,255,0,0x55,0x55};
+        if(target!=expected)return 3;
+        PackedFrameSnapshot roundtrip;
+        if(!capture_packed_frame(roundtrip,target,10,2,2,xrgb))return 4;
+        std::array<std::uint8_t,12> back{};back.fill(0x66);
+        if(!restore_packed_frame(roundtrip,back,6,rgb565))return 5;
+        if(back!=std::array<std::uint8_t,12>{0,0xf8,0xe0,0x07,0x66,0x66,0x1f,0,0xff,0xff,0x66,0x66})return 6;
+        std::array<std::uint8_t,12> packed24{};
+        if(!restore_packed_frame(image,packed24,6,rgb24)||
+           packed24!=std::array<std::uint8_t,12>{0,0,255,0,255,0,255,0,0,255,255,255})return 7;
+        std::array<std::uint8_t,8> packed555{};
+        if(!restore_packed_frame(image,packed555,4,rgb555)||
+           packed555!=std::array<std::uint8_t,8>{0,0x7c,0xe0,3,0x1f,0,0xff,0x7f})return 8;
+        const auto before=target;
+        if(restore_packed_frame(image,target,7,xrgb)||target!=before)return 9;
+        if(capture_packed_frame(image,std::span<const std::uint8_t>{raw}.first(3),6,2,2,rgb565)||
+           !image.valid())return 10;
+        if(capture_packed_frame(image,raw,6,641,2,rgb565))return 11;
+        PackedFrameSnapshot moved=std::move(image);
+        if(!moved.valid()||!restore_packed_frame(moved,target,10,xrgb)||target!=expected)return 12;
+        moved.clear();
+        if(moved.valid()||restore_packed_frame(moved,target,10,xrgb))return 13;
+    }
     static_assert(sizeof(RetailRect32) == 0x10);
     static_assert(sizeof(RetailDisplayManager32) == 0x30);
 

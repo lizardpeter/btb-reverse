@@ -20,6 +20,7 @@
 
 #include "btb/full_game_resources.hpp"
 #include "btb/display_manager.hpp"
+#include "btb/packed_frame_snapshot.hpp"
 #include "btb/win32_native_bitmap_registry.hpp"
 
 #include <filesystem>
@@ -40,6 +41,8 @@ public:
 
     [[nodiscard]] bool initialize(
         HWND hwnd,display::DisplayMode mode,std::string& error);
+    [[nodiscard]] bool recreate(HWND hwnd,display::DisplayMode mode,std::string& error);
+    [[nodiscard]] bool restore_last_composed_frame(std::string& error);
     [[nodiscard]] bool render_ordered(
         const std::vector<ResolvedDraw>& draw_stream,
         std::string& error);
@@ -96,8 +99,8 @@ private:
     [[nodiscard]] bool blit(
         const ResolvedDraw& draw,std::string& error);
     enum class UnderlayKind { None, Replay, Help, GlobalMovie, Modal };
-    [[nodiscard]] bool capture_surface(IDirectDrawSurface7*&,std::string&,IDirectDrawSurface7* source=nullptr);
-    [[nodiscard]] IDirectDrawSurface7*& underlay_target(CapturedUnderlay) noexcept;
+    [[nodiscard]] bool capture_surface(display::PackedFrameSnapshot&,std::string&,IDirectDrawSurface7* source=nullptr);
+    [[nodiscard]] display::PackedFrameSnapshot& underlay_target(CapturedUnderlay) noexcept;
     [[nodiscard]] bool render_ordered_with_underlay(
         const std::vector<ResolvedDraw>& stream,std::string& error,
         UnderlayKind kind);
@@ -114,12 +117,9 @@ private:
     std::unordered_map<std::wstring,OriginalSurface> images_{};
     std::unique_ptr<original_win32::NativeBitmapRegistry> registry_{
         std::make_unique<original_win32::NativeBitmapRegistry>()};
-    std::vector<ResolvedDraw> previous_frame_{};
-    IDirectDrawSurface7* replay_underlay_{};
-    IDirectDrawSurface7* help_underlay_{};
-    IDirectDrawSurface7* global_underlay_{};
-    IDirectDrawSurface7* modal_underlay_{};
-    UnderlayKind previous_frame_underlay_{UnderlayKind::None};
+    // Independent CPU-owned snapshots survive COM surface/device loss.
+    display::PackedFrameSnapshot replay_underlay_{},help_underlay_{},
+        global_underlay_{},modal_underlay_{},composed_frame_{};
     bool surface_lost_during_draw_{};
 };
 
