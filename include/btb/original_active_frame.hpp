@@ -35,6 +35,9 @@ struct Callbacks {
     Action restore_all_surfaces{};
     Action cancel_pending_frame{};
     Sleep sleep_ms{};
+    // Optional native compatibility preflight; source 00402440 itself
+    // retains its post-game cooperative check and original call order.
+    Device prepare_native_display{};
 };
 enum class Outcome:std::uint8_t {Skipped,Submitted,Recoverable,Failed};
 struct Result {Outcome outcome{Outcome::Skipped};U32 original_status{};};

@@ -5,7 +5,8 @@ struct Host {
  int disc{},reload{},reset_help{},reap{},game{},help{},enter{},
      poll{},coop{},reset{},present{},restore{},cancel{},sleep{};
  bool disc_valid{true},reload_valid{true},game_valid{true};
- U32 cooperative{},reset_hr{},present_hr{},slept_ms{};
+ U32 cooperative{},reset_hr{},present_hr{},slept_ms{},preflight_hr{};
+ int preflight{};
 };
 Host& host(void* p){return *static_cast<Host*>(p);}
 bool disc(void* p){++host(p).disc;return host(p).disc_valid;}
@@ -16,6 +17,7 @@ bool game(void* p){++host(p).game;return host(p).game_valid;}
 void help(void* p){++host(p).help;}
 void enter(void* p){++host(p).enter;}
 void poll(void* p){++host(p).poll;}
+U32 preflight(void* p){++host(p).preflight;return host(p).preflight_hr;}
 U32 coop(void* p){++host(p).coop;return host(p).cooperative;}
 U32 reset(void* p){++host(p).reset;return host(p).reset_hr;}
 U32 present(void* p){++host(p).present;return host(p).present_hr;}
@@ -84,6 +86,22 @@ bool verify_source_frame_control_flow() noexcept {
  if(waived.outcome!=Outcome::Submitted||state.media_counter!=0)return false;
  state.media_counter=100;state.media_check_waived=false;
  const auto blocked=run_active_game_frame(state,11,fn);
- return blocked.outcome==Outcome::Failed;
+ if(blocked.outcome!=Outcome::Failed)return false;
+ // Real host preflight blocks activity mutations before device recovery.
+ Host native{};State ns{};auto nf=hooks(native);nf.prepare_native_display=preflight;
+ native.preflight_hr=0x887600e1U;
+ if(run_active_game_frame(ns,1,nf).outcome!=Outcome::Recoverable||
+    native.game||native.reap||native.poll||native.coop||native.present||native.cancel||native.sleep!=1)return false;
+ native.preflight_hr=0x88760245U;
+ if(run_active_game_frame(ns,2,nf).outcome!=Outcome::Recoverable||native.game||native.sleep!=2)return false;
+ native.preflight_hr=0x8876024bU;
+ if(run_active_game_frame(ns,3,nf).outcome!=Outcome::Recoverable||native.game||native.reset!=1)return false;
+ native.reset_hr=0x80004005U;
+ if(run_active_game_frame(ns,4,nf).outcome!=Outcome::Failed||native.game||native.reset!=2)return false;
+ native.preflight_hr=0x80004005U;
+ if(run_active_game_frame(ns,5,nf).outcome!=Outcome::Failed||native.game)return false;
+ native.preflight_hr=0;
+ return run_active_game_frame(ns,6,nf).outcome==Outcome::Submitted&&
+    native.game==1&&native.reap==1&&native.coop==1&&native.present==1&&native.preflight==6;
 }
 }

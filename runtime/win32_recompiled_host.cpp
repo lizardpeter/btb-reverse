@@ -451,6 +451,7 @@ struct Host {
         callbacks.context=this;
         callbacks.run_main_game_flow=+[](void* context)->bool{
             auto& h=*static_cast<Host*>(context);
+            try{
             ActivityFrameInput input=h.native_input.sample(
                 h.pointer_x,h.pointer_y,timeGetTime(),h.game.accepts_native_name_input());
             input.pointer_position_valid=true;
@@ -469,6 +470,13 @@ struct Host {
                 return false;
             }
             return frame.ready_for_present;
+            }catch(const std::exception& e){h.error=std::string("Native frame exception: ")+e.what();return false;}
+             catch(...){h.error="Unknown native frame exception";return false;}
+        };
+        callbacks.prepare_native_display=+[](void* context)->original_active_frame::U32 {
+            auto& h=*static_cast<Host*>(context);
+            try{return static_cast<original_active_frame::U32>(h.graphics.prepare_native_frame(h.error));}
+            catch(...){h.error="Native display preflight exception";return 0x80004005U;}
         };
         callbacks.check_directdraw_cooperative=+[](void* context)
             ->original_active_frame::U32 {
@@ -482,14 +490,17 @@ struct Host {
             const auto mode=h.retail_window.windowed
                 ? display::DisplayMode::Windowed
                 : display::DisplayMode::Fullscreen;
-            return static_cast<original_active_frame::U32>(
+            try{return static_cast<original_active_frame::U32>(
                 original_win32::create_or_reset_display_manager(
-                    h.window,mode,h.graphics,h.error));
+                    h.window,mode,h.graphics,h.error));}
+            catch(...){h.error="Native display reset exception";return 0x80004005U;}
         };
         callbacks.present_original_game_frame=+[](void* context)
             ->original_active_frame::U32 {
             auto& h=*static_cast<Host*>(context);
-            return h.session->present_prepared(h.error)?0U:0x80004005U;
+            try{return h.session->present_prepared(h.error)?0U:0x80004005U;}
+            catch(const std::exception& e){h.error=std::string("Native present exception: ")+e.what();return 0x80004005U;}
+            catch(...){h.error="Unknown native present exception";return 0x80004005U;}
         };
         callbacks.cancel_pending_frame=+[](void* context) {
             static_cast<Host*>(context)->session->discard_prepared();
@@ -575,6 +586,7 @@ LRESULT CALLBACK native_window_proc(
         }
         if(!SetTimer(hwnd,kNativeTimer,16,nullptr)){
             host->running=false;
+            host->startup_completed=false;
             host->exit_code=3;
             MessageBoxA(hwnd,"Cannot start the native game frame timer",
                 "Native game initialization failed",MB_OK|MB_ICONERROR);

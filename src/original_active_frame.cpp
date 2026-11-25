@@ -33,6 +33,20 @@ Result run_active_game_frame(
         }
     }
     state.last_time_ms=now;
+    if(c.prepare_native_display){
+        const U32 ready=c.prepare_native_display(c.context);
+        // Recoverable focus/mode loss must not consume player input,
+        // advance source state, open media or mutate profile progress.
+        if(ready==0x887600e1U||ready==0x88760245U){
+            if(c.sleep_ms)c.sleep_ms(10U,c.context);
+            return {Outcome::Recoverable,0U};
+        }
+        if(ready==0x8876024bU){
+            const U32 reset=c.reset_display_manager?c.reset_display_manager(c.context):0x80004005U;
+            return {failed(reset)?Outcome::Failed:Outcome::Recoverable,reset};
+        }
+        if(failed(ready))return {Outcome::Failed,ready};
+    }
     if(c.reap_finished_sounds)c.reap_finished_sounds(c.context);
     if(!state.contextual_help_active){
         if(!c.run_main_game_flow||!c.run_main_game_flow(c.context))

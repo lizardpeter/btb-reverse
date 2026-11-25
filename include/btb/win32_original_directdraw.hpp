@@ -56,6 +56,7 @@ public:
     [[nodiscard]] bool present(std::string& error);
     // Direct original 00402440 cooperative test and loss recovery.
     [[nodiscard]] HRESULT cooperative_status() const noexcept;
+    [[nodiscard]] HRESULT prepare_native_frame(std::string& error);
     [[nodiscard]] bool restore_for_frame(std::string& error);
     [[nodiscard]] HRESULT clear_retail_backbuffer(DWORD color) noexcept;
     // Source bitmaps alone are released. Ordered frame paths and the

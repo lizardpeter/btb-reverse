@@ -531,6 +531,22 @@ HRESULT Win32OriginalDirectDraw::cooperative_status() const noexcept {
     return draw_?draw_->TestCooperativeLevel():E_POINTER;
 }
 
+HRESULT Win32OriginalDirectDraw::prepare_native_frame(std::string& error) {
+    if(!initialized()){error="native display preflight without surfaces";return E_POINTER;}
+    const HRESULT cooperative=cooperative_status();
+    if(FAILED(cooperative))return cooperative;
+    // Restore surfaces BEFORE GameRoot or any Bink provider consumes its
+    // frame. Recover the last exact composed pixels, including overlays.
+    const HRESULT front=primary_->IsLost(),back=backbuffer_->IsLost();
+    if(front==DDERR_SURFACELOST||back==DDERR_SURFACELOST){
+        if(!restore_lost_surfaces(error)||!restore_last_composed_frame(error))return E_FAIL;
+    }else if(FAILED(front)||FAILED(back)){
+        const auto hr=FAILED(front)?front:back;
+        error=hresult_description("preflight original surface status",hr);return hr;
+    }
+    error.clear();return DD_OK;
+}
+
 bool Win32OriginalDirectDraw::restore_for_frame(std::string& error) {
     return initialized() && restore_lost_surfaces(error);
 }
