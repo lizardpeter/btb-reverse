@@ -9,7 +9,7 @@
 namespace btb::enhanced {
 class VulkanSpriteBatch {
     struct Buffer {VkBuffer buffer{};VkDeviceMemory memory{};void* mapped{};};
-    struct Bitmap {unsigned width{},height{};std::vector<std::uint32_t> pixels;};
+    struct Bitmap {unsigned width{},height{};std::vector<std::uint32_t> pixels;std::uint64_t last_used{};};
     VkDevice device_{};VkPhysicalDevice physical_{};
     Buffer input_{},output_{};
     VkDescriptorSetLayout layout_{};VkDescriptorPool pool_{};
@@ -18,6 +18,7 @@ class VulkanSpriteBatch {
     bool create_pipeline(const std::filesystem::path&,const char*,VkPipeline&,std::string&);
     std::unordered_map<std::filesystem::path,Bitmap> cache_;
     std::size_t cached_words_{};
+    std::uint64_t cache_clock_{};
     std::vector<std::uint32_t> atlas_,words_;
     std::vector<SpriteJob> jobs_;
     struct ResidentBitmap {unsigned width,height;std::uint32_t offset;};

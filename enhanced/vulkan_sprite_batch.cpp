@@ -1,8 +1,6 @@
 #include "vulkan_sprite_batch.hpp"
+#include "btb/bmp_decoder.hpp"
 #include "packed_layer_plan.hpp"
-#if defined(_WIN32)
-#include <windows.h>
-#endif
 #include <fstream>
 #include <cstring>
 #include <algorithm>
@@ -97,34 +95,37 @@ bool VulkanSpriteBatch::initialize(VkPhysicalDevice physical,VkDevice device,con
     error.clear();return true;
 }
 VulkanSpriteBatch::Bitmap* VulkanSpriteBatch::load(const std::filesystem::path& path){
-    if(auto it=cache_.find(path);it!=cache_.end())return &it->second;
-    #if defined(_WIN32)
-    struct GdiBitmap {HBITMAP h{};~GdiBitmap(){if(h)DeleteObject(h);}};
-    GdiBitmap bitmap{static_cast<HBITMAP>(LoadImageW(nullptr,path.c_str(),IMAGE_BITMAP,0,0,LR_LOADFROMFILE|LR_CREATEDIBSECTION))};
-    BITMAP data{};
-    if(!bitmap.h||GetObjectW(bitmap.h,sizeof(data),&data)!=sizeof(data)||
-       data.bmWidth<=0||data.bmHeight<=0||data.bmWidth>32768||data.bmHeight>32768)return nullptr;
-    const auto count=std::uint64_t(data.bmWidth)*data.bmHeight;
-    if(count>batch_word_limit)return nullptr;
-    Bitmap pixels{unsigned(data.bmWidth),unsigned(data.bmHeight),{}};
-    pixels.pixels.resize(std::size_t(count));
-    BITMAPINFO info{};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
-    info.bmiHeader.biWidth=data.bmWidth;info.bmiHeader.biHeight=-data.bmHeight;
-    info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;info.bmiHeader.biCompression=BI_RGB;
-    HDC dc=GetDC(nullptr);if(!dc)return nullptr;
-    const int copied=GetDIBits(dc,bitmap.h,0,data.bmHeight,pixels.pixels.data(),&info,DIB_RGB_COLORS);
-    ReleaseDC(nullptr,dc);
-    if(copied!=data.bmHeight)return nullptr;
-    // GDI BI_RGB is BGRX; normalize to the shared RGBA word layout.
-    for(auto& c:pixels.pixels)c=0xff000000U|(c&0xff00U)|((c&255U)<<16)|((c>>16)&255U);
-    if(cached_words_+count>batch_word_limit*2){cache_.clear();cached_words_=0;}
-    cached_words_+=std::size_t(count);
+    if(auto it=cache_.find(path);it!=cache_.end()){
+        auto use=++cache_clock_;
+        if(use==0){for(auto& [_,entry]:cache_)entry.last_used=0;cache_clock_=use=1;}
+        it->second.last_used=use;
+        return &it->second;
+    }
+    display::DecodedBitmap decoded;std::string error;
+    if(!display::decode_bmp_file(path,decoded,error))return nullptr;
+    const std::size_t count=std::size_t(decoded.width)*decoded.height;
+    if(!count||count>batch_word_limit)return nullptr;
+    // Atlas words are AABBGGRR (RGBA byte order). The shared BMP decoder
+    // returns BGRA bytes, so normalize explicitly rather than relying on GDI.
+    Bitmap pixels{decoded.width,decoded.height,{},0};
+    pixels.pixels.resize(count);
+    for(std::size_t i=0;i<count;++i){
+        const auto* p=decoded.bgra.data()+i*4;
+        pixels.pixels[i]=0xff000000U|(std::uint32_t(p[0])<<16)|
+            (std::uint32_t(p[1])<<8)|std::uint32_t(p[2]);
+    }
+    constexpr std::size_t cache_budget=batch_word_limit*2;
+    while(cached_words_>cache_budget-count&&!cache_.empty()){
+        const auto oldest=std::min_element(cache_.begin(),cache_.end(),
+            [](const auto& a,const auto& b){return a.second.last_used<b.second.last_used;});
+        cached_words_-=oldest->second.pixels.size();
+        cache_.erase(oldest);
+    }
+    auto use=++cache_clock_;
+    if(use==0){for(auto& [_,entry]:cache_)entry.last_used=0;cache_clock_=use=1;}
+    pixels.last_used=use;
+    cached_words_+=count;
     return &cache_.emplace(path,std::move(pixels)).first->second;
-    #else
-    // The non-Windows target is a headless compute regression. It uses
-    // deterministic raw pixel fixtures, not the Windows BMP loader.
-    return nullptr;
-    #endif
 }
 bool VulkanSpriteBatch::prepare(const std::vector<full_game::ResolvedDraw>& draws){
     if(!pipeline_||draws.size()>8192)return false;
