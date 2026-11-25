@@ -36,6 +36,9 @@ def translate(pe, name, start, end):
 
     lines = [f'uint32_t {name}() {{',
         'uint32_t eax=0,ebx=0,ecx=0,edx=0,esi=0,edi=0,ebp=0,esp=0x80000000; int64_t comparison=0;']
+    if name=='selector':
+        lines[1]=lines[1].replace('esp=0x80000000','esp=0x7ffff800')
+    # Selector has a separate stack window when called by assembly.
     conds={'je':'==0','jne':'!=0','jl':'<0','jge':'>=0','jle':'<=0','jg':'>0','jns':'>=0','js':'<0'}
     for line in asm.splitlines():
         match=re.match(r'^\s*([0-9a-f]+):\s+([a-z]+)\s*(.*)$',line)
@@ -52,6 +55,11 @@ def translate(pe, name, start, end):
         elif mn=='pop': body=f'{op(args[0])}=mem(esp);esp+=4;'
         elif mn=='call' and args[0]=='0x42ffc4': body='eax=retail_rand();'
         elif mn=='call' and args[0]=='0x426f30': body='++retail_choice_calls;generate_choices();'
+        elif mn=='call' and args[0]=='0x4259d0': body='selector();'
+        elif mn=='call' and args[0]=='0x402af0': body=';' # verified RET
+        elif mn=='call' and args[0]=='DWORD PTR [ecx+0x1c]': body='capture_draw(esp);esp+=24;'
+        elif mn=='setge' and args[0]=='dl': body='edx=(edx&0xffffff00u)|(comparison>=0);'
+        elif mn=='imul' and len(args)==2: body=f'{op(args[0])}*=uint32_t({op(args[1])});'
         elif mn=='imul' and len(args)==3: body=f'{op(args[0])}=uint32_t({op(args[1])})*uint32_t({op(args[2])});'
         elif mn=='imul': body=f'{{int64_t v=int64_t(int32_t(eax))*int32_t({op(args[0])});eax=uint32_t(v);edx=uint32_t(uint64_t(v)>>32);}}'
         elif mn=='idiv': body=f'{{int64_t v=int64_t(int32_t(edx))*4294967296LL+eax;int32_t d=int32_t({op(args[0])});eax=uint32_t(v/d);edx=uint32_t(v%d);}}'
@@ -79,22 +87,31 @@ PREAMBLE=r'''
 #include <array>
 #include <cstdint>
 using namespace btb::squirrel;
-static std::array<uint32_t,256> stack{};
+static std::array<uint32_t,1024> stack{};
 static std::array<uint32_t,2048> globals{};
-static std::array<uint32_t,2> actor{};
+static std::array<uint32_t,512> image_data{IMAGE_WORDS};
 static uint32_t rng_state;
 static uint32_t window_mode;
 static uint32_t retail_choice_calls, native_choice_calls;
 void note_choice() noexcept {++native_choice_calls;}
-static std::array<uint32_t,28> permutations{PERMUTATIONS};
 uint32_t& mem(uint32_t a) {
-    if(a>=0x7ffffc10u&&a<0x80000010u&&a%4==0)return stack[(a-0x7ffffc10u)/4];
+    if(a>=0x7ffff010u&&a<0x80000010u&&a%4==0)return stack[(a-0x7ffff010u)/4];
     if(a>=0x514000u&&a<0x516000u&&a%4==0)return globals[(a-0x514000u)/4];
-    if(a==0x44699cu||a==0x4469a0u)return actor[(a-0x44699cu)/4];
+    if(a>=0x446700u&&a<0x446f00u&&a%4==0)return image_data[(a-0x446700u)/4];
     if(a==0x447558u)return rng_state;
     if(a==0x44de0cu)return window_mode;
-    if(a>=0x4469acu&&a<0x446a1cu&&a%4==0)return permutations[(a-0x4469acu)/4];
+    // Only the one observed DirectDraw receiver and BltFast call are
+    // modeled. No original COM object or Windows device is executed.
+    static uint32_t device=0x10000,surface=0x20000,vtable=0x30000;
+    if(a==0x44de08)return device;
+    if(a==0x1000c)return surface;
+    if(a==0x20000)return vtable;
     throw std::runtime_error("unmapped read/write "+std::to_string(a));
+}
+static std::array<int,5> draw{};
+void capture_draw(uint32_t sp) {
+    ++draw[0];draw[1]=mem(sp+4);draw[2]=mem(sp+8);
+    draw[3]=mem(mem(sp+16));draw[4]=mem(mem(sp+16)+8);
 }
 '''
 HARNESS=r'''
@@ -162,6 +179,76 @@ int main(){
         ++count;
     }
     std::cout<<"Squirrel conveyor slide comparisons: "<<count<<'\n';
+    count=0;globals={};
+    Data fixture{};
+    fixture.horizontal_motion_deltas={0,3,10,27,8,-4,-4};
+    fixture.vertical_motion_deltas={{{0,0,1,-1,0,0,0},{0,0,0,0,0,0,0},
+        {0,0,1,-17,0,0,0},{0,0,1,-33,0,0,0},{0,0,-1,17,0,0,0},
+        {0,0,19,13,0,0,0},{0,0,0,-32,0,0,0},{0,0,0,32,0,0,0}}};
+    for(int i=0;i<7;++i)mem(0x446958+i*4)=fixture.horizontal_motion_deltas[i];
+    for(int i=0;i<56;++i)mem(0x446878+i*4)=fixture.vertical_motion_deltas[i/7][i%7];
+    uint64_t hash=14695981039346656037ULL;
+    auto mix=[&](uint32_t word){for(int byte=0;byte<4;++byte){
+        hash^=word&255u;hash*=1099511628211ULL;word>>=8;}};
+    const std::array<int,3> targets{237,205,173};
+    constexpr std::array<uint32_t,10> addresses{0x514fb8,0x514fb4,0x514f94,0x514f98,
+        0x514fa0,0x514f9c,0x514fa4,0x514fa8,0x515110,0x447558};
+    for(int tuple=0;tuple<81;++tuple)for(int id=0;id<36;++id)
+    for(int section=0;section<7;++section)for(int delay=1;delay<=7;delay+=6) {
+        RunPlan plan{};PlacedRunPieces pieces{};int value=tuple;
+        for(int i=0;i<4;++i) {
+            plan[0][i]=value%3;value/=3;pieces[i]=(id+i*7)%36;
+            mem(0x514f0c+i*4)=plan[0][i];mem(0x514fbc+i*4)=pieces[i];
+        }
+        mem(0x5150d0)=0;mem(0x515004)=section;mem(0x514fb4)=section;
+        mem(0x514fb8)=0;mem(0x514f94)=-34;mem(0x514f98)=205;
+        mem(0x514fa0)=0;mem(0x514f9c)=0;mem(0x514fa4)=0;mem(0x514fa8)=0;
+        mem(0x515110)=id&1;mem(0x515114)=0;mem(0x514f54)=id%3;
+        mem(0x5150d8)=0;mem(0x446778)=delay;mem(0x447558)=1234+id;mem(0x446a4c)=0;
+        fixture.animation_step_delay=delay;
+        RunAssemblyAnimationRuntime native{};
+        native.run_section=section;native.x=-34;native.y=205;
+        native.high_sprite=(id&1)!=0;native.landing_y=targets[id%3];
+        btb::retail::OriginalRetailRandom rng(1234+id);
+        for(int tick=0;tick<128;++tick) {
+            draw={};assemble();
+            bool visible;int frame;
+            if(native.state==RunAssemblyAnimationState::Idle && native.run_section>section) {
+                frame=tick_assembly_idle_sprite(native,delay,[&]{return rng.next_rand();});
+                visible=true; // raw intent, before native BMP bounds checks
+            } else {
+                if(native.state==RunAssemblyAnimationState::Idle)
+                    begin_run_assembly_animation(native,fixture,
+                        *select_run_assembly_motion_keys(native.run_section,0,plan,pieces));
+                (void)tick_run_assembly_animation(native,fixture);
+                frame=active_assembly_sprite_frame(native);
+                visible=assembly_sprite_visible(native,frame,0,pieces);
+            }
+            std::array<uint32_t,10> actual{
+                uint32_t(native.state),uint32_t(native.run_section),uint32_t(native.x),
+                uint32_t(native.y),uint32_t(native.delay_remaining),uint32_t(native.substep),
+                uint32_t(native.sprite_mode),uint32_t(native.sprite_frame),
+                uint32_t(native.high_sprite),rng.state()};
+            for(size_t i=0;i<addresses.size();++i) {
+                const auto reference=mem(addresses[i]);
+                if(actual[i]!=reference) {
+                    std::cerr<<"assembly state mismatch "<<tuple<<' '<<id<<' '<<section
+                        <<' '<<delay<<' '<<tick<<" word "<<i<<'\n';return 6;
+                }
+                mix(reference);
+            }
+            const std::array<int,5> native_draw{int(visible),visible?native.x:0,
+                visible?native.y:0,visible?frame*102:0,visible?(frame+1)*102:0};
+            if(native_draw!=draw) {
+                std::cerr<<"assembly draw mismatch "<<tuple<<' '<<id<<' '<<section
+                    <<' '<<delay<<' '<<tick<<'\n';return 7;
+            }
+            for(auto word:draw)mix(uint32_t(word));
+            ++count;
+        }
+    }
+    std::cout<<"Squirrel assembly frame comparisons: "<<count<<", trace "<<std::hex<<hash<<'\n';
+    if(count!=5225472 || hash!=0x9f2c9d55e0505c56ULL)return 8;
 }
 '''
 
@@ -176,11 +263,11 @@ def main():
     image=a.pe.read_bytes()
     if hashlib.sha256(image).hexdigest()!=SHA:
         raise SystemExit('Retail PE SHA-256 mismatch')
-    code=PREAMBLE.replace('PERMUTATIONS',','.join(map(str,struct.unpack_from('<28I',image,0x469ac))))
+    code=PREAMBLE.replace('IMAGE_WORDS',','.join(map(str,struct.unpack_from('<512I',image,0x46700))))
     for name,start,end in [('retail_rand',0x42ffc4,0x42ffe2),
         ('selector',0x4259d0,0x425f33),('move_actor',0x427270,0x427312),
         ('generate_choices',0x426f30,0x427263),
-        ('slide_cycle',0x427320,0x4273eb)]:
+        ('slide_cycle',0x427320,0x4273eb),('assemble',0x425f40,0x4267ac)]:
         code+=translate(a.pe,name,start,end)+'\n'
     code+=HARNESS
     with tempfile.TemporaryDirectory() as d:
