@@ -559,6 +559,58 @@ struct ConnectorPair {
     };
 }
 
+struct ConveyorChoice {
+    int piece_id{-1};
+    bool correct{};
+    bool active{};
+    int feedback_comparison{};
+    int feedback_to{};
+};
+struct ConveyorChoicesResult {
+    std::array<ConveyorChoice,4> choices{};
+    int count{};
+    int variant_index{};
+    std::optional<int> landing_connector;
+};
+// Original 00426F30: all random draws are made on the shared CRT stream.
+// A missing destination (-1) uses the original random correct-to branch.
+[[nodiscard]] constexpr std::optional<ConveyorChoicesResult> generate_conveyor_choices(
+    Difficulty difficulty,ConnectorPair required,retail::OriginalRetailRandom& rng) noexcept {
+    if(required.from<0||required.from>2||required.to< -1||required.to>2)
+        return std::nullopt;
+    const auto mix=conveyor_mix(difficulty);
+    if(mix.total_items()==0)return std::nullopt;
+    ConveyorChoicesResult out;
+    out.count=mix.total_items();
+    if(required.to>=0)out.landing_connector=required.to;
+    std::array<ConnectorPair,4> corrects{},decoys{};
+    for(int i=0;i<mix.correct_items;++i)
+        corrects[i]={required.from,required.to<0?rng.next_rand()%3:required.to};
+    for(int i=0;i<mix.decoy_items;++i) {
+        auto& p=decoys[i];
+        do {p.from=rng.next_rand()%3;}
+        while(p.from==required.from||(i>0&&p.from==decoys[0].from));
+        do {p.to=rng.next_rand()%3;}while(p.to==required.to);
+    }
+    out.variant_index=rng.next_rand()%7;
+    const auto& variant=kOuterVariantPermutations[out.variant_index];
+    int correct_idx=0,decoy_idx=0;
+    for(int i=0;i<out.count;++i) {
+        bool correct=false,selected=false;
+        for(int attempt=0;attempt<4096;++attempt) {
+            correct=(rng.next_rand()&1)==0;
+            if(correct?correct_idx<mix.correct_items:decoy_idx<mix.decoy_items) {
+                selected=true;break;
+            }
+        }
+        if(!selected)return std::nullopt;
+        const auto& p=correct?corrects[correct_idx++]:decoys[decoy_idx++];
+        out.choices[i]={encode_piece_id({variant[i],p.from,p.to}),correct,true,
+            correct?p.from:p.from*3+p.to,p.to};
+    }
+    return out;
+}
+
 [[nodiscard]] constexpr bool is_correct_connector_pair(
     ConnectorPair offered,
     ConnectorPair required) noexcept {

@@ -88,53 +88,14 @@ bool SquirrelDriver::generate_choices(std::string& error) {
     const auto required=squirrel::required_connectors(
         connectors_,static_cast<std::size_t>(level_),
         static_cast<std::size_t>(placed_count_));
-    current_choice_connector_=required.to;
-    const auto mix=squirrel::conveyor_mix(
-        static_cast<squirrel::Difficulty>(difficulty_));
-    // Retail 0x00426F30 generates two groups before randomly
-    // interleaving them with repeated rand()&1 draws. Never put all
-    // correct options first as a fixed or trivially guessable order.
-    std::array<squirrel::ConnectorPair,4> corrects{};
-    std::array<squirrel::ConnectorPair,4> decoys{};
-    for(int i=0;i<mix.correct_items;++i)
-        corrects[static_cast<std::size_t>(i)]=required;
-    for(int i=0;i<mix.decoy_items;++i) {
-        auto& pair=decoys[static_cast<std::size_t>(i)];
-        do {pair.from=(random_stream().next_rand()%3);}
-            while(pair.from==required.from || (i>0 && pair.from==decoys[0].from));
-        do {pair.to=(random_stream().next_rand()%3);}
-            while(pair.to==required.to);
+    const auto generated=squirrel::generate_conveyor_choices(
+        static_cast<squirrel::Difficulty>(difficulty_),required,random_stream());
+    if(!generated) {
+        error="original Squirrel choice generation failed";
+        return false;
     }
-    const auto variant=squirrel::kOuterVariantPermutations[
-        static_cast<std::size_t>(random_stream().next_rand()%7)];
-    int correct_idx=0,decoy_idx=0;
-    for(int i=0;i<mix.total_items();++i) {
-        // The source rerolls its choice bit until there are slots left
-        // in the selected group. Cap broken PRNG providers fail closed.
-        bool pick_correct=false;
-        bool selected=false;
-        for(int attempt=0;attempt<4096;++attempt) {
-            pick_correct=(random_stream().next_rand()&1U)==0U;
-            if(pick_correct?correct_idx<mix.correct_items:
-                            decoy_idx<mix.decoy_items) {
-                selected=true;
-                break;
-            }
-        }
-        if(!selected) {
-            error="original Squirrel choice RNG did not select a live group";
-            return false;
-        }
-        const auto& pair=pick_correct
-            ?corrects[static_cast<std::size_t>(correct_idx++)]
-            :decoys[static_cast<std::size_t>(decoy_idx++)];
-        choices_[static_cast<std::size_t>(i)]={
-            squirrel::encode_piece_id({
-                variant[static_cast<std::size_t>(i)],
-                pair.from,pair.to
-            }),pick_correct,true,pick_correct?pair.from:pair.from*3+pair.to
-        };
-    }
+    choices_=generated->choices;
+    if(generated->landing_connector)current_choice_connector_=*generated->landing_connector;
     return true;
 }
 

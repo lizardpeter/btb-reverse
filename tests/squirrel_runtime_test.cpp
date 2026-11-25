@@ -463,6 +463,45 @@ int main() {
         assert(actual.state()==expected.state() && mouth.countdown==next_delay);
     }
 
+    // Every legal connector pair, difficulty, and seed. Hard mode's two
+    // decoys use distinct wrong first connectors; the missing-to branch
+    // leaves the original landing connector unchanged.
+    for(int diff=0;diff<3;++diff)for(int from=0;from<3;++from)
+    for(int to=-1;to<3;++to)for(std::uint32_t seed=0;seed<256;++seed) {
+        const auto difficulty=static_cast<Difficulty>(diff);
+        btb::retail::OriginalRetailRandom rng(seed*0x9e3779b9u+0x1234u);
+        auto generated=generate_conveyor_choices(difficulty,{from,to},rng);
+        assert(generated && generated->count==conveyor_mix(difficulty).total_items());
+        assert(generated->landing_connector.value_or(-1)==to);
+        int correct=0,decoy=0,previous_wrong=-1;
+        for(int i=0;i<generated->count;++i) {
+            const auto& choice=generated->choices[i];
+            const auto decoded=decode_piece_id(choice.piece_id);
+            assert(choice.active && decoded.outer_variant==
+                kOuterVariantPermutations[generated->variant_index][i]);
+            assert(choice.feedback_to==decoded.to_connector);
+            if(choice.correct) {
+                ++correct;
+                assert(decoded.from_connector==from && (to==-1||decoded.to_connector==to));
+                assert(choice.feedback_comparison==from);
+            } else {
+                ++decoy;
+                assert(decoded.from_connector!=from && decoded.from_connector!=previous_wrong);
+                assert(to==-1||decoded.to_connector!=to);
+                assert(choice.feedback_comparison==decoded.from_connector*3+decoded.to_connector);
+                previous_wrong=decoded.from_connector;
+            }
+        }
+        assert(correct==conveyor_mix(difficulty).correct_items);
+        assert(decoy==conveyor_mix(difficulty).decoy_items);
+        for(int i=generated->count;i<4;++i)assert(!generated->choices[i].active);
+    }
+    {
+        btb::retail::OriginalRetailRandom rng(42);
+        assert(!generate_conveyor_choices(Difficulty::Hard,{-1,0},rng));
+        assert(rng.state()==42);
+    }
+
     constexpr auto final0 = completion_step(0, false, 0);
     static_assert(final0.stage == 1);
     static_assert(final0.action == CompletionAction::PlayFinalWendyLine);

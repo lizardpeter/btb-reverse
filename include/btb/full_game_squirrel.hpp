@@ -20,14 +20,7 @@ namespace btb::full_game {
 // differential verification; they must not be described as retail parity.
 class SquirrelDriver final : public ActivityDriver {
 public:
-    struct Choice {
-        int piece_id{-1};
-        bool correct{};
-        bool active{};
-        // Raw first comparison word written by 00426F30; decoys store
-        // their encoded pair, not the decoded first connector.
-        int feedback_comparison{};
-    };
+    using Choice=squirrel::ConveyorChoice;
     explicit SquirrelDriver(std::filesystem::path root,int difficulty=0,
                             retail::OriginalRetailRandom* shared_random=nullptr)
         :root_(std::move(root)),difficulty_(difficulty),shared_random_(shared_random) {}
