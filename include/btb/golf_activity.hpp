@@ -1,6 +1,7 @@
 #pragma once
 
 #include "btb/golf_runtime.hpp"
+#include "btb/retail_crt_random.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -21,6 +22,8 @@ struct RoundInput {
     // 0x58 - (pointer_x / 7), then arrow-key adjustments and clamping.
     // Absent preserves direct/source unit-test aim control.
     std::optional<int> source_mouse_aim{};
+    // Consume the process RNG only on an original rand branch.
+    retail::OriginalRetailRandom* random_stream{};
 };
 
 struct RoundFrame {
@@ -61,9 +64,9 @@ public:
     }
     [[nodiscard]] int score() const noexcept { return score_; }
     [[nodiscard]] bool finished() const noexcept { return finished_; }
+    [[nodiscard]] RoundFrame snapshot() const noexcept;
 
 private:
-    [[nodiscard]] RoundFrame snapshot() const noexcept;
 
     Data data_{};
     int difficulty_{};
@@ -80,8 +83,8 @@ private:
     int attempts_remaining_{kRetailInitialAttempts};
     int score_{};
     int target_index_{-1};
-    bool feedback_has_started_{};
     bool finished_{};
+    bool completion_emitted_{};
 };
 
 } // namespace btb::golf

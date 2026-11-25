@@ -27,6 +27,11 @@ RoundFrame Round::snapshot() const noexcept {
 RoundFrame Round::advance(const RoundInput& input) noexcept {
     auto out = snapshot();
     if (finished_) {
+        // Outer 00415830 waits only after the final attempt is exhausted.
+        if(input.feedback_audio_finished && !completion_emitted_) {
+            completion_emitted_=true;
+            out.progress_golf_completion=true;
+        }
         return out;
     }
 
@@ -119,25 +124,26 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
         target_index_ = landed.target_index;
         ball_.position = landed.ball_position;
         state_ = RoundState::ScoreAndFeedback;
-        feedback_has_started_ = false;
         break;
     }
 
-    case RoundState::ScoreAndFeedback:
-        if (!feedback_has_started_) {
-            const auto result = score_and_select_feedback(
-                target_index_,score_,attempts_remaining_,aim_,
-                ball_.position,data_.course_objects,input.random_value);
-            score_ = result.score_after;
-            out.managed_voice = result.sound_id;
-            out.feedback_started = true;
-            feedback_has_started_ = true;
-        } else if (input.feedback_audio_finished) {
-            // Outer 0x00415830 waits for the result voice before allowing
-            // the next attempt or Play Again path. The host must confirm.
-            state_ = RoundState::ResetNextAttempt;
-        }
+    case RoundState::ScoreAndFeedback: {
+        // 00415080 state 5 increments immediately after queuing speech.
+        // Final low-score ID135 is the sole no-rand scoring branch.
+        const int next_score=score_+target_point_value(target_index_);
+        const bool calls_rand=attempts_remaining_!=1 || next_score>4;
+        const auto random=calls_rand && input.random_stream
+            ?static_cast<std::uint32_t>(input.random_stream->next_rand())
+            :input.random_value;
+        const auto result=score_and_select_feedback(
+            target_index_,score_,attempts_remaining_,aim_,
+            ball_.position,data_.course_objects,random);
+        score_=result.score_after;
+        out.managed_voice=result.sound_id;
+        out.feedback_started=true;
+        state_=RoundState::ResetNextAttempt;
         break;
+    }
 
     case RoundState::ResetNextAttempt: {
         const auto next = reset_next_attempt(
@@ -151,13 +157,11 @@ RoundFrame Round::advance(const RoundInput& input) noexcept {
         power_ = next.power;
         attempts_remaining_ = next.attempts_remaining;
         direction_ = next.power_direction;
-        feedback_has_started_ = false;
         state_ = next.state;
 
         if (attempts_remaining_ <= 0) {
             finished_ = true;
             out.finished = true;
-            out.progress_golf_completion = true;
         }
         break;
     }

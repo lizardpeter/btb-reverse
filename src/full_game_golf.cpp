@@ -36,7 +36,6 @@ bool GolfDriver::initialize(int player_index, std::string& error) {
         player_index_ = player_index;
         queued_input_.reset();
         swing_animation_ticks_=0;
-        feedback_voice_started_=false;
         intro_stage_=0;
         flag_idle_tick_=flag_idle_frame_=0;
         target_hit_ticks_={};target_hit_frames_={};
@@ -97,9 +96,8 @@ ActivityFrameOutput GolfDriver::compose_frame(
             std::nullopt,true
         });
         out.draws.push_back({
-            state.ball.speed>0
-                ? "Data\\SubGameGolf\\golfballgo.bmp"
-                : "Data\\SubGameGolf\\golfballstop.bmp",
+            // DrawGolfActivity uses 0050AEE4 on every visible ball draw.
+            "Data\\SubGameGolf\\golfballstop.bmp",
             ball_x,ball_y-state.bounce_height,std::nullopt,true
         });
     }
@@ -220,18 +218,18 @@ ActivityFrameOutput GolfDriver::advance(
             // eight. Native completion is triggered on the 72nd tick.
             action.swing_animation_finished=swing_animation_ticks_+1>=72;
             break;
-        case golf::RoundState::ScoreAndFeedback:
-            // First scoring frame queues original managed voice;
-            // subsequent frames read the REAL DirectSound busy observation.
-            action.feedback_audio_finished=
-                feedback_voice_started_ && !input.managed_sound_playing;
-            break;
         default:break;
         }
     }
     const auto prior=round_->state();
     action.random_value =
         static_cast<std::uint32_t>(input.random_value);
+    action.random_stream=shared_random_;
+    // 00415830 draws BEFORE 00415080 mutates state. With no attempts
+    // remaining, it draws only while the managed sound bank is busy.
+    if(!round_->finished() || input.managed_sound_playing)
+        out=compose_frame(round_->snapshot());
+    if(!queued_input_)action.feedback_audio_finished=!input.managed_sound_playing;
     queued_input_.reset();
 
     const auto frame = round_->advance(action);
@@ -246,13 +244,7 @@ ActivityFrameOutput GolfDriver::advance(
         swing_animation_ticks_=std::min(135,swing_animation_ticks_+1);
     else if(prior==golf::RoundState::ResolveLanding)
         swing_animation_ticks_=0;
-    if(prior==golf::RoundState::ScoreAndFeedback &&
-       frame.state!=golf::RoundState::ScoreAndFeedback)
-        feedback_voice_started_=false;
-    out = compose_frame(frame);
-
     if (frame.managed_voice) {
-        feedback_voice_started_=true;
         out.audio.push_back({
             AudioOperation::ManagedSoundId, {},
             *frame.managed_voice, 50, 1
@@ -261,11 +253,11 @@ ActivityFrameOutput GolfDriver::advance(
 
     // 00415830 plays the activity music and initial 123 voice, then
     // the interruptible 101 line after the managed sound bank drains.
-    if(intro_stage_==0) {
+    if(!round_->finished() && intro_stage_==0) {
         out.audio.push_back({AudioOperation::StartBackingTrack,"Data/music/golf.wav"});
         out.audio.push_back({AudioOperation::ManagedSoundId,{},123,50,1,true});
         intro_stage_=1;
-    } else if(intro_stage_==1 && !input.managed_sound_playing && !frame.managed_voice) {
+    } else if(!round_->finished() && intro_stage_==1 && !input.managed_sound_playing && !frame.managed_voice) {
         out.audio.push_back({AudioOperation::ManagedSoundId,{},101,50,1,true});
         intro_stage_=2;
     }
@@ -285,7 +277,6 @@ bool GolfDriver::unload(std::string& error) {
     round_.reset();
     queued_input_.reset();
     swing_animation_ticks_=0;
-    feedback_voice_started_=false;
     intro_stage_=0;
     flag_idle_tick_=flag_idle_frame_=0;
     target_hit_ticks_={};target_hit_frames_={};

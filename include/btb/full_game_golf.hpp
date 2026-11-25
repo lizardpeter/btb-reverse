@@ -17,9 +17,10 @@ namespace btb::full_game {
 // that sends aim, shoot, swing-finished, and voice-finished commands.
 class GolfDriver final : public ActivityDriver {
 public:
-    GolfDriver(std::filesystem::path golf_data_dir, int difficulty)
+    GolfDriver(std::filesystem::path golf_data_dir, int difficulty,
+               retail::OriginalRetailRandom* shared_random=nullptr)
         : golf_data_dir_(std::move(golf_data_dir)),
-          difficulty_(difficulty) {}
+          difficulty_(difficulty),shared_random_(shared_random) {}
 
     void configure_menu_state(const RetailMenuState& menu) noexcept override {
         // Native pregame 0x35 and replay 0x3F both write original
@@ -59,7 +60,7 @@ private:
     // 0x00415080 state 99 advances 9 inner ticks and 8 outer frames;
     // source sound manager owns state-5 voice completion.
     int swing_animation_ticks_{};
-    bool feedback_voice_started_{};
+    retail::OriginalRetailRandom* shared_random_{};
     int intro_stage_{};
     int flag_idle_tick_{};
     int flag_idle_frame_{};

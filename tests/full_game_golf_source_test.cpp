@@ -100,7 +100,7 @@ data\subgamegolf\wendy.bmp
     assert(step.effects.draws[9].source_asset=="Data\\SubGameGolf\\golfballstop.bmp");
     assert(step.effects.draws[9].x==187 && step.effects.draws[9].y==330);
     assert(step.effects.draws[10].source_asset==handle->round()->data().bob_sprite_path);
-    assert(step.effects.draws[10].source_rectangle->top==44*174);
+    assert(step.effects.draws[10].source_rectangle->top==30*174); // initial aim is 60
     assert(step.effects.draws[11].source_rectangle->left==1);
     assert(step.effects.draws[13].source_asset=="data\\subgamegolf\\flag.bmp");
     assert(step.effects.draws[13].source_rectangle->left==0);
@@ -126,7 +126,7 @@ data\subgamegolf\wendy.bmp
         if (shot == 0) {
             // Medium speed 4 x 30 ticks = power 120. Original shaderless
             // DirectDraw crop is floor(120*257/1000)=30px at x83 y416.
-            for(int charge=0;charge<30;++charge)
+            for(int charge=0;charge<31;++charge)
                 step=game.advance({});
             assert(handle->round()->state()==btb::golf::RoundState::PowerMeter);
             const auto& bar=step.effects.draws.back();
@@ -163,11 +163,14 @@ data\subgamegolf\wendy.bmp
         assert(step.effects.audio[0].operation ==
                AudioOperation::ManagedSoundId);
 
-        handle->queue_control({.feedback_audio_finished=true});
-        step = game.advance({});
-        assert(handle->round()->state() ==
-               btb::golf::RoundState::ResetNextAttempt);
-        step = game.advance({});
+        assert(handle->round()->state()==btb::golf::RoundState::ResetNextAttempt);
+        step=game.advance({.managed_sound_playing=true});
+        if(shot==4) {
+            assert(handle->round()->finished());
+            step=game.advance({.managed_sound_playing=true});
+            assert(!step.effects.save_and_unload);
+            step=game.advance({});
+        }
         if (shot < 4) {
             assert(step.effects.progress_writes.empty());
             assert(handle->round());
@@ -222,13 +225,14 @@ data\subgamegolf\wendy.bmp
     assert(step.kind==FrameKind::ActivityInitialized);
     // Mouse X maps through the retail 88 - (x/7) aiming equation.
     step=native.advance({.pointer_x=616});
-    assert(step.effects.draws[10].source_rectangle->top==0);
+    assert(step.effects.draws[10].source_rectangle->top==30*174);
     assert(live->round()->state()==btb::golf::RoundState::Aim);
     step=native.advance({.pointer_x=0});
-    assert(step.effects.draws[10].source_rectangle->top==44*174);
+    assert(step.effects.draws[10].source_rectangle->top==0);
     assert(step.effects.audio.size()==1 && step.effects.audio[0].sound_id==101);
     assert(step.kind==FrameKind::ActivityUpdated);
     step=native.advance({.pointer_x=0,.directional_input_bits=0x02});
+    assert(step.effects.draws[10].source_rectangle->top==44*174);
     // Aim is now 87, then the UI returns to mouse-originated aim at 616.
     assert(live->round()->state()==btb::golf::RoundState::Aim);
 
@@ -243,7 +247,7 @@ data\subgamegolf\wendy.bmp
             step=native.advance({});
             assert(live->round()->state()==btb::golf::RoundState::SwingAnimationDelay);
             for(const auto& draw:step.effects.draws)if(draw.source_asset==live->round()->data().bob_sprite_path){
-                assert(draw.source_rectangle->left==(ticks+1)/9*133);
+                assert(draw.source_rectangle->left==ticks/9*133);
                 assert(draw.source_rectangle->right<=2128);
             }
         }
@@ -259,15 +263,20 @@ data\subgamegolf\wendy.bmp
         step=native.advance({}); // managed voice submitted
         assert(!step.effects.audio.empty());
         assert(step.effects.audio[0].operation==AudioOperation::ManagedSoundId);
-        for(int tick=0;tick<3;++tick) {
-            step=native.advance({.managed_sound_playing=true});
-            assert(live->round()->state()==btb::golf::RoundState::ScoreAndFeedback);
-        }
-        step=native.advance({.managed_sound_playing=false});
         assert(live->round()->state()==btb::golf::RoundState::ResetNextAttempt);
-        step=native.advance({});
-        if(shot<4)
+        step=native.advance({.managed_sound_playing=true});
+        if(shot<4) {
             assert(live->round()->state()==btb::golf::RoundState::Aim);
+            assert(!step.effects.save_and_unload);
+        } else {
+            assert(live->round()->finished());
+            for(int tick=0;tick<3;++tick) {
+                step=native.advance({.managed_sound_playing=true});
+                assert(!step.effects.save_and_unload);
+                assert(!step.effects.draws.empty());
+            }
+            step=native.advance({.managed_sound_playing=false});
+        }
     }
     assert(step.kind==FrameKind::ActivityUpdated);
     assert(step.effects.progress_writes.size()==1);
@@ -305,6 +314,8 @@ data\subgamegolf\wendy.bmp
             if(draw.source_asset=="Data\\SubGameGolf\\flag01.bmp")return &draw;
         return nullptr;
     };
+    assert(!flag_hit(effects)); // resolution happens after this draw
+    effects=hit_driver.advance({.managed_sound_playing=true});
     const auto* first_hit=flag_hit(effects);
     assert(first_hit && first_hit->x==119 && first_hit->y==172);
     assert(first_hit->source_rectangle->left==0 && first_hit->source_rectangle->right==198);
@@ -316,7 +327,9 @@ data\subgamegolf\wendy.bmp
     assert(hit_driver.round()->state()==btb::golf::RoundState::Aim);
     assert(flag_hit(effects)); // persists through attempt reset
     effects=hit_driver.advance({.pointer_x=616,.click_pulse=true});
-    assert(!flag_hit(effects)); // next shot clears the previous hit
+    assert(flag_hit(effects)); // confirmation frame still draws old state
+    effects=hit_driver.advance({});
+    assert(!flag_hit(effects)); // next frame sees cleared previous hit
     assert(hit_driver.unload(error));
 
     fs::remove_all(root);

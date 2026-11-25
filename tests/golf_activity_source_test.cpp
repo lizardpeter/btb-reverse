@@ -133,12 +133,9 @@ int main() {
     assert(frame.managed_voice);
     assert(frame.feedback_started);
     assert(!frame.finished);
-    frame = round.advance({});
-    assert(!frame.managed_voice);
-    assert(frame.state == RoundState::ScoreAndFeedback);
-    frame = round.advance({.feedback_audio_finished=true});
     assert(frame.state == RoundState::ResetNextAttempt);
-    frame = round.advance({});
+    frame = round.advance({}); // ordinary voice does not block reset
+    assert(!frame.managed_voice);
     assert(frame.attempts_remaining == 4);
     assert(frame.state == RoundState::Aim);
     assert(frame.ball.position.x == 187.0f);
@@ -163,15 +160,18 @@ int main() {
             // Zero-score final attempt goes through exact final grade ID135.
             assert(feedback.managed_voice == 135);
         }
-        round.advance({.feedback_audio_finished=true});
+        assert(feedback.state==RoundState::ResetNextAttempt);
         frame = round.advance({});
     }
     assert(round.finished());
     assert(frame.finished);
+    assert(!frame.progress_golf_completion);
+    assert(!round.advance({}).progress_golf_completion);
+    frame=round.advance({.feedback_audio_finished=true});
     assert(frame.progress_golf_completion);
     assert(frame.attempts_remaining == 0);
     assert(round.score() == 0);
-    assert(!round.advance({}).progress_golf_completion);
+    assert(!round.advance({.feedback_audio_finished=true}).progress_golf_completion);
 
     // Artificial near-launch hole: the first airborne physics update
     // overlaps it but must NOT terminate the shot (retail ground gate).
@@ -187,6 +187,27 @@ int main() {
     a=airborne.advance({});
     assert(ball_reaches_target(a.ball.position,near.course_objects[0]));
     assert(a.bounce_height==8 && a.state==RoundState::BallFlight);
+
+    // Process RNG is consumed on exactly four of these five miss shots.
+    btb::retail::OriginalRetailRandom rng(7), expected(7);
+    Round sequence(data,0);
+    for(int i=0;i<5;++i) {
+        auto f=sequence.advance({.accept_aim=true,.source_mouse_aim=0,.random_stream=&rng});
+        f=sequence.advance({.accept_power=true,.random_stream=&rng});
+        f=sequence.advance({.random_stream=&rng});
+        f=sequence.advance({.swing_animation_finished=true,.random_stream=&rng});
+        for(int j=0;j<300 && sequence.state()==RoundState::BallFlight;++j)
+            f=sequence.advance({.random_stream=&rng});
+        assert(sequence.state()==RoundState::ResolveLanding);
+        f=sequence.advance({.random_stream=&rng});
+        assert(rng.state()==expected.state());
+        f=sequence.advance({.random_stream=&rng});
+        if(i<4)(void)expected.next_rand();
+        else assert(f.managed_voice==135);
+        assert(rng.state()==expected.state());
+        f=sequence.advance({.random_stream=&rng});
+    }
+    assert(sequence.finished());
 
     Round edge(data,0);
     a=edge.advance({.aim_delta=-1,.source_mouse_aim=100});
