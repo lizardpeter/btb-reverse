@@ -141,7 +141,7 @@ void Win32OriginalDirectDraw::shutdown() noexcept {
     replay_underlay_.clear();help_underlay_.clear();
     global_underlay_.clear();modal_underlay_.clear();composed_frame_.clear();
     pending_cursorless_frame_.clear();presented_cursorless_frame_.clear();cursor_pending_=false;
-    bitmap_frame_valid_=false;bitmap_frame_.clear();
+    bitmap_frame_valid_=false;bitmap_frame_.clear();opaque_video_.clear();
     if(extra_back_reference_ && backbuffer_)backbuffer_->Release();
     extra_back_reference_=false;
     release_surface(backbuffer_);
@@ -364,6 +364,7 @@ bool Win32OriginalDirectDraw::render_additional(
     const std::vector<ResolvedDraw>& stream,std::string& error) {
     if(!initialized()){error="post-movie overlay requires live DirectDraw";return false;}
     for(const auto& draw:stream)if(!blit(draw,error))return false;
+    if(!stream.empty())opaque_video_.clear();
     if(bitmap_frame_valid_)bitmap_frame_.insert(bitmap_frame_.end(),stream.begin(),stream.end());
     error.clear();return true;
 }
@@ -398,7 +399,15 @@ bool Win32OriginalDirectDraw::capture_presented_underlay(CapturedUnderlay kind,s
     }
     return capture_surface(underlay_target(kind),error);
 }
+void Win32OriginalDirectDraw::note_native_global_movie(const bink32_recovered::BinkNativeYuVaFrame& frame){
+    opaque_video_.clear();bitmap_frame_valid_=false;bitmap_frame_.clear();
+    if(!frame_output_||!frame_output_->supports_opaque_video()||frame.width!=640||frame.height!=480||
+       frame.planes[0].size()!=640*480||frame.planes[1].size()!=320*240||frame.planes[2].size()!=320*240||
+       frame.planes[3].size()!=640*480||!std::all_of(frame.planes[3].begin(),frame.planes[3].end(),[](auto a){return a==255;}))return;
+    for(std::size_t i=0;i<3;++i)opaque_video_.planes[i]=frame.planes[i];
+}
 bool Win32OriginalDirectDraw::draw_transient_cursor(const ResolvedDraw& cursor,std::string& error) {
+    opaque_video_.clear();
     if(!capture_surface(pending_cursorless_frame_,error))return false;
     if(!blit(cursor,error))return false;
     if(bitmap_frame_valid_)bitmap_frame_.push_back(cursor);
@@ -432,7 +441,7 @@ bool Win32OriginalDirectDraw::render_ordered_with_underlay(
         return false;
     }
     const bool replay=kind!=UnderlayKind::None;
-    bitmap_frame_valid_=false;bitmap_frame_.clear();
+    bitmap_frame_valid_=false;bitmap_frame_.clear();opaque_video_.clear();
     const auto* underlay=kind==UnderlayKind::Replay?&replay_underlay_:
         kind==UnderlayKind::Help?&help_underlay_:
         kind==UnderlayKind::GlobalMovie?&global_underlay_:
@@ -515,7 +524,7 @@ bool Win32OriginalDirectDraw::create_bink_offscreen_surface(
 bool Win32OriginalDirectDraw::blit_bink_offscreen_surface(
     IDirectDrawSurface7* source,int width,int height,
     int x,int y,std::string& error) {
-    bitmap_frame_valid_=false;bitmap_frame_.clear();
+    bitmap_frame_valid_=false;bitmap_frame_.clear();opaque_video_.clear();
     if(!initialized()||!source||
        width<1||height<1||x<0||y<0||
        x+width>display::kRetailWidth||
@@ -552,7 +561,7 @@ HRESULT Win32OriginalDirectDraw::cooperative_status() const noexcept {
 
 HRESULT Win32OriginalDirectDraw::prepare_native_frame(std::string& error) {
     cursor_pending_=false;
-    bitmap_frame_valid_=false;bitmap_frame_.clear();
+    bitmap_frame_valid_=false;bitmap_frame_.clear();opaque_video_.clear();
     if(!initialized()){error="native display preflight without surfaces";return E_POINTER;}
     const HRESULT cooperative=cooperative_status();
     if(FAILED(cooperative))return cooperative;
@@ -596,8 +605,9 @@ bool Win32OriginalDirectDraw::present(std::string& error) {
     // only the bitmap list loses those overlays after device recovery.
     if(!capture_surface(composed_frame_,error))return false;
     if(frame_output_){
-        const bool submitted=bitmap_frame_valid_?
-            frame_output_->present_bitmap_frame(composed_frame_,bitmap_frame_,error):
+        const bool submitted=opaque_video_.valid()?
+            frame_output_->present_opaque_video(composed_frame_,opaque_video_,error):
+            bitmap_frame_valid_?frame_output_->present_bitmap_frame(composed_frame_,bitmap_frame_,error):
             frame_output_->present(composed_frame_,error);
         if(!submitted)return false;
         if(cursor_pending_)std::swap(pending_cursorless_frame_,presented_cursorless_frame_);

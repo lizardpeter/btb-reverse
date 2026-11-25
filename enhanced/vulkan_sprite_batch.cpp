@@ -36,21 +36,33 @@ void VulkanSpriteBatch::destroy(Buffer& b) noexcept {
     if(b.memory)vkFreeMemory(device_,b.memory,nullptr);
     b={};
 }
-bool VulkanSpriteBatch::initialize(VkPhysicalDevice physical,VkDevice device,const std::filesystem::path& path,std::string& error){
-    physical_=physical;device_=device;
-    VkPhysicalDeviceProperties props{};vkGetPhysicalDeviceProperties(physical_,&props);
-    if(props.limits.maxStorageBufferRange<batch_word_limit*4||
-       props.limits.maxPerStageDescriptorStorageBuffers<2){
-        error="GPU storage limits are too small for sprite compositor";return false;
-    }
+bool VulkanSpriteBatch::create_pipeline(const std::filesystem::path& path,const char* entry,VkPipeline& pipeline,std::string& error){
     std::ifstream file(path,std::ios::binary|std::ios::ate);
-    if(!file){error="Cannot open compiled spriteBatch.spv";return false;}
+    if(!file){error="Cannot open compiled enhanced compute shader";return false;}
     const std::streamoff size=file.tellg();
     if(size<=0||size>1024*1024||size%4){error="Invalid sprite compute shader size";return false;}
     std::vector<uint32_t> code(static_cast<std::size_t>(size)/4);
     file.seekg(0);
     if(!file.read(reinterpret_cast<char*>(code.data()),static_cast<std::streamsize>(size))||code[0]!=0x07230203){
         error="Invalid sprite compute SPIR-V";return false;
+    }
+    VkShaderModuleCreateInfo mi{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};mi.codeSize=code.size()*4;mi.pCode=code.data();
+    VkShaderModule shader{};
+    if(!ok(vkCreateShaderModule(device_,&mi,nullptr,&shader),"shader module",error))return false;
+    VkComputePipelineCreateInfo ci{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
+    ci.layout=pipeline_layout_;ci.stage={VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
+    ci.stage.stage=VK_SHADER_STAGE_COMPUTE_BIT;ci.stage.module=shader;ci.stage.pName=entry;
+    const auto created=vkCreateComputePipelines(device_,VK_NULL_HANDLE,1,&ci,nullptr,&pipeline);
+    vkDestroyShaderModule(device_,shader,nullptr);
+    if(!ok(created,"compute pipeline",error))return false;
+    return true;
+}
+bool VulkanSpriteBatch::initialize(VkPhysicalDevice physical,VkDevice device,const std::filesystem::path& path,std::string& error){
+    physical_=physical;device_=device;
+    VkPhysicalDeviceProperties props{};vkGetPhysicalDeviceProperties(physical_,&props);
+    if(props.limits.maxStorageBufferRange<batch_word_limit*4||
+       props.limits.maxPerStageDescriptorStorageBuffers<2){
+        error="GPU storage limits are too small for sprite compositor";return false;
     }
     VkDescriptorSetLayoutBinding bindings[2]{};
     for(uint32_t i=0;i<2;++i){bindings[i].binding=i;bindings[i].descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -62,15 +74,8 @@ bool VulkanSpriteBatch::initialize(VkPhysicalDevice physical,VkDevice device,con
     VkPipelineLayoutCreateInfo pi{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
     pi.setLayoutCount=1;pi.pSetLayouts=&layout_;pi.pushConstantRangeCount=1;pi.pPushConstantRanges=&push;
     if(!ok(vkCreatePipelineLayout(device_,&pi,nullptr,&pipeline_layout_),"pipeline layout",error))return false;
-    VkShaderModuleCreateInfo mi{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};mi.codeSize=code.size()*4;mi.pCode=code.data();
-    VkShaderModule shader{};
-    if(!ok(vkCreateShaderModule(device_,&mi,nullptr,&shader),"shader module",error))return false;
-    VkComputePipelineCreateInfo ci{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
-    ci.layout=pipeline_layout_;ci.stage={VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
-    ci.stage.stage=VK_SHADER_STAGE_COMPUTE_BIT;ci.stage.module=shader;ci.stage.pName="spriteBatch";
-    const auto created=vkCreateComputePipelines(device_,VK_NULL_HANDLE,1,&ci,nullptr,&pipeline_);
-    vkDestroyShaderModule(device_,shader,nullptr);
-    if(!ok(created,"compute pipeline",error))return false;
+    if(!create_pipeline(path,"spriteBatch",pipeline_,error)||
+       !create_pipeline(path.parent_path()/L"binkOpaque.spv","binkOpaque",video_pipeline_,error))return false;
     if(!buffer(input_,batch_word_limit*4,VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,error)||
        !buffer(output_,output_bytes,VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_TRANSFER_SRC_BIT,error))return false;
     VkDescriptorPoolSize ps{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,2};
@@ -137,11 +142,22 @@ bool VulkanSpriteBatch::prepare(const std::vector<full_game::ResolvedDraw>& draw
 bool VulkanSpriteBatch::prepare_jobs(std::span<const SpriteJob> jobs,std::span<const std::uint32_t> atlas){
     if(!input_.mapped||!pack_sprite_batch(jobs,atlas,words_))return false;
     std::memcpy(input_.mapped,words_.data(),words_.size()*4);
-    return true;
+    video_pending_=false;return true;
+}
+bool VulkanSpriteBatch::prepare_opaque_video(const full_game::OpaqueGlobalVideo& video){
+    if(!video_pipeline_||!input_.mapped||!video.valid())return false;
+    auto* words=static_cast<std::uint32_t*>(input_.mapped);
+    std::size_t cursor=4;
+    for(std::size_t i=0;i<3;++i){
+        words[i]=static_cast<std::uint32_t>(cursor);
+        std::memcpy(words+cursor,video.planes[i].data(),video.planes[i].size());
+        cursor+=video.planes[i].size()/4;
+    }
+    video_pending_=true;return true;
 }
 void VulkanSpriteBatch::record(VkCommandBuffer cmd,bool bgra){
     // The host fence ensures the previous output is no longer consumed.
-    vkCmdBindPipeline(cmd,VK_PIPELINE_BIND_POINT_COMPUTE,pipeline_);
+    vkCmdBindPipeline(cmd,VK_PIPELINE_BIND_POINT_COMPUTE,video_pending_?video_pipeline_:pipeline_);
     vkCmdBindDescriptorSets(cmd,VK_PIPELINE_BIND_POINT_COMPUTE,pipeline_layout_,0,1,&set_,0,nullptr);
     const uint32_t value=bgra?1:0;
     vkCmdPushConstants(cmd,pipeline_layout_,VK_SHADER_STAGE_COMPUTE_BIT,0,4,&value);
@@ -154,6 +170,7 @@ void VulkanSpriteBatch::record(VkCommandBuffer cmd,bool bgra){
 }
 void VulkanSpriteBatch::shutdown() noexcept {
     if(!device_)return;
+    if(video_pipeline_)vkDestroyPipeline(device_,video_pipeline_,nullptr);
     if(pipeline_)vkDestroyPipeline(device_,pipeline_,nullptr);
     if(pipeline_layout_)vkDestroyPipelineLayout(device_,pipeline_layout_,nullptr);
     if(pool_)vkDestroyDescriptorPool(device_,pool_,nullptr);

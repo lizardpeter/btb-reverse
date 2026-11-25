@@ -48,7 +48,7 @@ jobs:
         shell: pwsh
         run: |
           $shaders = @(Get-ChildItem build/enhanced-vulkan -Recurse -Filter *.spv)
-          if ($shaders.Count -lt 4) { throw "Expected all four compiled Slang entrypoints" }
+          if ($shaders.Count -lt 5) { throw "Expected all five compiled Slang entrypoints" }
           foreach ($shader in $shaders) {
             & spirv-val --target-env vulkan1.4 $shader.FullName
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

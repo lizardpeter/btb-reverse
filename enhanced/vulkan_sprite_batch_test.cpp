@@ -1,4 +1,5 @@
 #include "vulkan_sprite_batch.hpp"
+#include "btb/bink32_surface_convert.hpp"
 #include <iostream>
 #include <array>
 #include <random>
@@ -83,6 +84,34 @@ int main(){
             if(pixels[y*640+x]!=expected){std::cerr<<"Pixel mismatch at "<<x<<","<<y<<" BGRA="<<bgra<<'\n';return 2;}
         }
     }
+    btb::full_game::OpaqueGlobalVideo video;
+    btb::bink32_recovered::BinkNativeYuVaFrame frame;
+    frame.width=640;frame.height=480;frame.source_has_alpha=false;
+    video.planes[0].resize(640*480);video.planes[1].resize(320*240);video.planes[2].resize(320*240);
+    for(auto& plane:video.planes)for(auto& c:plane)c=static_cast<uint8_t>(rng());
+    for(unsigned i=0;i<3;++i)frame.planes[i]=video.planes[i];
+    frame.planes[3].assign(640*480,255);
+    std::vector<uint8_t> expected(640*480*4,255);
+    for(bool bgra:{false,true}){
+        btb::bink32_recovered::BinkPackedSurface cpu{expected,640*4,640,480,4,
+            bgra?0xff0000U:0xffU,0xff00U,bgra?0xffU:0xff0000U};
+        if(btb::bink32_recovered::blit_bink_yuva_to_surface(frame,cpu)!=btb::bink32_recovered::BinkSurfaceResult::ok)return fail("CPU Bink reference");
+        if(!batch.prepare_opaque_video(video))return fail("prepare GPU video");
+        if(vkResetCommandBuffer(cmd,0)!=VK_SUCCESS)return fail("video reset");
+        VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+        if(vkBeginCommandBuffer(cmd,&begin)!=VK_SUCCESS)return fail("video begin");
+        batch.record(cmd,bgra);
+        if(vkEndCommandBuffer(cmd)!=VK_SUCCESS)return fail("video end");
+        VkSubmitInfo si{VK_STRUCTURE_TYPE_SUBMIT_INFO};si.commandBufferCount=1;si.pCommandBuffers=&cmd;
+        if(vkQueueSubmit(queue,1,&si,VK_NULL_HANDLE)!=VK_SUCCESS||vkQueueWaitIdle(queue)!=VK_SUCCESS)return fail("video dispatch");
+        const auto pixels=batch.readback();
+        for(std::size_t i=0;i<pixels.size();++i){
+            const auto* p=expected.data()+4*i;
+            const uint32_t reference=uint32_t(p[0])|(uint32_t(p[1])<<8)|(uint32_t(p[2])<<16)|(uint32_t(p[3])<<24);
+            if(pixels[i]!=reference){std::cerr<<"Bink mismatch at pixel "<<i<<" BGRA="<<bgra<<'\n';return 3;}
+        }
+    }
+    std::cout<<"PASS: 614400 opaque Bink GPU pixels match native CPU conversion\n";
     std::cout<<"PASS: 614400 GPU-computed pixels match portable painter-order oracle\n";
     return 0;
 }

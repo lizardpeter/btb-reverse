@@ -22,6 +22,7 @@
 #include "btb/display_manager.hpp"
 #include "btb/packed_frame_snapshot.hpp"
 #include "btb/win32_frame_output.hpp"
+#include "btb/bink32_yuva_frame.hpp"
 #include "btb/win32_native_bitmap_registry.hpp"
 
 #include <filesystem>
@@ -57,6 +58,7 @@ public:
         const std::vector<ResolvedDraw>& draw_stream,std::string& error);
     [[nodiscard]] bool present(std::string& error);
     void set_frame_output(Win32FrameOutput* output) noexcept {frame_output_=output;}
+    void note_native_global_movie(const bink32_recovered::BinkNativeYuVaFrame& frame);
     void set_dialog_owner(HWND hwnd) noexcept {dialog_owner_=hwnd;}
     // Direct original 00402440 cooperative test and loss recovery.
     [[nodiscard]] HRESULT cooperative_status() const noexcept;
@@ -117,6 +119,7 @@ private:
     Win32FrameOutput* frame_output_{};
     bool bitmap_frame_valid_{};
     std::vector<ResolvedDraw> bitmap_frame_{};
+    OpaqueGlobalVideo opaque_video_{};
     display::DisplayMode mode_{display::DisplayMode::Windowed};
     IDirectDraw7* draw_{};
     IDirectDrawSurface7* primary_{};

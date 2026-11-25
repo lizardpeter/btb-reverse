@@ -1,6 +1,7 @@
 #pragma once
 #include "sprite_batch_plan.hpp"
 #include "btb/full_game_resources.hpp"
+#include "btb/win32_frame_output.hpp"
 #include <vulkan/vulkan.h>
 #include <filesystem>
 #include <unordered_map>
@@ -11,7 +12,9 @@ class VulkanSpriteBatch {
     VkDevice device_{};VkPhysicalDevice physical_{};
     Buffer input_{},output_{};
     VkDescriptorSetLayout layout_{};VkDescriptorPool pool_{};
-    VkDescriptorSet set_{};VkPipelineLayout pipeline_layout_{};VkPipeline pipeline_{};
+    VkDescriptorSet set_{};VkPipelineLayout pipeline_layout_{};VkPipeline pipeline_{},video_pipeline_{};
+    bool video_pending_{};
+    bool create_pipeline(const std::filesystem::path&,const char*,VkPipeline&,std::string&);
     std::unordered_map<std::filesystem::path,Bitmap> cache_;
     std::size_t cached_words_{};
     std::vector<std::uint32_t> atlas_,words_;
@@ -24,6 +27,7 @@ public:
     bool initialize(VkPhysicalDevice,VkDevice,const std::filesystem::path&,std::string&);
     bool prepare(const std::vector<full_game::ResolvedDraw>&);
     bool prepare_jobs(std::span<const SpriteJob>,std::span<const std::uint32_t>);
+    bool prepare_opaque_video(const full_game::OpaqueGlobalVideo&);
     std::span<const std::uint32_t> readback() const noexcept {
         return output_.mapped?std::span<const std::uint32_t>{static_cast<const std::uint32_t*>(output_.mapped),640*480}:std::span<const std::uint32_t>{};
     }
