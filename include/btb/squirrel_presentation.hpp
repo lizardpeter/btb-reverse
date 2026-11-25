@@ -154,8 +154,8 @@ inline constexpr std::int32_t kSourceSquirrelFrameCount=86;
 
 // 0x00425160 computes initial DAT_00514F98 from the first source
 // connector's 0x00446988 table and 0x004467C0=194. The X baseline
-// uses 0x004467BC=36 and a separately held offset 0x00515084,
-// initialized to zero for an unscrolled new scene.
+// uses 0x004467BC=36 minus loaded 0x00515084 (retail sqdata=70).
+// This helper returns the unadjusted origin; the native driver applies it.
 inline constexpr std::array<std::int32_t,3>
 kSourceSquirrelStartYOffsets{{40,11,-22}};
 inline constexpr std::int32_t kSourceSquirrelStartX=36;

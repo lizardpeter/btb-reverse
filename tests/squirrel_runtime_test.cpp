@@ -102,25 +102,25 @@ int main() {
         select_run_assembly_motion_keys(
             1, 0, selector_connectors, selector_pieces);
     static_assert(selector1.has_value());
-    static_assert(selector1->a == 12);
-    static_assert(selector1->b == 1);
-    static_assert(selector1->c == 0);
-    static_assert(selector1->d == 1);
-    static_assert(selector1->first_lookup_index == 31);
-    static_assert(selector1->other_lookup_index == 16);
+    static_assert(selector1->a == 0);
+    static_assert(selector1->b == 13);
+    static_assert(selector1->c == 12);
+    static_assert(selector1->d == 13);
+    static_assert(selector1->first_lookup_index == 0);
+    static_assert(selector1->other_lookup_index == 31);
     static_assert(selector1->placed_piece_slot == 0);
 
     constexpr auto selector2 =
         select_run_assembly_motion_keys(
             2, 0, selector_connectors, selector_pieces);
     static_assert(selector2.has_value());
-    static_assert(selector2->a == 0);
-    static_assert(selector2->b == 13);
-    static_assert(selector2->c == 12);
-    static_assert(selector2->d == 13);
-    static_assert(selector2->first_lookup_index == 0);
-    static_assert(selector2->other_lookup_index == 4);
-    static_assert(selector2->placed_piece_slot == 1);
+    static_assert(selector2->a == 12);
+    static_assert(selector2->b == 1);
+    static_assert(selector2->c == 0);
+    static_assert(selector2->d == 1);
+    static_assert(selector2->first_lookup_index == 31);
+    static_assert(selector2->other_lookup_index == 16);
+    static_assert(selector2->placed_piece_slot == 0);
 
     constexpr auto selector3 =
         select_run_assembly_motion_keys(
@@ -157,10 +157,10 @@ int main() {
         select_run_assembly_motion_keys(
             6, 0, selector_connectors, selector_pieces);
     static_assert(selector6.has_value());
-    static_assert(selector6->a == 0);
-    static_assert(selector6->b == 4);
-    static_assert(selector6->c == 5);
-    static_assert(selector6->d == 4);
+    static_assert(selector6->a == 5);
+    static_assert(selector6->b == 1);
+    static_assert(selector6->c == 0);
+    static_assert(selector6->d == 1);
 
     // Retained default branch uses raw piece ID rather than the transposed
     // connector-major index.
@@ -180,6 +180,38 @@ int main() {
     }};
     static_assert(!select_run_assembly_motion_keys(
         1, 0, selector_connectors, invalid_pieces).has_value());
+
+    // Exhaustive independent branch-index reference: 69,984 combinations.
+    constexpr std::array<int,3> conn_idx{{0,16,33}};
+    for(int level=0;level<3;++level)for(int tuple=0;tuple<81;++tuple)
+    for(int piece=0;piece<36;++piece) {
+        RunPlan plan{};PlacedRunPieces pieces{};
+        int value=tuple;
+        for(auto& connector:plan[level]){connector=value%3;value/=3;}
+        for(int i=0;i<4;++i)pieces[level*4+i]=(piece+i*7)%36;
+        const auto c0=conn_idx[plan[level][0]],c1=conn_idx[plan[level][1]],
+                   c2=conn_idx[plan[level][2]],c3=conn_idx[plan[level][3]];
+        const auto p0=transpose_piece_id_for_motion_lookup(pieces[level*4]),
+                   p1=transpose_piece_id_for_motion_lookup(pieces[level*4+1]),
+                   p2=transpose_piece_id_for_motion_lookup(pieces[level*4+2]);
+        const int raw=pieces[level*4+3];
+        const std::array<int,8> a{{c0,c0,p0,c2,p1,c2,p2,raw}};
+        const std::array<int,8> b{{c0,p0,c1,p1,c2,p2,c3,raw}};
+        const std::array<int,8> slots{{-1,0,0,1,1,2,2,3}};
+        for(int section=0;section<8;++section) {
+            const auto keys=select_run_assembly_motion_keys(section,level,plan,pieces);
+            assert(keys && keys->first_lookup_index==a[section] &&
+                keys->other_lookup_index==b[section] && keys->placed_piece_slot==slots[section]);
+            assert(keys->a==kMotionKeyLookupA[a[section]] &&
+                keys->b==kMotionKeyLookupB[b[section]] &&
+                keys->c==kMotionKeyLookupC[b[section]] &&
+                keys->d==kMotionKeyLookupD[b[section]]);
+        }
+    }
+    // Section 2 must work before the second piece has been placed.
+    PlacedRunPieces one_piece{};one_piece.fill(-1);one_piece[0]=34;
+    assert(select_run_assembly_motion_keys(2,0,selector_connectors,one_piece));
+    assert(!select_run_assembly_motion_keys(3,0,selector_connectors,one_piece));
 
     Data animation_data;
     animation_data.horizontal_motion_deltas =

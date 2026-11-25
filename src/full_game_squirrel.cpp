@@ -53,13 +53,15 @@ bool SquirrelDriver::initialize(int player,std::string& error) {
         data_=std::move(candidate);
         placed_piece_ids_.fill(-1);
         assembly_={};conveyor_={};
+        assembly_.run_section=0;
+        assembly_.x=-data_->initial_horizontal_alignment_offset;
         level_=0;placed_count_=0;placement_={};placement_slot_=0;
         temporary_decoy_=carried_piece_=-1;
         animating_=false;complete_=false;
         completion_stage_=0;
         intro_stage_=0;
         player_=player;
-        if(!generate_choices(error)) {
+        if(!generate_choices(error) || !start_run_section(error)) {
             data_.reset();
             return false;
         }
@@ -127,6 +129,20 @@ bool SquirrelDriver::generate_choices(std::string& error) {
             }),pick_correct,true,pick_correct?pair.from:pair.from*3+pair.to
         };
     }
+    return true;
+}
+
+bool SquirrelDriver::start_run_section(std::string& error) {
+    const auto keys=squirrel::select_run_assembly_motion_keys(
+        assembly_.run_section,static_cast<std::size_t>(level_),
+        connectors_,placed_piece_ids_);
+    if(!keys) {
+        error="retail Squirrel motion-key selection failed for section "+
+            std::to_string(assembly_.run_section);
+        return false;
+    }
+    squirrel::begin_run_assembly_animation(assembly_,*data_,*keys);
+    animating_=true;
     return true;
 }
 
@@ -292,6 +308,13 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         }
         return out;
     }
+    // The draw routine owns run assembly. Each accepted piece
+    // advances the available-section threshold by two (004273F0).
+    if(!animating_ && assembly_.run_section<=placed_count_*2 &&
+       assembly_.run_section<=6) {
+        std::string error;
+        if(!start_run_section(error)){out.fatal_error=error;return out;}
+    }
     if(animating_) {
         const auto tick=squirrel::tick_run_assembly_animation(assembly_,*data_);
         if(tick.cycle_completed)animating_=false;
@@ -307,15 +330,8 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
             const auto storage=static_cast<std::size_t>(level_)*4+
                                static_cast<std::size_t>(placed_count_);
             placed_piece_ids_[storage]=carried_piece_;
-            const int section=placed_count_*2+1;
-            const auto keys=squirrel::select_run_assembly_motion_keys(
-                section,static_cast<std::size_t>(level_),connectors_,placed_piece_ids_);
-            if(!keys){out.fatal_error="retail Squirrel motion-key selection failed";return out;}
-            // Preserve cumulative squirrel position across accepted pieces.
-            assembly_.run_section=section;
-            squirrel::begin_run_assembly_animation(assembly_,*data_,*keys);
-            animating_=true;
             ++placed_count_;
+            // The next scene update starts the next available section.
             choice.active=false;
             carried_piece_=-1;
             if(placed_count_<3)conveyor_.phase=1;
@@ -350,7 +366,7 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         }
         return out;
     }
-    if(animating_ || conveyor_.phase!=0)return out;
+    if(animating_ || conveyor_.phase!=0 || assembly_.run_section<=placed_count_*2)return out;
     if(placed_count_>=3) {
         if(level_==difficulty_) {
             complete_=true;completion_stage_=0;
@@ -358,9 +374,18 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
             out.audio.push_back({AudioOperation::ManagedSoundId,{},
                 squirrel::level_finished_feedback_sound_id(random_stream().next_rand()%4),50,1});
         } else {
+            // 00425160 sets 00446A44=1; 00425780 takes the direct
+            // transition branch, writes absolute X=46, retains Y, resets
+            // the section to 1, and starts the conveyor.
+            const auto old_origin=squirrel::source_squirrel_start_position(
+                connectors_[static_cast<std::size_t>(level_)][0]);
+            const int previous_y=old_origin->y+assembly_.y;
             ++level_;placed_count_=0;assembly_={};
-            // The next level's choices enter from offscreen after the
-            // previous level; full Lofty scroll is a separate source path.
+            const auto next_origin=squirrel::source_squirrel_start_position(
+                connectors_[static_cast<std::size_t>(level_)][0]);
+            assembly_.x=46-next_origin->x;
+            assembly_.y=previous_y-next_origin->y;
+            assembly_.run_section=1;
             conveyor_.phase=1;
         }
         return out;

@@ -1,0 +1,5 @@
+# Run-section scheduling correction
+
+Source 004259D0 uses two separate table indices (A from iVar4, B/C/D from iVar2). Sections 1, 2 and 6 were incorrectly transcribed. Section 2 explicitly rereads the first placed piece, irrespective of the preliminary generic index. The corrected indices for sections 0..6 are (c0,c0), (c0,p0), (p0,c1), (c2,p1), (p1,c2), (c2,p2), (p2,c3). The retained section 7 branch uses raw slot 3. Tests enumerate 69,984 valid combinations, including section 2 before slot 1 exists.
+
+00425160 initializes X=36-loaded offset (70), run section=0, available section=0. 00425F40 executes a cycle whenever the available section is at least the current section, then increments the section. 004273F0 advances the threshold by two for each accepted piece. Native game now schedules the initial approach and two movement cycles per correct placement rather than skipping every even section. X/Y accumulate. At the next level, 00425780's direct path (00446A44 initialized to 1) resets absolute X to 46, retains Y, begins section 1 and starts the conveyor. The alternative scroll branch and original animation atlas/voice timings still need separate verification.

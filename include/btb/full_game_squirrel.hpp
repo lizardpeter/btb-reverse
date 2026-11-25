@@ -46,11 +46,14 @@ public:
     [[nodiscard]] int conveyor_offset() const noexcept {return conveyor_.position;}
     [[nodiscard]] const squirrel::PlacementMotion& placement() const noexcept {return placement_;}
     [[nodiscard]] bool complete() const noexcept {return complete_;}
+    [[nodiscard]] int run_section() const noexcept {return assembly_.run_section;}
+    [[nodiscard]] squirrel::Vec2i squirrel_displacement() const noexcept {return {assembly_.x,assembly_.y};}
     bool shared_back_available() const noexcept override {
         return placement_.state==squirrel::PlacementState::IdleSelect;
     }
 private:
     [[nodiscard]] bool generate_choices(std::string& error);
+    [[nodiscard]] bool start_run_section(std::string& error);
     [[nodiscard]] ActivityFrameOutput draw() const;
     [[nodiscard]] ActivityFrameOutput advance_gameplay(const ActivityFrameInput&);
     std::filesystem::path root_;

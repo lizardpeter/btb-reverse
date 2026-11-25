@@ -218,7 +218,9 @@ select_run_assembly_motion_keys(
         first_index = index;
         other_index = index;
     } else {
-        placed_slot =
+        // Section 2 explicitly rereads slot zero; the preliminary
+        // generic slot calculation in 004259D0 is not its live operand.
+        placed_slot = run_section==2?0:
             motion_piece_slot_for_run_section(run_section);
         if (placed_slot < 0 || placed_slot >= 4) {
             return std::nullopt;
@@ -235,12 +237,12 @@ select_run_assembly_motion_keys(
 
         switch (run_section) {
         case 1:
-            first_index = transposed;
-            other_index = connector_lookup(1);
-            break;
-        case 2:
             first_index = connector_lookup(0);
             other_index = transposed;
+            break;
+        case 2:
+            first_index = transposed;
+            other_index = connector_lookup(1);
             break;
         case 3:
         case 5:
@@ -252,8 +254,8 @@ select_run_assembly_motion_keys(
             other_index = connector_lookup(2);
             break;
         case 6:
-            first_index = connector_lookup(3);
-            other_index = transposed;
+            first_index = transposed;
+            other_index = connector_lookup(3);
             break;
         default:
             // The retained default branch indexes all four lookup tables by

@@ -138,11 +138,11 @@ connector 2 -> index 33
 ```
 
 The current run-section value is transformed by the retail decrement sequence
-into placed-piece slots:
+into placed-piece slots, except section 2 explicitly rereads piece slot 0:
 
 ```text
 section:      1 2 3 4 5 6
-piece slot:   0 1 1 1 2 2
+piece slot:   0 0 1 1 2 2
 ```
 
 Section 0 uses the starting connector directly. Sections 1..6 then mix the

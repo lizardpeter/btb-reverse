@@ -90,7 +90,7 @@ int main() {
                 assert(draw.source_rectangle->right==102);
                 assert(draw.source_rectangle->top==0);
                 assert(draw.source_rectangle->bottom==92);
-                assert(draw.x==36);
+                assert(draw.x==-34); // original base 36 minus loaded alignment 70
                 assert(draw.y==234||draw.y==205||draw.y==172);
             }
         }
@@ -98,6 +98,12 @@ int main() {
         assert(nut_piles==(difficulty==0?1:0));
         assert(conveyor_art==1);
         assert(squirrel_art==1);
+        for(int i=0;i<100 && driver->animating();++i) {
+            auto initial=game.advance({});
+            assert(initial.kind==fg::FrameKind::ActivityUpdated);
+        }
+        assert(driver->run_section()==1 && !driver->animating());
+        assert(driver->squirrel_displacement().x==10);
         for(int selected=0;selected<3*(difficulty+1);++selected) {
             const int level=selected/3;
             assert(driver->level()==level);
@@ -145,17 +151,17 @@ int main() {
             assert(driver->placement().state==sq::PlacementState::MoveToSelectedCorrect);
             assert(driver->placed_count()==selected%3);
             bool committed=false,carried=false;
-            int assembly_ticks=0,outgoing=0,incoming=0;
+            int section_completions=0,outgoing=0,incoming=0;
             bool final=selected+1==3*(difficulty+1);
             for(int tick=0;tick<3000;++tick) {
-                const bool was_animating=driver->animating();
+                const int prior_section=driver->run_section();
                 const int prior_phase=driver->conveyor_phase();
                 frame=game.advance({});
                 assert(frame.kind==fg::FrameKind::ActivityUpdated);
                 assert(frame.effects.progress_writes.empty());
                 carried|=driver->placement().carrying;
                 committed|=driver->placed_count()>selected%3;
-                if(was_animating)++assembly_ticks;
+                if(driver->run_section()==prior_section+1)++section_completions;
                 if(prior_phase==1)++outgoing;
                 if(prior_phase==2)++incoming;
                 for(const auto& draw:frame.effects.draws)
@@ -167,10 +173,11 @@ int main() {
                 if(final&&driver->complete())break;
                 if(!final&&driver->shared_back_available()&&!driver->animating()&&
                    driver->conveyor_phase()==0&&
-                   (selected%3<2?driver->placed_count()==selected%3+1:driver->level()==level+1))
+                   (selected%3<2?(driver->placed_count()==selected%3+1 &&
+                       driver->run_section()==(selected%3+1)*2+1):driver->level()==level+1))
                     break;
             }
-            assert(committed&&carried&&assembly_ticks==95);
+            assert(committed&&carried&&section_completions==2);
             assert(driver->shared_back_available());
             if(!final) {
                 assert(outgoing==101 && incoming==84);
