@@ -1,0 +1,7 @@
+# Original Squirrel level transition and carried-piece order
+
+00425780's direct and alternate scroll paths are represented in a typed source kernel. The live driver uses the original initialization choice (00446A44=1), so its level handoff remains immediate on the following frame, with absolute squirrel X=46, preserved Y, section 1 and conveyor phase 1. The alternate branch is retained as a separate tested model; it advances the background by speed/5, uses the original negative signed scroll offset, performs the final draw even on the completion frame, and resets the source transition/assembly globals. Initial speed -1 leads to one zero-pixel frame and 240 two-pixel frames for a 480-pixel span. Full alternate visual choreography remains unconnected to the normal game because retail explicitly initializes the direct path.
+
+004267B0 emits the carried choice at its position in the conveyor slot loop; the native driver previously emitted it before the entire loop. 004273F0 restores a decoy's conveyor-slot value when retrieved, not on its eventual return, while the hook position determines its visible placement. Both are corrected.
+
+Regression tests exercise direct transitions at both possible level boundaries and the full alternate scroll timing. The source-derived state model has not yet been checked against a physical DirectDraw device.

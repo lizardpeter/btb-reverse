@@ -110,7 +110,72 @@ inline constexpr std::int32_t kBackgroundViewportHeight = 480;
 [[nodiscard]] constexpr std::int32_t scene_scroll_offset(
     bool transition_active,
     std::int32_t transition_counter) noexcept {
-    return transition_active ? transition_counter / 5 : 0;
+    return transition_active ? -(transition_counter / 5) : 0;
+}
+
+// 00425780 level-transition globals. Retail initialization selects the
+// direct branch (00446A44=1), but the alternate scroll path is retained.
+struct LevelTransitionState {
+    int phase{1};
+    bool direct{true};
+    int level{};
+    int available_section{};
+    int assembly_phase{};
+    int squirrel_x{};
+    int run_section{};
+    int conveyor_phase{};
+    int scroll_aux{};
+    int scroll_active{};
+    int scroll_distance{};
+    int scroll_start{};
+    int scroll_ticks{};
+    int scroll_speed{-1};
+    int background_left{};
+    int background_right{kBackgroundViewportWidth};
+};
+struct LevelTransitionFrame {
+    bool level_advanced{};
+    bool draw_borders{};
+    std::optional<SourceRect> background{};
+};
+[[nodiscard]] constexpr LevelTransitionFrame advance_level_transition(
+    LevelTransitionState& s,int inactive_remaining_hint=0) noexcept {
+    LevelTransitionFrame result;
+    auto advance=[&]() constexpr {
+        ++s.level;
+        s.scroll_aux=s.scroll_active=s.phase=0;
+        s.available_section=s.assembly_phase=0;
+        s.run_section=s.conveyor_phase=1;
+        result.level_advanced=true;
+    };
+    if(s.phase==1 && s.direct) {
+        advance();s.squirrel_x=46;
+        return result; // no background or borders in direct branch
+    }
+    if(s.phase==1) {
+        s.phase=2;s.scroll_distance=0;s.scroll_active=1;
+        s.scroll_start=s.background_left;
+    }
+    int remaining=inactive_remaining_hint;
+    if(s.scroll_active>0) {
+        ++s.scroll_ticks;
+        const int step=s.scroll_speed/5;
+        s.background_left+=step;s.background_right+=step;
+        remaining=kBackgroundPanelStride+s.scroll_start-s.background_left;
+        if(remaining<=0) {
+            s.squirrel_x+=scene_scroll_offset(true,s.scroll_distance);
+            advance();
+        }
+        // The completion frame still submits the scrolled backdrop.
+        result.background=SourceRect{s.background_left,0,s.background_right,
+                                     kBackgroundViewportHeight};
+    }
+    if(s.scroll_speed<10)++s.scroll_speed;
+    if(remaining<s.scroll_speed)s.scroll_speed=remaining;
+    if(s.scroll_speed<10)s.scroll_speed=10;
+    s.scroll_distance+=s.scroll_speed;
+    result.draw_borders=true;
+    return result;
 }
 
 inline constexpr std::array<Vec2i,3> kCompletedRunPieceDestinations{{

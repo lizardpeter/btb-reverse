@@ -87,9 +87,48 @@ int main() {
     static_assert(scene_scroll_offset(false, 999) == 0);
     static_assert(scene_scroll_offset(true, 0) == 0);
     static_assert(scene_scroll_offset(true, 4) == 0);
-    static_assert(scene_scroll_offset(true, 5) == 1);
-    static_assert(scene_scroll_offset(true, 24) == 4);
-    static_assert(scene_scroll_offset(true, -24) == -4);
+    static_assert(scene_scroll_offset(true, 5) == -1);
+    static_assert(scene_scroll_offset(true, 24) == -4);
+    static_assert(scene_scroll_offset(true, -24) == 4);
+
+    // Source 00425780 direct branch skips all transition draws and
+    // leaves the prior scroll counters/background intact.
+    for(int level=0;level<2;++level) {
+        LevelTransitionState state;
+        state.level=level;state.available_section=6;state.assembly_phase=6;
+        state.squirrel_x=526;state.run_section=7;state.scroll_aux=5;
+        state.scroll_active=1;state.scroll_distance=23;state.scroll_ticks=12;
+        state.background_left=level*480;state.background_right=level*480+620;
+        const auto direct=advance_level_transition(state);
+        assert(direct.level_advanced&&!direct.draw_borders&&!direct.background);
+        assert(state.level==level+1&&state.squirrel_x==46&&state.phase==0);
+        assert(state.run_section==1&&state.conveyor_phase==1&&state.assembly_phase==0);
+        assert(state.available_section==0&&state.scroll_active==0&&state.scroll_aux==0);
+        assert(state.scroll_distance==23&&state.scroll_ticks==12);
+        assert(state.background_left==level*480);
+    }
+    // Alternate original scroll branch: initial speed -1 truncates to
+    // zero for the first movement, then the source enforces minimum 10.
+    for(int level=0;level<2;++level) {
+        LevelTransitionState state;
+        state.direct=false;state.level=level;state.available_section=6;
+        state.squirrel_x=526;state.run_section=7;
+        state.background_left=480*level;state.background_right=480*level+620;
+        const auto first=advance_level_transition(state);
+        assert(!first.level_advanced&&first.draw_borders&&first.background);
+        assert(first.background->left==480*level&&state.scroll_speed==10);
+        assert(state.scroll_distance==10&&state.phase==2&&state.scroll_active==1);
+        for(int tick=1;tick<=240;++tick) {
+            const auto frame=advance_level_transition(state);
+            assert(frame.background&&frame.draw_borders);
+            assert(frame.background->left==480*level+2*tick);
+            assert(frame.background->right-frame.background->left==620);
+            assert(frame.level_advanced==(tick==240));
+        }
+        assert(state.level==level+1&&state.squirrel_x==46&&state.run_section==1);
+        assert(state.scroll_distance==2410&&state.scroll_ticks==241);
+        assert(state.conveyor_phase==1&&state.phase==0&&state.scroll_active==0);
+    }
 
     static_assert(
         kCompletedRunPieceDestinations[0] == Vec2i{116,194});

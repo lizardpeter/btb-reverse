@@ -190,13 +190,18 @@ ActivityFrameOutput SquirrelDriver::draw() const {
     // conveyor slot; the hook remains visible in the normal scene.
     sprite(out,"hook.bmp",placement_.position.x+28,0,
         as_rect(squirrel::lofty_hook_source_rect(placement_.position.y)));
-    if(placement_.carrying && carried_piece_>=0)
-        sprite(out,"allconveyor.bmp",placement_.position.x,
-            placement_.position.y-squirrel::kConveyorHitHeight,
-            as_rect(squirrel::run_piece_source_rect(carried_piece_)));
     for(std::size_t i=0;i<choices_.size();++i) {
         const auto& choice=choices_[i];
-        if(!choice.active || (placement_.carrying && placement_.selected==static_cast<int>(i)))continue;
+        // 00426E3D: the carried choice is emitted at its ORIGINAL slot
+        // in the loop, not unconditionally below the other three pieces.
+        if(placement_.carrying && placement_.selected==static_cast<int>(i)) {
+            if(carried_piece_>=0)
+                sprite(out,"allconveyor.bmp",placement_.position.x,
+                    placement_.position.y-squirrel::kConveyorHitHeight,
+                    as_rect(squirrel::run_piece_source_rect(carried_piece_)));
+            continue;
+        }
+        if(!choice.active)continue;
         const auto& xy=squirrel::kConveyorItemOrigins[i];
         const int x=xy.x+conveyor_.position;
         const int left=std::max(x,0),right=std::min(x+89,640);
@@ -249,14 +254,22 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         const auto old_origin=squirrel::source_squirrel_start_position(
             connectors_[static_cast<std::size_t>(level_)][0]);
         const int previous_y=old_origin->y+assembly_.y;
-        ++level_;placed_count_=0;
-        assembly_.state=squirrel::RunAssemblyAnimationState::Idle;
+        squirrel::LevelTransitionState transition;
+        transition.level=level_;
+        transition.squirrel_x=old_origin->x+assembly_.x;
+        transition.run_section=assembly_.run_section;
+        transition.available_section=placed_count_*2;
+        transition.assembly_phase=static_cast<int>(assembly_.state);
+        transition.conveyor_phase=conveyor_.phase;
+        (void)squirrel::advance_level_transition(transition);
+        level_=transition.level;placed_count_=0;
+        assembly_.state=static_cast<squirrel::RunAssemblyAnimationState>(transition.assembly_phase);
         const auto next_origin=squirrel::source_squirrel_start_position(
             connectors_[static_cast<std::size_t>(level_)][0]);
-        assembly_.x=46-next_origin->x;
+        assembly_.x=transition.squirrel_x-next_origin->x;
         assembly_.y=previous_y-next_origin->y;
-        assembly_.run_section=1;
-        conveyor_.phase=1;
+        assembly_.run_section=transition.run_section;
+        conveyor_.phase=transition.conveyor_phase;
         level_transition_pending_=false;
     }
     if(!transition_frame && !complete_ && conveyor_.phase!=0) {
@@ -371,6 +384,10 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         } else if(event==E::DecoyRetrieved) {
             carried_piece_=temporary_decoy_;
             temporary_decoy_=-1;
+            // 004273F0 restores the conveyor slot when the hook retrieves
+            // the piece, before moving it back. Its carried draw still
+            // uses the hook position until the release event.
+            choice.active=true;
         } else if(event==E::DecoyReturned) {
             choice.active=true;
             carried_piece_=-1;

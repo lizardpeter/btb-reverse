@@ -426,6 +426,11 @@ add_executable(btb_squirrel_presentation_tests
 )
 target_link_libraries(btb_squirrel_presentation_tests PRIVATE btb_squirrel)
 add_test(NAME squirrel_presentation COMMAND btb_squirrel_presentation_tests)
+if(MSVC)
+    target_compile_options(btb_squirrel_presentation_tests PRIVATE /UNDEBUG)
+else()
+    target_compile_options(btb_squirrel_presentation_tests PRIVATE -UNDEBUG)
+endif()
 
 
 add_library(btb_grand_opening
