@@ -24,6 +24,9 @@ public:
         int piece_id{-1};
         bool correct{};
         bool active{};
+        // Raw first comparison word written by 00426F30; decoys store
+        // their encoded pair, not the decoded first connector.
+        int feedback_comparison{};
     };
     explicit SquirrelDriver(std::filesystem::path root,int difficulty=0,
                             retail::OriginalRetailRandom* shared_random=nullptr)
@@ -41,7 +44,11 @@ public:
     [[nodiscard]] bool animating() const noexcept {return animating_;}
     [[nodiscard]] int conveyor_phase() const noexcept {return conveyor_.phase;}
     [[nodiscard]] int conveyor_offset() const noexcept {return conveyor_.position;}
-    bool shared_back_available() const noexcept override {return selected_choice_<0;}
+    [[nodiscard]] const squirrel::PlacementMotion& placement() const noexcept {return placement_;}
+    [[nodiscard]] bool complete() const noexcept {return complete_;}
+    bool shared_back_available() const noexcept override {
+        return placement_.state==squirrel::PlacementState::IdleSelect;
+    }
 private:
     [[nodiscard]] bool generate_choices(std::string& error);
     [[nodiscard]] ActivityFrameOutput draw() const;
@@ -62,7 +69,10 @@ private:
     retail_activity::SquirrelConveyor conveyor_{};
     int level_{};
     int placed_count_{};
-    int selected_choice_{-1};
+    squirrel::PlacementMotion placement_{};
+    int placement_slot_{};
+    int temporary_decoy_{-1};
+    int carried_piece_{-1};
     bool animating_{};
     bool complete_{};
     int completion_stage_{};

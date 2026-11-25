@@ -53,7 +53,8 @@ bool SquirrelDriver::initialize(int player,std::string& error) {
         data_=std::move(candidate);
         placed_piece_ids_.fill(-1);
         assembly_={};conveyor_={};
-        level_=0;placed_count_=0;selected_choice_=-1;
+        level_=0;placed_count_=0;placement_={};placement_slot_=0;
+        temporary_decoy_=carried_piece_=-1;
         animating_=false;complete_=false;
         completion_stage_=0;
         intro_stage_=0;
@@ -82,8 +83,6 @@ bool SquirrelDriver::generate_choices(std::string& error) {
         static_cast<std::size_t>(placed_count_));
     const auto mix=squirrel::conveyor_mix(
         static_cast<squirrel::Difficulty>(difficulty_));
-    const auto variant=squirrel::kOuterVariantPermutations[
-        static_cast<std::size_t>((random_stream().next_rand()%7))];
     // Retail 0x00426F30 generates two groups before randomly
     // interleaving them with repeated rand()&1 draws. Never put all
     // correct options first as a fixed or trivially guessable order.
@@ -94,10 +93,12 @@ bool SquirrelDriver::generate_choices(std::string& error) {
     for(int i=0;i<mix.decoy_items;++i) {
         auto& pair=decoys[static_cast<std::size_t>(i)];
         do {pair.from=(random_stream().next_rand()%3);}
-            while(pair.from==required.from);
+            while(pair.from==required.from || (i>0 && pair.from==decoys[0].from));
         do {pair.to=(random_stream().next_rand()%3);}
             while(pair.to==required.to);
     }
+    const auto variant=squirrel::kOuterVariantPermutations[
+        static_cast<std::size_t>(random_stream().next_rand()%7)];
     int correct_idx=0,decoy_idx=0;
     for(int i=0;i<mix.total_items();++i) {
         // The source rerolls its choice bit until there are slots left
@@ -123,7 +124,7 @@ bool SquirrelDriver::generate_choices(std::string& error) {
             squirrel::encode_piece_id({
                 variant[static_cast<std::size_t>(i)],
                 pair.from,pair.to
-            }),pick_correct,true
+            }),pick_correct,true,pick_correct?pair.from:pair.from*3+pair.to
         };
     }
     return true;
@@ -134,8 +135,8 @@ ActivityFrameOutput SquirrelDriver::draw() const {
     if(!data_)return out;
     const auto base=std::string(kSubgame);
     out.draws.push_back({
-        base+"level"+std::to_string(level_+1)+".bmp",0,0,
-        std::nullopt,false
+        base+"level"+std::to_string(difficulty_+1)+".bmp",0,0,
+        as_rect(squirrel::level_background_source_rect(level_)),false
     });
     sprite(out,"conveyor.bmp",0,417,
         Rect{conveyor_.animation_frame*640,0,
@@ -154,9 +155,7 @@ ActivityFrameOutput SquirrelDriver::draw() const {
         squirrel::kLoftyArmSwingX,squirrel::kLoftyArmSwingY,
         Rect{0,0,squirrel::kArmSwingFrameWidth,
                   squirrel::kArmSwingFrameHeight});
-    // 0x004267B0 renders the four static connector pieces using source
-    // frame IDs 18/4/17. Unlike conveyor piece IDs these indices are
-    // already direct all.bmp sprite-sheet cells, not transposed IDs.
+    // 004267B0 calls BuildSquirrelFrameRect for these connector IDs too.
     for(std::size_t i=0;i<squirrel::kConnectorDestinations.size();++i) {
         const int connector=connectors_[
             static_cast<std::size_t>(level_)][i];
@@ -168,7 +167,7 @@ ActivityFrameOutput SquirrelDriver::draw() const {
             static_cast<std::size_t>(connector)];
         const auto& dest=squirrel::kConnectorDestinations[i];
         sprite(out,"all.bmp",dest.x,dest.y,
-            Rect{id*89,0,(id+1)*89,133});
+            as_rect(squirrel::run_piece_source_rect(id)));
     }
     if(level_==difficulty_) {
         if(const auto nut=squirrel::nut_pile_destination(
@@ -184,9 +183,15 @@ ActivityFrameOutput SquirrelDriver::draw() const {
         sprite(out,"all.bmp",dest.x,dest.y,
             as_rect(squirrel::run_piece_source_rect(id)));
     }
+    if(temporary_decoy_>=0) {
+        const auto& dest=squirrel::kCompletedRunPieceDestinations[
+            static_cast<std::size_t>(placement_slot_)];
+        sprite(out,"all.bmp",dest.x,dest.y,
+            as_rect(squirrel::run_piece_source_rect(temporary_decoy_)));
+    }
     for(std::size_t i=0;i<choices_.size();++i) {
         const auto& choice=choices_[i];
-        if(!choice.active)continue;
+        if(!choice.active || (placement_.carrying && placement_.selected==static_cast<int>(i)))continue;
         const auto& xy=squirrel::kConveyorItemOrigins[i];
         const int x=xy.x+conveyor_.position;
         const int left=std::max(x,0),right=std::min(x+89,640);
@@ -209,9 +214,13 @@ ActivityFrameOutput SquirrelDriver::draw() const {
                 origin->x+assembly_.x,origin->y+assembly_.y,
                 Rect{rect->left,rect->top,rect->right,rect->bottom});
     }
-    if(animating_) {
-        sprite(out,"hook.bmp",squirrel::kLoftyArmSwingX,0);
-    }
+    // The carried piece follows the original actor origin, not the
+    // conveyor slot; the hook remains visible in the normal scene.
+    sprite(out,"hook.bmp",placement_.position.x+28,0);
+    if(placement_.carrying && carried_piece_>=0)
+        sprite(out,"allconveyor.bmp",placement_.position.x,
+            placement_.position.y-squirrel::kConveyorHitHeight,
+            as_rect(squirrel::run_piece_source_rect(carried_piece_)));
     for(const auto& border:squirrel::kFinalBorderDraws) {
         const auto* image=squirrel::surface_binding(border.surface);
         if(image)
@@ -284,75 +293,90 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         return out;
     }
     if(animating_) {
-        const auto update=squirrel::tick_run_assembly_animation(
-            assembly_,*data_);
-        if(update.cycle_completed) {
-            animating_=false;
-            selected_choice_=-1;
-            ++placed_count_;
-            if(placed_count_>=3) {
-                if(level_==difficulty_) {
-                    complete_=true;
-                    completion_stage_=0;
-                } else {
-                    ++level_;placed_count_=0;
-                }
-            }
-            // The first two placements regenerate at the offscreen
-            // conveyor boundary, not during the visible assembly frame.
-            if(!complete_ && conveyor_.phase==0) {
-                std::string error;
-                if(!generate_choices(error))out.fatal_error=error;
-            }
-        }
-        {auto frame=draw();frame.audio=std::move(out.audio);frame.fatal_error=std::move(out.fatal_error);return frame;}
+        const auto tick=squirrel::tick_run_assembly_animation(assembly_,*data_);
+        if(tick.cycle_completed)animating_=false;
     }
-    if(conveyor_.phase!=0 || !input.click_pulse)return out;
+    if(placement_.state!=squirrel::PlacementState::IdleSelect) {
+        const int selected=placement_.selected;
+        const auto event=squirrel::advance_placement_motion(placement_,placement_slot_);
+        auto& choice=choices_[static_cast<std::size_t>(selected)];
+        using E=squirrel::PlacementEvent;
+        if(event==E::PickedUp) {
+            carried_piece_=choice.piece_id;
+        } else if(event==E::CorrectDropped) {
+            const auto storage=static_cast<std::size_t>(level_)*4+
+                               static_cast<std::size_t>(placed_count_);
+            placed_piece_ids_[storage]=carried_piece_;
+            const int section=placed_count_*2+1;
+            const auto keys=squirrel::select_run_assembly_motion_keys(
+                section,static_cast<std::size_t>(level_),connectors_,placed_piece_ids_);
+            if(!keys){out.fatal_error="retail Squirrel motion-key selection failed";return out;}
+            // Preserve cumulative squirrel position across accepted pieces.
+            assembly_.run_section=section;
+            squirrel::begin_run_assembly_animation(assembly_,*data_,*keys);
+            animating_=true;
+            ++placed_count_;
+            choice.active=false;
+            carried_piece_=-1;
+            if(placed_count_<3)conveyor_.phase=1;
+            const int feedback=random_stream().next_rand()%7;
+            out.audio.push_back({AudioOperation::ManagedSoundId,{},
+                squirrel::correct_placement_feedback_sound_id(feedback),50,1});
+        } else if(event==E::DecoyDropped) {
+            temporary_decoy_=carried_piece_;
+            carried_piece_=-1;
+            choice.active=false;
+            // 004273F0 first draws rand()%5; every branch then draws its
+            // second random value. Preserve the raw decoy comparison word.
+            const auto required=squirrel::required_connectors(
+                connectors_,static_cast<std::size_t>(level_),
+                static_cast<std::size_t>(placement_slot_));
+            const bool generic=random_stream().next_rand()%5==0;
+            const int random=random_stream().next_rand();
+            int sound=0;
+            if(generic || required.from==choice.feedback_comparison)
+                sound=squirrel::decoy_lofty_feedback_sound_id(random%2);
+            else
+                sound=squirrel::decoy_direction_feedback_sound_id(
+                    required.from,choice.feedback_comparison,
+                    random%(required.from<choice.feedback_comparison?3:4));
+            out.audio.push_back({AudioOperation::ManagedSoundId,{},sound,50,1});
+        } else if(event==E::DecoyRetrieved) {
+            carried_piece_=temporary_decoy_;
+            temporary_decoy_=-1;
+        } else if(event==E::DecoyReturned) {
+            choice.active=true;
+            carried_piece_=-1;
+        }
+        return out;
+    }
+    if(animating_ || conveyor_.phase!=0)return out;
+    if(placed_count_>=3) {
+        if(level_==difficulty_) {
+            complete_=true;completion_stage_=0;
+            out.audio.push_back({AudioOperation::StopManagedSounds});
+            out.audio.push_back({AudioOperation::ManagedSoundId,{},
+                squirrel::level_finished_feedback_sound_id(random_stream().next_rand()%4),50,1});
+        } else {
+            ++level_;placed_count_=0;assembly_={};
+            // The next level's choices enter from offscreen after the
+            // previous level; full Lofty scroll is a separate source path.
+            conveyor_.phase=1;
+        }
+        return out;
+    }
+    if(!input.click_pulse)return out;
     for(std::size_t i=0;i<choices_.size();++i) {
         const auto& target=squirrel::kConveyorItemOrigins[i];
-        // 004273F0 uses strict interior bounds, including left/top.
         if(input.pointer_x<=target.x ||
            input.pointer_x>=target.x+squirrel::kConveyorHitWidth ||
            input.pointer_y<=target.y ||
            input.pointer_y>=target.y+squirrel::kConveyorHitHeight)
             continue;
-        auto& chosen=choices_[i];
+        const auto& chosen=choices_[i];
         if(!chosen.active)return out;
-        if(!chosen.correct) {
-            // Decoys are not counted as built track or source victories.
-            out.audio.push_back({
-                AudioOperation::ManagedSoundId,{},
-                squirrel::decoy_lofty_feedback_sound_id(
-                    (random_stream().next_rand()%2)),50,1
-            });
-            return out;
-        }
-        const auto storage=static_cast<std::size_t>(level_)*4+
-                           static_cast<std::size_t>(placed_count_);
-        placed_piece_ids_[storage]=chosen.piece_id;
-        const int section=placed_count_*2+1;
-        const auto keys=squirrel::select_run_assembly_motion_keys(
-            section,static_cast<std::size_t>(level_),
-            connectors_,placed_piece_ids_);
-        if(!keys) {
-            out.fatal_error="retail Squirrel motion-key selection failed";
-            return out;
-        }
-        assembly_={};
-        assembly_.run_section=section;
-        squirrel::begin_run_assembly_animation(assembly_,*data_,*keys);
-        animating_=true;
-        selected_choice_=static_cast<int>(i);
-        chosen.active=false;
-        // Retail triggers the slide for the first two placements only.
-        // This host still combines the fetch and assembly entry, so begin
-        // at its existing accepted-placement boundary.
-        if(placed_count_<2)conveyor_.phase=1;
-        out.audio.push_back({
-            AudioOperation::ManagedSoundId,{},
-            squirrel::correct_placement_feedback_sound_id(
-                (random_stream().next_rand()%7)),50,1
-        });
+        placement_slot_=placed_count_;
+        (void)squirrel::select_placement(placement_,static_cast<int>(i),chosen.correct);
         return out;
     }
     return out;
@@ -362,7 +386,8 @@ bool SquirrelDriver::unload(std::string& error) {
     data_.reset();player_=-1;
     connectors_={};placed_piece_ids_={};
     choices_={};assembly_={};conveyor_={};
-    level_=0;placed_count_=0;selected_choice_=-1;
+    level_=0;placed_count_=0;placement_={};placement_slot_=0;
+    temporary_decoy_=carried_piece_=-1;
     animating_=false;complete_=false;
     completion_stage_=0;
     intro_stage_=0;

@@ -579,19 +579,17 @@ struct MotionStep {
     bool reached{};
 };
 
-// Exact 0x00427270 movement rule: each axis advances by 2 toward the target
-// until its absolute delta is <=3, at which point retail snaps that axis.
+// Exact 0x00427270: move each axis by 2 first, then snap when the
+// post-step absolute delta is less than 4 (initial delta <=5).
 [[nodiscard]] constexpr MotionStep step_toward_target(
     Vec2i current,
     Vec2i target) noexcept {
 
     auto step_axis = [](std::int32_t value, std::int32_t goal) constexpr {
-        const auto delta = goal - value;
-        const auto magnitude = delta < 0 ? -delta : delta;
-        if (magnitude <= 3) {
-            return goal;
-        }
-        return value + (delta > 0 ? 2 : -2);
+        if(value<goal)value+=2;
+        else if(value>goal)value-=2;
+        const auto delta=goal-value;
+        return (delta>=-3 && delta<=3)?goal:value;
     };
 
     current.x = step_axis(current.x, target.x);
@@ -601,6 +599,74 @@ struct MotionStep {
         current,
         current.x == target.x && current.y == target.y,
     };
+}
+
+// 004273F0: actor motion and carrying are independent of the squirrel's
+// run animation. Selection, drop and return are explicit frame boundaries.
+enum class PlacementEvent { None, PickedUp, CorrectDropped, DecoyDropped,
+                            DecoyRetrieved, DecoyReturned, Home };
+struct PlacementMotion {
+    PlacementState state{PlacementState::IdleSelect};
+    Vec2i position{kLoftyHomeTarget};
+    int selected{-1};
+    bool carrying{};
+};
+[[nodiscard]] constexpr bool select_placement(
+    PlacementMotion& actor,int index,bool correct) noexcept {
+    if(actor.state!=PlacementState::IdleSelect || index<0 || index>=4)return false;
+    actor.selected=index;
+    actor.carrying=false;
+    actor.state=correct?PlacementState::MoveToSelectedCorrect:PlacementState::MoveToSelectedDecoy;
+    return true;
+}
+[[nodiscard]] constexpr PlacementEvent advance_placement_motion(
+    PlacementMotion& actor,int piece_slot) noexcept {
+    if(actor.state==PlacementState::IdleSelect)return PlacementEvent::None;
+    if(actor.selected<0 || actor.selected>=4 || piece_slot<0 || piece_slot>=3)
+        return PlacementEvent::None;
+    const auto origin=kConveyorItemOrigins[static_cast<std::size_t>(actor.selected)];
+    const Vec2i pick{origin.x,origin.y+kConveyorHitHeight};
+    const auto drop=kRunPlacementTargets[static_cast<std::size_t>(piece_slot)];
+    Vec2i destination=kLoftyHomeTarget;
+    switch(actor.state) {
+    case PlacementState::MoveToSelectedCorrect:
+    case PlacementState::MoveToSelectedDecoy:
+    case PlacementState::ReturnDecoyToConveyor:destination=pick;break;
+    case PlacementState::CommitCorrectPlacement:
+    case PlacementState::CommitDecoyPlacement:
+    case PlacementState::MoveToDecoyReturnPoint:destination=drop;break;
+    default:break;
+    }
+    const auto step=step_toward_target(actor.position,destination);
+    actor.position=step.position;
+    if(!step.reached)return PlacementEvent::None;
+    switch(actor.state) {
+    case PlacementState::MoveToSelectedCorrect:
+        actor.state=PlacementState::CommitCorrectPlacement;actor.carrying=true;
+        return PlacementEvent::PickedUp;
+    case PlacementState::MoveToSelectedDecoy:
+        actor.state=PlacementState::CommitDecoyPlacement;actor.carrying=true;
+        return PlacementEvent::PickedUp;
+    case PlacementState::CommitCorrectPlacement:
+        actor.state=PlacementState::ReturnHome;actor.carrying=false;
+        return PlacementEvent::CorrectDropped;
+    case PlacementState::CommitDecoyPlacement:
+        actor.state=PlacementState::ReturnAfterDecoy;actor.carrying=false;
+        return PlacementEvent::DecoyDropped;
+    case PlacementState::ReturnAfterDecoy:
+        actor.state=PlacementState::MoveToDecoyReturnPoint;
+        return PlacementEvent::None;
+    case PlacementState::MoveToDecoyReturnPoint:
+        actor.state=PlacementState::ReturnDecoyToConveyor;actor.carrying=true;
+        return PlacementEvent::DecoyRetrieved;
+    case PlacementState::ReturnDecoyToConveyor:
+        actor.state=PlacementState::ReturnHome;actor.carrying=false;
+        return PlacementEvent::DecoyReturned;
+    case PlacementState::ReturnHome:
+        actor.state=PlacementState::IdleSelect;actor.selected=-1;
+        return PlacementEvent::Home;
+    default:return PlacementEvent::None;
+    }
 }
 
 enum class CompletionAction : std::int32_t {

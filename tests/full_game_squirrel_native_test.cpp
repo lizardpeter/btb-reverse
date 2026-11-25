@@ -65,6 +65,9 @@ int main() {
         assert(intro2.effects.audio.size()==1 && intro2.effects.audio[0].sound_id==632);
         auto intro3=game.advance({});
         assert(intro3.effects.audio.size()==1 && intro3.effects.audio[0].sound_id==644);
+        assert(rendered.effects.draws[0].source_asset==
+            "Data\\SubGameSquirrel\\level"+std::to_string(difficulty+1)+".bmp");
+        assert(rendered.effects.draws[0].source_rectangle->right==620);
         int connector_art=0,nut_piles=0,conveyor_art=0,squirrel_art=0;
         for(const auto& draw:rendered.effects.draws) {
             if(draw.source_asset=="Data\\SubGameSquirrel\\all.bmp" &&
@@ -116,65 +119,67 @@ int main() {
             assert(decoy==(difficulty==0?0:difficulty==1?1:2));
             assert(chosen>=0);
             if(decoy>0) {
-                assert(wrong>=0);
-                const auto xy=sq::kConveyorItemOrigins[
-                    static_cast<std::size_t>(wrong)];
-                frame=game.advance({
-                    .pointer_x=xy.x+2,.pointer_y=xy.y+2,
-                    .click_pulse=true
-                });
-                assert(frame.kind==fg::FrameKind::ActivityUpdated);
-                assert(!driver->animating());
-                assert(driver->placed_count()==selected%3);
-                assert(frame.effects.progress_writes.empty());
+                const auto xy=sq::kConveyorItemOrigins[static_cast<std::size_t>(wrong)];
+                const auto piece=driver->choices()[static_cast<std::size_t>(wrong)].piece_id;
+                frame=game.advance({.pointer_x=xy.x+2,.pointer_y=xy.y+2,.click_pulse=true});
+                assert(driver->placement().state==sq::PlacementState::MoveToSelectedDecoy);
+                bool dropped=false,retrieved=false,carried=false;
+                for(int ticks=0;ticks<2500&&!driver->shared_back_available();++ticks) {
+                    frame=game.advance({});
+                    assert(frame.kind==fg::FrameKind::ActivityUpdated);
+                    assert(driver->placed_count()==selected%3);
+                    assert(frame.effects.progress_writes.empty());
+                    carried|=driver->placement().carrying;
+                    dropped|=driver->placement().state==sq::PlacementState::ReturnAfterDecoy;
+                    retrieved|=driver->placement().state==sq::PlacementState::ReturnDecoyToConveyor;
+                }
+                assert(carried&&dropped&&retrieved&&driver->shared_back_available());
+                assert(driver->choices()[static_cast<std::size_t>(wrong)].active);
+                assert(driver->choices()[static_cast<std::size_t>(wrong)].piece_id==piece);
+                assert(!driver->animating()&&driver->conveyor_phase()==0);
             }
-            const auto point=sq::kConveyorItemOrigins[
-                static_cast<std::size_t>(chosen)];
-            // Strict edge clicks must not select a piece.
+            const auto point=sq::kConveyorItemOrigins[static_cast<std::size_t>(chosen)];
             frame=game.advance({.pointer_x=point.x,.pointer_y=point.y+2,.click_pulse=true});
-            assert(!driver->animating());
-            frame=game.advance({
-                .pointer_x=point.x+2,.pointer_y=point.y+2,
-                .click_pulse=true
-            });
-            assert(frame.kind==fg::FrameKind::ActivityUpdated);
-            assert(driver->animating());
-            int ticks=0;
-            while(driver->animating()&&ticks<150) {
+            assert(driver->shared_back_available());
+            frame=game.advance({.pointer_x=point.x+2,.pointer_y=point.y+2,.click_pulse=true});
+            assert(driver->placement().state==sq::PlacementState::MoveToSelectedCorrect);
+            assert(driver->placed_count()==selected%3);
+            bool committed=false,carried=false;
+            int assembly_ticks=0,outgoing=0,incoming=0;
+            bool final=selected+1==3*(difficulty+1);
+            for(int tick=0;tick<3000;++tick) {
+                const bool was_animating=driver->animating();
+                const int prior_phase=driver->conveyor_phase();
                 frame=game.advance({});
-                ++ticks;
-            }
-            // Recovered 0x00425F40: the whole source motion has exactly
-            // 14 seven-tick substeps with three overlapping boundaries.
-            assert(ticks==95);
-            assert(!driver->animating());
-            assert(driver->shared_back_available()); // no permanent selection lock
-            assert(frame.effects.progress_writes.empty());
-            if(selected%3<2) {
-                assert(driver->conveyor_phase()==1 && driver->conveyor_offset()==475);
-                // A click while the conveyor slides cannot choose a piece.
-                frame=game.advance({.pointer_x=point.x+2,.pointer_y=point.y+2,.click_pulse=true});
-                assert(!driver->animating());
-                const auto before_regeneration=rng.state();
-                for(int i=0;i<4;++i)frame=game.advance({});
-                assert(driver->conveyor_phase()==1 && driver->conveyor_offset()==500);
-                assert(rng.state()==before_regeneration);
-                frame=game.advance({});
-                assert(driver->conveyor_phase()==2 && driver->conveyor_offset()==-420);
-                assert(rng.state()!=before_regeneration);
-                for(const auto& draw:frame.effects.draws) {
-                    if(draw.source_asset=="Data\\SubGameSquirrel\\allconveyor.bmp") {
+                assert(frame.kind==fg::FrameKind::ActivityUpdated);
+                assert(frame.effects.progress_writes.empty());
+                carried|=driver->placement().carrying;
+                committed|=driver->placed_count()>selected%3;
+                if(was_animating)++assembly_ticks;
+                if(prior_phase==1)++outgoing;
+                if(prior_phase==2)++incoming;
+                for(const auto& draw:frame.effects.draws)
+                    if(draw.source_asset=="Data\\SubGameSquirrel\\allconveyor.bmp" &&
+                       !driver->placement().carrying) {
                         assert(draw.x>=0 && draw.source_rectangle);
                         assert(draw.x+draw.source_rectangle->right-draw.source_rectangle->left<=640);
                     }
-                }
-                const auto generated=rng.state();
-                for(int i=0;i<83;++i)frame=game.advance({});
-                assert(driver->conveyor_phase()==2 && driver->conveyor_offset()==-5);
-                frame=game.advance({});
+                if(final&&driver->complete())break;
+                if(!final&&driver->shared_back_available()&&!driver->animating()&&
+                   driver->conveyor_phase()==0&&
+                   (selected%3<2?driver->placed_count()==selected%3+1:driver->level()==level+1))
+                    break;
+            }
+            assert(committed&&carried&&assembly_ticks==95);
+            assert(driver->shared_back_available());
+            if(!final) {
+                assert(outgoing==101 && incoming==84);
                 assert(driver->conveyor_phase()==0 && driver->conveyor_offset()==0);
-                assert(rng.state()==generated);
-            } else assert(driver->conveyor_phase()==0);
+            } else {
+                assert(driver->complete());
+                assert(frame.effects.audio.size()==2);
+                assert(frame.effects.audio.back().sound_id>=664 && frame.effects.audio.back().sound_id<=667);
+            }
         }
         frame=game.advance({}); // Wendy final line
         assert(frame.kind==fg::FrameKind::ActivityUpdated);

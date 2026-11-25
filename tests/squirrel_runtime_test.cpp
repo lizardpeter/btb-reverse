@@ -359,8 +359,33 @@ int main() {
     static_assert((mixed.position == Vec2i{10,2}));
     static_assert(!mixed.reached);
 
+    static_assert(step_toward_target({0,0},{5,-5}).reached);
+    static_assert(!step_toward_target({0,0},{6,-6}).reached);
+
     constexpr auto already = step_toward_target({20,30}, {20,30});
     static_assert(already.reached);
+
+    for(bool correct:{false,true})for(int slot=0;slot<3;++slot)for(int choice=0;choice<4;++choice) {
+        PlacementMotion actor;
+        assert(select_placement(actor,choice,correct));
+        assert(!select_placement(actor,choice,correct));
+        int pickup=0,correct_drop=0,wrong_drop=0,retrieve=0,returned=0,home=0;
+        for(int tick=0;tick<2500 && actor.state!=PlacementState::IdleSelect;++tick) {
+            switch(advance_placement_motion(actor,slot)) {
+            case PlacementEvent::PickedUp:++pickup;assert(actor.carrying);break;
+            case PlacementEvent::CorrectDropped:++correct_drop;assert(!actor.carrying);break;
+            case PlacementEvent::DecoyDropped:++wrong_drop;assert(!actor.carrying);break;
+            case PlacementEvent::DecoyRetrieved:++retrieve;assert(actor.carrying);break;
+            case PlacementEvent::DecoyReturned:++returned;assert(!actor.carrying);break;
+            case PlacementEvent::Home:++home;break;
+            default:break;
+            }
+        }
+        assert(actor.state==PlacementState::IdleSelect && actor.position==kLoftyHomeTarget);
+        assert(actor.selected==-1 && !actor.carrying && pickup==1 && home==1);
+        assert(correct_drop==int(correct) && wrong_drop==int(!correct));
+        assert(retrieve==int(!correct) && returned==int(!correct));
+    }
 
     constexpr auto final0 = completion_step(0, false, 0);
     static_assert(final0.stage == 1);
