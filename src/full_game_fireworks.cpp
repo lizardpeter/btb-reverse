@@ -206,6 +206,12 @@ ActivityFrameOutput FireworksDriver::advance(
         output.draws.reserve(frame.draw_commands.size()+1);
         for(const auto& draw:frame.draw_commands)
             output.draws.push_back(convert_draw(draw));
+        if(editor_.cursor.kind==fireworks::EditorCursorKind::Delete)
+            output.original_cursor_draw=Draw{"Data/SubGameDYP/delcurs.bmp",input.pointer_x,input.pointer_y,std::nullopt,true};
+        else if(editor_.cursor.kind==fireworks::EditorCursorKind::FireworkType&&editor_.cursor.firework_type){
+            const auto type=static_cast<std::size_t>(*editor_.cursor.firework_type);
+            if(type<kTypeBitmaps.size())output.original_cursor_draw=Draw{std::string(kGraph)+std::string(kTypeBitmaps[type]),input.pointer_x,input.pointer_y,std::nullopt,true};
+        }
         for(const auto& tick:frame.placement_ticks)
             if(tick.sound_id)append_sound(output,*tick.sound_id);
     };

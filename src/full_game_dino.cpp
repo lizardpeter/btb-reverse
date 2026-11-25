@@ -257,6 +257,7 @@ ActivityFrameOutput DinoDriver::advance(const ActivityFrameInput& input) {
         // click. Releasing the first click does not attempt placement.
         // Draw the same
         // real BMP last at the original pickup offset until placement.
+        out.suppress_original_default_cursor=true;
         const auto& piece=runtime_->pieces()[*carried];
         out.draws.push_back({
             pieces_[*carried],

@@ -266,6 +266,7 @@ bool RetailParkDesignerNativeService::update_editor(p::SaveData& d,const p::Boun
         }
     }
     if(selection_){
+        out.suppress_original_default_cursor=true;
         const auto& sel=*selection_;
         if(y<400){
             auto sprite=cursor_sprite(sel.mode,sel.page,sel.variant,season);
@@ -275,7 +276,10 @@ bool RetailParkDesignerNativeService::update_editor(p::SaveData& d,const p::Boun
         } else {
             bitmap(out,p::kRetailPaletteSheets[static_cast<int>(sel.mode)],x-17,y-30,p::retail_palette_thumbnail(sel.page,sel.variant));
         }
-    }else if(controls_.cursor_mode==5)bitmap(out,"Data/SubGameDYP/delcurs.bmp",x,y);
+    }else if(controls_.cursor_mode==5){
+        out.suppress_original_default_cursor=true;
+        bitmap(out,"Data/SubGameDYP/delcurs.bmp",x,y);
+    }
     return true;
 }
 }

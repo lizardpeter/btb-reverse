@@ -47,6 +47,7 @@ public:
         const std::vector<ResolvedDraw>& draw_stream,
         std::string& error);
     [[nodiscard]] bool render_additional(const std::vector<ResolvedDraw>&,std::string& error);
+    [[nodiscard]] bool draw_transient_cursor(const ResolvedDraw&,std::string& error);
     [[nodiscard]] bool capture_underlay(CapturedUnderlay,std::string& error);
     [[nodiscard]] bool capture_presented_underlay(CapturedUnderlay,std::string& error);
     [[nodiscard]] bool render_captured_underlay(CapturedUnderlay,const std::vector<ResolvedDraw>&,std::string& error);
@@ -121,6 +122,8 @@ private:
     // Independent CPU-owned snapshots survive COM surface/device loss.
     display::PackedFrameSnapshot replay_underlay_{},help_underlay_{},
         global_underlay_{},modal_underlay_{},composed_frame_{};
+    display::PackedFrameSnapshot pending_cursorless_frame_{},presented_cursorless_frame_{};
+    bool cursor_pending_{};
     bool surface_lost_during_draw_{};
 };
 

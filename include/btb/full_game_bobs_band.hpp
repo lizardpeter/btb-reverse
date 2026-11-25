@@ -46,6 +46,10 @@ public:
         const ActivityFrameInput& input) override;
     [[nodiscard]] bool unload(std::string& error) override;
 
+    bool shared_back_available() const noexcept override {
+        return !activity_ || (!activity_->editor().delete_mode() &&
+            activity_->editor().state()!=bobs_band::InternalState::BrickSelected);
+    }
     [[nodiscard]] const bobs_band::Activity* activity() const noexcept {
         return activity_.get();
     }

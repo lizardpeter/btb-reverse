@@ -195,6 +195,14 @@ ActivityFrameOutput BobsBandDriver::advance(
         out.next_outer_state = frame.new_outer_game_flow_state;
         out.next_ui_context = frame.play_again_context;
     }
+    // 0041F550/0041F6E0/0041F820 set the selected brick or delete surface.
+    const auto& editor=activity_->editor();
+    if(editor.delete_mode())
+        out.original_cursor_draw=Draw{"Data/SubGameDYP/delcurs.bmp",input.pointer_x,input.pointer_y,std::nullopt,true};
+    else if(editor.state()==bobs_band::InternalState::BrickSelected &&
+            editor.selected_machine()>=0)
+        out.original_cursor_draw=Draw{bobs_band::sound_brick_bitmap_path(editor.selected_machine(),false),
+            input.pointer_x,input.pointer_y,std::nullopt,true};
     return out;
 }
 

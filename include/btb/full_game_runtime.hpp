@@ -240,6 +240,8 @@ struct ActivityFrameInput {
     // Shared process RNG: only advance when an original call site consumes rand().
     bool physical_help_snapshot_available{};
     retail::OriginalRetailRandom* original_random{};
+    // Physical host opts into original software pointer composition.
+    bool native_cursor_enabled{};
     [[nodiscard]] int next_original_random() const noexcept {
         return original_random?original_random->next_rand():random_value;
     }
@@ -276,6 +278,9 @@ struct ActivityFrameOutput {
     // A real post-render, pre-present Win32 print-dialog request. The game
     // must not pretend a paper print or spooler job happened in this model.
     bool request_original_frame_print{};
+    // 00407AF0: activities may replace the normal cursor with a source sprite.
+    std::optional<Draw> original_cursor_draw{};
+    bool suppress_original_default_cursor{};
 };
 
 // Native service bridge for the actual retail 0x0042E110 five-sign selector.

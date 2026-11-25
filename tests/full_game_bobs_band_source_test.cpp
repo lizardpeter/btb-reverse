@@ -9,6 +9,12 @@
 
 int main() {
     using namespace btb::full_game;
+    // Original 0041DB20 bitmap table order is not numerical.
+    constexpr int order[]={5,6,3,4,7,8,9,10,1,2};
+    for(int i=0;i<10;++i){
+        if(btb::bobs_band::sound_brick_bitmap_path(i,false)!="Data\\SubGameOpen\\sound"+std::to_string(order[i])+".bmp")return 41;
+        if(btb::bobs_band::sound_brick_bitmap_path(i,true)!="Data\\SubGameOpen\\hsound"+std::to_string(order[i])+".bmp")return 42;
+    }
     namespace fs = std::filesystem;
 
     const auto root = fs::temp_directory_path() / "btb_full_game_band_fixture";

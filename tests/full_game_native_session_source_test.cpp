@@ -161,6 +161,10 @@ public:
         for(const auto& d:draws)received_draws.push_back(d.original);
         error.clear();return true;
     }
+    std::optional<ResolvedDraw> transient_cursor{};
+    bool draw_transient_cursor(const ResolvedDraw& cursor,std::string& error) override {
+        transient_cursor=cursor;operation_order.push_back("cursor");error.clear();return true;
+    }
     bool print_current_frame(std::string& error) override {
         ++print_count;
         operation_order.push_back("print");
@@ -672,15 +676,22 @@ int main() {
         std::string error;
         assert(session.present_prepared(error));
         device.operation_order.clear();
-        const auto click=session.tick({.click_pulse=true},true,false,true);
+        touch(directory/"Data/ui/cursor.bmp");
+        const auto click=session.tick({.pointer_x=639,.pointer_y=479,.click_pulse=true,
+            .pointer_position_valid=true,.native_cursor_enabled=true},true,false,true);
         assert(!click.failure && click.ready_for_present);
+        assert(device.transient_cursor);
+        assert(device.transient_cursor->original.x==621);
+        assert(device.transient_cursor->original.y==461);
+        assert(device.transient_cursor->original.color_keyed);
+        assert((device.transient_cursor->original.source_rectangle==Rect{0,0,19,19}));
         assert(click.prepared.game.effects.request_original_frame_print);
         assert(device.print_count==1);
         assert((device.operation_order==std::vector<std::string>{
-            "draw","print"}));
+            "draw","print","cursor"}));
         assert(session.present_prepared(error));
         assert((device.operation_order==std::vector<std::string>{
-            "draw","print","present"}));
+            "draw","print","cursor","present"}));
         const auto next=session.tick({},false,false,true);
         assert(!next.failure && next.ready_for_present);
         assert(device.print_count==1); // one print per requested click

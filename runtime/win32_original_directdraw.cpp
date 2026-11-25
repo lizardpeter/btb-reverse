@@ -140,6 +140,7 @@ void Win32OriginalDirectDraw::shutdown() noexcept {
     release_cached_bitmaps();
     replay_underlay_.clear();help_underlay_.clear();
     global_underlay_.clear();modal_underlay_.clear();composed_frame_.clear();
+    pending_cursorless_frame_.clear();presented_cursorless_frame_.clear();cursor_pending_=false;
     if(extra_back_reference_ && backbuffer_)backbuffer_->Release();
     extra_back_reference_=false;
     release_surface(backbuffer_);
@@ -188,12 +189,13 @@ bool Win32OriginalDirectDraw::recreate(HWND hwnd,display::DisplayMode mode,std::
     // Move only authentic captured pixels out of that teardown scope.
     auto replay=std::move(replay_underlay_),help=std::move(help_underlay_),
         global=std::move(global_underlay_),modal=std::move(modal_underlay_),
-        composed=std::move(composed_frame_);
+        composed=std::move(composed_frame_),cursorless=std::move(presented_cursorless_frame_);
     shutdown();
     if(!initialize(hwnd,mode,error))return false;
     replay_underlay_=std::move(replay);help_underlay_=std::move(help);
     global_underlay_=std::move(global);modal_underlay_=std::move(modal);
     composed_frame_=std::move(composed);
+    presented_cursorless_frame_=std::move(cursorless);
     return true;
 }
 
@@ -384,11 +386,20 @@ bool Win32OriginalDirectDraw::capture_presented_underlay(CapturedUnderlay kind,s
     // buffer after a fullscreen flip or the desktop in windowed mode.
     // The retained composed frame is independent of the fullscreen
     // front surface's lockability and remains valid after a device reset.
+    if(presented_cursorless_frame_.valid()){
+        underlay_target(kind)=presented_cursorless_frame_;
+        error.clear();return true;
+    }
     if(composed_frame_.valid()){
         underlay_target(kind)=composed_frame_;
         error.clear();return true;
     }
     return capture_surface(underlay_target(kind),error);
+}
+bool Win32OriginalDirectDraw::draw_transient_cursor(const ResolvedDraw& cursor,std::string& error) {
+    if(!capture_surface(pending_cursorless_frame_,error))return false;
+    if(!blit(cursor,error))return false;
+    cursor_pending_=true;return true;
 }
 bool Win32OriginalDirectDraw::capture_underlay(CapturedUnderlay kind,std::string& error) {
     return capture_surface(underlay_target(kind),error);
@@ -532,6 +543,7 @@ HRESULT Win32OriginalDirectDraw::cooperative_status() const noexcept {
 }
 
 HRESULT Win32OriginalDirectDraw::prepare_native_frame(std::string& error) {
+    cursor_pending_=false;
     if(!initialized()){error="native display preflight without surfaces";return E_POINTER;}
     const HRESULT cooperative=cooperative_status();
     if(FAILED(cooperative))return cooperative;
@@ -597,6 +609,9 @@ bool Win32OriginalDirectDraw::present(std::string& error) {
         error=hresult_description("DirectDraw7 Blt/Flip present",hr);
         return false;
     }
+    if(cursor_pending_)std::swap(pending_cursorless_frame_,presented_cursorless_frame_);
+    else presented_cursorless_frame_.clear();
+    cursor_pending_=false;
     error.clear();
     return true;
 }

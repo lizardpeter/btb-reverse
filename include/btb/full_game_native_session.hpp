@@ -67,6 +67,9 @@ public:
     [[nodiscard]] virtual bool draw_ordered(
         const std::vector<ResolvedDraw>& draws,
         std::string& error) = 0;
+    [[nodiscard]] virtual bool draw_transient_cursor(const ResolvedDraw&,std::string& error) {
+        error="native cursor provider unavailable";return false;
+    }
     [[nodiscard]] virtual bool supports_captured_underlays() const noexcept {return false;}
     [[nodiscard]] virtual bool capture_presented_underlay(CapturedUnderlay kind,std::string& error) {
         return capture_underlay(kind,error);

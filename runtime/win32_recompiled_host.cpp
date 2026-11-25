@@ -455,6 +455,11 @@ struct Host {
             ActivityFrameInput input=h.native_input.sample(
                 h.pointer_x,h.pointer_y,timeGetTime(),h.game.accepts_native_name_input());
             input.pointer_position_valid=true;
+            POINT screen{};RECT client{};
+            const bool inside=GetCursorPos(&screen)&&WindowFromPoint(screen)==h.window&&
+                ScreenToClient(h.window,&screen)&&GetClientRect(h.window,&client)&&
+                PtInRect(&client,screen);
+            input.native_cursor_enabled=inside||!h.retail_window.windowed;
             input.original_windowed_display=h.retail_window.windowed;
             input.original_random=&h.original_game_random;
             const auto click=consume_native_click(h.native_input.click_pulse);
@@ -563,6 +568,7 @@ LRESULT CALLBACK native_window_proc(
         host->close_requested=true;return 0;
     }
     if(msg==WM_COMMAND&&host->frame_in_progress)return 0;
+    if(msg==WM_SETCURSOR&&host->running&&LOWORD(lp)==HTCLIENT){SetCursor(nullptr);return TRUE;}
     if(msg==WM_COMMAND&&LOWORD(wp)==0x9c41U){
         if(host->running)(void)host->game.request_window_options();
         return 0;

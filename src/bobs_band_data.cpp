@@ -61,7 +61,7 @@ std::string sound_brick_bitmap_path(int type, bool hover) {
     }
     return std::string{"Data\\SubGameOpen\\"} +
         (hover ? "hsound" : "sound") +
-        std::to_string(type+1) + ".bmp";
+        std::to_string(std::array<int,10>{5,6,3,4,7,8,9,10,1,2}[static_cast<std::size_t>(type)]) + ".bmp";
 }
 
 std::string sequence_filename(Conductor conductor, int player_index) {

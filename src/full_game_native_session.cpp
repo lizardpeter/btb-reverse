@@ -1,5 +1,6 @@
 #include "btb/full_game_native_session.hpp"
 
+#include <algorithm>
 #include <utility>
 
 namespace btb::full_game {
@@ -422,6 +423,27 @@ NativeSessionFrame NativeGameSession::tick(
        !device_.print_current_frame(error)) {
         fail(frame,PhysicalPresentationStage::Print,error);
         return frame;
+    }
+    // The original 004084B0 pointer is drawn after scene capture and
+    // printing, immediately before present. It must not contaminate replay.
+    const auto& cursor_effects=frame.prepared.game.effects;
+    if(input.native_cursor_enabled && input.pointer_position_valid &&
+       !global_movie_frame && !shutting_down &&
+       intercept!=game_flow::Intercept::ContextualHelp &&
+       !cursor_effects.capture_original_help &&
+       !cursor_effects.suppress_original_default_cursor) {
+        const Draw cursor=cursor_effects.original_cursor_draw.value_or(Draw{
+            "Data/ui/cursor.bmp",std::clamp(input.pointer_x,0,621),
+            std::clamp(input.pointer_y,0,461),Rect{0,0,19,19},true});
+        auto resolved=effects_.assets().resolve(cursor.source_asset);
+        if(!resolved.found()) {
+            fail(frame,PhysicalPresentationStage::AssetResolve,
+                 "original cursor "+cursor.source_asset+": "+resolved.error);
+            return frame;
+        }
+        if(!device_.draw_transient_cursor({cursor,std::move(resolved)},error)){
+            fail(frame,PhysicalPresentationStage::SubmitDraw,error);return frame;
+        }
     }
     // The original activity unloaders release their bitmap groups.
     // Do this only after the final composed image (and any replay
