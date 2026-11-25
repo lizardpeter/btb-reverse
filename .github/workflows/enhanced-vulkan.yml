@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - 'enhanced/**'
+      - 'cmake/BTBTargets.cmake'
+      - 'runtime/win32_original_imports3.cpp'
       - 'include/btb/win32_frame_output.hpp'
       - 'include/btb/packed_frame_snapshot.hpp'
       - 'include/btb/opaque_global_video.hpp'
@@ -54,6 +56,19 @@ jobs:
         run: cmake -S . -B build/enhanced-vulkan -G "Visual Studio 18 2026" -A x64 -DBTB_BUILD_ENHANCED=ON -DBTB_REQUIRE_VULKAN=ON -DBTB_REQUIRE_SLANG=ON
       - name: Build enhanced executable, shaders, policy and Vulkan smoke
         run: cmake --build build/enhanced-vulkan --config Release --target btb_game_enhanced btb_enhanced_policy_tests btb_enhanced_frame_pacing_tests btb_enhanced_presentation_activity_tests btb_enhanced_native_cursor_plan_tests btb_enhanced_sprite_motion_tests btb_enhanced_packed_layer_tests btb_enhanced_native_movie_pixels_tests btb_enhanced_packed_scene_tests btb_enhanced_win32_packed_tests btb_enhanced_sprite_batch_tests btb_enhanced_vulkan_tests btb_enhanced_vulkan_sprite_tests
+      - name: Prove enhanced executable has no DirectDraw imports
+        shell: pwsh
+        run: |
+          python enhanced/check_pe_imports_test.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $exe = Get-ChildItem build/enhanced-vulkan -Recurse -Filter btb_game_enhanced.exe | Select-Object -First 1
+          if (!$exe) { throw "Enhanced executable missing" }
+          python enhanced/check_pe_imports.py $exe.FullName --forbid ddraw.dll --require vulkan-1.dll
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $probe = Get-ChildItem build/enhanced-vulkan -Recurse -Filter btb_enhanced_win32_packed_tests.exe | Select-Object -First 1
+          if (!$probe) { throw "Packed integration probe missing" }
+          python enhanced/check_pe_imports.py $probe.FullName --forbid ddraw.dll
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Validate compiled SPIR-V
         shell: pwsh
         run: |

@@ -15,8 +15,14 @@ namespace {
 GUID guid(const Guid& source){GUID out;static_assert(sizeof(out)==sizeof(source));std::memcpy(&out,source.data(),sizeof(out));return out;}
 }
 I32 NativeImports3::direct_draw(const Guid* adapter,Handle& result,const Guid& iid,Handle outer){
+ #if defined(BTB_ENHANCED_NO_DDRAW)
+ // Enhanced has no DirectDraw factory, dynamic fallback, or import library.
+ (void)adapter;(void)iid;(void)outer;result=0;
+ return static_cast<I32>(E_NOTIMPL);
+ #else
  GUID device{};if(adapter)device=guid(*adapter);const GUID id=guid(iid);void* out=reinterpret_cast<void*>(result);
  const HRESULT hr=::DirectDrawCreateEx(adapter?&device:nullptr,&out,id,reinterpret_cast<IUnknown*>(outer));result=reinterpret_cast<Handle>(out);return hr;
+ #endif
 }
 I32 NativeImports3::direct_input(Handle instance,U32 version,const Guid& iid,Handle& result,Handle outer){
  // Keep the required input import dynamically bound, as with an original IAT.

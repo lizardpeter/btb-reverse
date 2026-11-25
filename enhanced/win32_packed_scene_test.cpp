@@ -55,6 +55,7 @@ int main(){
     Window window;if(!window.hwnd){std::cout<<"SKIP: no native window station\n";return 77;}
     Fixture fixture;if(!fixture.create())return fail("temporary BMP creation");
     Sink sink;Win32OriginalDirectDraw renderer;std::string error;
+    if(renderer.initialize(window.hwnd,display::DisplayMode::Windowed,error)||renderer.initialized()||error.find("disabled")==std::string::npos)return fail("legacy factory must be disabled",error);
     if(!renderer.initialize_packed(window.hwnd,error)||!renderer.packed_mode()||renderer.bink_render_target())return fail("packed initialize",error);
     renderer.set_frame_output(&sink);
     ResolvedDraw draw{{"fixture",30,40,{},true},{AssetResolutionStatus::FoundInstalled,fixture.path,{}}};
@@ -73,6 +74,7 @@ int main(){
        renderer.bink_render_target()||!renderer.present(error)||pixel(sink.latest,100,100)!=0xffffff)return fail("recreate without DD7",error);
     IDirectDrawSurface7* forbidden=nullptr;
     if(renderer.create_bink_offscreen_surface(2,2,forbidden,error)||forbidden)return fail("unexpected legacy surface allocation");
+    if(GetModuleHandleW(L"ddraw.dll"))return fail("DirectDraw unexpectedly loaded during packed scene test");
     std::cout<<"PASS: Win32 packed scene, bitmap, native global/overlay movie, captured modal and recreation without DD7\n";
     return 0;
 }

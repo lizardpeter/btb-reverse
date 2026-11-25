@@ -166,7 +166,10 @@ void Win32OriginalDirectDraw::shutdown() noexcept {
 
 bool Win32OriginalDirectDraw::initialize(
     HWND hwnd,display::DisplayMode mode,std::string& error) {
-
+#if defined(BTB_ENHANCED_NO_DDRAW)
+    (void)hwnd;(void)mode;
+    shutdown();error="DirectDraw initialization is disabled in the enhanced platform";return false;
+#else
     if (!hwnd || !IsWindow(hwnd)) {
         shutdown();error="DirectDraw7 requires a valid original-game HWND";return false;
     }
@@ -185,6 +188,7 @@ bool Win32OriginalDirectDraw::initialize(
 
     error.clear();
     return true;
+#endif
 }
 
 bool Win32OriginalDirectDraw::initialize_packed(HWND hwnd,std::string& error){
