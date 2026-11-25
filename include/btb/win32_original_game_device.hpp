@@ -24,6 +24,9 @@ namespace btb::full_game {
 class OriginalBinkProvider {
 public:
     virtual ~OriginalBinkProvider() = default;
+    [[nodiscard]] virtual bool set_original_volume(int,std::string& error) {
+        error="Bink volume provider unavailable";return false;
+    }
     [[nodiscard]] virtual bool service(
         bool& global_finished,std::string& error) = 0;
     [[nodiscard]] virtual bool open_global(

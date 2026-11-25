@@ -33,6 +33,7 @@ public:
     ~Win32RetailBinkProvider() override;
     [[nodiscard]] bool service(bool& global_finished,
                                std::string& error) override;
+    [[nodiscard]] bool set_original_volume(int percent,std::string& error) override;
     [[nodiscard]] bool open_global(
         const std::filesystem::path& movie,std::string& error) override;
     [[nodiscard]] bool close_global(std::string& error) override {
@@ -58,6 +59,7 @@ private:
     Win32OriginalDirectDraw& renderer_;
     std::filesystem::path root_;
     Win32OriginalBinkExports exports_{};
+    int volume_percent_{80};
     void* global_{};
     // Tracks actual BinkDoFrame + DirectDraw pixel copy, not just HBINK
     // reaching Frames. Completion is returned on the next host tick.

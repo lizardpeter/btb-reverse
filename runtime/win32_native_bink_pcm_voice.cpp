@@ -1,6 +1,7 @@
 #include "btb/win32_native_bink_pcm_voice.hpp"
 #if defined(_WIN32)
 #include "btb/bink32_audio_pcm.hpp"
+#include <cmath>
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -111,6 +112,16 @@ bool Win32NativeBinkPcmVoice::load(
     sample_frames_=audio.sample_frames();
     error.clear();
     return true;
+}
+
+bool Win32NativeBinkPcmVoice::set_bink_volume(int volume,std::string& error) {
+    if(!buffer_||volume<=0||volume>32768){error="invalid native Bink volume";return false;}
+    // RAD linear gain uses 32768 as nominal full scale. DirectSound
+    // expects hundredths of dB: convert without changing decoded samples.
+    const LONG attenuation=static_cast<LONG>(std::lround(2000.0*std::log10(volume/32768.0)));
+    const auto hr=buffer_->SetVolume(attenuation);
+    if(FAILED(hr)){error=ds_error("DirectSound Bink PCM16 SetVolume",hr);return false;}
+    error.clear();return true;
 }
 
 bool Win32NativeBinkPcmVoice::start(std::string& error) {

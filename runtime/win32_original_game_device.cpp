@@ -63,7 +63,7 @@ bool Win32OriginalGameDevice::draw_ordered(
 }
 
 bool Win32OriginalGameDevice::set_original_volume(int percent,std::string& error) {
-    return audio_.set_original_volume(percent,error);
+    return audio_.set_original_volume(percent,error)&&bink_.set_original_volume(percent,error);
 }
 
 bool Win32OriginalGameDevice::capture_replay_underlay(std::string& error) {

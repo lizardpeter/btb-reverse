@@ -28,6 +28,7 @@ using BinkCopyFn=std::int32_t (WINAPI*)(
 using BinkNextFn=void (WINAPI*)(void*);
 using BinkSurfaceFn=std::uint32_t (WINAPI*)(IDirectDrawSurface7*);
 using BinkSetAudioFn=std::int32_t (WINAPI*)(FARPROC,std::uint32_t);
+using BinkVolumeFn=void (WINAPI*)(void*,std::uint32_t,std::int32_t);
 using BinkGotoFn=void (WINAPI*)(void*,std::uint32_t,std::uint32_t);
 
 template<class Fn>
@@ -107,6 +108,19 @@ bool Win32RetailBinkProvider::ensure_original_dll(
 #endif
 }
 
+bool Win32RetailBinkProvider::set_original_volume(int percent,std::string& error) {
+    if(percent<0||percent>100){error="Bink volume percentage out of range";return false;}
+    volume_percent_=percent;
+#if !defined(_WIN64)
+    if(global_){
+        auto volume=require_export<BinkVolumeFn>(exports_,"BinkSetVolume");
+        if(!volume){error="original BinkSetVolume unavailable";return false;}
+        volume(global_,0,percent<5?37:percent*310);
+    }
+#endif
+    error.clear();return true;
+}
+
 bool Win32RetailBinkProvider::open_global(
     const std::filesystem::path& movie,std::string& error) {
 #if defined(_WIN64)
@@ -143,6 +157,7 @@ bool Win32RetailBinkProvider::open_global(
         error="original BinkOpen returned invalid frame geometry/header";
         return false;
     }
+    if(!set_original_volume(volume_percent_,error)){close_global();return false;}
     error.clear();return true;
 #endif
 }

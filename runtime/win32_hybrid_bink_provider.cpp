@@ -13,6 +13,9 @@ bool Win32HybridBinkProvider::close_global(std::string& error) {
     error.clear();
     return true;
 }
+bool Win32HybridBinkProvider::set_original_volume(int percent,std::string& error) {
+    return native_.set_original_volume(percent,error)&&retail_.set_original_volume(percent,error);
+}
 bool Win32HybridBinkProvider::open_global(
     const std::filesystem::path& movie,std::string& error) {
     // The old movie's handles are released BEFORE choosing the backend

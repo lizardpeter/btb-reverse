@@ -33,6 +33,7 @@ public:
     [[nodiscard]] bool load(
         const btb::bink32_recovered::Bink1MoviePcm16& audio,
         std::string& error);
+    [[nodiscard]] bool set_bink_volume(int volume,std::string& error);
     [[nodiscard]] bool start(std::string& error);
     [[nodiscard]] bool stop(std::string& error) noexcept;
     // Seek in decoded audio sample frames, not arbitrary BIK packet offsets;

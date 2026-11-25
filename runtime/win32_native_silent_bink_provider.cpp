@@ -42,6 +42,13 @@ bool Win32NativeSilentBinkProvider::close_global(std::string& error) {
     return true;
 }
 
+bool Win32NativeSilentBinkProvider::set_original_volume(int percent,std::string& error) {
+    if(percent<0||percent>100){error="native Bink volume percentage out of range";return false;}
+    volume_percent_=percent;
+    if(voice_&&!voice_->set_bink_volume(percent<5?37:percent*310,error))return false;
+    error.clear();return true;
+}
+
 bool Win32NativeSilentBinkProvider::open_global(
     const std::filesystem::path& movie,std::string& error) {
     reset_global();
@@ -81,7 +88,8 @@ bool Win32NativeSilentBinkProvider::open_global(
         if(!candidate)return false;
         auto sound=std::make_unique<Win32NativeBinkPcmVoice>(
             audio_.device_for_native_bink_pcm());
-        if(!sound->load(*audio,error))return false;
+        if(!sound->load(*audio,error)||
+           !sound->set_bink_volume(volume_percent_<5?37:volume_percent_*310,error))return false;
         audio_clock_.emplace(audio->sample_rate,audio->sample_frames());
         voice_=std::move(sound);
         opened=std::move(candidate);
