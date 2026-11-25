@@ -114,9 +114,9 @@ bool Win32NativeSilentBinkProvider::open_global(
         error="native Bink global movie must match original 640x480 backbuffer";
         return false;
     }
-    if(!renderer_.bink_render_target()) {
+    if(!renderer_.packed_mode()&&!renderer_.bink_render_target()) {
         reset_global();
-        error="native Bink global DirectDraw7 target is unavailable";
+        error="native Bink global composition target is unavailable";
         return false;
     }
     global_=std::move(*opened);
