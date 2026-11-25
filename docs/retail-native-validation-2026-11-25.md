@@ -1,0 +1,21 @@
+# Native installed-data validation — 2026-11-25
+
+Local GCC 14 C++26 Release build, source snapshot 2faa631ec5e3b3b94570bdc689f0f09298aebcca with the corrected diagnostic Easy choice selection. Retail PE SHA-256 c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05. Original files were read privately, never added to source control.
+
+## Activity playthroughs
+
+| Activity | Completions | Gameplay updates | Draw commands |
+|---|---:|---:|---:|
+| Golf | 72/72 | 126816 | 1782672 |
+| Squirrel Run | 72/72 | 410812 | 8796813 |
+| Total | 144/144 | 537628 | 10579485 |
+
+All three difficulties, both original display modes, seeds 1–12; all five profiles. Golf accepted 360 shots; Squirrel accepted 432 correct and 360 incorrect choices. All submitted BMP crops and explicit audio paths validated against original files. The diagnostic was initially incorrectly expecting an Easy decoy, and the controller (not the game) was fixed. The separate real herd.txt Pets Corner probe completed 9/9, 12/12 and 15/15 animals at seed 1 across the three difficulties. Voice duration is modeled, not measured on a Windows device.
+
+## Original-instruction comparisons (actual production source checkout)
+
+The checked-in tools were compiled and run against the verified original PE. All 178178 Golf shot scenarios, 31252395 frame comparisons matched (trace 5bf54240cf8eca71). Squirrel: selector 69984, actor 308074, conveyor 82944, slide 73800, assembly 5225472 (9f2c9d55e0505c56), transition 34392 (b7693742661f6ad9), drop 124416 (12eebd7bdda884a6), placement 227682 (8a73b5a3fe5d3b9d). These are translated original instruction comparisons, not direct execution of the PE.
+
+## Bink native structural decode
+
+All 61 identified paths in the original global movies (33), Spud Skate (5), and Fireworks (23) banks decoded, 12732 frames and 44 audio tracks, 61034880 PCM16 bytes. Zero failed or partial paths. This structural audit does not establish pixel or PCM equivalence by itself, and does not claim other folders have been exhaustively inventoried. Physical Windows audio/video/input parity remains open.

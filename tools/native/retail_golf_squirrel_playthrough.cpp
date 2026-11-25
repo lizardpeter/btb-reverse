@@ -135,7 +135,8 @@ void play(const fs::path& root,bool golf,int difficulty,bool windowed,unsigned s
     auto step=game.advance(input);
     check(step.kind==fg::FrameKind::ActivityInitialized,"init failed: "+step.error);
     int accepted=0,rejected=0,charged=0,score=0;
-    bool try_decoy=true;
+    // Easy offers only correct pieces; Medium and Hard have decoys.
+    bool try_decoy=difficulty!=0;
     constexpr std::array<int,5> aims{0,34,60,44,88},powers{400,700,850,990,50};
     for(int tick=0;tick<40000;++tick) {
         input.click_pulse=false;input.elapsed_centiseconds=tick;voices.sample(input);
@@ -158,7 +159,7 @@ void play(const fs::path& root,bool golf,int difficulty,bool windowed,unsigned s
                 if(!choices[i].active||choices[i].correct==try_decoy)continue;
                 const auto p=btb::squirrel::kConveyorItemOrigins[i];
                 input.pointer_x=p.x+10;input.pointer_y=p.y+10;input.click_pulse=true;
-                if(choices[i].correct){++accepted;try_decoy=true;}
+                if(choices[i].correct){++accepted;try_decoy=difficulty!=0;}
                 else{++rejected;try_decoy=false;}
                 break;
             }
@@ -169,13 +170,21 @@ void play(const fs::path& root,bool golf,int difficulty,bool windowed,unsigned s
         if(g&&g->round())score=g->round()->score();
         if(step.effects.save_and_unload){
             if(g)check(accepted==5&&g->round()==nullptr,"Golf attempt/unload count mismatch");
-            else check(accepted==3*(difficulty+1)&&rejected==accepted,"Squirrel selection count mismatch");
+            else check(accepted==3*(difficulty+1)&&rejected==(difficulty==0?0:accepted),"Squirrel selection count mismatch");
             completion(game,step.effects,golf?Slot::Golf:Slot::SquirrelRun,init,profile);
             std::cout<<(golf?"golf":"squirrel")<<" difficulty="<<difficulty
                 <<" windowed="<<windowed<<" seed="<<seed<<" accepted="<<accepted
                 <<" rejected="<<rejected<<" score="<<score;
             audit.report();return;
         }
+    }
+    if(s){
+        std::cerr<<"timeout: level="<<s->level()<<" placed="<<s->placed_count()
+                 <<" phase="<<int(s->placement().state)<<" section="<<s->run_section()
+                 <<" conveyor="<<s->conveyor_phase()<<" complete="<<s->complete()
+                 <<" accepted="<<accepted<<" rejected="<<rejected<<" try_decoy="<<try_decoy<<"\n";
+        for(const auto& c:s->choices())
+            std::cerr<<c.piece_id<<" correct="<<c.correct<<" active="<<c.active<<"\n";
     }
     throw std::runtime_error("playthrough exhausted frame budget");
 }
