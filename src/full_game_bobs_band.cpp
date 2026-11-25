@@ -26,7 +26,7 @@ bool BobsBandDriver::initialize(int player_index, std::string& error) {
     try {
         auto data = bobs_band::parse_machine_data(in);
         auto next = std::make_unique<bobs_band::Activity>(
-            std::move(data), conductor_, player_index);
+            std::move(data), conductor_, player_index,random_);
 
         // Retail initializer clears the entire 5x24 grid before trying to
         // load the conductor/player binary file. Absence is normal on the
@@ -40,6 +40,7 @@ bool BobsBandDriver::initialize(int player_index, std::string& error) {
         next->restore_saved_composition(file.composition);
         activity_ = std::move(next);
         player_index_ = player_index;
+        startup_pending_=true;
         error.clear();
         return true;
     } catch (const std::exception& e) {
@@ -162,6 +163,13 @@ ActivityFrameOutput BobsBandDriver::advance(
     out.audio.reserve(frame.audio.size());
     for (const auto& request : frame.audio) {
         out.audio.push_back(convert_audio(request));
+    }
+    if(startup_pending_) {
+        Audio voice{AudioOperation::ManagedSoundId,{},
+            bobs_band::kVoiceBase[static_cast<std::size_t>(conductor_)],50,1};
+        voice.input_interruptible=true;
+        out.audio.push_back(voice);
+        startup_pending_=false;
     }
     if (frame.progress) {
         const int slot = frame.progress->slot;

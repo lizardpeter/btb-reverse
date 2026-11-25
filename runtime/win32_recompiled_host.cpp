@@ -366,7 +366,7 @@ struct Host {
         fireworks_driver=fireworks_activity.get();
         game.install(ActivityId::Fireworks,std::move(fireworks_activity));
         game.install(ActivityId::BobsBand,std::make_unique<BobsBandDriver>(
-            root/"Data"/"SubGameOpen",profile_dir));
+            root/"Data"/"SubGameOpen",profile_dir,bobs_band::Conductor::Bob,&original_game_random));
         game.install(ActivityId::ParkDesigner,
             std::make_unique<ParkDesignerDriver>(
                 root/"Data"/"SubGameDYP",profile_dir,

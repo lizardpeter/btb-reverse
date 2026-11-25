@@ -49,3 +49,10 @@ The native Dinosaur probe completed all nine original layouts (three species × 
 
     cmake --build build/faithful --target btb_retail_spud_skate_playthrough
     build/faithful/btb_retail_spud_skate_playthrough /path/to/BTB-BBP
+
+## Bob's Band installed-data validation
+
+15/15 runs, all three conductors across all five profiles, using actual machine data, art and WAV assets. Each composition played all 50 pitch/type samples (750 total playback requests), validated 19,845 gameplay updates and 1,112,775 bitmap draw commands, exited through ordinary Back/Yes and reloaded every 480-byte composition. Original 20-byte last.txt verified. State 8 now captures a fresh playback epoch; previously an application running longer than 24 seconds could emit no notes. All tests begin at 40,000 centiseconds. Startup voices and interruptibility restored; idle and reaction random draws use the shared CRT source; delete lifetime checked on click rather than every frame. The full-game Band regression passed locally. Audio output timing is modeled, not physical sound-device verification.
+
+    cmake --build build/faithful --target btb_retail_bobs_band_playthrough
+    build/faithful/btb_retail_bobs_band_playthrough /path/to/BTB-BBP /new/temporary/save-directory

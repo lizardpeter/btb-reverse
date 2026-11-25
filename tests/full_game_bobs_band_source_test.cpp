@@ -89,6 +89,8 @@ static machine animation rectangles
     auto palette = game.advance(select_roleys_short);
     assert(palette.kind == FrameKind::ActivityUpdated);
     assert(!palette.effects.audio.empty());
+    assert(palette.effects.audio.back().sound_id==510);
+    assert(palette.effects.audio.back().input_interruptible);
 
     ActivityFrameInput place{};
     place.pointer_x = 45;
@@ -112,7 +114,7 @@ static machine animation rectangles
     static_cast<void>(game.advance(waiting));
     assert(installed->activity()->editor().play_pending());
 
-    const auto started = game.advance({});
+    const auto started = game.advance({.elapsed_centiseconds=40000});
     assert(started.effects.progress_writes.size() == 1);
     assert(game.globals().player_progress[0].get(
         btb::progress::Slot::BobsBandBob) == 1);
@@ -121,7 +123,7 @@ static machine animation rectangles
     assert(started.effects.audio[0].source_asset.find("bobmt.wav") !=
            std::string::npos);
 
-    const auto sec0 = game.advance({});
+    const auto sec0 = game.advance({.elapsed_centiseconds=40001});
     assert(!sec0.effects.draws.empty());
     bool found_machine_note = false;
     for (const auto& audio : sec0.effects.audio) {
