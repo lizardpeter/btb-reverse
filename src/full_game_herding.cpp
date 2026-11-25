@@ -23,6 +23,8 @@ bool HerdingDriver::initialize(
         error="Pets Corner original profile must be 0..4";
         return false;
     }
+    // Retail 00419600 explicitly forces DAT_0051C284=0 in windowed mode.
+    if(windowed_display_)difficulty_=0;
     if (difficulty_ < 0 || difficulty_ > 2) {
         error="Pets Corner difficulty must be retail Easy/Medium/Hard";
         return false;

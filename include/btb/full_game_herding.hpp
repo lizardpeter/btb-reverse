@@ -56,6 +56,9 @@ public:
         }
     }
 
+    void configure_display_mode(bool windowed) noexcept override {
+        windowed_display_=windowed;
+    }
     [[nodiscard]] bool initialize(
         int player_index,std::string& error) override;
     [[nodiscard]] ActivityFrameOutput advance(
@@ -77,6 +80,7 @@ private:
     herding::Data data_{};
     HerdingScene scene_{};
     int difficulty_{};
+    bool windowed_display_{};
     int player_index_{-1};
     int completion_stage_{};
     bool initialized_{};

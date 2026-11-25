@@ -302,6 +302,8 @@ public:
     // Optional recovered pregame/menu-selected runtime state. Existing
     // standalone activities need no new constructor or fixed subgame args.
     virtual void configure_menu_state(const RetailMenuState&) noexcept {}
+    // Some original initializers branch on the live DAT_0044DE0C value.
+    virtual void configure_display_mode(bool) noexcept {}
     [[nodiscard]] virtual bool initialize(
         int player_index, std::string& error) = 0;
     [[nodiscard]] virtual ActivityFrameOutput advance(

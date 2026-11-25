@@ -125,6 +125,25 @@ int main() {
         assert(advance_bob_walk_animation(frame,wait,2,true,false)&&frame==6);
         frame=9;wait=0;
         assert(advance_bob_walk_animation(frame,wait,3,false,true)&&frame==0&&wait==8);
+        // Windowed mode bypasses the countdown in every source branch.
+        frame=13;wait=4;
+        for(int i=14;i<=24;++i) {
+            assert(advance_bob_walk_animation(frame,wait,1,true,false,true));
+            assert(frame==i&&wait==4);
+        }
+        assert(advance_bob_walk_animation(frame,wait,1,true,false,true)&&frame==13);
+        frame=0;wait=8;
+        for(int i=1;i<=9;++i) {
+            assert(advance_bob_walk_animation(frame,wait,3,false,true,true));
+            assert(frame==i&&wait==8);
+        }
+        assert(advance_bob_walk_animation(frame,wait,3,false,true,true)&&frame==0);
+        for(int initial=-1;initial<=9;++initial) {
+            int a=initial,b=initial;
+            assert(bob_animation_tick_due(a,true)&&a==initial);
+            assert(bob_animation_tick_due(b,false)==(initial<=1));
+            assert(b==(initial>1?initial-1:initial));
+        }
     }
     for(bool failed:{false,true}) {
         BentleyState b{};

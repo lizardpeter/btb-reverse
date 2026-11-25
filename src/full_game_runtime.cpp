@@ -988,6 +988,7 @@ GameFrame GameRoot::advance_impl(const ActivityFrameInput& sample) {
         // Supply those choices to the activity driver before loading data.
         if (initialized_activity_ != activity->id) {
             drivers_[index]->configure_menu_state(globals_.menu);
+            drivers_[index]->configure_display_mode(effective_input.original_windowed_display);
         }
         if (initialized_activity_ != activity->id &&
             !drivers_[index]->initialize(*globals_.active_profile,

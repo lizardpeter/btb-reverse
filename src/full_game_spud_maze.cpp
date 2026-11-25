@@ -398,7 +398,7 @@ ActivityFrameOutput SpudMazeDriver::advance(
             auto rendered=draw();
             // 00422400 has the separate 8-tick 0..9 narration cycle.
             static_cast<void>(spud_maze::advance_bob_walk_animation(
-                bob_.animation,walk_animation_wait_,bob_.facing,false,true));
+                bob_.animation,walk_animation_wait_,bob_.facing,false,true,input.original_windowed_display));
             rendered.audio=std::move(out.audio);
             return rendered;
         }
@@ -413,6 +413,7 @@ ActivityFrameOutput SpudMazeDriver::advance(
         return out;
     }
     bool portal_captured=false;
+    bool repair_ended_this_frame=false;
     std::optional<spud_maze::SlideFrame> slide_frame;
     try {
         if(slide_.phase!=0) {
@@ -424,7 +425,7 @@ ActivityFrameOutput SpudMazeDriver::advance(
             // through 14 and wraps to 9 while 0x00514514 counts down
             // its FIVE full passes. Only the final wrap decrements the
             // damaged-track counter 0x005144C8.
-            if(--repair_animation_frames_<1) {
+            if(spud_maze::bob_animation_tick_due(repair_animation_frames_,input.original_windowed_display)) {
                 repair_animation_frames_=4;
                 if(bob_.animation<14) {
                     ++bob_.animation;
@@ -435,7 +436,10 @@ ActivityFrameOutput SpudMazeDriver::advance(
                     bob_.animation=0;
                     repair_animation_frames_=0;
                     repair_cycles_remaining_=0;
-                    walk_animation_wait_=5;
+                    // The original final repair wrap writes countdown 4.
+                    // Do not run the walking updater again in this same frame.
+                    walk_animation_wait_=4;
+                    repair_ended_this_frame=true;
                     move_permitted_=true;
                     walking_=false;
                     if(repairs_remaining_<=0)
@@ -498,11 +502,11 @@ ActivityFrameOutput SpudMazeDriver::advance(
     }
     if(portal_captured)return out;
     auto frame=draw(slide_frame?&*slide_frame:nullptr);
-    if(repair_cycles_remaining_==0 && !bob_.hazard_lock) {
+    if(!repair_ended_this_frame && repair_cycles_remaining_==0 && !bob_.hazard_lock) {
         // Scene has already submitted the current sprite; update for next
         // frame, keeping the movement permission latch through transitions.
         if(spud_maze::advance_bob_walk_animation(bob_.animation,
-            walk_animation_wait_,bob_.facing,walking_,false))move_permitted_=true;
+            walk_animation_wait_,bob_.facing,walking_,false,input.original_windowed_display))move_permitted_=true;
     }
     frame.audio=std::move(out.audio);
     return frame;

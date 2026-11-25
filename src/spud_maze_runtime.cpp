@@ -198,10 +198,10 @@ SlideFrame advance_slide(SlideState& s) noexcept {
 }
 
 bool advance_bob_walk_animation(int& frame,int& countdown,int facing,
-                               bool moving,bool narrating) noexcept {
+                               bool moving,bool narrating,bool windowed) noexcept {
     // 00422400: the scene draw is followed by this animation update,
     // which grants exactly one movement step for the next input call.
-    if(--countdown>0)return false;
+    if(!bob_animation_tick_due(countdown,windowed))return false;
     countdown=narrating?8:4;
     const int next=frame+1;
     if(narrating)frame=(next>9||next<0)?0:next;

@@ -244,5 +244,21 @@ int main() {
             btb::progress::Slot::PetsCorner)==1);
     }
 
+    {
+        GameRoot windowed;
+        assert(windowed.select_profile(0));
+        auto source=std::make_unique<KnownEntityProvider>();
+        auto* provider=source.get();
+        auto driver=std::make_unique<HerdingDriver>(root,std::move(source),2);
+        auto* live=driver.get();
+        windowed.install(ActivityId::Herding,std::move(driver));
+        windowed.set_outer_state(State::HerdingInit);
+        assert(windowed.advance({.original_windowed_display=true}).kind==FrameKind::ActivityInitialized);
+        assert(live->difficulty()==0);
+        assert(provider->expected_animals==h::initial_undelivered_animal_count(0));
+        // Display changes while playing do not rerun the initializer.
+        assert(windowed.advance({.original_windowed_display=false}).kind==FrameKind::ActivityUpdated);
+        assert(live->difficulty()==0);
+    }
     fs::remove_all(root);
 }

@@ -198,7 +198,13 @@ struct SlideState {
 // 56 cells of 76x80. Voice dispatch occurs only on the phase edges.
 // 00422400 normal/narration animation, independent of active repair passes.
 [[nodiscard]] bool advance_bob_walk_animation(int& frame,int& countdown,
-    int facing,bool moving,bool narrating) noexcept;
+    int facing,bool moving,bool narrating,bool windowed=false) noexcept;
+
+// Shared 00422400 gate used for idle, walking, repairing and narration.
+[[nodiscard]] constexpr bool bob_animation_tick_due(int& countdown,bool windowed) noexcept {
+    if(!windowed && countdown>1) {--countdown;return false;}
+    return true;
+}
 
 struct BentleyState {
     int phase{-1};

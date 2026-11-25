@@ -194,5 +194,28 @@ int main() {
         assert(live->bob()->animation==0);
         assert(frame.effects.progress_writes.empty());
     }
+    {
+        // Original windowed repair: 30 updates, not 120 fullscreen updates.
+        fg::GameRoot game;
+        assert(game.select_profile(1));
+        auto driver=std::make_unique<fg::SpudMazeDriver>(root,0);
+        auto* live=driver.get();
+        game.install(fg::ActivityId::SpudMaze,std::move(driver));
+        game.set_outer_state(State::SpudMazeInit);
+        assert(game.advance({.original_windowed_display=true}).kind==fg::FrameKind::ActivityInitialized);
+        auto frame=game.advance({.original_windowed_display=true});
+        assert(live->remaining_repairs()==4);
+        frame=game.advance({.click_pulse=true,.elapsed_centiseconds=1,.original_windowed_display=true});
+        assert(live->bob()->hazard_lock&&live->bob()->animation==9);
+        for(int tick=1;tick<=29;++tick) {
+            frame=game.advance({.elapsed_centiseconds=tick+1,.original_windowed_display=true});
+            assert(frame.kind==fg::FrameKind::ActivityUpdated);
+            assert(live->remaining_repairs()==4&&live->bob()->hazard_lock);
+            assert(live->bob()->animation==9+tick%6);
+        }
+        frame=game.advance({.elapsed_centiseconds=31,.original_windowed_display=true});
+        assert(live->remaining_repairs()==3&&!live->bob()->hazard_lock);
+        assert(live->bob()->animation==0);
+    }
     fs::remove_all(root);
 }
