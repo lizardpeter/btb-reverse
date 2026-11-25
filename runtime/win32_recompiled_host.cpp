@@ -452,7 +452,7 @@ struct Host {
         callbacks.run_main_game_flow=+[](void* context)->bool{
             auto& h=*static_cast<Host*>(context);
             ActivityFrameInput input=h.native_input.sample(
-                h.pointer_x,h.pointer_y,timeGetTime());
+                h.pointer_x,h.pointer_y,timeGetTime(),h.game.accepts_native_name_input());
             input.pointer_position_valid=true;
             input.original_windowed_display=h.retail_window.windowed;
             input.original_random=&h.original_game_random;
@@ -614,12 +614,19 @@ LRESULT CALLBACK native_window_proc(
         // unhandled keyboard messages through DefWindowProc.
         // Do not forcibly terminate an ongoing minigame or abandon
         // saved progress because the player pressed Escape.
-        // The normal WM_CLOSE/WM_DESTROY path remains available.
+        // Escape is translated to Options by retail accelerator 103
+        // before this WM_KEYDOWN handler. The normal OS close remains available.
         return 0;
     case WM_KEYUP:
         host->native_input.key_up(static_cast<unsigned>(wp));return 0;
     case WM_CHAR:
-        host->native_input.character(static_cast<unsigned>(wp));return 0;
+        if(host->game.accepts_native_name_input()){
+            const auto bits=static_cast<unsigned>(lp);
+            (void)host->native_input.queue_name_key(static_cast<unsigned>(wp),
+                ((bits>>16U)&0xffU)|((bits&0x01000000U)?0x80U:0U),
+                (bits&0x40000000U)!=0);
+        }else host->native_input.character(static_cast<unsigned>(wp));
+        return 0;
     case WM_KILLFOCUS:
         host->native_input.lose_focus();
         if(GetCapture()==hwnd)ReleaseCapture();
@@ -717,14 +724,32 @@ int run_recompiled_native_game(
         size.right-size.left,size.bottom-size.top,
         nullptr,nullptr,instance,&host);
     if(!hwnd)return 2;
+    // PE32 resource 103 contains Escape/Options and Alt+X/credits.
+    // Create the exact two-entry accelerator table without embedding the
+    // retail executable/resource section. Translate before dispatch as
+    // in 00402700 (including WM_SYSKEYDOWN for Alt+X).
+    std::array<ACCEL,kRetailAccelerators.size()> entries{};
+    for(std::size_t i=0;i<entries.size();++i){
+        entries[i].fVirt=kRetailAccelerators[i].flags;
+        entries[i].key=kRetailAccelerators[i].key;
+        entries[i].cmd=kRetailAccelerators[i].command;
+    }
+    const auto accelerators=CreateAcceleratorTableW(entries.data(),static_cast<int>(entries.size()));
+    if(!accelerators){
+        host.startup_completed=false;
+        DestroyWindow(hwnd);return 3;
+    }
     ShowWindow(hwnd,show);
     UpdateWindow(hwnd);
     MSG msg{};
     BOOL received{};
     while((received=GetMessageW(&msg,nullptr,0,0))>0){
-        TranslateMessage(&msg);
-        DispatchMessageW(&msg);
+        if(!TranslateAcceleratorW(hwnd,accelerators,&msg)){
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
     }
+    DestroyAcceleratorTable(accelerators);
     if(received<0)return 6;
     return static_cast<int>(msg.wParam);
 }

@@ -4,6 +4,35 @@
 #include <cstdint>
 using namespace btb::full_game;
 int main() {
+    static_assert(kRetailAccelerators.size()==2);
+    static_assert(kRetailAccelerators[0].flags==3&&kRetailAccelerators[0].key==0x1b&&kRetailAccelerators[0].command==0x9c41);
+    static_assert(kRetailAccelerators[1].flags==0x13&&kRetailAccelerators[1].key==0x58&&kRetailAccelerators[1].command==0x3e9);
+    {
+        NativeHostInput name;
+        // Multiple WM_CHAR events, including quick repeated physical
+        // presses, can arrive before any game frame. Retain order.
+        assert(name.queue_name_key('A',0x1e));
+        assert(name.queue_name_key('B',0x30));
+        assert(name.queue_name_key('B',0x30));
+        assert(name.queue_name_key(8,0x0e));
+        assert(!name.queue_name_key('B',0x30,true));
+        auto frame=name.sample(0,0,0,true);
+        assert(frame.translated_character=='A'&&frame.keyboard_state[0x1e]==0x80);
+        frame=name.sample(0,0,1,true);
+        assert(frame.translated_character=='B'&&frame.keyboard_state[0x30]==0x80);
+        frame=name.sample(0,0,2,true);
+        assert(frame.translated_character==-1&&frame.keyboard_state[0x30]==0);
+        frame=name.sample(0,0,3,true);
+        assert(frame.translated_character=='B'&&frame.keyboard_state[0x30]==0x80);
+        frame=name.sample(0,0,4,true);
+        assert(frame.translated_character==-1&&frame.keyboard_state[0x0e]==0x80);
+        assert(name.queue_name_key('C',0x2e));
+        name.lose_focus();
+        assert(name.sample(0,0,5,true).translated_character==-1);
+        assert(name.queue_name_key('D',0x20));
+        (void)name.sample(0,0,6,false);
+        assert(name.sample(0,0,7,true).translated_character==-1);
+    }
     {
         NativeHostInput mouse;
         mouse.press_mouse(22,44);mouse.release_mouse();

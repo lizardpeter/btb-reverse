@@ -35,6 +35,15 @@ namespace btb::full_game {
  default:return 0;
  }
 }
+// RT_ACCELERATOR (9), resource 103, language 1033, original SHA-256
+// c6e35972af53e972382f095ac3eaf13e00efbe1573a0fbfeccd39c2eff388b05.
+// Disk records: 03001b00419c0000 93005800e9030000.
+// The on-disk final-entry bit 0x80 is not a Win32 ACCEL.fVirt flag.
+struct RetailAccelerator {std::uint8_t flags;std::uint16_t key,command;};
+inline constexpr std::array<RetailAccelerator,2> kRetailAccelerators{{
+    {0x03,0x1b,0x9c41}, // Escape: Options
+    {0x13,0x58,0x03e9}, // Alt+X: credits
+}};
 struct NativeHostInput {
  std::array<std::uint8_t,256> keys{};
  std::array<std::uint8_t,256> scan_keys{};
@@ -44,6 +53,23 @@ struct NativeHostInput {
  bool release_pulse{};
  std::optional<std::pair<int,int>> press_position{};
  int typed_character{-1};
+ struct NameKey {unsigned scan{};int character{-1};};
+ std::array<NameKey,32> name_queue{};
+ std::size_t name_head{},name_size{};
+ unsigned previous_name_scan{};
+ // The original popup processes one non-shift scan per frame. Win32
+ // WM_CHAR can arrive and its key be released between two host ticks.
+ // Queue the translated event with its actual scan, preserving order.
+ // Bounded compatibility adapter; do not synthesize held gameplay input.
+ [[nodiscard]] bool queue_name_key(unsigned unicode,unsigned scan,bool repeat=false) noexcept {
+  if(repeat||scan==0||scan>0x35||scan==0x2a||
+     (unicode!=8&&(unicode<0x20||unicode>0x7e))||
+     (unicode==8&&scan!=0x0e)||name_size==name_queue.size())return false;
+  name_queue[(name_head+name_size)%name_queue.size()]={scan,unicode==8?-1:static_cast<int>(unicode)};
+  ++name_size;return true;
+ }
+ void clear_name_queue() noexcept {name_head=name_size=0;previous_name_scan=0;}
+
  std::uint32_t initial_tick{};
  bool clock_started{};
  void press_mouse() noexcept {
@@ -85,9 +111,10 @@ struct NativeHostInput {
  void lose_focus() noexcept {
   keys.fill(0);scan_keys.fill(0);held_scan_by_vk.fill(0);
   pointer_held=false;click_pulse=false;release_pulse=false;press_position.reset();typed_character=-1;
+  clear_name_queue();
  }
  [[nodiscard]] ActivityFrameInput sample(
-    int x,int y,std::uint32_t monotonic_ms) noexcept {
+    int x,int y,std::uint32_t monotonic_ms,bool name_entry=false) noexcept {
   if(!clock_started){initial_tick=monotonic_ms;clock_started=true;}
   ActivityFrameInput out{};
   out.pointer_x=x;out.pointer_y=y;
@@ -106,6 +133,20 @@ struct NativeHostInput {
   out.frame_delta=1; // source animation tick, not wall-time simulation steps
   out.translated_character=typed_character;
   typed_character=-1;
+  if(name_entry){
+   out.keyboard_state.fill(0);out.translated_character=-1;
+   if(name_size&&name_queue[name_head].scan!=previous_name_scan){
+    const auto event=name_queue[name_head];
+    name_head=(name_head+1)%name_queue.size();--name_size;
+    out.keyboard_state[event.scan]=0x80;
+    out.translated_character=event.character;
+    previous_name_scan=event.scan;
+   }else{
+    // Two distinct presses of the same scan require one release tick
+    // for the original previous-scan latch to accept the second event.
+    previous_name_scan=0;
+   }
+  }else clear_name_queue();
   return out;
  }
 };

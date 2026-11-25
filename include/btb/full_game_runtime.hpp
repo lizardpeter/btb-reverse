@@ -421,6 +421,11 @@ public:
     [[nodiscard]] bool configure_contextual_help(std::istream&,std::string&);
     // Original window-menu commands 0x9c41 (Options) and 0x3e9 (Exit).
     [[nodiscard]] bool request_window_options() noexcept;
+    [[nodiscard]] bool accepts_native_name_input() const noexcept {
+        return name_entry_&&name_entry_phase_==2&&!name_entry_->awaiting_accept_voice&&
+            !contextual_help_.active&&!globals_.dispatcher.options_active&&
+            globals_.dispatcher.shutdown_phase==application::ShutdownPhase::Running;
+    }
     void request_window_credits() noexcept;
     [[nodiscard]] bool load_profile_files(
         const std::filesystem::path& directory,
