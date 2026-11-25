@@ -1,6 +1,7 @@
 #include "vulkan_sprite_batch.hpp"
 #include "btb/bink32_surface_convert.hpp"
 #include <iostream>
+#include <fstream>
 #include <array>
 #include <random>
 #if defined(_WIN32)
@@ -106,6 +107,48 @@ int main(int argc,char** argv){
             if(pixels[y*640+x]!=expected){std::cerr<<"Pixel mismatch at "<<x<<","<<y<<" BGRA="<<bgra<<'\n';return 2;}
         }
     }
+    // Exercise the production BMP-file -> decoded pixels -> GPU atlas path.
+    struct TempBmp {
+        std::filesystem::path path;
+        ~TempBmp(){std::error_code ec;if(!path.empty())std::filesystem::remove(path,ec);}
+    } fixture;
+    fixture.path=std::filesystem::temp_directory_path()/
+        ("btb-gpu-bmp-atlas-"+std::to_string(rng())+".bmp");
+    std::vector<std::uint8_t> bmp(70,0);
+    const auto put16=[&](std::size_t p,std::uint16_t v){bmp[p]=std::uint8_t(v);bmp[p+1]=std::uint8_t(v>>8);};
+    const auto put32=[&](std::size_t p,std::uint32_t v){for(unsigned i=0;i<4;++i)bmp[p+i]=std::uint8_t(v>>(8*i));};
+    bmp[0]='B';bmp[1]='M';put32(2,70);put32(10,54);put32(14,40);
+    put32(18,2);put32(22,2);put16(26,1);put16(28,24);put32(30,0);put32(34,16);
+    // Bottom-up rows: blue + keyed magenta, then red + green.
+    const std::array<std::uint8_t,16> bmp_pixels{
+        255,0,0, 255,0,255, 0,0,
+        0,0,255, 0,255,0, 0,0
+    };
+    std::copy(bmp_pixels.begin(),bmp_pixels.end(),bmp.begin()+54);
+    {
+        std::ofstream file(fixture.path,std::ios::binary|std::ios::trunc);
+        file.write(reinterpret_cast<const char*>(bmp.data()),static_cast<std::streamsize>(bmp.size()));
+        if(!file)return fail("write GPU BMP fixture");
+    }
+    btb::full_game::ResolvedDraw file_draw{
+        {"bmp-fixture",40,50,{},true},
+        {btb::full_game::AssetResolutionStatus::FoundInstalled,fixture.path,{}}
+    };
+    const std::vector<btb::full_game::ResolvedDraw> file_draws{file_draw};
+    if(!batch.prepare(file_draws))return fail("decode BMP into GPU atlas");
+    if(vkResetCommandBuffer(cmd,0)!=VK_SUCCESS)return fail("BMP reset");
+    VkCommandBufferBeginInfo bmp_begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    if(vkBeginCommandBuffer(cmd,&bmp_begin)!=VK_SUCCESS)return fail("BMP begin");
+    batch.record(cmd,false);
+    if(vkEndCommandBuffer(cmd)!=VK_SUCCESS)return fail("BMP end");
+    VkSubmitInfo bmp_submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};bmp_submit.commandBufferCount=1;bmp_submit.pCommandBuffers=&cmd;
+    if(vkQueueSubmit(queue,1,&bmp_submit,VK_NULL_HANDLE)!=VK_SUCCESS||vkQueueWaitIdle(queue)!=VK_SUCCESS)
+        return fail("BMP dispatch");
+    const auto bmp_output=batch.readback();
+    if(bmp_output[50*640+40]!=0xff0000ffU||bmp_output[50*640+41]!=0xff00ff00U||
+       bmp_output[51*640+40]!=0xffff0000U||bmp_output[51*640+41]!=0xff000000U)
+        return fail("GPU BMP orientation / BGRA conversion / magenta key");
+    std::cout<<"PASS: original BMP file decodes into GPU atlas with correct orientation, channel order and color key\n";
     // Exercise the exact resident storage path used in interpolation.
     const auto reserved=reserve_atlas_base(jobs.size());
     if(!batch.upload_resident_atlas(atlas,reserved))return fail("resident upload");
