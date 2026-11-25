@@ -11,6 +11,7 @@
 #include "btb/bink32_surface_convert.hpp"
 
 #if defined(_WIN32)
+#include <algorithm>
 #include <cstdint>
 #include <limits>
 #include <string>
@@ -136,7 +137,7 @@ void Win32OriginalDirectDraw::release_cached_bitmaps() noexcept {
         (void)registry_->unregister_surface_reference(&entry.surface);
         release_surface(entry.surface);
     }
-    images_.clear();packed_bitmaps_.clear();packed_bitmap_bytes_=0;
+    images_.clear();packed_bitmaps_.clear();packed_bitmap_bytes_=0;packed_bitmap_clock_=0;
 }
 
 void Win32OriginalDirectDraw::shutdown() noexcept {
@@ -258,9 +259,29 @@ bool Win32OriginalDirectDraw::blit_packed_bitmap(const ResolvedDraw& requested,s
         const auto bytes=decoded.bgra.size();
         constexpr std::size_t budget=64*1024*1024;
         if(bytes>budget){error="packed bitmap exceeds cache budget: "+path.string();return false;}
-        PackedBitmap b{decoded.width,decoded.height,std::move(decoded.bgra)};
-        if(packed_bitmap_bytes_+bytes>budget){packed_bitmaps_.clear();packed_bitmap_bytes_=0;}
-        packed_bitmap_bytes_+=bytes;it=packed_bitmaps_.emplace(path,std::move(b)).first;
+        // Keep frequently reused retail artwork resident. Clearing the
+        // entire cache at 64 MiB caused reload churn in large activities.
+        while(packed_bitmap_bytes_>budget-bytes && !packed_bitmaps_.empty()) {
+            const auto oldest=std::min_element(packed_bitmaps_.begin(),packed_bitmaps_.end(),
+                [](const auto& a,const auto& b){return a.second.last_used<b.second.last_used;});
+            packed_bitmap_bytes_-=oldest->second.pixels.size();
+            packed_bitmaps_.erase(oldest);
+        }
+        auto use=++packed_bitmap_clock_;
+        if(use==0) {
+            for(auto& [_,entry]:packed_bitmaps_)entry.last_used=0;
+            packed_bitmap_clock_=use=1;
+        }
+        PackedBitmap b{decoded.width,decoded.height,std::move(decoded.bgra),use};
+        packed_bitmap_bytes_+=bytes;
+        it=packed_bitmaps_.emplace(path,std::move(b)).first;
+    } else {
+        auto use=++packed_bitmap_clock_;
+        if(use==0) {
+            for(auto& [_,entry]:packed_bitmaps_)entry.last_used=0;
+            packed_bitmap_clock_=use=1;
+        }
+        it->second.last_used=use;
     }
     const auto& b=it->second;
     if(!packed_scene_.blit(b.pixels,b.width,b.height,requested.original)){error="packed sprite rectangle invalid: "+requested.original.source_asset;return false;}

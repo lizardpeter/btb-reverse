@@ -121,10 +121,11 @@ private:
     [[nodiscard]] bool restore_lost_surfaces(std::string& error);
     void release_cached_bitmaps() noexcept;
 
-    struct PackedBitmap{unsigned width{},height{};std::vector<std::uint8_t> pixels;};
+    struct PackedBitmap{unsigned width{},height{};std::vector<std::uint8_t> pixels;std::uint64_t last_used{};};
     PackedScene packed_scene_{};
     std::unordered_map<std::filesystem::path,PackedBitmap> packed_bitmaps_;
     std::size_t packed_bitmap_bytes_{};
+    std::uint64_t packed_bitmap_clock_{};
     bool blit_packed_bitmap(const ResolvedDraw&,std::string&);
     HWND hwnd_{};
     HWND dialog_owner_{};
