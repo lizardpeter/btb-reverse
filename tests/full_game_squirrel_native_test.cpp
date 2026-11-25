@@ -39,6 +39,31 @@ int main() {
         f<<"7\n105 79\n1 2 2 3\n70\n";
         f<<"110 0 234 146 384 177 362 203 172 0\n";
     }
+    // The retail actor and squirrel run advance independently. An early
+    // selection in the initial approach must not be dropped merely
+    // because 00425F40 is still animating.
+    {
+        btb::retail::OriginalRetailRandom early_rng{7};
+        fg::SquirrelDriver early(root,0,&early_rng);
+        std::string error;
+        assert(early.initialize(0,error));
+        assert(early.animating()&&early.run_section()==0);
+        assert(early.choices()[0].active&&early.choices()[0].correct);
+        const auto origin=sq::kConveyorItemOrigins[0];
+        auto frame=early.advance({.pointer_x=origin.x+10,
+            .pointer_y=origin.y+10,.click_pulse=true});
+        assert(!frame.fatal_error);
+        assert(early.animating()&&early.run_section()==0);
+        assert(early.placement().state!=sq::PlacementState::IdleSelect);
+        assert(early.placement().selected==0&&early.placed_count()==0);
+        int ticks=0;
+        while(early.placed_count()==0&&ticks++<1000) {
+            frame=early.advance({});
+            assert(!frame.fatal_error);
+        }
+        assert(early.placed_count()==1&&early.conveyor_phase()==1);
+        assert(early.unload(error));
+    }
     btb::retail::OriginalRetailRandom rng{7};
     for(int difficulty=0;difficulty<3;++difficulty) {
         fg::GameRoot game;

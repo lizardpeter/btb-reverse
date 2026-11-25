@@ -389,8 +389,12 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         }
         return out;
     }
-    if(animating_ || conveyor_.phase!=0 || assembly_.run_section<=placed_count_*2)return out;
+    // 004273F0 gates selection on idle Lofty + stationary conveyor +
+    // run_section < 6, not on whether the squirrel itself is animating.
+    // This permits the player to choose during the initial approach.
+    if(conveyor_.phase!=0)return out;
     if(placed_count_>=3) {
+        if(!squirrel::run_reached_level_end(assembly_.run_section))return out;
         if(level_==difficulty_) {
             complete_=true;completion_stage_=0;
             out.audio.push_back({AudioOperation::StopManagedSounds});
@@ -401,7 +405,7 @@ ActivityFrameOutput SquirrelDriver::advance_gameplay(
         }
         return out;
     }
-    if(!input.click_pulse)return out;
+    if(assembly_.run_section>=6 || !input.click_pulse)return out;
     for(std::size_t i=0;i<choices_.size();++i) {
         const auto& target=squirrel::kConveyorItemOrigins[i];
         if(input.pointer_x<=target.x ||
