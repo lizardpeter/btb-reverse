@@ -34,9 +34,9 @@ inline bool make_sprite_job(SpriteJob& job,const full_game::Draw& draw,
 }
 // Reverse-order lists allow the shader to stop at the first opaque pixel.
 // Painter order is exact, including multiple overlapping keyed sprites.
-inline bool pack_sprite_batch(std::span<const SpriteJob> jobs,
-    std::span<const std::uint32_t> atlas,std::vector<std::uint32_t>& words) {
-    if(jobs.size()>8192||atlas.size()>batch_word_limit)return false;
+inline bool pack_sprite_metadata(std::span<const SpriteJob> jobs,
+    std::size_t atlas_size,std::size_t reserved_atlas_base,std::vector<std::uint32_t>& words) {
+    if(jobs.size()>8192||atlas_size>batch_word_limit)return false;
     std::array<std::vector<std::uint32_t>,tile_count> bins;
     std::size_t total_indices=0;
     for(std::size_t n=jobs.size();n>0;--n){
@@ -45,7 +45,7 @@ inline bool pack_sprite_batch(std::span<const SpriteJob> jobs,
         if(!j.stride||j.dst_x>=640||j.dst_y>=480||j.width>640-j.dst_x||
            j.height>480-j.dst_y||j.src_x>=j.stride||j.width>j.stride-j.src_x)return false;
         const std::uint64_t last=std::uint64_t(j.atlas)+(std::uint64_t(j.src_y)+j.height-1)*j.stride+j.src_x+j.width-1;
-        if(last>=atlas.size())return false;
+        if(last>=atlas_size)return false;
         for(unsigned y=j.dst_y/tile_size;y<=(j.dst_y+j.height-1)/tile_size;++y)
             for(unsigned x=j.dst_x/tile_size;x<=(j.dst_x+j.width-1)/tile_size;++x){
                 bins[y*tiles_x+x].push_back(std::uint32_t(n-1));++total_indices;
@@ -53,9 +53,10 @@ inline bool pack_sprite_batch(std::span<const SpriteJob> jobs,
     }
     const auto job_base=header_words+tile_words;
     const auto index_base=job_base+jobs.size()*job_words;
-    const auto atlas_base=index_base+total_indices;
-    if(atlas_base>batch_word_limit||atlas.size()>batch_word_limit-atlas_base)return false;
-    words.resize(atlas_base+atlas.size());
+    const auto metadata_size=index_base+total_indices;
+    const auto atlas_base=reserved_atlas_base?reserved_atlas_base:metadata_size;
+    if(metadata_size>atlas_base||atlas_base>batch_word_limit||atlas_size>batch_word_limit-atlas_base)return false;
+    words.resize(metadata_size);
     words[0]=std::uint32_t(job_base);words[1]=std::uint32_t(index_base);
     words[2]=std::uint32_t(atlas_base);words[3]=std::uint32_t(jobs.size());
     std::size_t cursor=0;
@@ -70,8 +71,19 @@ inline bool pack_sprite_batch(std::span<const SpriteJob> jobs,
         p[4]=j.dst_x;p[5]=j.dst_y;p[6]=j.width;
         p[7]=j.height|(j.keyed?0x80000000U:0);
     }
-    std::copy(atlas.begin(),atlas.end(),words.begin()+atlas_base);
     return true;
+}
+inline bool pack_sprite_batch(std::span<const SpriteJob> jobs,
+    std::span<const std::uint32_t> atlas,std::vector<std::uint32_t>& words){
+    if(!pack_sprite_metadata(jobs,atlas.size(),0,words))return false;
+    const auto base=words[2];words.resize(base+atlas.size());
+    std::copy(atlas.begin(),atlas.end(),words.begin()+base);return true;
+}
+// Worst-case tile coverage reserves stable atlas offsets for every possible
+// visible subset of the current draw stream (including offscreen sprites).
+constexpr std::size_t reserve_atlas_base(std::size_t draws) noexcept {
+    if(draws>8192)return 0;
+    return header_words+tile_words+draws*(job_words+tile_count);
 }
 // Portable oracle for shader test vectors; not used by the renderer.
 inline std::uint32_t sprite_batch_pixel(std::span<const std::uint32_t> w,unsigned x,unsigned y,bool bgra=false) {

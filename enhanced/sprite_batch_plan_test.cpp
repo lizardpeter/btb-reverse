@@ -26,5 +26,14 @@ int main(){
     b.atlas=100;
     if(pack_sprite_batch(std::array{b},atlas,words))return 9;
     if(!pack_sprite_batch({}, {},words)||sprite_batch_pixel(words,639,479)!=0xff000000)return 10;
+    back.destination_clip.reset();
+    if(!make_sprite_job(b,back,2,2,0))return 11;
+    const auto base=reserve_atlas_base(2);
+    if(!pack_sprite_metadata(std::array{b},atlas.size(),base,words)||words.size()>=base||words[2]!=base)return 12;
+    words.resize(base+atlas.size());std::copy(atlas.begin(),atlas.end(),words.begin()+base);
+    if(sprite_batch_pixel(words,31,31)!=0xff0000ff)return 13;
+    if(pack_sprite_metadata(std::array{b},atlas.size(),1,words))return 14;
+    if(pack_sprite_metadata(std::array{b},batch_word_limit,base,words))return 15;
+    if(reserve_atlas_base(8193)!=0)return 16;
     return 0;
 }

@@ -4,6 +4,7 @@
 #include "vulkan_sprite_batch.hpp"
 #include "frame_pacing.hpp"
 #include "cursor_runs.hpp"
+#include "sprite_motion.hpp"
 #include <chrono>
 #include <vulkan/vulkan.h>
 #include <algorithm>
@@ -77,7 +78,10 @@ class VulkanPresenter final:public full_game::Win32FrameOutput {
     LONG_PTR style_{};
     DiscordPresence presence_;
     VulkanSpriteBatch sprite_batch_;
-    bool sprites_enabled_{env_flag(L"BTB_GPU_SPRITES")};
+    bool interpolate_{env_flag(L"BTB_INTERPOLATE_SPRITES")};
+    bool sprites_enabled_{env_flag(L"BTB_GPU_SPRITES")||interpolate_};
+    SpriteMotion motion_;
+    bool interpolation_needs_upload_{};
     bool video_enabled_{env_flag(L"BTB_GPU_BINK")};
     full_game::OpaqueGlobalVideo latest_video_{};
     bool latest_bitmap_frame_{};
@@ -311,6 +315,7 @@ public:
     }
     bool present(const display::PackedFrameSnapshot& frame,std::string& error) override {
         if(!frame.valid()||frame.width!=640||frame.height!=480){error="Invalid composed game frame";return false;}
+        motion_.reset();interpolation_needs_upload_=false;
         latest_=frame;upload_pending_=true;latest_bitmap_frame_=false;latest_draws_.clear();latest_video_.clear();latest_cursor_=false;++source_updates_;
         return draw_latest(error);
     }
@@ -318,12 +323,16 @@ public:
     bool present_bitmap_frame(const display::PackedFrameSnapshot& frame,
         const std::vector<full_game::ResolvedDraw>& draws,std::string& error) override {
         if(!frame.valid()||frame.width!=640||frame.height!=480){error="Invalid bitmap frame";return false;}
+        // Only cursorless ordinary-cursor scenes are eligible: carried
+        // objects and activity-specific cursors must track their source tick.
+        motion_.reset();interpolation_needs_upload_=false;
         latest_=frame;upload_pending_=true;latest_bitmap_frame_=true;latest_draws_=draws;latest_video_.clear();latest_cursor_=false;++source_updates_;
         return draw_latest(error);
     }
     bool supports_opaque_video() const noexcept override{return video_enabled_;}
     bool present_opaque_video(const display::PackedFrameSnapshot& frame,const full_game::OpaqueGlobalVideo& video,std::string& error) override {
         if(!frame.valid()||frame.width!=640||frame.height!=480||!video.valid()){error="Invalid native opaque video frame";return false;}
+        motion_.reset();interpolation_needs_upload_=false;
         latest_=frame;latest_video_=video;latest_bitmap_frame_=false;latest_draws_.clear();upload_pending_=true;latest_cursor_=false;++source_updates_;
         return draw_latest(error);
     }
@@ -337,6 +346,9 @@ public:
         if(draws&&!draws->empty()&&draws->back().original.source_asset==cursor.original.source_asset){
             latest_draws_.assign(draws->begin(),draws->end()-1);latest_bitmap_frame_=true;
         }
+        if(interpolate_&&latest_bitmap_frame_)motion_.ingest(latest_draws_,now_ns());
+        else motion_.reset();
+        interpolation_needs_upload_=false;
         return draw_latest(error);
     }
     bool wants_idle_present() const noexcept override {return true;}
@@ -365,10 +377,15 @@ public:
         if(result==VK_NOT_READY||result==VK_TIMEOUT){error.clear();return true;}
         if(result==VK_SUBOPTIMAL_KHR)dirty_=true;
         else if(!vk_ok(result,"acquire swapchain image",error))return false;
-        const bool upload=upload_pending_||!source_initialized_;
+        // Sample only after successful acquire/fence checks, so an ignored
+        // present cannot consume the interpolation's final exact sample.
+        if(interpolate_&&motion_.sample(now))interpolation_needs_upload_=true;
+        const bool upload=upload_pending_||!source_initialized_||interpolation_needs_upload_;
+        const auto* sample=motion_.current_sample();
+        const auto& render_draws=sample?*sample:latest_draws_;
         const bool bgra=format_==VK_FORMAT_B8G8R8A8_UNORM||format_==VK_FORMAT_B8G8R8A8_SRGB;
         const bool rgb888=latest_.format.bytes==4&&latest_.format.red==0xff0000U&&latest_.format.green==0xff00U&&latest_.format.blue==0xffU;
-        const bool gpu_sprites=upload&&sprites_enabled_&&latest_bitmap_frame_&&rgb888&&sprite_batch_.prepare(latest_draws_);
+        const bool gpu_sprites=upload&&sprites_enabled_&&latest_bitmap_frame_&&rgb888&&sprite_batch_.prepare(render_draws);
         const bool gpu_video=upload&&video_enabled_&&!gpu_sprites&&rgb888&&latest_video_.valid()&&sprite_batch_.prepare_opaque_video(latest_video_);
         const bool compute=gpu_sprites||gpu_video;
         if(upload&&!compute){
@@ -437,7 +454,7 @@ public:
         submit.waitSemaphoreCount=1;submit.pWaitSemaphores=&acquired_;submit.pWaitDstStageMask=&wait;
         submit.commandBufferCount=1;submit.pCommandBuffers=&cmd_;submit.signalSemaphoreCount=1;submit.pSignalSemaphores=&ready_[index];
         if(!vk_ok(vkQueueSubmit(queue_,1,&submit,fence_),"submit Vulkan frame",error))return false;
-        source_initialized_=true;upload_pending_=false;
+        source_initialized_=true;upload_pending_=false;interpolation_needs_upload_=false;
         VkPresentInfoKHR p{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
         p.waitSemaphoreCount=1;p.pWaitSemaphores=&ready_[index];p.swapchainCount=1;p.pSwapchains=&chain_;p.pImageIndices=&index;
         result=vkQueuePresentKHR(queue_,&p);
@@ -446,7 +463,7 @@ public:
         if(result==VK_SUCCESS||result==VK_SUBOPTIMAL_KHR){++submitted_frames_;pacer_.submitted(now_ns());}
         error.clear();return true;
     }
-    void state_changed(int state) noexcept override {presence_.update(state);}
+    void state_changed(int state) noexcept override {presence_.update(state);motion_.state_changed(state);}
     void map_pointer(int& x,int& y,int w,int h) const noexcept override {enhanced::map_pointer(x,y,viewport(w,h,integer_));}
     void toggle_borderless() noexcept override {
         if(!borderless_){

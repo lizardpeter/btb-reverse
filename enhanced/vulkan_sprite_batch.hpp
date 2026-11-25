@@ -19,6 +19,12 @@ class VulkanSpriteBatch {
     std::size_t cached_words_{};
     std::vector<std::uint32_t> atlas_,words_;
     std::vector<SpriteJob> jobs_;
+    struct ResidentBitmap {unsigned width,height;std::uint32_t offset;};
+    std::unordered_map<std::filesystem::path,ResidentBitmap> resident_;
+    std::vector<std::filesystem::path> resident_order_;
+    std::size_t resident_base_{},resident_size_{};
+    bool resident_valid_{};
+    void invalidate_resident() noexcept{resident_valid_=false;}
     bool buffer(Buffer&,VkDeviceSize,VkBufferUsageFlags,std::string&);
     void destroy(Buffer&) noexcept;
     Bitmap* load(const std::filesystem::path&);

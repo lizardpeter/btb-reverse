@@ -520,7 +520,10 @@ struct Host {
         callbacks.present_original_game_frame=+[](void* context)
             ->original_active_frame::U32 {
             auto& h=*static_cast<Host*>(context);
-            try{return h.session->present_prepared(h.error)?0U:0x80004005U;}
+            try{
+                if(h.output)h.output->state_changed(h.game.globals().dispatcher.current_state);
+                return h.session->present_prepared(h.error)?0U:0x80004005U;
+            }
             catch(const std::exception& e){h.error=std::string("Native present exception: ")+e.what();return 0x80004005U;}
             catch(...){h.error="Unknown native present exception";return 0x80004005U;}
         };

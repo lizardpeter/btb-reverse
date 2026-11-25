@@ -119,32 +119,48 @@ VulkanSpriteBatch::Bitmap* VulkanSpriteBatch::load(const std::filesystem::path& 
 }
 bool VulkanSpriteBatch::prepare(const std::vector<full_game::ResolvedDraw>& draws){
     if(!pipeline_||draws.size()>8192)return false;
-    atlas_.clear();jobs_.clear();
-    std::unordered_map<std::filesystem::path,std::uint32_t> offsets;
-    for(const auto& d:draws){
-        if(!d.source.found())return false;
-        const auto& path=d.source.absolute_path;
-        const auto* b=load(path);
-        if(!b)return false;
-        auto it=offsets.find(path);
-        if(it==offsets.end()){
-            if(b->pixels.size()>batch_word_limit-atlas_.size())return false;
+    const auto reserved=reserve_atlas_base(draws.size());
+    if(!reserved)return false;
+    bool reuse=resident_valid_&&resident_base_==reserved&&resident_order_.size()==draws.size();
+    for(std::size_t i=0;i<draws.size();++i){
+        if(!draws[i].source.found())return false;
+        if(reuse&&resident_order_[i]!=draws[i].source.absolute_path)reuse=false;
+    }
+    jobs_.clear();
+    if(!reuse){
+        invalidate_resident();resident_.clear();resident_order_.clear();atlas_.clear();
+        for(const auto& d:draws){
+            const auto& path=d.source.absolute_path;resident_order_.push_back(path);
+            if(resident_.contains(path))continue;
+            const auto* b=load(path);if(!b)return false;
+            if(reserved>batch_word_limit||b->pixels.size()>batch_word_limit-reserved-atlas_.size())return false;
             const auto offset=std::uint32_t(atlas_.size());
             atlas_.insert(atlas_.end(),b->pixels.begin(),b->pixels.end());
-            it=offsets.emplace(path,offset).first;
+            resident_.emplace(path,ResidentBitmap{b->width,b->height,offset});
         }
-        SpriteJob job{};
-        if(!make_sprite_job(job,d.original,b->width,b->height,it->second))return false;
+        resident_base_=reserved;resident_size_=atlas_.size();
+        // Stable artwork occupies a separate reserved tail of the existing
+        // mapped buffer. On high-refresh redraws only metadata is copied.
+        std::memcpy(static_cast<std::uint32_t*>(input_.mapped)+resident_base_,atlas_.data(),resident_size_*4);
+        resident_valid_=true;
+    }
+    for(const auto& d:draws){
+        const auto& b=resident_.at(d.source.absolute_path);SpriteJob job{};
+        if(!make_sprite_job(job,d.original,b.width,b.height,b.offset))return false;
         if(job.width&&job.height)jobs_.push_back(job);
     }
-    return prepare_jobs(jobs_,atlas_);
+    if(!pack_sprite_metadata(jobs_,resident_size_,resident_base_,words_))return false;
+    std::memcpy(input_.mapped,words_.data(),words_.size()*4);
+    video_pending_=false;return true;
 }
 bool VulkanSpriteBatch::prepare_jobs(std::span<const SpriteJob> jobs,std::span<const std::uint32_t> atlas){
+    invalidate_resident();
     if(!input_.mapped||!pack_sprite_batch(jobs,atlas,words_))return false;
     std::memcpy(input_.mapped,words_.data(),words_.size()*4);
     video_pending_=false;return true;
 }
 bool VulkanSpriteBatch::prepare_opaque_video(const full_game::OpaqueGlobalVideo& video){
+    invalidate_resident();
     if(!video_pipeline_||!input_.mapped||!video.valid())return false;
     auto* words=static_cast<std::uint32_t*>(input_.mapped);
     std::size_t cursor=4;

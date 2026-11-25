@@ -14,7 +14,10 @@ int main(){
     if(!presenter->initialize(hwnd,error)){
         presenter->shutdown();DestroyWindow(hwnd);
         std::cerr<<error<<'\n';
-        if(error.starts_with("No Vulkan 1.4 graphics/present device")||error.starts_with("Vulkan 1.4 loader unavailable"))return 77;
+        if(error.starts_with("No Vulkan 1.4 graphics/present device")||error.starts_with("Vulkan 1.4 loader unavailable")||
+           error=="create Vulkan 1.4 instance failed (VkResult -9)"){
+            std::cout<<"SKIP: no compatible Vulkan 1.4 presentation driver\n";return 77;
+        }
         return 1;
     }
     display::PackedFrameSnapshot frame;
